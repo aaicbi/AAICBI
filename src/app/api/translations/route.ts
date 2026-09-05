@@ -12,6 +12,8 @@ import { withApiErrors } from "@/lib/apiError";
  * a trainee, which a single shared route with conditional filtering
  * would leave open to exactly that kind of mistake.
  */
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   return withApiErrors(async () => {
     const session = await getSession();

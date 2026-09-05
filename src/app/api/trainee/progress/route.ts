@@ -15,6 +15,8 @@ import { getModuleLockMap } from "@/lib/progress";
  * reflect what they're actually doing, not the entire catalog (that's
  * what /trainee/courses is for).
  */
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiErrors(async () => {
     const session = await requireRole("TRAINEE");

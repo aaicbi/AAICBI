@@ -38,6 +38,8 @@ import { requireOwnedExam, createdByFilter } from "@/lib/courseOwnership";
  * specifically — but still gets a proper 404 for a genuinely
  * nonexistent exam id, not silent success on garbage input.
  */
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");

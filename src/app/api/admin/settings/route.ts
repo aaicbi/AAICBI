@@ -15,6 +15,8 @@ const UpdateSettingsSchema = z.object({
   darkMode: z.boolean(),
 });
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");

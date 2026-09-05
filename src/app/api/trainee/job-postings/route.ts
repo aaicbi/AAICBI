@@ -24,6 +24,8 @@ import { expireStaleJobPostings } from "@/lib/jobPostingExpiry";
  * trainees are visiting the platform, not just when an employer
  * happens to check their own list.
  */
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiErrors(async () => {
     const session = await requireRole("TRAINEE");

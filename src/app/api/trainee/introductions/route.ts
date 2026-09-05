@@ -10,6 +10,8 @@ import { withApiErrors } from "@/lib/apiError";
  * in this direction the way there is for the trainee's own contact
  * information going the other way.
  */
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiErrors(async () => {
     const session = await requireRole("TRAINEE");

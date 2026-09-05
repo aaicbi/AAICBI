@@ -17,6 +17,8 @@ import { withApiErrors } from "@/lib/apiError";
  * anything else an authenticated trainee's browsing view gets. Least
  * exposure for a genuinely public, anonymous-reachable surface.
  */
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiErrors(async () => {
     const courses = await prisma.course.findMany({

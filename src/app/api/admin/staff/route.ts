@@ -51,6 +51,8 @@ const SETUP_TOKEN_LIFETIME_MS = 48 * 60 * 60 * 1000;
  * than inventing a separate "set initial password" flow means no new
  * page was needed — /admin/reset-password already does exactly this.
  */
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiErrors(async () => {
     await requireRole("SUPER_ADMIN");

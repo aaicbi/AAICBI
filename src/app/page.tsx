@@ -38,12 +38,19 @@ import { prisma } from "@/lib/prisma";
  * established posture that nothing reaches a public audience without
  * a real human decision.
  */
+export const dynamic = "force-dynamic";
+
 export default async function LandingPage() {
-  const testimonials = await prisma.testimonial.findMany({
-    where: { published: true },
-    orderBy: { createdAt: "desc" },
-    take: 6,
-  });
+  let testimonials: Awaited<ReturnType<typeof prisma.testimonial.findMany>> = [];
+  try {
+    testimonials = await prisma.testimonial.findMany({
+      where: { published: true },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+    });
+  } catch (err) {
+    console.warn("Could not fetch testimonials for landing page:", err);
+  }
 
   return (
     <>

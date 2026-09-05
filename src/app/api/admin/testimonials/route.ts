@@ -19,6 +19,8 @@ const CreateSchema = z.object({
  * not tied to a real Trainee record — the whole point of this path is
  * covering a testimonial staff heard about outside the platform.
  */
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiErrors(async () => {
     await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");

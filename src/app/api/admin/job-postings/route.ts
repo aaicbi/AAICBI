@@ -25,6 +25,7 @@ import { expireStaleJobPostings } from "@/lib/jobPostingExpiry";
  */
 // src/app/api/admin/job-postings/route.ts
 export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiErrors(async () => {
     await requireRole("SUPER_ADMIN", "ADMIN");

@@ -19,6 +19,8 @@ const UpdateSchema = z.object({
  * non-trivial side effects (replacing which certificates are publicly
  * listed) that a bare toggle write shouldn't carry.
  */
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiErrors(async () => {
     const session = await requireRole("TRAINEE");

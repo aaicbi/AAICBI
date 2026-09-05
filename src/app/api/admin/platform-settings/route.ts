@@ -23,6 +23,8 @@ const UpdateSchema = z.object({
  * narrower, more deliberate access every other cross-cutting setting
  * in this project gets.
  */
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiErrors(async () => {
     await requireRole("SUPER_ADMIN");
