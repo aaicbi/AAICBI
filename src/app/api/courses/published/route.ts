@@ -10,6 +10,8 @@ import { withApiErrors } from "@/lib/apiError";
  * comment on the Course/Module/Lesson/Material block for why real
  * enrollment logic is out of scope until later.
  */
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiErrors(async () => {
     await requireRole("TRAINEE");

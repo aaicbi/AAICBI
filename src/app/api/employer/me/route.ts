@@ -8,6 +8,8 @@ import { withApiErrors } from "@/lib/apiError";
  * page actually needs right now (company name, approval state) rather
  * than a full settings system this milestone doesn't scope yet.
  */
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiErrors(async () => {
     const session = await requireRole("EMPLOYER");

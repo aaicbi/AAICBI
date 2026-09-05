@@ -13,6 +13,8 @@ import { withApiErrors } from "@/lib/apiError";
  * deleted the email still has a clear, always-current way to see
  * what's out of date.
  */
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiErrors(async () => {
     const session = await requireRole("TRAINEE");

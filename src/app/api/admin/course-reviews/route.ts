@@ -11,6 +11,8 @@ import { withApiErrors } from "@/lib/apiError";
  * the platform-wide-decision roles the way employer/job-posting
  * approval is.
  */
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiErrors(async () => {
     await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");

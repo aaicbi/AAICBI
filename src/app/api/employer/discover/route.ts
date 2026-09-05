@@ -13,6 +13,8 @@ import { requireApprovedEmployer } from "@/lib/employerAccess";
  * this route could otherwise leak, not just remembering to omit it at
  * render time.
  */
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiErrors(async () => {
     const session = await requireRole("EMPLOYER");

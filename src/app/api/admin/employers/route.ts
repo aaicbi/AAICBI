@@ -19,6 +19,8 @@ import { isFreeEmailProvider } from "@/lib/employerVerification";
  * address alone, so storing it would just be a redundant copy that
  * could theoretically drift, not new information.
  */
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiErrors(async () => {
     await requireRole("SUPER_ADMIN", "ADMIN");

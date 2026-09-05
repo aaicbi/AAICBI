@@ -33,6 +33,8 @@ function makeExamCode(title: string): string {
   return `${slug}-${suffix}`;
 }
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");

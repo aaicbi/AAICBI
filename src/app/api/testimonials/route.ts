@@ -8,6 +8,8 @@ import { withApiErrors } from "@/lib/apiError";
  * anyone can reach without logging in — everything staff sees stays
  * behind the admin routes above.
  */
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiErrors(async () => {
     const testimonials = await prisma.testimonial.findMany({

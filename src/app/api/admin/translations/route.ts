@@ -13,6 +13,8 @@ import { withApiErrors } from "@/lib/apiError";
  * one Yoruba speaker on staff can't review a French draft someone
  * else triggered.
  */
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiErrors(async () => {
     await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");

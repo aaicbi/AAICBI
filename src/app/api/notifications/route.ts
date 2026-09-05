@@ -16,6 +16,8 @@ import { withApiErrors } from "@/lib/apiError";
  * Returns the unread count alongside the list itself so the bell can
  * show a badge without a second request.
  */
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiErrors(async () => {
     const session = await requireRole();
