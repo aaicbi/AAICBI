@@ -370,3 +370,18 @@ textarea::placeholder {
   color: rgb(var(--gray-500));
   opacity: 1;
 }
+
+/* Every handwritten input/textarea/select in this app relies on
+   Tailwind Preflight's `color: inherit` to pick up its text color from
+   <body>, which is theme-aware and turns near-white in dark mode. None
+   of these fields set their own background, though, so they keep the
+   browser's plain white default box in both themes — real typed text
+   was inheriting near-white-on-white in dark mode, reading as very
+   faint. Fixed with a literal black (not a --gray-900 token, which
+   itself flips light in dark mode) since the white box behind it never
+   changes either. */
+input,
+textarea,
+select {
+  color: #000;
+}
