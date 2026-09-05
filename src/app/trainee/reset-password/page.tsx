@@ -1,11 +1,19 @@
 "use client";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 
 export default function TraineeResetPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <TraineeResetPasswordForm />
+    </Suspense>
+  );
+}
+
+function TraineeResetPasswordForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const router = useRouter();

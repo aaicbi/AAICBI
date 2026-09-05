@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import Logo from "@/components/Logo";
@@ -7,6 +7,14 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 
 export default function TraineeLoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <TraineeLoginForm />
+    </Suspense>
+  );
+}
+
+function TraineeLoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);

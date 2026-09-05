@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import Card from "@/components/ui/Card";
@@ -22,6 +22,14 @@ type Status = "checking" | "success" | "error";
  * welcome email sends a trainee to.
  */
 export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={null}>
+      <VerifyEmailContent />
+    </Suspense>
+  );
+}
+
+function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const [status, setStatus] = useState<Status>("checking");

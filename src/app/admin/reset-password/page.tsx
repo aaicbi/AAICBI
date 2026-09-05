@@ -1,11 +1,19 @@
 "use client";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 
 export default function AdminResetPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminResetPasswordForm />
+    </Suspense>
+  );
+}
+
+function AdminResetPasswordForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const router = useRouter();
