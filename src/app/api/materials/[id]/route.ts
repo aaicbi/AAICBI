@@ -58,9 +58,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if (parsed.data.url && parsed.data.url !== existing.url) {
       try {
         const downloads = await prisma.materialDownload.findMany({
-          where: { materialId: params.id },
-          select: { id: true, trainee: { select: { id: true, name: true, email: true } } },
-        });
+  where: { materialId: params.id },
+  select: {
+    id: true,
+    trainee: { select: { id: true, name: true, email: true, notificationsEnabled: true } },
+  },
+});
         if (downloads.length > 0) {
           // `existing` already carries lesson.module.course from
           // requireOwnedMaterial's own include — no separate query
