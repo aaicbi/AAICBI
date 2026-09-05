@@ -44,14 +44,17 @@ export default function EmployerSettingsPage() {
   }
 
   useEffect(() => {
-    // Bug fix — same root cause and reasoning as trainee/settings's
-    // own fix: don't let a possibly-stale database darkMode value
-    // overwrite the theme the root layout's pre-paint script already
-    // correctly applied from the `theme` cookie before this mounted.
     const currentlyDark = document.documentElement.classList.contains("dark");
     setDarkModeState(currentlyDark);
     fetch("/api/employer/settings")
       .then((r) => r.json())
+      .then((data) => {
+        if (!data) return;
+        if (typeof data.darkMode === "boolean") {
+          setDarkModeState(data.darkMode);
+          applyTheme(data.darkMode);
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -72,6 +75,11 @@ export default function EmployerSettingsPage() {
       applyTheme(darkMode);
       showToast("Could not save. Please try again.", "error");
       return;
+    }
+    const updated = await res.json().catch(() => null);
+    if (updated && typeof updated.darkMode === "boolean") {
+      setDarkModeState(updated.darkMode);
+      applyTheme(updated.darkMode);
     }
     showToast("Saved.", "success");
   }
@@ -101,8 +109,8 @@ export default function EmployerSettingsPage() {
                 }`}
               >
                 <span
-                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                    darkMode ? "translate-x-5" : "translate-x-0.5"
+                  className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                    darkMode ? "translate-x-5" : "translate-x-0"
                   }`}
                 />
               </button>
