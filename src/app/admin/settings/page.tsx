@@ -31,18 +31,24 @@ export default function AdminSettingsPage() {
     const currentlyDark = document.documentElement.classList.contains("dark");
     setDarkModeState(currentlyDark);
     fetch("/api/admin/settings")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to load settings");
+        return r.json();
+      })
       .then((data) => {
         if (!data) return;
         if (typeof data.aiAssistantEnabled === "boolean") setAiAssistantEnabled(data.aiAssistantEnabled);
         if (typeof data.darkMode === "boolean") {
           setDarkModeState(data.darkMode);
           applyTheme(data.darkMode);
+        } else {
+          setDarkModeState(currentlyDark);
         }
         setAvatarUrl(data.avatarUrl ?? null);
       })
       .catch(() => {
-        setAiAssistantEnabled(false);
+        setAiAssistantEnabled((prev) => prev ?? false);
+        setDarkModeState((prev) => prev ?? currentlyDark);
       });
   }, []);
 

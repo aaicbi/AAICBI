@@ -39,11 +39,24 @@ import { prisma } from "@/lib/prisma";
  * a real human decision.
  */
 export default async function LandingPage() {
-  const testimonials = await prisma.testimonial.findMany({
-    where: { published: true },
-    orderBy: { createdAt: "desc" },
-    take: 6,
-  });
+  let testimonials: Array<{
+    id: string;
+    quote: string;
+    traineeName: string;
+    courseTitle: string | null;
+    rating: number | null;
+    courseReviewId: string | null;
+    createdAt: Date;
+  }> = [];
+  try {
+    testimonials = await prisma.testimonial.findMany({
+      where: { published: true },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+    });
+  } catch {
+    testimonials = [];
+  }
 
   return (
     <>
