@@ -23,6 +23,8 @@ import { expireStaleJobPostings } from "@/lib/jobPostingExpiry";
  * Sweeps stale postings first so a genuinely expired one is never
  * shown to staff as a stale "APPROVED."
  */
+// src/app/api/admin/job-postings/route.ts
+export const dynamic = "force-dynamic";
 export async function GET() {
   return withApiErrors(async () => {
     await requireRole("SUPER_ADMIN", "ADMIN");
