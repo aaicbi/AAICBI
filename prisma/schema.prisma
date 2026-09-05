@@ -1,0 +1,1967 @@
+// AAICBI LMS — core data model (M9: foundation, M10: course structure,
+// M11: bank-backed module assessments)
+// Ported from cbt-platform-scaffold's schema, adapted for persistent
+// trainee accounts and four real roles. Course/Module/Lesson/Material
+// are new in M10. See references/architecture.md for what's here vs.
+// what's coming.
+//
+// M11 design decision, worth being explicit about: the milestone doc's
+// own extension-points note gave two options for scoping Question to a
+// Module — "scope Question to a Module instead of a standalone Exam, OR
+// add a Module relation alongside Exam if you want to support both
+// shapes during a transition." This schema takes the second option:
+// Exam gets an optional, unique `moduleId` rather than Question moving
+// wholesale to a new Module-owned bank table. A module's bank-backed
+// assessment IS an Exam row with `moduleId` set — one Exam per Module,
+// enforced by the `@unique` below.
+//
+// Why: Exam already carries every field a module assessment needs
+// (durationMinutes, passMarkPercent, numQuestions, maxAttempts,
+// randomize flags, published, showCorrectAnswers, etc.) and Question/
+// Option/Attempt/Answer already hang off it correctly. Re-pointing
+// Question at Module directly would mean rebuilding all of that shape
+// on a new model and rewriting examEngine.ts, when the roadmap itself
+// says this milestone "reuses, extended rather than rebuilt." The old
+// by-code, non-module Exam flow (src/app/exam/[code]/*, still reachable
+// via src/app/exam/enter) keeps working untouched for any exam that
+// isn't attached to a course — moduleId stays null for those. See
+// references/milestone-extension-points.md.
+generator client {
+  provider        = "prisma-client-js"
+  // Required for the Question.embedding column below (pgvector's
+  // `vector` type isn't one of Prisma's built-in scalar types — this
+  // preview feature is what lets schema.prisma declare an
+  // `Unsupported("vector(512)")` column at all, alongside the `vector`
+  // extension declared on the datasource).
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  // M11: duplicate-detection embeddings need the pgvector extension.
+  // Neon (this project's recommended host, per the deployment guide)
+  // supports `CREATE EXTENSION vector` on its free tier — this line
+  // makes Prisma issue that statement itself on `db push`/`migrate`,
+  // rather than a developer having to remember a manual SQL step.
+  extensions = [vector]
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  INSTRUCTOR
+  TRAINEE
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum QuestionType {
+  SINGLE_CHOICE
+  // MULTI_SELECT, TRUE_FALSE, FILL_BLANK, SHORT_ANSWER, MATCHING — future types.
+  // Keep this enum, add variants here; the exam engine already treats
+  // question rendering as a switch on `type`, so new types plug in cleanly.
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  EXPIRED
+}
+
+enum MaterialType {
+  PDF
+  DOCX
+  PPTX
+  VIDEO // a URL — see the "video hosting" note in the roadmap under M10:
+        // this is an unlisted YouTube link, not a self-hosted file. The
+        // access control that matters is the trainee having to be logged
+        // in and enrolled to reach the lesson page at all — see
+        // requireRole("TRAINEE") in the course/module/lesson GET routes.
+}
+
+// M9 audit finding #1: the original rate limiter stored counts in an
+// in-memory Map, which only works correctly on a single, persistent
+// Node process — the README recommends Vercel, which runs API routes as
+// serverless functions with no guaranteed shared memory between
+// invocations. This table makes the counter a real, shared fact instead
+// of a per-instance guess, at the cost of a database round-trip per
+// auth request — an acceptable trade for what's actually a security
+// control, not a hot path. See src/lib/rateLimit.ts for the read-then-
+// write logic and its own honestly-documented residual race window.
+model RateLimitBucket {
+  id      String   @id // the rate-limit key itself, e.g. "trainee-login:203.0.113.1:a@b.com"
+  count   Int      @default(1)
+  resetAt DateTime
+
+  @@index([resetAt])
+}
+
+// Staff account — super admin, admin, or instructor. Unchanged in shape
+// from the CBT scaffold's `User` model; only the Role enum grew.
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(INSTRUCTOR)
+  createdAt    DateTime @default(now())
+  // Password reset — M9 audit finding #3: there was no recovery path at
+  // all for staff or trainees who forget their password. Same
+  // token+expiry shape as Trainee.verifyToken below.
+  resetToken          String?   @unique
+  resetTokenExpiresAt DateTime?
+  // M47 — the staff-facing counterpart to M45's trainee toggle, off by
+  // default for the same reason every other feature ahead of its own
+  // Session 2 AI capability has been: inert until that reporting/
+  // management assistant actually exists to check it. Deliberately no
+  // credit system alongside this one — that was a real, explicit
+  // scope decision (a staff tool isn't metered the way a trainee-
+  // facing one is), not an oversight matching M45's shape by default.
+  aiAssistantEnabled Boolean @default(false)
+  // M46 — same reasoning as Trainee.darkMode above: off by default,
+  // a real per-user database preference rather than a local browser
+  // setting.
+  darkMode Boolean @default(true)
+  // M44 — see Trainee.avatarUrl's own comment for the full reasoning;
+  // identical field, same real Vercel Blob storage, just on the staff
+  // side.
+  avatarUrl String?
+
+  exams   Exam[]
+  courses Course[]
+  // Post-M15 milestone: every cooldown override this staff member has
+  // personally granted — the audit trail, not an untracked backdoor.
+  cooldownOverridesGranted CooldownOverride[]
+  // Post-M15 milestone: every ADMIN_GRANTED course enrollment this
+  // staff member personally created — same audit-trail reasoning as
+  // cooldownOverridesGranted directly above.
+  courseEnrollmentsGranted CourseEnrollment[]
+  // M42 — every UI string translation this staff member has personally
+  // approved. Same audit-trail reasoning as cooldownOverridesGranted
+  // and courseEnrollmentsGranted above — a name attached to the
+  // decision, not an untracked "someone clicked approve."
+  translationsApproved UiStringTranslation[]
+  // M45 — every AI credit grant/adjustment this staff member has
+  // personally made. Same audit-trail reasoning as the relations
+  // above — null on the grant side means an automatic system grant
+  // (e.g. from a paid subscription), never null here, since this side
+  // only exists for grants a real person actually made.
+  aiCreditGrantsIssued AiCreditGrant[]
+  // M41 — every Q&A moderation action this staff member has personally
+  // issued. Same audit-trail reasoning as the relations above.
+  qaModerationActionsIssued QaModerationAction[]
+  // M30 — every employer account this staff member has personally
+  // approved or rejected, and every job posting they've personally
+  // reviewed. Same real audit-trail reasoning as the relations above,
+  // not a bare status flag with no record of who decided.
+  employersApproved Employer[]
+  jobPostingsReviewed JobPosting[]
+  testimonialsCreated Testimonial[]
+}
+
+// Real, persistent trainee account — the key M9 change. Replaces the old
+// CBT scaffold's `Student` model, which had no login and was created
+// fresh per exam attempt. A Trainee registers once, verifies their
+// email, and comes back across many courses and attempts over time.
+model Trainee {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  passwordHash  String
+  phone         String?
+  // M43 — mirrors emailVerified/verifyToken's shape for "is this
+  // channel confirmed," combined with M28's OTP shape (a short code +
+  // expiry, not a clickable link — a phone number doesn't have
+  // anywhere to click a link the way email does). `whatsappOptIn` is
+  // deliberately separate from just having a phone number on file —
+  // a trainee explicitly choosing this channel, not an assumption
+  // from data that's already there. Verification itself genuinely
+  // can't complete until WhatsApp sending is actually live (see
+  // whatsapp.ts's own comment) — the OTP would need to go out over
+  // the very channel being confirmed, so this whole flow is honestly
+  // blocked the same way the rest of this milestone is, not a gap
+  // specific to verification.
+  whatsappOptIn        Boolean   @default(false)
+  whatsappVerifiedAt   DateTime?
+  whatsappOtpCode      String?
+  whatsappOtpExpiresAt DateTime?
+  // M38 — added specifically because the audit caught this app claiming
+  // to have login-tracking data it didn't actually have: sessions are
+  // stateless JWTs (see src/lib/auth/session.ts) that never touch the
+  // database on login. Set explicitly by the trainee-login route on
+  // every successful login, not inferred from anything else.
+  lastLoginAt   DateTime?
+  emailVerified Boolean   @default(false)
+  verifyToken   String?   @unique
+  // M9 audit finding #6: a verify token originally had no expiry at
+  // all — a leaked or old, unused verification link would work forever,
+  // whenever someone eventually clicked it. Tokens are now generated
+  // with a 48-hour lifetime (see register/route.ts); verify-email/
+  // route.ts checks this before accepting one.
+  verifyTokenExpiresAt DateTime?
+  // Password reset — same reasoning as User.resetToken above.
+  resetToken          String?   @unique
+  resetTokenExpiresAt DateTime?
+  // NDPA consent — recorded, not just asked. A checkbox in the UI that
+  // isn't persisted anywhere is not evidence of anything; this is the
+  // actual auditable record that a specific account agreed to the
+  // privacy policy, and when. Null means "never consented" (shouldn't
+  // be possible for any account created after this field was added —
+  // register/route.ts requires it — but null is the honest state for
+  // any row that predates this change).
+  privacyConsentAt DateTime?
+  createdAt        DateTime  @default(now())
+
+  // M14 — gates the two OPTIONAL notification types (module unlocked,
+  // assessment result), never the essential/security-critical ones
+  // (verify-email, password reset) — those always send regardless,
+  // the same way a bank doesn't let you opt out of a fraud alert.
+  // Defaults true so notifications work out of the box. A trainee can
+  // change this themselves at /trainee/settings (PUT
+  // /api/trainee/settings) — closed after M14/M15's own audits
+  // flagged this as "field exists, no way to use it except direct DB
+  // access."
+  notificationsEnabled Boolean @default(true)
+  // M39 — trainee-toggleable, off by default (auto-loading video the
+  // way it already worked before this milestone is the reasonable
+  // default; low-bandwidth mode is the opt-in, not the other way
+  // around). Genuinely additive on top of the click-to-play behavior
+  // that already applies to every trainee regardless of this setting
+  // — this only changes whether the thumbnail *image* itself loads
+  // automatically before a trainee taps anything, not whether the
+  // video player does (it never did, for anyone, since the earlier
+  // click-to-play fix).
+  lowBandwidthMode Boolean @default(false)
+  // M42 (technical piece only) — a language preference, off (English)
+  // by default. Deliberately a plain string, not an enum: this only
+  // needs to distinguish "English" from "Pidgin" today, but a string
+  // means adding a third language later never needs a migration,
+  // consistent with the same reasoning already used for Badge's
+  // threshold field. The actual course-content translation work this
+  // preference will eventually apply to is explicitly NOT part of
+  // this field — see M42's own roadmap entry for why that's separate,
+  // ongoing work with no real "done."
+  preferredLanguage String @default("en")
+  // M46 — off (light) by default, matching this app's actual current
+  // look rather than surprising an existing trainee with a changed
+  // appearance the first time this ships. A real per-user database
+  // preference, not a local browser setting, so it follows a trainee
+  // across devices the same way every other setting on this page
+  // already does.
+  darkMode Boolean @default(true)
+  // A real, dedicated per-account field, matching the same
+  // "database preference, not a local browser setting" reasoning
+  // darkMode's own comment above already states — a trainee's
+  // onboarding-seen status should follow them across devices, not
+  // reset the moment they log in somewhere new. Nullable: null means
+  // never seen, a real timestamp means dismissed or finished — the
+  // exact date is worth keeping (unlike a bare boolean) since it's a
+  // genuine, useful signal for later ("re-show the walkthrough for
+  // anyone who saw it before the dashboard redesign shipped").
+  onboardingCompletedAt DateTime?
+  // M44 — a real, working image URL from Vercel Blob storage once a
+  // trainee uploads one, null until they do. Deliberately a genuine
+  // file upload, not the pasted-link pattern every other "media"
+  // field in this schema uses (lesson materials, videos) — that
+  // pattern exists because this app never had upload infrastructure
+  // before; this milestone is what actually builds it, and a profile
+  // picture is the first real use of it. "Sign in with Google" avatar
+  // import was raised and deliberately set aside as its own, later,
+  // separate initiative — see this field's introduction in
+  // trainee-experience-roadmap.md for the full reasoning.
+  avatarUrl String?
+  // M45 — off by default, exactly like every other feature this app
+  // has ever added ahead of the thing it gates actually existing.
+  // Inert until Session 2's actual AI feature exists to check it.
+  aiStudyBuddyEnabled Boolean @default(false)
+  // M45 — a denormalized running total, kept in sync with the sum of
+  // this trainee's AiCreditGrant rows rather than computed fresh on
+  // every read. Real balance, permanent once granted — no expiry,
+  // matching the roadmap's own explicit decision on this.
+  aiCreditBalance Int @default(0)
+
+  attempts Attempt[]
+  // M12
+  lessonProgress LessonProgress[]
+  moduleCompletions ModuleCompletion[]
+  // M15
+  certificates Certificate[]
+  // Whole-project audit recommendation: cohorts — reporting only, never
+  // an access gate (see that model's own comment).
+  enrollments EnrollmentRecord[]
+  // Post-M15 milestone: REAL course access control — deliberately a
+  // different name from `enrollments` directly above, not just a
+  // different type, since the two are genuinely different concepts
+  // that happen to share an obvious English word. Reusing the same
+  // field name here would make every future reader guess which
+  // "enrollment" a piece of code actually means.
+  courseEnrollments CourseEnrollment[]
+  // Post-M15 milestone: motivational milestone badges
+  badges Badge[]
+  // Post-M15 milestone: staff-granted cooldown overrides for this
+  // trainee specifically
+  cooldownOverrides CooldownOverride[]
+  // M38: split into two, matching the InactivityAlert/FailedAttemptsAlert split
+  inactivityAlerts     InactivityAlert[]
+  failedAttemptsAlerts FailedAttemptsAlert[]
+  // M45 — every credit grant this trainee has ever received, the
+  // ledger aiCreditBalance above is kept in sync with.
+  aiCreditGrants AiCreditGrant[]
+  materialDownloads MaterialDownload[]
+  // M41 — the fast, queryable current-state field, same pattern as
+  // CourseEnrollment.accessRevokedAt elsewhere in this schema:
+  // QaModerationAction below is the real audit trail (who, when, why),
+  // this is what every post-attempt check actually reads. Scoped
+  // specifically to the Q&A feature, never the trainee's account or
+  // platform access more broadly — the roadmap's own explicit
+  // constraint. Reading existing threads stays available even while
+  // suspended; only posting is blocked, checked at the post route
+  // itself, not here.
+  qaSuspendedAt DateTime?
+  qaThreads     QaThread[]
+  qaModerationActions QaModerationAction[]
+
+  // M30/M32 — the one setting that gates both halves of the employer
+  // portal at once (employer discovery browsing AND job-board access),
+  // not two separate toggles — a real, deliberate simplicity decision
+  // from the roadmap's own core reasoning, at the honest cost that a
+  // trainee wanting only one of the two doesn't get to choose that
+  // granularly. Off by default — opt-in only, full stop; a trainee
+  // never appears to any employer without actively turning this on.
+  publiclyDiscoverable Boolean @default(false)
+  // M32 — the granular controls M30's own toggle comment above
+  // pointed to: what a browsing employer actually sees BEFORE any
+  // introduction exists, distinct from the per-action disclosure
+  // (contact info, specific certificates) chosen fresh at acceptance
+  // or application time — M33's own scope confirms this directly:
+  // browsing shows enough to decide whether to express interest at
+  // all, never contact information, which stays gated until genuine
+  // acceptance regardless of anything set here. Both optional,
+  // trainee-authored, and only ever shown at all while
+  // publiclyDiscoverable is true — turning the master toggle off
+  // hides these along with everything else, not just the certificate
+  // list.
+  discoverableHeadline String?
+  discoverableBio      String?
+  discoverableCertificates DiscoverableCertificate[]
+  // M37 — nullable, generated on demand by the trainee themselves, not
+  // assigned automatically at account creation — "reachable only via
+  // a link the trainee generates and shares" is the roadmap's own
+  // exact wording. Mirrors Certificate.code's own design (see that
+  // field's schema comment): a separate, legible, opaque identifier
+  // rather than the trainee's own cuid `id`, matching M15's
+  // established pattern rather than inventing a new one.
+  publicProfileCode String? @unique
+  courseReviews CourseReview[]
+  introductionRequests IntroductionRequest[]
+  jobApplications      JobApplication[]
+
+  @@index([email])
+}
+
+// ---------------------------------------------------------------------
+// M10 — Course / Module / Lesson / Material
+//
+// Deliberately NOT scoped: enrollment beyond "can view" (any logged-in
+// trainee can browse any published course — see the course/module/
+// lesson GET routes), progress tracking, and module locking. Those are
+// M11 (assessments attach to Module here) and M12 (locking based on
+// M11's attempt results). Nothing below assumes those exist yet.
+// ---------------------------------------------------------------------
+
+model Course {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  published   Boolean  @default(false)
+
+  // M38 — Staff Early-Warning Dashboard. Null means disabled for this
+  // course, not "use some default" — every course that already exists
+  // when this ships should NOT suddenly start generating alerts nobody
+  // asked for. An admin has to explicitly turn this on per course, the
+  // same "opt-in, never a surprise default" discipline already applied
+  // everywhere else in this schema that touches a trainee's data.
+  inactivityThresholdDays Int?
+  failedAttemptsThreshold Int?
+
+  // M45 — null means "use the global default" (PlatformSettings.defaultAiCreditAllowance),
+  // not "zero credits" — the same default-plus-optional-override shape
+  // as the two thresholds directly above, just inverted: those two
+  // default to off, this one defaults to whatever the platform-wide
+  // setting says, since a course not touching this field shouldn't
+  // silently opt trainees out of what every other course already
+  // grants.
+  aiCreditAllowanceOverride Int?
+
+  // Post-M15 milestone: per-course pricing, decided at course creation.
+  // @default(true) is the safe default — a course only ever requires
+  // payment because an admin deliberately said so, never by omission.
+  // Storing price in kobo (Naira's smallest unit), not Naira as a
+  // decimal, for the same reason Stripe stores cents and not dollars —
+  // it's exactly the unit Paystack's own API expects when initializing
+  // a transaction, so there's no float-rounding or unit-conversion bug
+  // waiting to happen at the one place real money changes hands.
+  // Null whenever isFree is true; the application layer is responsible
+  // for keeping the two consistent — see courses.ts for that guard.
+  isFree    Boolean @default(true)
+  priceKobo Int?
+  // M26 — both null whenever isFree is true, same reasoning as
+  // priceKobo above. `billingInterval` is a real, deliberate per-course
+  // choice, not a single platform-wide setting — confirmed directly
+  // rather than assumed, since Paystack's own Plan resource requires a
+  // fixed interval baked into the Plan itself, and different paid
+  // courses reasonably warrant different cadences (a short bootcamp vs.
+  // a long-term membership). `paystackPlanCode` is lazily populated —
+  // no Plan is created in Paystack until the first real payment attempt
+  // for this course, not eagerly when price/interval is first set.
+  //
+  // Deliberately reset to null (not left stale) whenever price or
+  // interval changes on an existing paid course — see the coursePricing
+  // validator for where that happens. A stale plan code pointing at OLD
+  // pricing would silently charge new subscribers the wrong amount,
+  // exactly the kind of mistake this project's own certificate bug
+  // earlier in Stage 3 already proved a stale, unrefreshed reference
+  // can cause.
+  billingInterval BillingInterval?
+  paystackPlanCode String?
+  // M41 — admin-configurable per course, not a fixed platform-wide
+  // choice, matching the roadmap's own explicit scope. Defaults to
+  // OPEN, the same "open by default" reasoning already established for
+  // M10's course-browsing model — COHORT_SCOPED only makes sense for a
+  // course an admin has actually populated real cohorts for (see the
+  // Cohort model's own comment: cohort assignment is a separate,
+  // manual roster system, never automatic on enrollment), so it's an
+  // opt-in a course has to deliberately choose, not the safe default
+  // for a course that may have no cohorts at all.
+  qaScope QaScope @default(OPEN)
+
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  modules Module[]
+  // M15
+  certificates Certificate[]
+  courseReviews CourseReview[]
+  // Whole-project audit recommendation: cohorts
+  cohorts Cohort[]
+  // Post-M15 milestone: at most one course-wide examination per course
+  // (see the courseId comment on Exam) — a real relation, not just the
+  // foreign key, since the course page needs to look up "does this
+  // course have an examination yet" directly.
+  courseExamination Exam?
+  // Post-M15 milestone: motivational milestone badges, deliberately
+  // separate from certificates — see the schema comment on Badge.
+  badges Badge[]
+  // Post-M15 milestone: real access control, distinct from Cohort —
+  // see the schema comment on CourseEnrollment for why these are two
+  // separate models with two separate jobs. Same field-naming
+  // reasoning as Trainee.courseEnrollments below — kept distinct from
+  // the word "enrollments" alone, which Cohort's own relation already
+  // uses for a genuinely different concept.
+  courseEnrollments CourseEnrollment[]
+  // M38 — only inactivity, which is genuinely course-scoped.
+  // FailedAttemptsAlert belongs to Exam instead — see that model's own
+  // comment for why a single course-scoped model couldn't represent
+  // both.
+  inactivityAlerts InactivityAlert[]
+
+  @@index([published])
+}
+
+model Module {
+  id          String   @id @default(cuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  lessons Lesson[]
+
+  // M11: a module's bank-backed assessment — see the note atop this
+  // file for why this is an Exam with moduleId set, not a new model.
+  // Optional and unique: a module doesn't need an assessment on day
+  // one (M10 shipped modules with none), and can have at most one.
+  assessment Exam?
+
+  // M12
+  completions ModuleCompletion[]
+
+  @@index([courseId])
+}
+
+model Lesson {
+  id          String   @id @default(cuid())
+  moduleId    String
+  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  materials Material[]
+
+  // M12
+  progress LessonProgress[]
+  // M41
+  qaThreads QaThread[]
+
+  @@index([moduleId])
+}
+
+model Material {
+  id        String       @id @default(cuid())
+  lessonId  String
+  lesson    Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  type      MaterialType
+  title     String
+  // M40 — updated to reflect the real range of what an admin actually
+  // links here, confirmed directly rather than assumed stable: for
+  // VIDEO, an unlisted YouTube URL OR a Google-hosted (e.g. Drive)
+  // link — no longer YouTube-exclusive. For PDF/DOCX/PPTX, a link to
+  // the file (hosting the file itself is a later concern, not an M10
+  // one).
+  url       String
+  order     Int          @default(0)
+  createdAt DateTime     @default(now())
+  // M40 — the one new field this milestone needed on an otherwise-
+  // unchanged model: without a real "last changed" timestamp, there
+  // was no way to know whether a material a trainee downloaded for
+  // offline reading has since changed, which this milestone's own
+  // scope requires notifying them about. Prisma-managed, not
+  // hand-set — every write to this row updates it automatically.
+  updatedAt DateTime     @updatedAt
+  downloads MaterialDownload[]
+
+  @@index([lessonId])
+}
+
+// M40 — tracking who downloaded what, the real infrastructure this
+// milestone's content-change notification requires; without this,
+// there's no way to know which trainees to notify when a downloaded
+// material later changes. `materialUpdatedAt` is a snapshot of
+// Material.updatedAt at the moment of THIS download — comparing it
+// against the material's current updatedAt later is what detects a
+// genuine change, not just re-checking on every request. A soft,
+// trainee-visible record, not a hard technical lock on anything —
+// this app has no way to reach into a trainee's own device and revoke
+// an already-downloaded file; see this milestone's own roadmap note
+// on why offline reading is additive, not a DRM system.
+model MaterialDownload {
+  id                 String    @id @default(cuid())
+  traineeId          String
+  trainee            Trainee   @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  materialId         String
+  material           Material  @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  downloadedAt       DateTime  @default(now())
+  materialUpdatedAt  DateTime
+  notifiedOfChangeAt DateTime?
+
+  @@unique([traineeId, materialId])
+  @@index([materialId])
+}
+
+// ---------------------------------------------------------------------
+// M12 — Progress Tracking & Module Locking
+//
+// Deliberately scoped at the LESSON level, not per-material ("watched
+// this video," "downloaded this PDF" separately) — the roadmap's own
+// language ("watched, read, downloaded") suggested per-material
+// tracking, but that's real added complexity (a material-type-specific
+// "what does 'done' mean" question for video vs. PDF vs. slides) for a
+// distinction M12's actual goal — module locking — doesn't need. A
+// trainee marks a Lesson complete; that's the unit progress and
+// locking are computed from. Revisit if a real need for
+// material-level granularity shows up.
+//
+// Explicit "mark complete" action, not automatic (e.g. "viewed for
+// N seconds") — matches this project's established preference for
+// explicit, honest state over inferred state (see the NDPA consent
+// field's own reasoning: a checkbox that isn't a real recorded action
+// isn't evidence of anything).
+//
+// Cascades on both sides (Lesson delete, Trainee... not specified,
+// matching Attempt.trainee's existing unspecified-default pattern —
+// there's no trainee-delete route in this project, so that choice has
+// never mattered in practice and isn't worth an asymmetric override
+// here). Lesson-delete cascading IS specified: unlike Attempt/Answer,
+// a LessonProgress row isn't graded academic performance data worth
+// protecting from an admin's content edits — it's "did they click a
+// checkbox," and losing it when the lesson itself is deleted is fine.
+// ---------------------------------------------------------------------
+model LessonProgress {
+  id          String   @id @default(cuid())
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  traineeId   String
+  trainee     Trainee  @relation(fields: [traineeId], references: [id])
+  completedAt DateTime @default(now())
+
+  @@unique([lessonId, traineeId])
+  @@index([traineeId])
+}
+
+// M12 audit finding: module completion was originally recomputed live,
+// fresh, on every request, from computeModuleProgress's rule. That's
+// fine as a rule for DETECTING completion, but wrong as the source of
+// truth for whether a trainee still has access — a module's own
+// completion criteria can legitimately change after a trainee already
+// met the old one (the realistic case: an instructor builds a
+// module's lessons first, a trainee completes them while there's no
+// assessment yet, THEN the instructor finishes and publishes the
+// module's assessment — completion silently switches from
+// "lessons done" to "assessment passed," and the trainee's earlier,
+// real progress would vanish along with everything unlocked because
+// of it). `Attempt.passed` never had this problem — a passed attempt
+// is a historical fact, not a live computation — but lesson-based
+// completion did, and so did any module whose gating rule changed
+// underneath it.
+//
+// Fixed by making completion itself a historical fact, the same way:
+// the moment computeModuleCompletion (progressCore.ts) says a module
+// is done for a trainee, that gets written here, once, and every
+// later lock computation checks this table FIRST — a row here means
+// "complete," permanently, regardless of what the live rule would say
+// on a later call. See src/lib/progress.ts's getModuleLockMap for
+// where this gets read and written.
+model ModuleCompletion {
+  id          String   @id @default(cuid())
+  moduleId    String
+  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  traineeId   String
+  trainee     Trainee  @relation(fields: [traineeId], references: [id])
+  completedAt DateTime @default(now())
+
+  @@unique([moduleId, traineeId])
+  @@index([traineeId])
+}
+
+model Exam {
+  id                 String   @id @default(cuid())
+  code               String   @unique // e.g. AAICBI-EXCEL-2026 — used in the student URL for a
+                                       // non-module exam, and still auto-generated for a
+                                       // module-scoped one too (kept for admin/debug reference
+                                       // and so the by-code route still resolves it if ever
+                                       // needed) even though a trainee reaches a module
+                                       // assessment via course navigation, not this code.
+  title              String
+  description        String?
+  course             String? // free-text label, predates the real Course relation below —
+                              // still used by non-module exams; a module-scoped exam ignores it
+  module             String? // ditto — free-text, superseded by moduleId for module exams
+  cohort             String?
+  // M11: set when this Exam IS a Module's assessment. Null for a
+  // standalone, by-code exam (the pre-M11, non-course-attached shape,
+  // still fully supported). @unique enforces "at most one assessment
+  // per module." onDelete: Cascade means deleting a Module also
+  // deletes its assessment and every Attempt/Answer under it — matches
+  // Course/Module/Lesson/Material's existing cascade behavior.
+  moduleId           String?  @unique
+  // Named `courseModule` (not `module`) only because the legacy
+  // free-text `module` field above already owns that name — this is
+  // the real relation; that one is just a label.
+  courseModule       Module?  @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  instructions       String?
+  durationMinutes    Int      @default(60)
+  passMarkPercent    Int      @default(80)
+  numQuestions       Int? // how many to draw from the bank per attempt; null = all
+  maxAttempts        Int? // null = unlimited
+  randomizeQuestions Boolean  @default(true)
+  randomizeOptions   Boolean  @default(true)
+  showResultImmediately Boolean @default(true)
+  showCorrectAnswers Boolean  @default(false)
+  allowReview        Boolean  @default(true)
+  monitoringEnabled  Boolean  @default(false)
+  published          Boolean  @default(false)
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  questions Question[]
+  attempts  Attempt[]
+
+  // ---------------------------------------------------------------------
+  // Course examinations (post-M15 milestone): a comprehensive final exam
+  // spanning every module in a course, distinct from a per-module
+  // assessment. Deliberately reuses this same Exam model rather than a
+  // parallel structure — see the design discussion this was built from:
+  // everything that already makes module assessments work (DOCX import,
+  // AI question structuring, duplicate-detection embeddings,
+  // difficulty/topic tagging, the whole Attempt/Answer/grading pipeline)
+  // keeps working unchanged for a course examination too, since it's
+  // just another Exam row, not a second system.
+  //
+  // `courseId` set (and `moduleId` null) is what makes an Exam row a
+  // course-wide examination rather than a module assessment or a
+  // standalone by-code exam. @unique enforces "at most one course
+  // examination per course," the same reasoning as moduleId's
+  // uniqueness two fields up. onDelete: Cascade matches every other
+  // content-hierarchy relation in this schema, and — same as moduleId —
+  // guardCourseDeletable already blocks a course delete whenever real
+  // trainee data (certificates, attempts) exists under it, so this
+  // cascade only ever fires for a genuinely empty course.
+  //
+  // Real bug, found and fixed by a real `prisma generate` run on a
+  // real machine — this sandbox can never catch a schema validation
+  // error like this one, since it can't reach the network to run that
+  // command at all. Named `parentCourse`, not `course` — the plain
+  // name collides with the legacy free-text `course` label field
+  // above, the exact same naming collision `courseModule` (vs
+  // `module`) already deliberately avoided a few fields up; this
+  // relation just didn't get the same treatment when it was added
+  // later. Confirmed zero application code anywhere referenced this
+  // relation before renaming it — it was defined in the schema but
+  // never actually used, which is exactly why this sat undetected
+  // through the whole build.
+  courseId     String?  @unique
+  parentCourse Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  // Hours a trainee must wait after an attempt before starting another
+  // one. Null means no cooldown — every existing module assessment
+  // keeps behaving exactly as it does today; this field didn't exist
+  // when they were created and nothing about them changes by adding it.
+  // Populated to 72 specifically by the "generate course examination"
+  // action (see certificates.ts's sibling for that flow), not a
+  // schema-level default — a blanket default would silently add a
+  // cooldown to every future module assessment too, which was never
+  // asked for. A real, staff-editable number, not hardcoded in
+  // application logic, consistent with how
+  // maxAttempts/numQuestions/durationMinutes already work.
+  retakeCooldownHours Int?
+
+  // Reverse side of CooldownOverride.exam — see that model's own
+  // comment for the full reasoning.
+  cooldownOverrides CooldownOverride[]
+  // M38 — reverse side of FailedAttemptsAlert.exam. Every module
+  // assessment can accumulate its own failed-attempts alert per
+  // trainee, independent of every other exam, including other
+  // assessments in the same course.
+  failedAttemptsAlerts FailedAttemptsAlert[]
+
+  @@index([code])
+}
+
+model Question {
+  id           String       @id @default(cuid())
+  examId       String
+  exam         Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
+  text         String
+  type         QuestionType @default(SINGLE_CHOICE)
+  topic        String?
+  difficulty   Difficulty?  @default(BEGINNER)
+  explanation  String?
+  order        Int          @default(0)
+  needsReview  Boolean      @default(false)
+  reviewReason String?
+  // M21 — which module-bank question (if any) this one was AI-
+  // generated from, for the course-examination review screen to show
+  // side by side with the generated question. A real, structured
+  // reference a reviewer can act on, not text stuffed into
+  // reviewReason — that field already has an established meaning
+  // (why review is needed) and conflating the two would make neither
+  // one reliably parseable later. Optional and self-referential: a
+  // hand-authored or DOCX-imported question has no source; only ones
+  // this project's own AI generation created ever set it.
+  // `onDelete: SetNull` deliberately, not Cascade — if the original
+  // module-bank question is later edited away, the question generated
+  // from it doesn't vanish too; it's already its own real, reviewed,
+  // independently-standing question by then, just missing a lineage
+  // note.
+  generatedFromQuestionId String?
+  generatedFromQuestion   Question?  @relation("QuestionGeneratedFrom", fields: [generatedFromQuestionId], references: [id], onDelete: SetNull)
+  generatedQuestions      Question[] @relation("QuestionGeneratedFrom")
+  createdAt    DateTime     @default(now())
+
+  // M11 duplicate detection — an embedding of this question's text +
+  // options, computed once at import time (src/lib/embeddings.ts) and
+  // compared against a module's existing bank via pgvector cosine
+  // distance before the question is saved. `Unsupported(...)` because
+  // Prisma's JS client has no native vector type: this column exists so
+  // `db push`/`migrate` creates it correctly, but every read/write goes
+  // through raw SQL ($queryRaw/$executeRaw) — see embeddings.ts. Null
+  // for any question created before this field existed, or whenever
+  // VOYAGE_API_KEY isn't set (duplicate-checking degrades to "skipped,"
+  // never "blocks the upload" — same reasoning as every other
+  // cost-bearing external call in this project).
+  embedding Unsupported("vector(512)")?
+
+  options Option[]
+  answers Answer[]
+
+  @@index([examId])
+}
+
+model Option {
+  id         String   @id @default(cuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  text       String
+  key        String
+  isCorrect  Boolean  @default(false)
+  order      Int      @default(0)
+
+  @@index([questionId])
+}
+
+// ---------------------------------------------------------------------
+// Post-M15 milestone: a real, staff-facing way to clear a trainee's
+// course-examination cooldown — built into this milestone's scope from
+// the start, not deferred and rediscovered later. This project already
+// spent a lot of real, first-hand pain manually clearing rate-limit
+// rows by hand in Prisma Studio earlier in its life; a hard 72-hour
+// lockout with no in-app override would just recreate that exact same
+// operational friction the moment a trainee has a genuine reason to
+// need one sooner (a technical issue during their attempt, a legitimate
+// staff judgment call).
+//
+// Deliberately a real record, not a silent field flip: `grantedById`
+// means every override has a name attached to it, not an untracked
+// backdoor. One row per (trainee, exam) — staff can grant a new
+// override again later by upserting the same row, which naturally
+// updates `grantedAt`.
+//
+// How this gets consulted (see the cooldown-check logic, not this
+// schema) is a simple timestamp comparison, not an explicit
+// consume/expire step: an override only counts if it's newer than the
+// trainee's most recent attempt on this exam. The moment they actually
+// start a new attempt, the override is naturally "used up" — it's now
+// older than that new attempt, so it won't cover a third one without
+// being granted again. No cleanup job needed for that to stay correct.
+model CooldownOverride {
+  id          String   @id @default(cuid())
+  traineeId   String
+  trainee     Trainee  @relation(fields: [traineeId], references: [id])
+  examId      String
+  exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  grantedById String
+  grantedBy   User     @relation(fields: [grantedById], references: [id])
+  grantedAt   DateTime @default(now())
+
+  @@unique([traineeId, examId])
+}
+
+model Attempt {
+  id            String        @id @default(cuid())
+  examId        String
+  // Deliberately no cascade — see the audit note on Answer.question
+  // below, same reasoning: a trainee's attempt record is real
+  // performance data, not disposable content structure, and losing it
+  // silently as a side effect of an admin deleting a Module is worse
+  // than the delete failing loudly. `Restrict` is written explicitly
+  // (rather than relying on the same behavior as an unset default) so
+  // the choice reads as intentional, not overlooked — DELETE
+  // /api/modules/[id] and DELETE /api/exams/[id] both pre-check for
+  // this and return a friendly 409 rather than ever letting a trainee
+  // hit the raw database constraint.
+  exam          Exam          @relation(fields: [examId], references: [id], onDelete: Restrict)
+  traineeId     String
+  trainee       Trainee       @relation(fields: [traineeId], references: [id])
+  attemptNumber Int           @default(1)
+  status        AttemptStatus @default(IN_PROGRESS)
+
+  startedAt   DateTime  @default(now())
+  expiresAt   DateTime
+  submittedAt DateTime?
+
+  score        Int?
+  totalQuestions Int?
+  percentage   Float?
+  passed       Boolean?
+
+  // M11 audit finding: `passed` used to be computed at submit time by
+  // re-reading `exam.passMarkPercent` fresh — meaning if an instructor
+  // changed the pass mark while a trainee's attempt was still
+  // IN_PROGRESS, grading used whatever the pass mark was AT SUBMIT
+  // TIME, not what it was when the trainee started. Snapshotted here
+  // instead, the same way `expiresAt` already snapshots the duration.
+  // Nullable, not backfilled — same convention as
+  // `Trainee.privacyConsentAt`: null is the honest state for any
+  // attempt row that predates this field, and submitAttempt() falls
+  // back to the exam's current value only for those old rows.
+  passMarkPercent Int?
+
+  questionOrder Json?
+
+  answers           Answer[]
+  suspiciousEvents  SuspiciousEvent[]
+
+  // M13
+  performanceSummary PerformanceSummary?
+
+  // Post-M15 milestone: the reverse side of Certificate.courseExamAttempt
+  // — set only when this specific attempt is the one that earned a
+  // certificate (a passing attempt on a course-wide examination). Most
+  // attempts, including every module assessment attempt ever, will
+  // never have one.
+  earnedCertificate Certificate?
+
+  @@unique([examId, traineeId, attemptNumber])
+  @@index([examId])
+  @@index([traineeId])
+}
+
+model Answer {
+  id         String   @id @default(cuid())
+  attemptId  String
+  attempt    Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId String
+  // M11 audit finding: this had no onDelete clause at all before,
+  // which — with no application-level check either — meant deleting a
+  // Question that any trainee had ever answered (even in an old,
+  // fully-graded attempt) threw a raw, unhandled Postgres
+  // foreign-key-violation error straight through withApiErrors as a
+  // generic 500. `Restrict`, written explicitly, keeps the same
+  // underlying database behavior (a real answer record should never
+  // silently vanish because staff deleted the question it was
+  // answered on) but DELETE /api/questions/[id] now pre-checks for
+  // this and returns a clear, actionable 409 instead.
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  selectedOptionKey String?
+  isCorrect  Boolean?
+  answeredAt DateTime @default(now())
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+}
+
+model SuspiciousEvent {
+  id        String   @id @default(cuid())
+  attemptId String
+  attempt   Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  eventType String
+  eventTime DateTime @default(now())
+  metadata  Json?
+
+  @@index([attemptId])
+}
+
+// ---------------------------------------------------------------------
+// M13 — AI Performance Analysis
+//
+// One row per Attempt (not per trainee, not per module) — matches the
+// roadmap's own framing exactly: "generated once per attempt." Reading
+// a trainee's performance across their whole history is a query over
+// this table plus Attempt, not a separate aggregate model; nothing here
+// needs to be recomputed to answer that later.
+//
+// Generated once, synchronously, right after grading finishes inside
+// examEngine.ts's submitAttempt() — per the roadmap's explicit
+// instruction. That's a real, deliberate cost/latency tradeoff worth
+// stating plainly: an AI call inside the trainee's submit request adds
+// real latency to that request (typically low single-digit seconds),
+// and there's no background job queue in this project to move it off
+// the critical path. Accepted because (a) that's what the roadmap
+// explicitly asked for, (b) a trainee already sees a "Submitting..."
+// state at this exact moment, so added latency here is far less
+// disruptive than it would be almost anywhere else in the product, and
+// (c) doing it inline is trivially reliable — no queue infrastructure
+// to build, monitor, or fail silently. If this measurably matters to
+// perceived submit speed with real usage, moving it to a proper
+// background job (Vercel Cron hitting a "generate pending summaries"
+// endpoint, or similar) is the natural next step — not built now,
+// since there's no evidence yet that it's needed.
+//
+// Graceful degradation, same pattern as M11's embeddings: if the AI
+// call fails, times out, or returns something that doesn't parse, NO
+// row is written here — the attempt's real grading (score/percentage/
+// passed) is already safely persisted before this ever runs, and a
+// missing PerformanceSummary just means "not available for this
+// attempt," never a failed or retried-forever state. No retry
+// mechanism exists (a trainee whose summary failed to generate simply
+// doesn't get one) — a reasonable gap for a "genuinely low risk," S–M
+// milestone, worth revisiting only if it turns out to happen often in
+// practice.
+model PerformanceSummary {
+  id          String   @id @default(cuid())
+  attemptId   String   @unique
+  attempt     Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  // string[] each, stored as Json since Postgres text[] isn't worth a
+  // separate migration path for two small string lists — Prisma reads/
+  // writes these as plain arrays either way.
+  strengths   Json
+  weaknesses  Json
+  narrative   String
+  generatedAt DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------
+// M14 — Notifications
+//
+// Deliberately no FK relations to Trainee/User — this is a log/audit
+// table, not domain data, and a log entry outliving the account it was
+// about (or being written for a recipient type that's genuinely
+// polymorphic — TRAINEE vs STAFF, two different models) is a normal,
+// acceptable property for a log to have. `recipientId` is a plain
+// string rather than two nullable FK columns (traineeId?, userId?)
+// with an implied "exactly one must be set" constraint Prisma can't
+// express cleanly anyway.
+//
+// Written by src/lib/notifications/log.ts's notifyByEmail() for every
+// attempted send, success or failure — so "did this trainee actually
+// get their welcome email" is a real, answerable question from data,
+// not a guess. No admin UI reads this yet (out of scope for this
+// milestone's own "S" sizing) — it exists so the answer is there when
+// someone needs it, the same reasoning as this project's other
+// timestamp-as-evidence fields (privacyConsentAt, generatedAt above).
+model NotificationLog {
+  id            String   @id @default(cuid())
+  recipientType String // "TRAINEE" | "STAFF"
+  recipientId   String
+  // "WELCOME" | "PASSWORD_RESET_STAFF" | "PASSWORD_RESET_TRAINEE" |
+  // "MODULE_UNLOCKED" | "ASSESSMENT_RESULT" | "CERTIFICATE_ISSUED" |
+  // "EARLY_WARNING_STAFF" | "EARLY_WARNING_TRAINEE" — see
+  // src/lib/notifications/log.ts for the authoritative list.
+  type          String
+  channel       String @default("EMAIL") // "EMAIL" today; "WHATSAPP" is a real value once that channel is live — see whatsapp.ts
+  // What this notification was ABOUT — a moduleId for MODULE_UNLOCKED,
+  // an attemptId for ASSESSMENT_RESULT, a certificateId for
+  // CERTIFICATE_ISSUED, null for account-level ones (welcome, password
+  // reset) that aren't about a specific record.
+  relatedId     String?
+  status        String // "SENT" | "FAILED"
+  error         String? // set when status is FAILED — the provider's own error message, for debugging, never shown to the recipient
+  sentAt        DateTime @default(now())
+
+  @@index([recipientType, recipientId])
+  @@index([type])
+}
+
+// ---------------------------------------------------------------------
+// M15 — Certificates & Verification
+//
+// "Explicitly not blockchain — a signed record plus a public
+// verification URL is sufficient," per the roadmap's own instruction.
+// Worth being precise about what "signed" means here in practice: this
+// is NOT a cryptographic signature a third party could verify
+// independently of AAICBI's own database — it's a real database row
+// with a long, random, non-guessable `code`, looked up by a public
+// page that either finds it or doesn't. The record's authenticity IS
+// the database; there's no separate proof artifact to forge around.
+// This is a deliberate scope decision, not an oversight: an
+// independently-verifiable cryptographic signature is real added
+// complexity (key management, a verification algorithm, what happens
+// if a key ever needs rotating) that the roadmap's own "not
+// blockchain, just a URL" framing doesn't ask for, and a corrected
+// database is more honest than an immutable one for a training
+// certificate — if AAICBI needs to revoke one (see `revokedAt` below),
+// that should actually work, not require a separate contradicting
+// record layered on top of a supposedly-immutable one.
+//
+// One certificate per trainee per course, ever — enforced by the
+// unique constraint below, which doubles as this milestone's race-
+// safety mechanism the same way ModuleCompletion's does (see
+// src/lib/certificates.ts for the individual-create-plus-caught-P2002
+// pattern, same reasoning as M14's audit fix to progress.ts).
+//
+// Deliberately NOT cascade-deleted when its Course is deleted, unlike
+// most of this schema's content models — a certificate is a trainee's
+// actual earned credential, potentially already shared publicly via
+// its verification link; an admin deleting or restructuring a course
+// later must never be able to silently invalidate one. See
+// deletionGuards.ts's guardCourseDeletable, extended for M15 to check
+// this the same way it already checks Attempt.
+model Certificate {
+  id        String    @id @default(cuid())
+  // The public-facing identifier — what appears on the certificate
+  // itself and in its verification URL. Deliberately NOT the same as
+  // `id`: a cuid is fine as an opaque database key but is long, mixed-
+  // case, and easy to mistype if someone ever reads it aloud or copies
+  // it from a printed page. See certificates.ts's code-generation
+  // comment for the alphabet/format choice.
+  code      String    @unique
+  traineeId String
+  trainee   Trainee   @relation(fields: [traineeId], references: [id])
+  courseId  String
+  course    Course    @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  issuedAt  DateTime  @default(now())
+  // Null means valid — same "null is the honest default" convention as
+  // every other optional timestamp in this schema (privacyConsentAt,
+  // etc.). Set/cleared via PATCH /api/certificates/[id] (staff-only,
+  // ownership-checked through the course) — the public verification
+  // page checks this field directly, so a revocation takes effect
+  // immediately.
+  revokedAt DateTime?
+
+  // Post-M15 milestone: which specific passing attempt actually earned
+  // this certificate — added when certificate issuance moved from "all
+  // modules complete" to "passed the course examination" (see the
+  // design discussion this was built from). Answers "which attempt, on
+  // which date, earned this" honestly, rather than a certificate only
+  // being traceable back to "sometime this course was completed."
+  // Nullable and @unique-but-optional on purpose: a certificate issued
+  // under the old, pre-course-examination rule (before this field
+  // existed) has no attempt to point to — see the revocation migration
+  // this milestone ships with, which is exactly why none of those old
+  // ones survive this change anyway, but the column stays nullable for
+  // honesty about what the data actually represents, not to quietly
+  // paper over it.
+  courseExamAttemptId String?  @unique
+  courseExamAttempt   Attempt? @relation(fields: [courseExamAttemptId], references: [id])
+
+  // M30 — every specific instance this certificate has been disclosed
+  // to an employer, through either half of the portal. A real,
+  // queryable trail, not implicit in someone else's opaque list — see
+  // the schema comment on IntroductionDisclosedCertificate for why.
+  introductionDisclosures   IntroductionDisclosedCertificate[]
+  jobApplicationDisclosures JobApplicationDisclosedCertificate[]
+  // M32 — every trainee who's chosen to include this certificate in
+  // their general browsing listing, distinct from the two relations
+  // above: those are per-action (one specific introduction, one
+  // specific application), this one is the ongoing browsing-level
+  // choice.
+  discoverableListings DiscoverableCertificate[]
+
+  @@unique([traineeId, courseId])
+  @@index([traineeId])
+}
+
+// ---------------------------------------------------------------------
+// Post-M15 milestone: motivational milestone badges — deliberately a
+// separate, much lighter-weight model from Certificate, not a variant
+// of it. A badge means "you're a quarter/half/three-quarters of the
+// way through this course" and exists purely to encourage a trainee
+// mid-course; a certificate means "you finished and proved it by
+// passing the course examination." Conflating the two — e.g. giving a
+// badge the same protected, Restrict-on-delete treatment a certificate
+// gets — would overstate what a badge actually represents. Cascades
+// with its course on purpose, same reasoning already used for
+// ModuleCompletion: this is disposable progress-tracking data, not an
+// earned, potentially-already-shared credential.
+//
+// Sticky and race-safe the same way ModuleCompletion/Certificate
+// already are — see progress.ts's own comment on why a plain
+// `createMany` isn't good enough here: an individual `create()` with a
+// caught P2002 gives an exact "I'm the one who just awarded this, not
+// someone who lost a race" signal, the same pattern used everywhere
+// else in this schema a milestone gets crossed exactly once.
+model Badge {
+  id        String   @id @default(cuid())
+  traineeId String
+  trainee   Trainee  @relation(fields: [traineeId], references: [id])
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  // 25, 50, or 75 — percent of the course's modules completed at the
+  // moment this was awarded. Not an enum: a plain Int keeps this open
+  // to a different set of thresholds later without a schema migration,
+  // and every place that reads it already treats it as a number, not a
+  // fixed label.
+  threshold Int
+  awardedAt DateTime @default(now())
+
+  @@unique([traineeId, courseId, threshold])
+  @@index([traineeId])
+}
+
+// ---------------------------------------------------------------------
+// M38 — Staff Early-Warning Dashboard. Two separate models, not one
+// polymorphic model with a `type` discriminator — a correction made
+// after the two kinds of alert turned out to have genuinely different
+// natural scopes: inactivity is a course-level fact (a trainee is or
+// isn't showing up to a course), but a failed-attempts alert is
+// specifically about ONE module assessment — a trainee who fails
+// Module A three times and, weeks later, separately fails Module B
+// three times has had two different, both-worth-flagging events, not
+// one. A single course-scoped row couldn't represent that at all.
+//
+// Verified directly against real Postgres before choosing this split:
+// a single model with a nullable `examId` folded into one compound
+// unique constraint was considered and rejected — Postgres treats
+// every NULL as distinct from every other NULL in a unique
+// constraint, so `@@unique([traineeId, courseId, type, examId])`
+// would have silently allowed unlimited duplicate INACTIVITY rows
+// (which have no natural examId) for the same trainee and course,
+// breaking the exact stickiness guarantee this exists to provide.
+// Two honestly-scoped models avoids the problem entirely rather than
+// working around it.
+//
+// Honest architectural note, not a workaround to hide: this project
+// has no background job infrastructure, documented since M13's
+// expireStaleAttemptsForTrainee and reaffirmed for NotificationLog's
+// prune-on-write. FailedAttemptsAlert crossing is genuinely real-time
+// — checked the instant an attempt is graded. InactivityAlert crossing
+// is NOT — nothing can fire the moment N days of silence elapse
+// without a cron job this project deliberately doesn't have. It's
+// checked at the next natural staff-facing touchpoint (loading the
+// dashboard), not invented to look more automatic than it actually is.
+
+model InactivityAlert {
+  id          String   @id @default(cuid())
+  traineeId   String
+  trainee     Trainee  @relation(fields: [traineeId], references: [id])
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  triggeredAt DateTime @default(now())
+
+  // Only re-fires if the trainee's lastLoginAt is more recent than
+  // this row's own triggeredAt, meaning they came back active in
+  // between and have since gone quiet again — decided in application
+  // code (earlyWarningCore.ts), not encoded here.
+  @@unique([traineeId, courseId])
+  @@index([courseId])
+}
+
+model FailedAttemptsAlert {
+  id          String   @id @default(cuid())
+  traineeId   String
+  trainee     Trainee  @relation(fields: [traineeId], references: [id])
+  // The specific module assessment this alert is about — "3 failed
+  // attempts" means 3 on THIS exam, not 3 combined across every
+  // assessment in the course.
+  examId      String
+  exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  triggeredAt DateTime @default(now())
+
+  // Only re-fires if the trainee has a genuinely new passing attempt
+  // on this specific exam since the last alert — "something changed,"
+  // the same reasoning as InactivityAlert's re-trigger rule, decided
+  // in application code, not encoded here.
+  @@unique([traineeId, examId])
+  @@index([examId])
+}
+
+// ---------------------------------------------------------------------
+// Post-M15 milestone: REAL course access control. Deliberately a
+// separate model from Cohort/EnrollmentRecord above — those exist
+// purely for reporting on a specific intake's roster and, per that
+// model's own comment, were explicitly never meant to gate access.
+// Reusing them for access control would mean every enrollment also
+// forces picking or creating a cohort just to let someone into a
+// course, and overloads a model that was deliberately kept simple.
+// This model answers exactly one question — can this trainee actually
+// open this course — independent of whatever cohort reporting exists
+// on top of it.
+//
+// A trainee reaches an enrollment three ways, recorded here as
+// `source`:
+//   FREE          — course has isFree=true; access is immediate, no
+//                    payment or OTP step at all.
+//   ADMIN_GRANTED — staff enrolled the trainee directly, free or paid
+//                    course, regardless of payment — a deliberate
+//                    override, not a payment record.
+//   PAID          — the trainee is paying for a paid course themselves
+//                    via Paystack.
+//
+// `unlockedAt` is the one field every access check anywhere in the app
+// should read — null means "not yet accessible," full stop, regardless
+// of why. FREE and ADMIN_GRANTED set it immediately at enrolledAt, no
+// extra step. PAID leaves it null until the OTP step below is
+// completed — access isn't real until the trainee has confirmed it,
+// not merely the moment Paystack's webhook says payment succeeded.
+//
+// `accessRevokedAt` exists so a lapsed or cancelled subscription can
+// actually revoke access — the single most common way a system like
+// this goes wrong is a failed renewal that stops billing while access
+// quietly continues — without losing the historical record of when
+// this enrollment was first unlocked. Same "timestamp presence, not a
+// status enum" pattern as Certificate.revokedAt elsewhere in this
+// schema, not a new convention invented just for this model.
+model CourseEnrollment {
+  id        String           @id @default(cuid())
+  traineeId String
+  trainee   Trainee          @relation(fields: [traineeId], references: [id])
+  courseId  String
+  course    Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  source    EnrollmentSource
+
+  // Who granted this — populated for ADMIN_GRANTED (the staff member
+  // who acted), null for FREE and PAID (the trainee acted on their
+  // own). Nullable rather than a fake "system" user, since "nobody
+  // granted this, the trainee enrolled themselves" is the honest state
+  // for those two paths, not something to paper over with a sentinel
+  // value.
+  enrolledById String?
+  enrolledBy   User?    @relation(fields: [enrolledById], references: [id])
+  enrolledAt   DateTime @default(now())
+
+  // OTP unlock — populated only for PAID; FREE and ADMIN_GRANTED never
+  // touch these three fields at all, they just get unlockedAt set
+  // immediately instead. A short, typed-in code (not the long,
+  // link-only token Trainee.verifyToken uses above) — the email
+  // carries both the code in plain text and a link that embeds it, one
+  // secret, two ways to use it. Rate-limited the same way this
+  // project's login routes already are (see RateLimitBucket) — a short
+  // numeric code is only actually safe with a hard cap on wrong
+  // guesses, not just an inconvenience without one.
+  otpCode      String?
+  otpExpiresAt DateTime?
+  unlockedAt   DateTime?
+
+  accessRevokedAt DateTime?
+
+  // Paystack — populated only for PAID. Nullable throughout for the
+  // exact same reason every payment-related field on this model is
+  // nullable: FREE and ADMIN_GRANTED enrollments never have any of
+  // this, and the schema should say so honestly rather than force
+  // placeholder values into columns that don't apply.
+  paystackCustomerCode     String?
+  paystackSubscriptionCode String?   @unique
+  currentPeriodEnd         DateTime?
+
+  @@unique([traineeId, courseId])
+  @@index([traineeId])
+}
+
+// ---------------------------------------------------------------------
+// M25 — Paystack webhook idempotency and audit trail. The one and only
+// record of every Paystack event this app has ever received — Paystack
+// retries aggressively whenever it isn't confident a webhook was
+// received, so the SAME event genuinely does arrive more than once in
+// normal operation, not just as an edge case. `@@unique` on the
+// combination below is what makes that safe: a second delivery of the
+// identical (reference, eventType) pair fails to insert, which is
+// exactly the signal "already processed this, skip it" needs — the
+// same individual-create-with-caught-conflict discipline already used
+// everywhere else sticky-exactly-once behavior matters in this schema
+// (ModuleCompletion, Certificate, Badge).
+//
+// Deliberately keyed on (paystackReference, eventType) together, not
+// just the reference alone — the SAME transaction reference genuinely
+// gets multiple, different, both-worth-recording events over its real
+// lifecycle (e.g. charge.success, then later a subscription.disable
+// against that same underlying transaction) — collapsing those into
+// one row keyed only by reference would silently drop real events.
+//
+// `payload` keeps the event body for debugging and audit — never
+// re-trusted for actual business logic once stored; the decision of
+// what to DO with an event is made once, at the moment it's verified
+// and processed against Paystack's own live API, not re-derived later
+// from this stored copy.
+//
+// Audit finding, fixed before this could become a real problem: the
+// raw `data.authorization` object was originally stored unredacted —
+// confirmed directly against Paystack's own documented example
+// payloads that this object contains a genuinely reusable charge
+// token (`authorization_code`, usable to charge the customer again if
+// it ever leaked — a real financial risk, not just a privacy one) and,
+// for bank-transfer payments specifically, the sender's full name and
+// bank account number. This field's own stated purpose never needed
+// that object at all — see redact.ts, applied before every write here.
+model PaystackEvent {
+  id                String   @id @default(cuid())
+  paystackReference String
+  eventType         String
+  payload           Json
+  receivedAt        DateTime @default(now())
+
+  @@unique([paystackReference, eventType])
+  @@index([paystackReference])
+}
+
+enum EnrollmentSource {
+  FREE
+  ADMIN_GRANTED
+  PAID
+}
+
+// M26 — deliberately just these three; Paystack's own Plan resource
+// supports more (daily, weekly), but nothing about a course subscription
+// plausibly needs billing that often, and a narrower enum here is a
+// real constraint worth keeping, not padding for options nobody would
+// use.
+enum BillingInterval {
+  MONTHLY
+  QUARTERLY
+  ANNUALLY
+}
+
+// ---------------------------------------------------------------------
+// M42 — real translations for i18n.ts's t() lookup, replacing the
+// hardcoded-empty dictionary that shipped when this milestone's
+// technical piece was first built. Two drafting mechanisms, same
+// review discipline applied to both:
+//   GOOGLE_TRANSLATE — for Yoruba, Igbo, Hausa, and French, all
+//     genuinely supported by Google's Cloud Translation API (checked
+//     directly against Google's own current language list before this
+//     was built, not assumed).
+//   AI_DRAFTED — for Nigerian Pidgin specifically, which Google's API
+//     does not support at all (also checked directly, not assumed) —
+//     drafted by Claude instead, the same AI infrastructure this
+//     project already uses for exam question generation in M21.
+// Deliberately the SAME "approved" gate for both sources, not a lower
+// bar for Google's — a mature translation service can still get UI
+// terminology or tone wrong, and this is user-facing content in a
+// learning platform. Nothing here ever reaches a trainee until a
+// human who actually speaks the language approves it, matching the
+// exact discipline already established for AI-generated exam
+// questions — never trusted blindly regardless of which system
+// drafted it.
+model UiStringTranslation {
+  id             String            @id @default(cuid())
+  sourceText     String
+  language       String
+  translatedText String
+  source         TranslationSource
+  approved       Boolean           @default(false)
+  approvedById   String?
+  approvedBy     User?             @relation(fields: [approvedById], references: [id])
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  // One translation per (English string, language) pair — re-drafting
+  // updates the existing row rather than creating a duplicate pending
+  // review a second time.
+  @@unique([sourceText, language])
+  @@index([language, approved])
+}
+
+enum TranslationSource {
+  GOOGLE_TRANSLATE
+  AI_DRAFTED
+}
+
+// ---------------------------------------------------------------------
+// M45 — AI Study Buddy: Toggle & Credit System Foundation.
+//
+// Fixed here, not part of the original build: both this model and
+// PlatformSettings below were referenced by name in comments on
+// Trainee.aiCreditGrants and Course.aiCreditAllowanceOverride but
+// never actually defined — a schema that would have failed Prisma
+// validation entirely the moment anyone tried to run it, not a
+// partial feature. Caught by checking the schema directly rather than
+// assuming a referenced model existed just because a comment named it.
+//
+// One row per credit grant or adjustment — a real ledger, not just a
+// running counter, the same "individual rows, not just a total"
+// reasoning already used for Badge and CooldownOverride elsewhere in
+// this schema. `amount` can be negative (a correction or deduction),
+// not just positive grants. `grantedById` is null for an automatic
+// system grant (e.g. from a paid subscription, once M25–M29 exists to
+// trigger one) and set for a real admin adjustment — the two are
+// genuinely different events worth being able to tell apart later,
+// not something to collapse into one boolean.
+model AiCreditGrant {
+  id          String   @id @default(cuid())
+  traineeId   String
+  trainee     Trainee  @relation(fields: [traineeId], references: [id])
+  amount      Int
+  grantedById String?
+  grantedBy   User?    @relation(fields: [grantedById], references: [id])
+  reason      String?
+  grantedAt   DateTime @default(now())
+
+  @@index([traineeId])
+}
+
+// A genuine singleton — one row, platform-wide settings, not scoped
+// to any course or trainee. Fixed, predictable id rather than an
+// auto-generated cuid, so application code can always look it up (or
+// create it on first use) without needing to remember a real id
+// value anywhere. The first setting this exists for: a global default
+// AI credit allowance a course can optionally override
+// (Course.aiCreditAllowanceOverride) — genuinely a new pattern in this
+// schema, since every other admin-configurable setting so far has
+// been per-course or per-trainee, never platform-wide.
+model PlatformSettings {
+  id                       String   @id @default("singleton")
+  defaultAiCreditAllowance Int      @default(0)
+  // M41 — how many open Q&A warnings a trainee accumulates before
+  // this app automatically escalates to a suspension, matching the
+  // roadmap's own "escalating to suspension if it persists" language.
+  // A real, adjustable default (3), not a hardcoded constant — the
+  // same "global default, admin-adjustable" shape already established
+  // for defaultAiCreditAllowance right above.
+  qaWarningsBeforeSuspension Int    @default(3)
+  updatedAt                DateTime @updatedAt
+}
+
+enum QaScope {
+  OPEN
+  COHORT_SCOPED
+}
+
+// M41 — Lesson-Level Q&A. A thread per question, scoped to one lesson.
+// `cohortId` is a snapshot taken at creation time from the course's
+// qaScope at that moment, not a live join against the course's
+// CURRENT setting — if an admin changes a course from OPEN to
+// COHORT_SCOPED (or back) later, existing threads keep whatever scope
+// they were actually created under, the same "snapshot for stability"
+// reasoning already used for Certificate and Attempt elsewhere in this
+// schema. Null cohortId means either the course is OPEN, or the
+// trainee who started this thread had no cohort assignment of their
+// own at the time (see the Cohort model's own comment: assignment is
+// a separate, manual roster system, never automatic on enrollment) —
+// both cases correctly mean "visible to everyone," not an error state.
+model QaThread {
+  id          String    @id @default(cuid())
+  lessonId    String
+  lesson      Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  cohortId    String?
+  cohort      Cohort?   @relation(fields: [cohortId], references: [id], onDelete: SetNull)
+  createdById String
+  createdBy   Trainee   @relation(fields: [createdById], references: [id])
+  title       String
+  createdAt   DateTime  @default(now())
+
+  posts QaPost[]
+
+  @@index([lessonId])
+  @@index([cohortId])
+}
+
+// Every message in a thread, including the first — deliberately not
+// special-cased as part of QaThread itself, so a thread is always just
+// its posts, with no "the first one is different" logic anywhere that
+// reads it. `authorType`/`authorId` mirrors the exact discriminator
+// pattern NotificationLog.recipientType/recipientId already
+// established in this schema, not a new convention — a trainee or a
+// staff member can both reply, and a real FK relation can't easily
+// point at either table at once.
+model QaPost {
+  id         String   @id @default(cuid())
+  threadId   String
+  thread     QaThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  authorType String // "TRAINEE" | "STAFF"
+  authorId   String // Trainee.id or User.id, matching authorType
+  content    String
+  createdAt  DateTime @default(now())
+
+  likes QaPostLike[]
+
+  @@index([threadId])
+}
+
+// A "like" on a Q&A reply — the one place in this project a social-
+// media-style reaction genuinely fits, deliberately scoped narrowly
+// rather than added platform-wide: a like on a genuinely helpful
+// answer is meaningful in a Q&A context specifically, and a generic
+// "like everything" system without a real place for it to live would
+// be bolted-on rather than a real feature. Same discriminator pattern
+// as QaPost.authorType/authorId above, not a new convention — a
+// trainee or staff member can both like a post, mirroring who can
+// both post one in the first place.
+model QaPostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  post      QaPost   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  likerType String // "TRAINEE" | "STAFF"
+  likerId   String
+  createdAt DateTime @default(now())
+
+  @@unique([postId, likerType, likerId])
+  @@index([postId])
+}
+
+// The real, auditable moderation trail this feature's own scope
+// requires — "a warning card... escalating to suspension if it
+// persists" needs somewhere to actually count warnings and record who
+// decided what, not just a bare counter with no history. Deliberately
+// scoped to the Q&A feature specifically, never the trainee's account
+// or platform access more broadly — the roadmap's own explicit
+// constraint; nothing here ever touches CourseEnrollment or auth.
+model QaModerationAction {
+  id         String   @id @default(cuid())
+  traineeId  String
+  trainee    Trainee  @relation(fields: [traineeId], references: [id])
+  type       String // "WARNING" | "SUSPENSION" | "REINSTATEMENT"
+  reason     String
+  issuedById String
+  issuedBy   User     @relation(fields: [issuedById], references: [id])
+  issuedAt   DateTime @default(now())
+
+  @@index([traineeId])
+}
+
+// ---------------------------------------------------------------------
+// Whole-project audit recommendation, built after M9-M15 shipped:
+// cohorts / intakes.
+//
+// The gap this closes: AAICBI runs cohort-based training (a new intake
+// of the same programme every few months), but nothing in the M10+
+// Course/Module model had any notion of "which intake" a trainee's
+// activity belonged to — every cohort that ever runs the same course
+// would share the exact same content, progress records, and
+// certificates, with no way to report "how did the January cohort do"
+// separately from every other cohort that ever took that course.
+//
+// Deliberately ADDITIVE, not access-gating — a real, stated scope
+// decision, not an oversight. M10's own design explicitly chose open
+// access ("any logged-in trainee can browse any published course, no
+// enrollment required") and this doesn't reverse that: a trainee can
+// still access a course whether or not they're enrolled in a cohort of
+// it. Cohort/Enrollment exist purely for ROSTER and REPORTING —
+// "who's in the January intake," "how did they do" — layered on top of
+// the existing open-access model, not a replacement for it. Making
+// enrollment a hard gate on access would be a much larger, more
+// invasive behavioral change (new "request to enroll" UI, a
+// self-enrollment flow, blocking browsing for anyone not enrolled) that
+// nothing in the actual problem this solves ("we need to report on
+// intakes separately") actually required.
+//
+// Honest about what this does NOT solve: progress, module completion,
+// and certificates are still keyed on (Trainee, Course) globally, not
+// (Trainee, Cohort). If the same trainee is enrolled in two different
+// cohorts of the same course — a genuine re-take — their progress
+// carries over rather than resetting; there is no fresh start per
+// cohort. Solving that properly would mean threading a cohort
+// dimension through LessonProgress, ModuleCompletion, Attempt, and
+// Certificate — a materially bigger change touching the core of
+// M11-M15 — and wasn't the need actually identified (which was
+// "distinguish and report on intakes," not "let someone repeat a
+// course with a clean slate"). If that turns out to be a real,
+// frequent need later, it's a distinct, larger piece of work, not a
+// natural extension of this one — don't quietly try to bolt it on
+// without designing the schema changes deliberately.
+model Cohort {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  name      String // e.g. "January 2026 Intake"
+  startDate DateTime?
+  endDate   DateTime?
+  createdAt DateTime @default(now())
+
+  enrollments EnrollmentRecord[]
+  // M41 — see QaThread's own comment on why this is a snapshot at
+  // thread-creation time, not a live join.
+  qaThreads   QaThread[]
+
+  @@index([courseId])
+}
+
+// Named EnrollmentRecord, not Enrollment, only to read unambiguously
+// as "a record of enrollment" rather than risk being misread as a verb
+// or an action — no other reason, no naming collision to avoid.
+model EnrollmentRecord {
+  id         String   @id @default(cuid())
+  cohortId   String
+  cohort     Cohort   @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  traineeId  String
+  trainee    Trainee  @relation(fields: [traineeId], references: [id])
+  enrolledAt DateTime @default(now())
+
+  @@unique([cohortId, traineeId])
+  @@index([traineeId])
+}
+
+// ---------------------------------------------------------------------
+// M30 — Employer Portal & Public Trainee Profile: Schema Foundation.
+//
+// The core decisions this whole roadmap is built on, restated here
+// because they shape every model below, not just described once and
+// forgotten: one consent foundation serves two separate audiences
+// (vetted-employer browsing stays admin-gated; the public profile in
+// M37 is link-only, the same pattern Certificate's own `code` already
+// established); the whole thing is opt-in only, with one single
+// toggle gating both discovery and the job board at once, not two
+// separate ones; discovery is introduction-mediated — an employer
+// never sees contact information until the trainee has genuinely
+// accepted a specific request, never during general browsing; and
+// disclosure is chosen fresh per action (per accepted introduction,
+// per job application), never a static profile that goes out
+// automatically everywhere.
+//
+// Real relational models for "which certificates are disclosed," not
+// a shortcut array or JSON field — no precedent for that anywhere
+// else in this schema, and a real join table is what makes "how many
+// times has this specific certificate been shared" and "which
+// disclosures include a since-revoked certificate" answerable
+// queries, not just implicit in an opaque list.
+
+enum EmployerApprovalState {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// A genuinely new account type, not a repurposed User or Trainee role
+// — mirrors how deliberately staff accounts are already gated (no
+// open self-signup), the same discipline applied here for a third
+// kind of account this app has never had before.
+model Employer {
+  id            String                @id @default(cuid())
+  companyName   String
+  contactName   String
+  email         String                @unique
+  passwordHash  String
+  // Audit finding, closed here: the original registration only
+  // collected a self-reported name and an email — genuinely nothing
+  // an admin could independently verify before approving an account
+  // that gains visibility into the whole trainee base. A business
+  // registration number and a real phone number are required, not
+  // optional — the strongest verifiable signal a genuine company can
+  // provide, versus company name and contact name alone, which cost
+  // nothing to fabricate. Website, LinkedIn, and other social
+  // presence stay optional — real signal when present, but not every
+  // legitimate small employer maintains all three, so requiring them
+  // would reject real companies for the wrong reason.
+  registrationNumber String
+  phone              String
+  website            String?
+  linkedinUrl        String?
+  otherSocialUrl     String?
+  approvalState EmployerApprovalState @default(PENDING)
+  approvedById  String?
+  approvedBy    User?                 @relation(fields: [approvedById], references: [id])
+  approvedAt    DateTime?
+  createdAt     DateTime              @default(now())
+  // M46 — the genuine gap found on a later audit pass: this was
+  // originally marked done for trainee/staff only, since the Employer
+  // model this field needs didn't exist yet at the time. Same
+  // reasoning as Trainee.darkMode/User.darkMode above: off by default,
+  // a real per-user database preference rather than a local browser
+  // setting.
+  darkMode Boolean @default(true)
+  // Same reasoning as Trainee.onboardingCompletedAt's own comment —
+  // a real, dedicated per-account field rather than a bare boolean,
+  // so the exact date is preserved as a genuine signal, not just
+  // discarded. Only ever meaningful once approvalState is APPROVED —
+  // the onboarding walkthrough describes features (discovery, job
+  // postings) a still-pending employer can't actually use yet, so
+  // there's nothing to walk through before then.
+  onboardingCompletedAt DateTime?
+
+  introductionRequests IntroductionRequest[]
+  jobPostings          JobPosting[]
+
+  @@index([approvalState])
+}
+
+enum IntroductionRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+// An employer's expressed interest in a specific trainee — its own
+// real state machine, not a boolean, since the mediation itself (an
+// employer asks, the trainee is notified, the trainee decides) is a
+// genuine multi-step process, not a single flag. Contact information
+// is only ever actually revealed once `status` reaches ACCEPTED and
+// the trainee's own disclosure choices below have been set — this row
+// existing and being PENDING never implies the employer can see
+// anything about the trainee beyond what discovery browsing already
+// showed them.
+model IntroductionRequest {
+  id         String                    @id @default(cuid())
+  employerId String
+  employer   Employer                  @relation(fields: [employerId], references: [id])
+  traineeId  String
+  trainee    Trainee                   @relation(fields: [traineeId], references: [id])
+  status     IntroductionRequestStatus @default(PENDING)
+  message    String?
+
+  // Set only at acceptance time, by the trainee — chosen fresh for
+  // THIS specific introduction, never read from some static default
+  // profile, matching the roadmap's own explicit "per-action
+  // disclosure, not a static public profile" decision.
+  includeContactInfo Boolean?
+  respondedAt         DateTime?
+
+  disclosedCertificates IntroductionDisclosedCertificate[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([employerId, traineeId])
+  @@index([traineeId])
+  @@index([status])
+}
+
+// Which specific certificates a trainee chose to disclose for one
+// specific accepted introduction — a real join table, not a list
+// baked into IntroductionRequest itself, so a since-revoked
+// certificate can still be identified even after disclosure, and so
+// "how often has this certificate been shown to an employer" is a
+// real, answerable query rather than implicit in an opaque list.
+model IntroductionDisclosedCertificate {
+  id                     String               @id @default(cuid())
+  introductionRequestId  String
+  introductionRequest    IntroductionRequest  @relation(fields: [introductionRequestId], references: [id], onDelete: Cascade)
+  certificateId          String
+  certificate            Certificate          @relation(fields: [certificateId], references: [id])
+
+  @@unique([introductionRequestId, certificateId])
+  @@index([certificateId])
+}
+
+enum JobPostingStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+// `closingDate` is required at posting time, not optional — nothing in
+// this roadmap relies on staff remembering to take an old listing
+// down manually (see M36). `status` reaching EXPIRED is a real,
+// distinct state from REJECTED, set explicitly once the closing date
+// passes, not derived silently by comparing dates on every read — so
+// staff can see an honest record of why a posting isn't live: it ran
+// its course, versus it was never approved at all.
+model JobPosting {
+  id           String           @id @default(cuid())
+  employerId   String
+  employer     Employer         @relation(fields: [employerId], references: [id])
+  title        String
+  description  String
+  closingDate  DateTime
+  status       JobPostingStatus @default(PENDING_REVIEW)
+  // M34 — the same disagreement-gets-flagged pattern M21 already
+  // established for exam questions: AI screens every posting and
+  // flags anything questionable, but never approves one on its own
+  // authority — a staff member still has to act on every single
+  // posting before it's visible.
+  aiFlagged    Boolean          @default(false)
+  aiFlagReason String?
+  reviewedById String?
+  reviewedBy   User?            @relation(fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+  createdAt    DateTime         @default(now())
+
+  applications JobApplication[]
+
+  @@index([status])
+  @@index([closingDate])
+}
+
+// A trainee's application to one specific posting, carrying its own
+// per-application disclosure choices — deliberately not a foreign key
+// to some static "public profile," since none exists by design; the
+// same "chosen fresh per action" reasoning as IntroductionRequest
+// above, applied to the job-board half instead of the discovery half.
+model JobApplication {
+  id                 String     @id @default(cuid())
+  jobPostingId       String
+  jobPosting         JobPosting @relation(fields: [jobPostingId], references: [id])
+  traineeId          String
+  trainee            Trainee    @relation(fields: [traineeId], references: [id])
+  includeContactInfo Boolean    @default(false)
+  createdAt          DateTime   @default(now())
+
+  disclosedCertificates JobApplicationDisclosedCertificate[]
+
+  @@unique([jobPostingId, traineeId])
+  @@index([traineeId])
+}
+
+// The job-application counterpart to IntroductionDisclosedCertificate
+// above — same real-join-table reasoning, not duplicated logic that
+// could drift, just applied to the other disclosure context.
+model JobApplicationDisclosedCertificate {
+  id               String         @id @default(cuid())
+  jobApplicationId String
+  jobApplication   JobApplication @relation(fields: [jobApplicationId], references: [id], onDelete: Cascade)
+  certificateId    String
+  certificate      Certificate    @relation(fields: [certificateId], references: [id])
+
+  @@unique([jobApplicationId, certificateId])
+  @@index([certificateId])
+}
+
+// M32 — which of a trainee's own certificates they've chosen to
+// include in their general browsing listing (visible to any vetted
+// employer browsing, before any specific introduction exists) — a
+// third, genuinely distinct context from IntroductionDisclosedCertificate
+// and JobApplicationDisclosedCertificate above, not a shortcut reuse of
+// either: those are one-time, per-action choices made once at
+// acceptance or application time; this is the ongoing default a
+// trainee sets and can change any time from their own settings page,
+// consumed fresh on every browsing request rather than snapshotted.
+model DiscoverableCertificate {
+  id            String      @id @default(cuid())
+  traineeId     String
+  trainee       Trainee     @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  certificateId String
+  certificate   Certificate @relation(fields: [certificateId], references: [id])
+
+  @@unique([traineeId, certificateId])
+  @@index([certificateId])
+}
+
+// ---------------------------------------------------------------------
+// In-app notification center — a real, persistent, always-visible
+// notification feed for every role (trainee, staff, employer), the
+// same way a social media platform's notification bell works, rather
+// than email being the only place an event is ever recorded.
+//
+// Deliberately a separate model from NotificationLog, not a reuse of
+// it — NotificationLog is a delivery audit trail (did this specific
+// email/WhatsApp send actually succeed), scoped to one send attempt;
+// this is a user-facing feed with its own lifecycle (read/unread,
+// something to click through to), a genuinely different concern even
+// though many events create one row in each. No `channel` field here
+// either — unlike NotificationLog, which is genuinely per-channel
+// (one row per email attempt, one per WhatsApp attempt), an in-app
+// notification is a single, canonical entry a person either has seen
+// or hasn't, not something that gets duplicated per delivery channel.
+model UserNotification {
+  id            String    @id @default(cuid())
+  recipientType String // "TRAINEE" | "STAFF" | "EMPLOYER"
+  recipientId   String
+  type          String // the same NotificationType values as NotificationLog
+  title         String
+  body          String
+  // Where clicking this notification should take the person — a
+  // relative path, not stored as a full appUrl(), since the frontend
+  // already knows its own origin and a relative path survives an
+  // environment change (staging vs production) without needing a
+  // migration the way a stored absolute URL would.
+  url           String?
+  readAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([recipientType, recipientId, readAt])
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------
+// Course reviews and admin-curated public testimonials.
+//
+// A trainee can only review a course they've genuinely completed —
+// reusing Certificate as the completion signal rather than inventing a
+// separate concept, since this project already moved certificate
+// issuance specifically to "passed the course examination" (see M23's
+// own history) and a revoked certificate correctly means the
+// completion no longer stands, the same way it already does
+// everywhere else certificates are checked (M32's discoverability
+// settings, M33's disclosure). Reviews are visible to staff, never
+// automatically public — matching this whole project's established
+// posture that nothing reaches a public audience without a real human
+// decision (employer accounts, job postings). A Testimonial can be
+// sourced from a real review (`courseReview`, promoted by staff with
+// one click) or entered by staff directly for something genuine that
+// predates this system — both are real, deliberate paths, not one
+// path with a workaround.
+model CourseReview {
+  id         String   @id @default(cuid())
+  traineeId  String
+  trainee    Trainee  @relation(fields: [traineeId], references: [id])
+  courseId   String
+  course     Course   @relation(fields: [courseId], references: [id])
+  rating     Int // 1-5
+  reviewText String?
+  createdAt  DateTime @default(now())
+
+  testimonial Testimonial?
+
+  @@unique([traineeId, courseId])
+  @@index([courseId])
+}
+
+model Testimonial {
+  id             String        @id @default(cuid())
+  courseReviewId String?       @unique
+  courseReview   CourseReview? @relation(fields: [courseReviewId], references: [id])
+  // Snapshotted at promotion (or entry) time, not a live join — if the
+  // underlying review or trainee record changes later, a testimonial
+  // already published stays exactly as staff approved it, the same
+  // "snapshot for stability" reasoning already used for Certificate
+  // and Attempt elsewhere in this schema.
+  traineeName    String
+  quote          String
+  rating         Int?
+  courseTitle    String?
+  published      Boolean       @default(true)
+  createdById    String
+  createdBy      User          @relation(fields: [createdById], references: [id])
+  createdAt      DateTime      @default(now())
+}

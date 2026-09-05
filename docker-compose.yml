@@ -1,0 +1,25 @@
+services:
+  db:
+    # M11 needs the pgvector extension for Question.embedding (see
+    # schema.prisma's own comment) — plain postgres:16-alpine doesn't
+    # have it. pgvector/pgvector:pg16 is the same Postgres 16, built
+    # by the pgvector project itself with the extension already
+    # compiled in, so `CREATE EXTENSION vector` (which `prisma db
+    # push` runs automatically because of schema.prisma's `extensions
+    # = [vector]`) actually has something to find. This was the one
+    # thing that could only be caught by an actual `prisma db push`
+    # against a real database — never possible inside the sandbox
+    # this project was built in.
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cbt
+      POSTGRES_PASSWORD: cbt
+      POSTGRES_DB: cbt_platform
+    ports:
+      - "5432:5432"
+    volumes:
+      - cbt_pg_data:/var/lib/postgresql/data
+
+volumes:
+  cbt_pg_data:

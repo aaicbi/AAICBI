@@ -1,0 +1,372 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* M46 — the actual theme-switching foundation. Every brand color in
+   tailwind.config.ts resolves through one of these variables rather
+   than a hardcoded hex, so the 369 existing `bg-brand-*`/`text-brand-*`
+   usages already spread across this app respond to the theme with
+   zero changes to any of them — only the token definitions here needed
+   to become theme-aware.
+
+   Light values are the exact hexes this project has always used,
+   converted to space-separated RGB triplets (Tailwind's convention for
+   the `rgb(var(--x) / <alpha-value>)` pattern, which is what makes
+   opacity modifiers like `bg-brand-teal/50` keep working correctly).
+
+   Dark values are a genuinely considered palette, not a naive
+   inversion — text/heading colors (teal, ink) go lighter for
+   legibility against a dark background; background/surface colors
+   (sand, mint, gray) go darker; accent colors used on badges and
+   callouts (gold, rose) are brightened slightly for contrast rather
+   than left identical, since a color tuned to sit on a light
+   background doesn't automatically read well on a dark one.
+
+   Audit finding, closed here: `--brand-surface` is a genuinely new
+   token, not a rename — before this, every Card/Toast/modal in this
+   app used a hardcoded `bg-white`, meaning the single most common UI
+   element in the entire app didn't participate in dark mode at all.
+   The page background (`brand-sand`) and the card/panel surface that
+   sits on top of it need to be two genuinely different values for a
+   card to visually lift off the page — reusing `brand-sand` for both
+   is what made the whole app read as one flat, muddy blob in dark
+   mode. `brand-sand`'s own dark value is also revised here: the
+   original was a heavily green-saturated near-black; every neutral
+   surface (background, card, border) shared that same saturated hue,
+   which is what made dark mode feel murky rather than crisp — the
+   fix is a more neutral, desaturated charcoal base with real,
+   perceptible lightness steps between background → surface → border,
+   while `brand-teal`/`brand-gold` stay exactly as they were: vibrant
+   accents that now actually pop against a calmer, less competing
+   background instead of blending into it. */
+:root {
+  --brand-teal: 1 107 97;
+  --brand-teal-deep: 1 74 67;
+  --brand-green: 133 199 154;
+  --brand-mint: 228 238 231;
+  --brand-gray: 217 217 217;
+  --brand-ink: 22 48 43;
+  --brand-sand: 251 248 243;
+  --brand-surface: 255 255 255;
+  --brand-gold: 217 154 52;
+  --brand-gold-light: 246 232 204;
+  /* A genuinely new, dedicated token, not a repurposed existing one —
+     `brand-gold` itself is tuned to be a vibrant accent (badges,
+     highlights), not necessarily legible as body text; several pages
+     had independently hardcoded the same darker, muted gold as a
+     literal hex specifically for text sitting on a gold-tinted
+     background, with no way for that hardcoded value to adapt when
+     the background itself went dark. */
+  --brand-gold-text: 138 95 31;
+  --brand-rose: 178 58 72;
+  --brand-rose-light: 245 226 225;
+  /* Audit finding, closed here: 376 instances of Tailwind's own
+     default gray scale across 77 files — used everywhere for
+     secondary text, borders, and light backgrounds — none of it
+     theme-aware, since Tailwind's default palette never responds to
+     the `.dark` class the `brand-*` tokens above do. Far too many
+     individual call sites to fix one by one; the same fix already
+     proven for `brand-*` applies here instead: override the specific
+     gray shades this app actually uses (confirmed directly — no
+     gray-200, gray-500 is by far the most common at 157 uses alone)
+     to resolve through these theme-aware variables via
+     tailwind.config.ts, so all 77 files adapt automatically with zero
+     per-file changes. Light values are Tailwind's real, unmodified
+     default hexes (confirmed directly from the installed
+     tailwindcss/colors module, not assumed) — light mode is pixel-
+     identical to before. Dark values preserve each shade's relative
+     purpose rather than a naive per-channel inversion: gray-50/100
+     (light backgrounds) become the darkest values, gray-800/900
+     (near-black text) become the lightest, with gray-500/600 —
+     ordinary secondary/muted text, easily the most common use in this
+     codebase — landing at a genuinely readable mid-gray rather than
+     either extreme. One real, deliberate exception found and handled
+     separately, not swept into this: a video-player placeholder
+     (trainee/courses/[id]/page.tsx) used gray-800/900 as a fixed dark
+     background mimicking video-chrome convention, which needed to
+     stay dark in both themes — converted to explicit, literal hex
+     values instead of participating in this override, so this table
+     could safely include 800/900 for every other, genuinely
+     text-based use without breaking that one intentional case. */
+  --gray-50: 249 250 251;
+  --gray-100: 243 244 246;
+  --gray-300: 209 213 219;
+  --gray-400: 156 163 175;
+  --gray-500: 107 114 128;
+  --gray-600: 75 85 99;
+  --gray-700: 55 65 81;
+  --gray-800: 31 41 55;
+  --gray-900: 17 24 39;
+}
+
+.dark {
+  --brand-teal: 79 187 168;
+  --brand-teal-deep: 110 212 192;
+  --brand-green: 154 212 172;
+  --brand-mint: 27 56 51;
+  --brand-gray: 51 57 60;
+  --brand-ink: 232 240 237;
+  --brand-sand: 20 24 26;
+  --brand-surface: 28 33 36;
+  --brand-gold: 227 172 85;
+  --brand-gold-light: 61 46 20;
+  --brand-gold-text: 230 195 140;
+  --brand-rose: 214 92 107;
+  --brand-rose-light: 61 26 30;
+  --gray-50: 24 28 30;
+  --gray-100: 34 39 42;
+  --gray-300: 70 77 81;
+  --gray-400: 110 117 121;
+  --gray-500: 148 155 159;
+  --gray-600: 168 174 178;
+  --gray-700: 194 199 202;
+  --gray-800: 222 226 228;
+  --gray-900: 237 240 241;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  /* M46 — dark mode uses Tailwind's own `dark:` variant here, not the
+     brand-token CSS variables, specifically to respect an explicit,
+     documented prior decision (see the comment directly below): plain
+     white was a deliberate, direct request, reverted from a warm
+     off-white base — repurposing brand-sand for this rule would have
+     silently undone that in light mode, since brand-sand isn't
+     genuinely white, just close to it. This is the one base-layer
+     fix that matters for the whole app; the 369 individual component
+     usages elsewhere were already written as brand tokens and needed
+     no changes at all. */
+  @apply bg-white dark:bg-brand-sand text-brand-ink antialiased font-sans;
+  /* Back to plain white per direct request — the milky #FFFCF1 base
+     was itself a direct, specific request one round ago; reverted just
+     as directly here. The wallpaper pattern below sits on top of
+     whatever this is as an ordinary background-image, so switching the
+     base color back needed no other changes to make. */
+  /* App-wide "wallpaper" — see public/wallpaper-pattern.svg for the
+     full design reasoning. v9: opacity halved again on request, 27.5%
+     → 13.75% — a faint, subtle presence now, visible on close look
+     but no longer competing for attention with real content. Same 44
+     instances, same 20 icon types as v8. Its own opacity is baked
+     into the file itself, so this is an entirely ordinary
+     `background-image` — no z-index or stacking-context tricks
+     needed.
+
+     Density now scales with viewport width, deliberately, not as an
+     incidental side effect of `background-repeat` simply having more
+     physical area to fill on a bigger screen (which would happen
+     regardless, for free, with zero extra CSS). The tile itself gets
+     SMALLER as the breakpoints go up — smaller tile at the same fixed
+     content means more repetitions fit per unit area, so a genuinely
+     higher density of visible icons, not just "the same density shown
+     across more space." Mobile gets the largest, most restrained tile
+     on purpose: a small screen showing the same icon density as a
+     desktop would read as cluttered against far less content, not
+     rich. The six steps below match this project's existing Tailwind
+     breakpoints (sm/md/lg/xl/2xl) exactly, so this scales in step with
+     every other responsive decision already made across this redesign
+     rather than introducing a second, inconsistent set of breakpoints. */
+  background-image: url("/wallpaper-pattern.svg");
+  background-repeat: repeat;
+  background-size: 900px 900px; /* mobile-first default, below 640px */
+}
+
+/* Audit finding, closed here: the wallpaper above was a static image
+   file with its icon colors baked in as literal hex values — the
+   exact light-mode brand-token hexes, chosen to sit quietly against a
+   white background. A `background-image` referencing an external file
+   can't respond to CSS variables or the `.dark` class the way every
+   other color in this app does; the same bright, light-mode-tuned
+   icons would have shown up unchanged over a dark page, clashing
+   rather than sitting quietly the way they were actually designed to.
+   `wallpaper-pattern-dark.svg` is a faithful, structurally identical
+   copy — same 44 icon instances, same layout, same 0.1375 opacity —
+   with each of the 4 stroke colors substituted for that exact token's
+   own dark-mode value already defined above (brand-teal, brand-
+   tealDeep, brand-green, brand-gold), confirmed directly: 44 exact
+   substitutions, zero remaining light-mode hexes, identical file size
+   before and after. */
+.dark body {
+  background-image: url("/wallpaper-pattern-dark.svg");
+}
+
+@media (min-width: 640px)  { body { background-size: 800px 800px; } }
+@media (min-width: 768px)  { body { background-size: 700px 700px; } }
+@media (min-width: 1024px) { body { background-size: 600px 600px; } }
+@media (min-width: 1280px) { body { background-size: 500px 500px; } }
+@media (min-width: 1536px) { body { background-size: 420px 420px; } }
+
+/* The live, timed exam-taking pages (exam/[code]/take and its LMS
+   twin) never show the wallpaper above, at any breakpoint: both wrap
+   their entire content in their own solid `bg-white` full-viewport
+   div, which fully occludes whatever sits behind it on body — not a
+   special-case override here, just a natural consequence of how those
+   two pages were already built, kept deliberately even after "make
+   this the standard throughout the app": a distraction-free screen
+   during a timed, graded assessment is a real, considered UX decision,
+   not an oversight this instruction was meant to close. Worth knowing
+   if either page's root wrapper ever loses that class — it would
+   silently start showing the wallpaper behind a screen that was kept
+   plain on purpose. */
+
+/* h1/h2/h3 automatically get the Fraunces display font without needing
+   the .font-display class explicitly — that class itself is already a
+   real, independently-generated Tailwind utility (from
+   tailwind.config.ts's fontFamily.display) and is used directly as a
+   className in 32 places across this app.
+
+   Audit finding, caught only by an actual Tailwind build (never
+   possible inside the sandbox this project was built in — this is
+   exactly the kind of thing the README's "never actually run" caveat
+   meant): this rule used to also list .font-display as one of its own
+   selectors — `h1, h2, h3, .font-display { @apply font-display; }` —
+   which Tailwind correctly rejects as a circular dependency: the rule
+   both matches .font-display AND applies the CSS that .font-display
+   itself generates, so Tailwind can't resolve which one comes first.
+   Removed the redundant selector; every actual use of the class still
+   works exactly as before, since that utility doesn't depend on this
+   rule to exist. */
+h1, h2, h3 {
+  @apply font-display;
+}
+
+/* Large, obviously-tappable radio rows for the exam-taking screen — §22 */
+.option-row {
+  @apply flex items-start gap-3 rounded-lg border border-brand-gray p-4 cursor-pointer transition-colors;
+  min-height: 56px;
+}
+.option-row:hover {
+  @apply border-brand-teal;
+}
+.option-row[data-selected="true"] {
+  @apply border-brand-teal bg-brand-mint;
+}
+
+/* Respect reduced-motion preferences everywhere, per the frontend-design
+   skill's quality floor — an animation that ignores this isn't polish,
+   it's an accessibility miss. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes draw-in {
+  from { stroke-dashoffset: var(--draw-length, 400); }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes gentle-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+/* Audit finding, closed here: ~29 form inputs across this app use
+   `outline-none focus:border-brand-teal` — removing the browser's own
+   focus outline and replacing it with only a 1px border-color change.
+   That's a genuinely weaker signal than what it replaced, not a
+   like-for-like swap — WCAG 2.4.7 requires a visible focus indicator,
+   and a thin border-color shift is far easier to miss than a real
+   outline, especially for anyone with low vision. No shared `Input`
+   component exists to fix this in one place at the component level
+   (every field in this app is handwritten inline), so the same
+   "fix once at the foundation" approach already used for the color
+   system applies here instead: one global rule, applied after every
+   Tailwind utility in source order (confirmed directly — `@tailwind
+   utilities` sits at the very top of this file, line 3, so anything
+   defined later here wins the cascade at equal specificity against
+   `outline-none` on any individual element).
+
+   `:focus-visible` specifically, not the older `:focus` — the
+   distinction matters: `:focus-visible` only shows for keyboard
+   navigation (Tab), not an ordinary mouse click, matching how modern
+   browsers already decide when a visible indicator is actually
+   useful versus just visual noise for a mouse user who doesn't need
+   it. This restores a real, clearly visible ring for every keyboard
+   user across every interactive element in the app — buttons, links,
+   and the ~29 inputs that had deliberately suppressed their own —
+   without touching a single one of those 29 files individually. */
+:focus-visible {
+  outline: 2px solid rgb(var(--brand-teal));
+  outline-offset: 2px;
+}
+
+/* Design-pass — typographic refinement for the display serif, applied
+   once at the foundation rather than by editing every heading. Two
+   things, both about letting Fraunces look its best:
+
+   1. A subtle negative letter-spacing. Fraunces is a warm, slightly
+      wide soft-serif; at heading sizes it reads as more crafted and
+      intentional with the tracking pulled in a touch — the difference
+      between "a serif font" and "a designed headline". This is the
+      same tightening the dashboard hero applies inline via
+      `tracking-tight`; here it becomes the default for every heading
+      using the display face, so the whole app gains it at once with
+      zero per-heading edits and zero layout risk (letter-spacing
+      this small doesn't rewrap anything).
+
+   2. Fraunces ships an optical-size axis; asking for its higher
+      optical sizing makes the contrast between thick and thin strokes
+      more pronounced, which is exactly what gives a serif its
+      "premium" feel at display sizes. Harmless where unsupported —
+      the browser simply ignores an unknown font-variation-setting.
+
+   `.font-display` is Tailwind's own class for this app's display
+   family (see tailwind.config.ts), so this targets exactly the
+   headings already using the serif and nothing else — body text in
+   Manrope is untouched. */
+.font-display {
+  letter-spacing: -0.01em;
+  font-variation-settings: "opsz" 40;
+  /* Audit finding, closed here: the same underlying issue as the
+     Button component's own select-none fix — nothing in this app
+     marked heading-like text as non-selectable, so a click or
+     double-click on a large hero title or a card title (e.g. "Profile
+     Picture") could trigger the browser's native text-selection
+     caret, read by a user as a rendering bug rather than default
+     browser behavior. Scoped deliberately to `.font-display` — this
+     app's own established convention already reserves that class for
+     headings and titles specifically, never body paragraphs or
+     genuinely copyable values (confirmed directly: the one place a
+     real, copyable value exists — a certificate's code — uses a
+     different, plain text class, not font-display), so this fixes
+     exactly the "UI chrome" case without making real, readable
+     content uncopiable. */
+  user-select: none;
+}
+
+/* Audit finding, refined here: checked directly by actually compiling
+   this file through the real Tailwind CLI (not assumed) — Tailwind's
+   own Preflight base styles already set a `::placeholder` color using
+   `--gray-400`, and this app's earlier gray-scale audit pass already
+   made that variable theme-aware, so placeholder text was not
+   genuinely unthemed the way a first read of a "faint in dark mode"
+   report might suggest. What this rule actually improves: gray-400's
+   own dark-mode value (110 117 121) is darker/more muted than
+   necessary for placeholder text specifically — gray-500's dark value
+   (148 155 159) is a real, meaningfully lighter, more readable choice
+   for exactly this purpose, confirmed by comparing both values
+   directly rather than guessing. This rule is placed after Tailwind's
+   own utilities in this file's source order, so it wins the cascade
+   at equal specificity (confirmed by compiling and inspecting the
+   real output) — a small, genuine readability improvement layered on
+   top of an already-theme-aware base, not a fix for completely
+   unthemed text. */
+input::placeholder,
+textarea::placeholder {
+  color: rgb(var(--gray-500));
+  opacity: 1;
+}
