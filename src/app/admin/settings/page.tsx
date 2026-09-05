@@ -28,19 +28,18 @@ export default function AdminSettingsPage() {
   }
 
   useEffect(() => {
-    // Bug fix — same root cause and reasoning as trainee/settings's
-    // own fix: the database darkMode value was being used to
-    // forcibly re-apply the theme on every load, overwriting the
-    // theme the root layout's pre-paint script had already correctly
-    // applied from the `theme` cookie. Initialize the toggle from
-    // what's actually on screen, not from a value that can be stale.
     const currentlyDark = document.documentElement.classList.contains("dark");
     setDarkModeState(currentlyDark);
     fetch("/api/admin/settings")
       .then((r) => r.json())
       .then((data) => {
-        setAiAssistantEnabled(data.aiAssistantEnabled);
-        setAvatarUrl(data.avatarUrl);
+        if (!data) return;
+        if (typeof data.aiAssistantEnabled === "boolean") setAiAssistantEnabled(data.aiAssistantEnabled);
+        if (typeof data.darkMode === "boolean") {
+          setDarkModeState(data.darkMode);
+          applyTheme(data.darkMode);
+        }
+        setAvatarUrl(data.avatarUrl ?? null);
       })
       .catch(() => {
         setAiAssistantEnabled(false);
@@ -67,6 +66,14 @@ export default function AdminSettingsPage() {
       if (field === "darkMode") applyTheme(darkMode);
       showToast("Could not save. Please try again.", "error");
       return;
+    }
+    const updated = await res.json().catch(() => null);
+    if (updated) {
+      if (typeof updated.aiAssistantEnabled === "boolean") setAiAssistantEnabled(updated.aiAssistantEnabled);
+      if (typeof updated.darkMode === "boolean") {
+        setDarkModeState(updated.darkMode);
+        applyTheme(updated.darkMode);
+      }
     }
     showToast("Saved.", "success");
   }
@@ -152,8 +159,8 @@ export default function AdminSettingsPage() {
                 }`}
               >
                 <span
-                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                    aiAssistantEnabled ? "translate-x-5" : "translate-x-0.5"
+                  className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                    aiAssistantEnabled ? "translate-x-5" : "translate-x-0"
                   }`}
                 />
               </button>
@@ -178,8 +185,8 @@ export default function AdminSettingsPage() {
                 }`}
               >
                 <span
-                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                    darkMode ? "translate-x-5" : "translate-x-0.5"
+                  className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                    darkMode ? "translate-x-5" : "translate-x-0"
                   }`}
                 />
               </button>

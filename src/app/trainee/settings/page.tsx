@@ -67,35 +67,25 @@ export default function TraineeSettingsPage() {
   }
 
   useEffect(() => {
-    // Bug fix — this used to call setDarkModeState(data.darkMode) and
-    // applyTheme(data.darkMode) unconditionally on every load, using
-    // the DATABASE value as the source of truth. That's wrong: the
-    // root layout's own pre-paint script already read the `theme`
-    // cookie and correctly applied the real, currently-visible theme
-    // *before* this component ever mounted (see layout.tsx). For any
-    // trainee whose database darkMode is stale — e.g. still `false`
-    // from before dark became the app-wide default, never explicitly
-    // changed since — this would silently flip an already-correct
-    // dark page back to light the moment they opened Settings, and
-    // show the toggle in the wrong position for what's actually on
-    // screen. The currently-applied `dark` class on <html> is the
-    // one honest source for what theme is really showing right now;
-    // initialize the toggle from that, not from a value that can
-    // disagree with reality.
     const currentlyDark = document.documentElement.classList.contains("dark");
     setDarkModeState(currentlyDark);
     fetch("/api/trainee/settings")
       .then((r) => r.json())
       .then((data) => {
-        setNotificationsEnabled(data.notificationsEnabled);
-        setLowBandwidthMode(data.lowBandwidthMode);
-        setPreferredLanguage(data.preferredLanguage);
-        setAiStudyBuddyEnabled(data.aiStudyBuddyEnabled);
-        setAiCreditBalance(data.aiCreditBalance);
-        setAvatarUrl(data.avatarUrl);
-        setWhatsappOptIn(data.whatsappOptIn);
-        setWhatsappVerifiedAt(data.whatsappVerifiedAt);
-        setPhone(data.phone);
+        if (!data) return;
+        if (typeof data.notificationsEnabled === "boolean") setNotificationsEnabled(data.notificationsEnabled);
+        if (typeof data.lowBandwidthMode === "boolean") setLowBandwidthMode(data.lowBandwidthMode);
+        if (data.preferredLanguage) setPreferredLanguage(data.preferredLanguage);
+        if (typeof data.aiStudyBuddyEnabled === "boolean") setAiStudyBuddyEnabled(data.aiStudyBuddyEnabled);
+        if (typeof data.darkMode === "boolean") {
+          setDarkModeState(data.darkMode);
+          applyTheme(data.darkMode);
+        }
+        setAiCreditBalance(data.aiCreditBalance ?? null);
+        setAvatarUrl(data.avatarUrl ?? null);
+        setWhatsappOptIn(!!data.whatsappOptIn);
+        setWhatsappVerifiedAt(data.whatsappVerifiedAt ?? null);
+        setPhone(data.phone ?? null);
         return fetch(`/api/translations?language=${data.preferredLanguage}`);
       })
       .then((r) => r?.json())
@@ -152,6 +142,16 @@ export default function TraineeSettingsPage() {
       showToast("Could not save. Please try again.", "error");
       return;
     }
+    const updated = await res.json().catch(() => null);
+    if (updated) {
+      if (typeof updated.notificationsEnabled === "boolean") setNotificationsEnabled(updated.notificationsEnabled);
+      if (typeof updated.lowBandwidthMode === "boolean") setLowBandwidthMode(updated.lowBandwidthMode);
+      if (typeof updated.aiStudyBuddyEnabled === "boolean") setAiStudyBuddyEnabled(updated.aiStudyBuddyEnabled);
+      if (typeof updated.darkMode === "boolean") {
+        setDarkModeState(updated.darkMode);
+        applyTheme(updated.darkMode);
+      }
+    }
     showToast("Saved.", "success");
   }
 
@@ -177,6 +177,10 @@ export default function TraineeSettingsPage() {
       setPreferredLanguage(previous); // revert on failure
       showToast("Could not save. Please try again.", "error");
       return;
+    }
+    const updated = await res.json().catch(() => null);
+    if (updated && updated.preferredLanguage) {
+      setPreferredLanguage(updated.preferredLanguage);
     }
     showToast("Saved.", "success");
   }
@@ -243,8 +247,8 @@ export default function TraineeSettingsPage() {
                 }`}
               >
                 <span
-                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                    notificationsEnabled ? "translate-x-5" : "translate-x-0.5"
+                  className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                    notificationsEnabled ? "translate-x-5" : "translate-x-0"
                   }`}
                 />
               </button>
@@ -273,8 +277,8 @@ export default function TraineeSettingsPage() {
                 }`}
               >
                 <span
-                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                    lowBandwidthMode ? "translate-x-5" : "translate-x-0.5"
+                  className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                    lowBandwidthMode ? "translate-x-5" : "translate-x-0"
                   }`}
                 />
               </button>
@@ -335,8 +339,8 @@ export default function TraineeSettingsPage() {
                 }`}
               >
                 <span
-                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                    aiStudyBuddyEnabled ? "translate-x-5" : "translate-x-0.5"
+                  className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                    aiStudyBuddyEnabled ? "translate-x-5" : "translate-x-0"
                   }`}
                 />
               </button>
@@ -361,8 +365,8 @@ export default function TraineeSettingsPage() {
                 }`}
               >
                 <span
-                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                    darkMode ? "translate-x-5" : "translate-x-0.5"
+                  className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                    darkMode ? "translate-x-5" : "translate-x-0"
                   }`}
                 />
               </button>
@@ -609,7 +613,7 @@ function DiscoverabilitySettings() {
           className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${discoverable ? "bg-brand-teal" : "bg-brand-gray"}`}
         >
           <span
-            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${discoverable ? "translate-x-5" : "translate-x-0.5"}`}
+            className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${discoverable ? "translate-x-5" : "translate-x-0"}`}
           />
         </button>
       </div>
