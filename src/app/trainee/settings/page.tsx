@@ -70,7 +70,10 @@ export default function TraineeSettingsPage() {
     const currentlyDark = document.documentElement.classList.contains("dark");
     setDarkModeState(currentlyDark);
     fetch("/api/trainee/settings")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to load settings");
+        return r.json();
+      })
       .then((data) => {
         if (!data) return;
         if (typeof data.notificationsEnabled === "boolean") setNotificationsEnabled(data.notificationsEnabled);
@@ -80,21 +83,26 @@ export default function TraineeSettingsPage() {
         if (typeof data.darkMode === "boolean") {
           setDarkModeState(data.darkMode);
           applyTheme(data.darkMode);
+        } else {
+          setDarkModeState(currentlyDark);
         }
         setAiCreditBalance(data.aiCreditBalance ?? null);
         setAvatarUrl(data.avatarUrl ?? null);
         setWhatsappOptIn(!!data.whatsappOptIn);
         setWhatsappVerifiedAt(data.whatsappVerifiedAt ?? null);
         setPhone(data.phone ?? null);
-        return fetch(`/api/translations?language=${data.preferredLanguage}`);
+        if (data.preferredLanguage) {
+          return fetch(`/api/translations?language=${data.preferredLanguage}`);
+        }
       })
       .then((r) => r?.json())
       .then((map) => map && setTranslations(map))
       .catch(() => {
-        setNotificationsEnabled(true);
-        setLowBandwidthMode(false);
-        setPreferredLanguage("en");
-        setAiStudyBuddyEnabled(false);
+        setNotificationsEnabled((prev) => prev ?? true);
+        setLowBandwidthMode((prev) => prev ?? false);
+        setPreferredLanguage((prev) => prev ?? "en");
+        setAiStudyBuddyEnabled((prev) => prev ?? false);
+        setDarkModeState((prev) => prev ?? currentlyDark);
       });
   }, []);
 
