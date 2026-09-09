@@ -1,7 +1,11 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth/session";
+import { getSession } from "@/lib/auth/session";
 import { createdByFilter } from "@/lib/courseOwnership";
+import { getTimeOfDayGreeting, formatLastVisit } from "@/lib/dashboardHelpers";
+import { getRecentNotifications, getUnreadNotificationCount, getEventsSinceLastVisit } from "@/lib/dashboard/recentNotifications";
+import { ADMIN_AREAS } from "@/lib/adminAreas";
 import LogoutButton from "@/components/admin/LogoutButton";
 import SiteHeader from "@/components/SiteHeader";
 import Card from "@/components/ui/Card";
@@ -9,9 +13,35 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
+import WelcomeHeader from "@/components/dashboard/WelcomeHeader";
+import NotificationSummaryCard from "@/components/dashboard/NotificationSummaryCard";
+import ActivityFeed from "@/components/dashboard/ActivityFeed";
+import QuickActionsCard from "@/components/dashboard/QuickActionsCard";
+
+const ROLE_LABELS: Record<string, string> = {
+  SUPER_ADMIN: "Super Admin",
+  ADMIN: "Admin",
+  INSTRUCTOR: "Instructor",
+};
+
+const ALLOWED_ROLES = ["SUPER_ADMIN", "ADMIN", "INSTRUCTOR"];
 
 export default async function AdminDashboardPage() {
-  const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR"); // middleware already redirects, this is belt-and-braces
+  // Bug fix — this used to call requireRole(...) directly, which
+  // THROWS a plain Error for the wrong role rather than redirecting.
+  // That's the right shape for an API route (withApiErrors turns it
+  // into a clean 403 JSON response), but this is a page component with
+  // no such wrapper: the throw became an uncaught exception, and
+  // Next.js's generic error boundary rendered a raw 500 for something
+  // that should have been a quiet redirect — e.g. a trainee with a
+  // valid session who lands on /admin/dashboard (middleware only
+  // checks "is there a session," not which role, so this really can
+  // happen). Same getSession()-then-redirect() pattern already used by
+  // /trainee/dashboard and /employer/dashboard.
+  const session = await getSession();
+  if (!session || !ALLOWED_ROLES.includes(session.role)) {
+    redirect("/admin/login");
+  }
   // Audit finding, closed here: this was a bare `{ createdById:
   // session.userId }`, meaning even a SUPER_ADMIN only ever saw their
   // own exams here — the one genuine inconsistency with the
@@ -21,11 +51,36 @@ export default async function AdminDashboardPage() {
   // createdByFilter's own comment for the full reasoning: SUPER_ADMIN
   // sees everything on a list/GET route, narrowly scoped to visibility
   // only, never a bypass on anything that modifies data).
-  const exams = await prisma.exam.findMany({
-    where: createdByFilter(session),
-    orderBy: { createdAt: "desc" },
-    include: { _count: { select: { questions: true, attempts: true } } },
-  });
+  const [staff, exams, notifications, unreadCount] = await Promise.all([
+    prisma.user.findUniqueOrThrow({ where: { id: session.userId } }),
+    prisma.exam.findMany({
+      where: createdByFilter(session),
+      orderBy: { createdAt: "desc" },
+      include: { _count: { select: { questions: true, attempts: true } } },
+    }),
+    getRecentNotifications("STAFF", session.userId, 5),
+    getUnreadNotificationCount("STAFF", session.userId),
+  ]);
+  const sinceLastVisit = await getEventsSinceLastVisit("STAFF", session.userId, staff.previousLoginAt, 10);
+
+  // Personalized landing page — "pending approvals" a SUPER_ADMIN/ADMIN
+  // can actually act on, real counts only (never shown for INSTRUCTOR,
+  // which has no approval authority anywhere else in this app either).
+  const isApprover = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+  const [pendingEmployers, pendingJobPostings, pendingReports] = isApprover
+    ? await Promise.all([
+        prisma.employer.count({ where: { approvalState: "PENDING" } }),
+        prisma.jobPosting.count({ where: { status: "PENDING_REVIEW" } }),
+        prisma.profileReport.count({ where: { status: "PENDING" } }),
+      ])
+    : [0, 0, 0];
+
+  const quickActions = [
+    { label: "Create Examination", href: "/admin/exams/new" },
+    { label: "Courses", href: "/admin/courses" },
+    { label: "My Profile", href: "/admin/profile" },
+    ...(isApprover ? ADMIN_AREAS.map((a) => ({ label: a.label, href: a.href })) : []),
+  ];
 
   return (
     <>
@@ -33,20 +88,64 @@ export default async function AdminDashboardPage() {
         nav={[
           { label: "Examinations", href: "/admin/dashboard" },
           { label: "Courses", href: "/admin/courses" },
+          { label: "Payments", href: "/admin/payments" },
+          { label: "My Profile", href: "/admin/profile" },
           { label: "Settings", href: "/admin/settings" },
         ]}
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-4xl px-6 py-10">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <WelcomeHeader
+          greeting={getTimeOfDayGreeting()}
+          name={staff.name}
+          avatarUrl={staff.avatarUrl}
+          username={staff.username}
+          roleLabel={ROLE_LABELS[staff.role] ?? staff.role}
+          statusLabel="Active"
+          statusVariant="success"
+          lastVisitLabel={formatLastVisit(staff.previousLoginAt)}
+          profileHref="/admin/profile"
+        />
+
+        {isApprover && (pendingEmployers > 0 || pendingJobPostings > 0 || pendingReports > 0) && (
+          <div className="mt-6 grid grid-cols-3 gap-3">
+            <Link href="/admin/employers">
+              <Card interactive>
+                <p className="text-2xl font-semibold text-brand-ink">{pendingEmployers}</p>
+                <p className="text-xs text-gray-500">Pending employer{pendingEmployers === 1 ? "" : "s"}</p>
+              </Card>
+            </Link>
+            <Link href="/admin/job-postings">
+              <Card interactive>
+                <p className="text-2xl font-semibold text-brand-ink">{pendingJobPostings}</p>
+                <p className="text-xs text-gray-500">Job posting{pendingJobPostings === 1 ? "" : "s"} to review</p>
+              </Card>
+            </Link>
+            <Link href="/admin/reports">
+              <Card interactive>
+                <p className="text-2xl font-semibold text-brand-ink">{pendingReports}</p>
+                <p className="text-xs text-gray-500">Reported profile{pendingReports === 1 ? "" : "s"}</p>
+              </Card>
+            </Link>
+          </div>
+        )}
+
+        <NotificationSummaryCard notifications={notifications} unreadCount={unreadCount} />
+        <ActivityFeed
+          mode={staff.previousLoginAt ? "since-last-visit" : "recent"}
+          events={staff.previousLoginAt ? sinceLastVisit : notifications}
+        />
+        <QuickActionsCard actions={quickActions} />
+
+        <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="font-display text-2xl font-semibold text-brand-ink">Examinations</h1>
+            <h2 className="font-display text-2xl font-semibold text-brand-ink">Examinations</h2>
             <p className="text-sm text-gray-600">Signed in as {session.email}</p>
           </div>
           <Button href="/admin/exams/new">+ Create Examination</Button>
         </div>
 
-        <div className="mt-8 space-y-3">
+        <div className="mt-4 space-y-3">
           {exams.length === 0 && (
             <EmptyState
               illustration={<GrowthPathDoodle className="h-full w-full" />}

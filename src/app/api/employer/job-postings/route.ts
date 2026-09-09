@@ -14,6 +14,13 @@ const CreateSchema = z.object({
   title: z.string().min(3),
   description: z.string().min(20),
   closingDate: z.string().datetime(),
+  // Universal profile system, Phase 2 — optional skill tags for this
+  // posting, feeding the employer profile's derived "skills sought"
+  // (see /api/employer/profile's own comment on why that's read-only
+  // there). Same find-or-create-by-name approach as
+  // /api/trainee/skills, for the same reason: no admin skill-management
+  // screen needs to exist first for this to be usable today.
+  skillNames: z.array(z.string().trim().min(1).max(60)).max(20).default([]),
 });
 
 /**
@@ -58,6 +65,16 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    for (const rawName of parsed.data.skillNames) {
+      let skill = await prisma.skill.findFirst({ where: { name: { equals: rawName, mode: "insensitive" } } });
+      if (!skill) skill = await prisma.skill.create({ data: { name: rawName } });
+      await prisma.jobPostingSkill.upsert({
+        where: { jobPostingId_skillId: { jobPostingId: posting.id, skillId: skill.id } },
+        update: {},
+        create: { jobPostingId: posting.id, skillId: skill.id },
+      });
+    }
+
     // Stage 6 audit — staff previously had zero proactive notification
     // that a new posting was even waiting for review.
     const content = newJobPostingPendingEmail({
@@ -90,6 +107,7 @@ export async function GET() {
     const postings = await prisma.jobPosting.findMany({
       where: { employerId: session.userId },
       orderBy: { createdAt: "desc" },
+      include: { media: { orderBy: { order: "asc" } } },
     });
     return NextResponse.json(postings);
   });

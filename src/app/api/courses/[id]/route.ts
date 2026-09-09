@@ -6,7 +6,7 @@ import { withApiErrors } from "@/lib/apiError";
 import { guardCourseDeletable } from "@/lib/deletionGuards";
 import { getModuleLockMap } from "@/lib/progress";
 import { validateCoursePricing } from "@/lib/coursePricing";
-import { hasCourseAccess } from "@/lib/courseAccess";
+import { hasCourseAccess, expireLapsedEnrollmentsForTrainee } from "@/lib/courseAccess";
 
 const fullTree = {
   createdBy: { select: { name: true } },
@@ -91,6 +91,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // withheld — without it, the trainee-facing page would have
     // nothing to show except "not found," with no way to render an
     // actual "here's what this is, here's how to enroll" prompt.
+    // Course enrollment/subscription system — this is the exact place
+    // hasCourseAccess itself is checked below, so it's the natural
+    // touchpoint for the lazy per-trainee expiry sweep too: a trainee
+    // whose access lapsed since their last visit sees the honest,
+    // revoked state immediately on their very next course-page load,
+    // rather than waiting for the dashboard's own sweep or a future
+    // cron run.
+    await expireLapsedEnrollmentsForTrainee(session.userId);
+
     const enrolled = await hasCourseAccess(session.userId, course.id);
     if (!enrolled) {
       return NextResponse.json(
@@ -190,6 +199,20 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const allModulesComplete =
       course.modules.length > 0 && course.modules.every((m: { id: string }) => lockMap[m.id]?.completed === true);
 
+    // Course enrollment/subscription system — currentPeriodEnd lives on
+    // CourseEnrollment, not Course, so it's fetched separately here
+    // rather than being part of the `course` row already spread below.
+    // `daysRemaining` is computed server-side, deliberately never left
+    // for the client to derive from a raw date — a manipulated client
+    // clock must never be able to misrepresent how much access is left.
+    const myEnrollment = await prisma.courseEnrollment.findUnique({
+      where: { traineeId_courseId: { traineeId: session.userId, courseId: course.id } },
+      select: { currentPeriodEnd: true },
+    });
+    const daysRemaining = myEnrollment?.currentPeriodEnd
+      ? Math.ceil((myEnrollment.currentPeriodEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+      : null;
+
     return NextResponse.json({
       ...course,
       modules: shapedModules,
@@ -197,6 +220,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       badges,
       hasPublishedExamination: courseExam?.published ?? false,
       allModulesComplete,
+      currentPeriodEnd: myEnrollment?.currentPeriodEnd ?? null,
+      daysRemaining,
     });
   });
 }
@@ -210,6 +235,13 @@ const UpdateCourseSchema = z.object({
   priceKobo: z.number().int().positive().nullable().optional(),
   // M26 — same reasoning as priceKobo above.
   billingInterval: z.enum(["MONTHLY", "QUARTERLY", "ANNUALLY"]).nullable().optional(),
+  // Course enrollment/subscription system — same reasoning as
+  // priceKobo/billingInterval above.
+  accessModel: z.enum(["RECURRING_SUBSCRIPTION", "FIXED_DURATION"]).optional(),
+  accessDurationValue: z.number().int().positive().nullable().optional(),
+  accessDurationUnit: z.enum(["DAYS", "MONTHS", "LIFETIME"]).nullable().optional(),
+  reminderEnabled: z.boolean().optional(),
+  reminderDaysBeforeExpiry: z.array(z.number().int().positive()).optional(),
   // M38 — null (the default, and what's sent to explicitly turn the
   // feature off again) means disabled for this course; a positive
   // integer turns it on. Never defaults to a suggested number here —
@@ -261,7 +293,18 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const resultingPriceKobo = parsed.data.priceKobo !== undefined ? parsed.data.priceKobo : course.priceKobo;
     const resultingBillingInterval =
       parsed.data.billingInterval !== undefined ? parsed.data.billingInterval : course.billingInterval;
-    const pricingError = validateCoursePricing(resultingIsFree, resultingPriceKobo, resultingBillingInterval);
+    const resultingAccessModel = parsed.data.accessModel ?? course.accessModel;
+    const resultingAccessDurationValue =
+      parsed.data.accessDurationValue !== undefined ? parsed.data.accessDurationValue : course.accessDurationValue;
+    const resultingAccessDurationUnit =
+      parsed.data.accessDurationUnit !== undefined ? parsed.data.accessDurationUnit : course.accessDurationUnit;
+    const resultingReminderEnabled = parsed.data.reminderEnabled ?? course.reminderEnabled;
+    const pricingError = validateCoursePricing(resultingIsFree, resultingPriceKobo, resultingBillingInterval, {
+      accessModel: resultingAccessModel,
+      accessDurationValue: resultingAccessDurationValue,
+      accessDurationUnit: resultingAccessDurationUnit,
+      reminderEnabled: resultingReminderEnabled,
+    });
     if (pricingError) {
       return NextResponse.json({ error: pricingError }, { status: 400 });
     }
@@ -273,8 +316,14 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     // amount. Reset here so the next payment attempt lazily creates a
     // fresh Plan matching the current price/interval, rather than ever
     // reusing one that no longer reflects what's actually being sold.
+    // Course enrollment/subscription system — accessModel switching
+    // (e.g. RECURRING_SUBSCRIPTION to FIXED_DURATION) added to the same
+    // check: a stale Plan code left behind after switching away from
+    // recurring billing entirely is just as wrong to carry forward.
     const pricingChanged =
-      resultingPriceKobo !== course.priceKobo || resultingBillingInterval !== course.billingInterval;
+      resultingPriceKobo !== course.priceKobo ||
+      resultingBillingInterval !== course.billingInterval ||
+      resultingAccessModel !== course.accessModel;
     const dataToSave = pricingChanged ? { ...parsed.data, paystackPlanCode: null } : parsed.data;
 
     const updated = await prisma.course.update({

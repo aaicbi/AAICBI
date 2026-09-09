@@ -17,6 +17,15 @@ const CreateCourseSchema = z.object({
   priceKobo: z.number().int().positive().nullable().optional(),
   // M26 — same reasoning as priceKobo above.
   billingInterval: z.enum(["MONTHLY", "QUARTERLY", "ANNUALLY"]).nullable().optional(),
+  // Course enrollment/subscription system — same "defaults preserved
+  // from the schema itself" reasoning as isFree above, so an omitted
+  // accessModel means exactly what the schema's own default means
+  // (RECURRING_SUBSCRIPTION), never redeclared here.
+  accessModel: z.enum(["RECURRING_SUBSCRIPTION", "FIXED_DURATION"]).optional(),
+  accessDurationValue: z.number().int().positive().nullable().optional(),
+  accessDurationUnit: z.enum(["DAYS", "MONTHS", "LIFETIME"]).nullable().optional(),
+  reminderEnabled: z.boolean().optional(),
+  reminderDaysBeforeExpiry: z.array(z.number().int().positive()).optional(),
 });
 
 /**
@@ -51,7 +60,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
-    const pricingError = validateCoursePricing(parsed.data.isFree ?? true, parsed.data.priceKobo, parsed.data.billingInterval);
+    const pricingError = validateCoursePricing(parsed.data.isFree ?? true, parsed.data.priceKobo, parsed.data.billingInterval, {
+      accessModel: parsed.data.accessModel,
+      accessDurationValue: parsed.data.accessDurationValue,
+      accessDurationUnit: parsed.data.accessDurationUnit,
+      reminderEnabled: parsed.data.reminderEnabled,
+    });
     if (pricingError) {
       return NextResponse.json({ error: pricingError }, { status: 400 });
     }

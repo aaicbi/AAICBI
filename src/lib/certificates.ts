@@ -104,6 +104,19 @@ export async function issueCertificateForPassedExam(attemptId: string, courseId:
       throw e;
     }
 
+    // Course enrollment/subscription system — a real certificate being
+    // issued right here IS the moment this course counts as completed;
+    // see deriveEnrollmentStatus's own comment on why this is kept as
+    // an independent, never re-derived historical fact, same treatment
+    // this schema already gives Certificate itself. `completedAt: null`
+    // in the WHERE clause makes this idempotent against a retry or a
+    // second passing attempt somehow reaching here — never overwrites
+    // an already-recorded completion date.
+    await prisma.courseEnrollment.updateMany({
+      where: { traineeId, courseId, completedAt: null },
+      data: { completedAt: new Date() },
+    });
+
     const trainee = await prisma.trainee.findUnique({ where: { id: traineeId } });
     if (!trainee || !shouldNotifyTrainee(trainee)) return;
 

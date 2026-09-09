@@ -18,12 +18,33 @@
  * course genuinely can't do without: Paystack's Plan resource requires
  * a fixed interval, so a paid course missing one would fail exactly
  * the same way — uncaught until payment initiation actually tries it.
+ *
+ * Course enrollment/subscription system — extended again for the new
+ * `accessModel` axis. Fourth parameter is optional and defaults to
+ * `RECURRING_SUBSCRIPTION` with no duration fields, so every existing
+ * 3-argument call site (and every existing test) keeps behaving
+ * exactly as before with zero changes required. A free course still
+ * can't carry any of the new fields either — a free course's access
+ * simply never expires (see CourseEnrollment.currentPeriodEnd staying
+ * null for the FREE enroll path), so a duration/reminder config on it
+ * would be dead configuration nobody could ever observe taking effect.
  */
 export function validateCoursePricing(
   isFree: boolean,
   priceKobo: number | null | undefined,
-  billingInterval: string | null | undefined
+  billingInterval: string | null | undefined,
+  accessConfig?: {
+    accessModel?: string | null;
+    accessDurationValue?: number | null;
+    accessDurationUnit?: string | null;
+    reminderEnabled?: boolean | null;
+  }
 ): string | null {
+  const accessModel = accessConfig?.accessModel ?? "RECURRING_SUBSCRIPTION";
+  const accessDurationValue = accessConfig?.accessDurationValue;
+  const accessDurationUnit = accessConfig?.accessDurationUnit;
+  const reminderEnabled = accessConfig?.reminderEnabled ?? false;
+
   if (isFree) {
     if (priceKobo != null) {
       return "A free course can't have a price set — clear the price, or mark the course as paid instead.";
@@ -31,13 +52,46 @@ export function validateCoursePricing(
     if (billingInterval != null) {
       return "A free course can't have a billing interval set — clear it, or mark the course as paid instead.";
     }
+    if (accessDurationValue != null || accessDurationUnit != null) {
+      return "A free course can't have an access duration set — a free course's access never expires.";
+    }
+    if (reminderEnabled) {
+      return "A free course can't have expiry reminders enabled — it never expires.";
+    }
     return null;
   }
   if (priceKobo == null || priceKobo <= 0) {
     return "A paid course needs a price greater than zero.";
   }
-  if (billingInterval == null) {
-    return "A paid course needs a billing interval (monthly, quarterly, or annually).";
+
+  if (accessModel === "RECURRING_SUBSCRIPTION") {
+    if (billingInterval == null) {
+      return "A paid course needs a billing interval (monthly, quarterly, or annually).";
+    }
+    if (accessDurationValue != null || accessDurationUnit != null) {
+      return "A recurring-subscription course can't also have a fixed access duration set — choose one access model.";
+    }
+    if (reminderEnabled) {
+      return "Expiry reminders are only available for fixed-duration access courses — a recurring subscription already sends its own renewal/expiry emails.";
+    }
+    return null;
+  }
+
+  // FIXED_DURATION
+  if (billingInterval != null) {
+    return "A fixed-duration course can't also have a billing interval set — choose one access model.";
+  }
+  if (accessDurationUnit == null) {
+    return "A fixed-duration course needs an access duration (days, months, or lifetime).";
+  }
+  if (accessDurationUnit === "LIFETIME") {
+    if (accessDurationValue != null) {
+      return "A lifetime access duration shouldn't also have a numeric value set.";
+    }
+    return null;
+  }
+  if (accessDurationValue == null || accessDurationValue <= 0) {
+    return "A fixed-duration course needs a positive access duration value.";
   }
   return null;
 }

@@ -81,6 +81,7 @@ export default function AdminEmployersPage() {
         nav={[
           { label: "Examinations", href: "/admin/dashboard" },
           { label: "Courses", href: "/admin/courses" },
+          { label: "My Profile", href: "/admin/profile" },
           { label: "Settings", href: "/admin/settings" },
         ]}
         right={<LogoutButton />}

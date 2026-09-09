@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
+import LogoutButton from "@/components/admin/LogoutButton";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import { SkeletonTableRows } from "@/components/ui/Skeleton";
@@ -87,7 +88,15 @@ export default function CohortDetailPage({ params }: { params: { id: string } })
   if (notFound) {
     return (
       <>
-        <SiteHeader />
+        <SiteHeader
+          nav={[
+            { label: "Examinations", href: "/admin/dashboard" },
+            { label: "Courses", href: "/admin/courses" },
+            { label: "My Profile", href: "/admin/profile" },
+            { label: "Settings", href: "/admin/settings" },
+          ]}
+          right={<LogoutButton />}
+        />
         <main className="mx-auto max-w-2xl px-6 py-10 text-center text-gray-600">
           Cohort not found, or you don&apos;t have access to it.
         </main>
@@ -97,7 +106,15 @@ export default function CohortDetailPage({ params }: { params: { id: string } })
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader
+        nav={[
+          { label: "Examinations", href: "/admin/dashboard" },
+          { label: "Courses", href: "/admin/courses" },
+          { label: "My Profile", href: "/admin/profile" },
+          { label: "Settings", href: "/admin/settings" },
+        ]}
+        right={<LogoutButton />}
+      />
       {modal}
       <main className="mx-auto max-w-3xl px-6 py-10">
         <a

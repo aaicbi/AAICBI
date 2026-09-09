@@ -270,6 +270,30 @@ async function main() {
     },
   });
 
+  // Universal profile system, Phase 1 — a small starter list so the
+  // trainee-profile skill picker isn't empty on a fresh database.
+  // Trainees can still add a skill that isn't here (POST
+  // /api/trainee/skills does a case-insensitive find-or-create), this
+  // just seeds the common case.
+  const STARTER_SKILLS: { name: string; category: string }[] = [
+    { name: "JavaScript", category: "Programming" },
+    { name: "TypeScript", category: "Programming" },
+    { name: "Python", category: "Programming" },
+    { name: "React", category: "Frontend" },
+    { name: "Next.js", category: "Frontend" },
+    { name: "Node.js", category: "Backend" },
+    { name: "SQL", category: "Data" },
+    { name: "Excel", category: "Data" },
+    { name: "Data Analysis", category: "Data" },
+    { name: "Machine Learning", category: "AI" },
+    { name: "Prompt Engineering", category: "AI" },
+    { name: "Project Management", category: "Business" },
+    { name: "UI/UX Design", category: "Design" },
+  ];
+  for (const skill of STARTER_SKILLS) {
+    await prisma.skill.upsert({ where: { name: skill.name }, update: {}, create: skill });
+  }
+
   console.log("Seeded:");
   console.log(`  Admin login:      admin@aaicbi.africa / ChangeMe123!  (SUPER_ADMIN — sees every course/exam/result org-wide, not just their own)`);
   console.log(`  By-code exam:     ${exam.code}  (visit /exam/enter)`);

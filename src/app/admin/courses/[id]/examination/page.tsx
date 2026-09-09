@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
+import LogoutButton from "@/components/admin/LogoutButton";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -141,7 +142,15 @@ export default function CourseExaminationPage({ params }: { params: { id: string
   if (notFound) {
     return (
       <>
-        <SiteHeader />
+        <SiteHeader
+          nav={[
+            { label: "Examinations", href: "/admin/dashboard" },
+            { label: "Courses", href: "/admin/courses" },
+            { label: "My Profile", href: "/admin/profile" },
+            { label: "Settings", href: "/admin/settings" },
+          ]}
+          right={<LogoutButton />}
+        />
         <main className="mx-auto max-w-2xl px-6 py-10 text-center text-gray-600">
           No course examination has been generated yet.
           <div className="mt-4">
@@ -156,7 +165,15 @@ export default function CourseExaminationPage({ params }: { params: { id: string
   if (!exam) {
     return (
       <>
-        <SiteHeader />
+        <SiteHeader
+          nav={[
+            { label: "Examinations", href: "/admin/dashboard" },
+            { label: "Courses", href: "/admin/courses" },
+            { label: "My Profile", href: "/admin/profile" },
+            { label: "Settings", href: "/admin/settings" },
+          ]}
+          right={<LogoutButton />}
+        />
         <main className="mx-auto max-w-3xl px-6 py-10">
           <SkeletonList />
         </main>
@@ -177,7 +194,15 @@ export default function CourseExaminationPage({ params }: { params: { id: string
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader
+        nav={[
+          { label: "Examinations", href: "/admin/dashboard" },
+          { label: "Courses", href: "/admin/courses" },
+          { label: "My Profile", href: "/admin/profile" },
+          { label: "Settings", href: "/admin/settings" },
+        ]}
+        right={<LogoutButton />}
+      />
       <main className="mx-auto max-w-3xl px-6 py-10">
         <div className="flex items-center justify-between">
           <div>

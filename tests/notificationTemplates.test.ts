@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { welcomeEmail, passwordResetEmail, moduleUnlockedEmail, assessmentResultEmail } from "@/lib/notifications/templates";
+import { welcomeEmail, passwordResetEmail, moduleUnlockedEmail, assessmentResultEmail, accessExpiringReminderEmail, paymentReceiptEmail } from "@/lib/notifications/templates";
 
 describe("welcomeEmail", () => {
   it("includes the verify URL in both html and text", () => {
@@ -95,5 +95,95 @@ describe("assessmentResultEmail", () => {
     });
     expect(result.html).toContain("You did well overall.");
     expect(result.text).toContain("You did well overall.");
+  });
+});
+
+describe("accessExpiringReminderEmail", () => {
+  const base = {
+    traineeName: "Chidi",
+    courseTitle: "Excel for Data Analytics",
+    daysRemaining: 7,
+    expiryDate: "March 15, 2026",
+    courseUrl: "https://example.com/trainee/courses/abc123",
+  };
+
+  it("includes the days remaining and expiry date in both html and text", () => {
+    const result = accessExpiringReminderEmail(base);
+    expect(result.html).toContain("7 days");
+    expect(result.html).toContain("March 15, 2026");
+    expect(result.text).toContain("7 days");
+    expect(result.text).toContain("March 15, 2026");
+  });
+
+  it("uses singular 'day' when exactly one day remains", () => {
+    const result = accessExpiringReminderEmail({ ...base, daysRemaining: 1 });
+    expect(result.subject).toContain("1 day");
+    expect(result.subject).not.toContain("1 days");
+  });
+
+  it("includes a Renew Access link, not a generic course link", () => {
+    const result = accessExpiringReminderEmail(base);
+    expect(result.html).toContain("Renew Access");
+    expect(result.html).toContain(base.courseUrl);
+  });
+});
+
+describe("paymentReceiptEmail", () => {
+  const base = {
+    traineeName: "Ngozi",
+    courseTitle: "Excel for Data Analytics",
+    amountKobo: 5000000,
+    reference: "ref_abc123",
+    paidAt: "March 1, 2026",
+    method: "card",
+    nextBillingDate: null,
+    nextBillingAmountKobo: null,
+    accessUntil: null,
+    courseUrl: "https://example.com/trainee/courses/abc123",
+  };
+
+  it("includes the amount in Naira, reference, date, and method", () => {
+    const result = paymentReceiptEmail(base);
+    expect(result.html).toContain("₦50,000");
+    expect(result.html).toContain("ref_abc123");
+    expect(result.html).toContain("March 1, 2026");
+    expect(result.html).toContain("card");
+    expect(result.text).toContain("₦50,000");
+    expect(result.text).toContain("ref_abc123");
+  });
+
+  it("includes the logo image and company branding via wrapHtml", () => {
+    const result = paymentReceiptEmail(base);
+    expect(result.html).toContain("logo.svg");
+    expect(result.html).toContain("AAICBI");
+  });
+
+  it("shows the next-payment invoice for a recurring subscription", () => {
+    const result = paymentReceiptEmail({
+      ...base,
+      nextBillingDate: "April 1, 2026",
+      nextBillingAmountKobo: 5000000,
+    });
+    expect(result.html).toContain("automatically renew");
+    expect(result.html).toContain("April 1, 2026");
+    expect(result.text).toContain("automatically renew");
+  });
+
+  it("shows the access-until date for a fixed-duration course instead of a next payment", () => {
+    const result = paymentReceiptEmail({ ...base, accessUntil: "May 30, 2026" });
+    expect(result.html).toContain("valid until");
+    expect(result.html).toContain("May 30, 2026");
+    expect(result.html).not.toContain("automatically renew");
+  });
+
+  it("says lifetime access when neither a next payment nor an expiry is set", () => {
+    const result = paymentReceiptEmail(base);
+    expect(result.html).toContain("lifetime access");
+    expect(result.text).toContain("lifetime access");
+  });
+
+  it("escapes HTML in the trainee name", () => {
+    const result = paymentReceiptEmail({ ...base, traineeName: "<script>alert(1)</script>" });
+    expect(result.html).not.toContain("<script>alert(1)</script>");
   });
 });

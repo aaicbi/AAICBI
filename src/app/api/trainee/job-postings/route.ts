@@ -56,7 +56,7 @@ export async function GET() {
       // was originally approved.
       where: { status: "APPROVED", closingDate: { gt: new Date() }, employer: { approvalState: "APPROVED" } },
       orderBy: { createdAt: "desc" },
-      include: { employer: { select: { companyName: true } } },
+      include: { employer: { select: { companyName: true } }, media: { orderBy: { order: "asc" } } },
     });
     return NextResponse.json(postings);
   });

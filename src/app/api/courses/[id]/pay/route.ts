@@ -34,6 +34,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
         priceKobo: true,
         billingInterval: true,
         paystackPlanCode: true,
+        accessModel: true,
       },
     });
     if (!course || !course.published) {
@@ -46,11 +47,33 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     const existing = await prisma.courseEnrollment.findUnique({
       where: { traineeId_courseId: { traineeId: trainee.id, courseId: course.id } },
     });
-    if (existing && existing.accessRevokedAt === null) {
+    // Course enrollment/subscription system — narrowed to
+    // RECURRING_SUBSCRIPTION only. This guard's real original purpose
+    // was preventing a stray manual pay from creating a duplicate,
+    // parallel Paystack subscription for a course that already renews
+    // itself automatically. A FIXED_DURATION course has no such
+    // parallel-subscription risk (each payment is a one-time charge),
+    // and blocking it here would break the entire "renew before your
+    // access lapses" flow — accessRevokedAt stays null right up until
+    // the moment access actually expires, so this guard would otherwise
+    // refuse a completely legitimate early renewal.
+    if (existing && existing.accessRevokedAt === null && course.accessModel === "RECURRING_SUBSCRIPTION") {
       return NextResponse.json({ error: "You already have access to this course." }, { status: 409 });
     }
 
-    const { authorizationUrl } = await initializeCoursePayment(trainee, course);
+    const { authorizationUrl, reference } = await initializeCoursePayment(trainee, course);
+
+    // Course enrollment/subscription system — the initiating half of the
+    // Payment ledger; processConfirmedCharge upserts this same row by
+    // `reference` on confirmation, so a missed write here is tolerated,
+    // not required. Non-blocking: a trainee should still get redirected
+    // to checkout even if this insert fails for some reason.
+    await prisma.payment
+      .create({
+        data: { traineeId: trainee.id, courseId: course.id, reference, amountKobo: course.priceKobo! },
+      })
+      .catch((e) => console.error(`Failed to create pending Payment record for reference ${reference}:`, e));
+
     return NextResponse.json({ authorizationUrl });
   });
 }

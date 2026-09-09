@@ -32,7 +32,7 @@ export async function GET() {
 
     const postings = await prisma.jobPosting.findMany({
       orderBy: { createdAt: "desc" },
-      include: { employer: { select: { companyName: true } } },
+      include: { employer: { select: { companyName: true } }, media: { orderBy: { order: "asc" } } },
     });
 
     const pending = postings.filter((p: (typeof postings)[number]) => p.status === "PENDING_REVIEW");

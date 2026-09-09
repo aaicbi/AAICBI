@@ -84,6 +84,53 @@ enum MaterialType {
         // requireRole("TRAINEE") in the course/module/lesson GET routes.
 }
 
+// ---------------------------------------------------------------------
+// Universal profile system — trainee profile core (Phase 1). Skills are
+// a canonical lookup table, not free text per trainee, so employer
+// discovery filtering isn't fragmented by phrasing ("React" vs
+// "ReactJS"). Education/WorkExperience/Project are real child tables
+// (not JSON), matching this schema's existing rule that anything
+// repeatable or filterable gets a real table — see DiscoverableCertificate's
+// own comment for the precedent this follows.
+enum EmploymentStatus {
+  STUDENT
+  EMPLOYED
+  UNEMPLOYED
+  SELF_EMPLOYED
+}
+
+// A trainee can genuinely be open to more than one of these at once
+// (e.g. freelance AND full-time) — see TraineeAvailabilityType below,
+// a real multi-select join rather than a single-value enum field.
+enum AvailabilityType {
+  INTERNSHIP
+  FREELANCE
+  FULL_TIME
+  PART_TIME
+}
+
+enum SkillProficiency {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+// Universal profile system, Phase 4 — who can view the richer,
+// authenticated profile surface (/profile/u/[username]), completely
+// independent from `publiclyDiscoverable` (which still, alone, gates
+// employer browsing and the job board — see that field's own comment)
+// and from contact-info disclosure (still exclusively
+// IntroductionRequest/JobApplication acceptance). No tier here ever
+// selects email or phone. Admin (`User`) is hard-capped server-side to
+// PRIVATE/AUTHENTICATED only — see /api/admin/profile's own Zod schema.
+enum ProfileVisibility {
+  PUBLIC
+  AUTHENTICATED
+  EMPLOYERS_ONLY
+  PRIVATE
+}
+
 // M9 audit finding #1: the original rate limiter stored counts in an
 // in-memory Map, which only works correctly on a single, persistent
 // Node process — the README recommends Vercel, which runs API routes as
@@ -132,6 +179,25 @@ model User {
   // side.
   avatarUrl String?
 
+  // Personalized landing page — same lastLoginAt/previousLoginAt shape
+  // as Trainee's own fields, applied here since staff had no
+  // login-tracking at all before this. Set by the staff login route.
+  lastLoginAt     DateTime?
+  previousLoginAt DateTime?
+
+  // Universal profile system, Phase 3 — staff profile fields.
+  // "Organization" isn't stored (this is a single-org platform, always
+  // AAICBI); "permission level" is the existing `role` field above,
+  // reused rather than duplicated. `profileVisibility` is added in
+  // Phase 4, hard-capped server-side to PRIVATE/AUTHENTICATED only —
+  // never PUBLIC or EMPLOYERS_ONLY — see that route's own Zod schema.
+  username              String? @unique
+  bio                   String?
+  jobTitle              String?
+  department            String?
+  areasOfResponsibility String?
+  profileVisibility     ProfileVisibility @default(PRIVATE)
+
   exams   Exam[]
   courses Course[]
   // Post-M15 milestone: every cooldown override this staff member has
@@ -162,6 +228,14 @@ model User {
   employersApproved Employer[]
   jobPostingsReviewed JobPosting[]
   testimonialsCreated Testimonial[]
+  // Universal profile system, Phase 3 — same audit-trail reasoning as
+  // the relations above: every profile report this staff member has
+  // personally decided, not an untracked backdoor.
+  profileReportsReviewed ProfileReport[]
+  // Course enrollment/subscription system — same audit-trail reasoning
+  // as the relations above: every manual access extension this staff
+  // member has personally granted, not an untracked backdoor.
+  accessExtensionsGranted AccessExtension[]
 }
 
 // Real, persistent trainee account — the key M9 change. Replaces the old
@@ -172,7 +246,22 @@ model Trainee {
   id            String    @id @default(cuid())
   name          String
   email         String    @unique
-  passwordHash  String
+  // Google sign-in — widened from required to optional. A trainee who
+  // signs up purely through Google has no password at all; `null` here
+  // means exactly that, checked explicitly everywhere a password login
+  // is attempted (see verifyPassword's call sites) rather than assumed
+  // impossible. An account can still gain a password later via the
+  // ordinary forgot-password flow, which unconditionally writes a new
+  // hash regardless of this field's current state — becoming a
+  // genuine hybrid (both Google and password login work) is a real,
+  // intentionally-supported outcome, not an edge case to prevent.
+  passwordHash  String?
+  // Google sign-in — the stable, unique subject identifier from
+  // Google's ID token (`sub` claim), the correct field to key off for
+  // OAuth (not email, which OpenID Connect explicitly does not
+  // guarantee is immutable). Null for every trainee who has never
+  // signed in with Google. See src/lib/auth/google.ts.
+  googleId      String?   @unique
   phone         String?
   // M43 — mirrors emailVerified/verifyToken's shape for "is this
   // channel confirmed," combined with M28's OTP shape (a short code +
@@ -196,6 +285,13 @@ model Trainee {
   // database on login. Set explicitly by the trainee-login route on
   // every successful login, not inferred from anything else.
   lastLoginAt   DateTime?
+  // Personalized landing page — the OLD value of lastLoginAt, captured
+  // by the login route before it overwrites lastLoginAt with the
+  // current moment. Without this second field there's no way to show
+  // "you last visited on X" (lastLoginAt alone, read on the very next
+  // page load, already says "now") or to compute "what happened since
+  // your last visit" — this is the cutoff that comparison needs.
+  previousLoginAt DateTime?
   emailVerified Boolean   @default(false)
   verifyToken   String?   @unique
   // M9 audit finding #6: a verify token originally had no expiry at
@@ -271,9 +367,13 @@ model Trainee {
   // pattern exists because this app never had upload infrastructure
   // before; this milestone is what actually builds it, and a profile
   // picture is the first real use of it. "Sign in with Google" avatar
-  // import was raised and deliberately set aside as its own, later,
-  // separate initiative — see this field's introduction in
-  // trainee-experience-roadmap.md for the full reasoning.
+  // import was raised here and deliberately set aside as its own,
+  // later, separate initiative — see trainee-experience-roadmap.md for
+  // the original reasoning. That later initiative is now built (see
+  // Trainee.googleId and src/lib/auth/google.ts): a brand-new
+  // Google-signup trainee gets this field pre-filled from Google's own
+  // profile picture; an existing account that later LINKS a Google
+  // identity keeps whatever avatar it already had, uploaded or not.
   avatarUrl String?
   // M45 — off by default, exactly like every other feature this app
   // has ever added ahead of the thing it gates actually existing.
@@ -360,8 +460,109 @@ model Trainee {
   courseReviews CourseReview[]
   introductionRequests IntroductionRequest[]
   jobApplications      JobApplication[]
+  // Course enrollment/subscription system — every payment attempt this
+  // trainee has ever made, across every course.
+  payments             Payment[]
+
+  // Universal profile system, Phase 1 — the richer, authenticated-only
+  // profile surface (distinct from publicProfileCode's anonymous share
+  // link above, which keeps its existing narrow scope untouched).
+  username        String?           @unique
+  location        String?
+  linkedinUrl     String?
+  githubUrl       String?
+  portfolioUrl    String?
+  currentEmploymentStatus EmploymentStatus?
+  // Master toggle mirroring publiclyDiscoverable's own shape — the
+  // specific INTERNSHIP/FREELANCE/FULL_TIME/PART_TIME multi-select
+  // lives in availabilityTypes below, not here.
+  openToWork      Boolean           @default(false)
+  resumeUrl       String?
+  resumeUploadedAt DateTime?
+  profileVisibility ProfileVisibility @default(PRIVATE)
+
+  skills           TraineeSkill[]
+  education        Education[]
+  workExperiences  WorkExperience[]
+  projects         Project[]
+  availabilityTypes TraineeAvailabilityType[]
 
   @@index([email])
+}
+
+model Skill {
+  id       String @id @default(cuid())
+  name     String @unique
+  category String?
+
+  traineeSkills    TraineeSkill[]
+  jobPostingSkills JobPostingSkill[]
+}
+
+model TraineeSkill {
+  id          String           @id @default(cuid())
+  traineeId   String
+  trainee     Trainee          @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  skillId     String
+  skill       Skill            @relation(fields: [skillId], references: [id])
+  proficiency SkillProficiency @default(INTERMEDIATE)
+
+  @@unique([traineeId, skillId])
+  @@index([skillId])
+}
+
+// A real multi-select join, not an array column — see AvailabilityType's
+// own comment above for why a single enum field can't represent this.
+model TraineeAvailabilityType {
+  id        String           @id @default(cuid())
+  traineeId String
+  trainee   Trainee          @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  type      AvailabilityType
+
+  @@unique([traineeId, type])
+  @@index([type])
+}
+
+model Education {
+  id           String    @id @default(cuid())
+  traineeId    String
+  trainee      Trainee   @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  institution  String
+  credential   String?
+  fieldOfStudy String?
+  startDate    DateTime?
+  endDate      DateTime?
+  current      Boolean   @default(false)
+  order        Int       @default(0)
+
+  @@index([traineeId])
+}
+
+model WorkExperience {
+  id           String    @id @default(cuid())
+  traineeId    String
+  trainee      Trainee   @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  employerName String
+  title        String
+  description  String?
+  startDate    DateTime?
+  endDate      DateTime?
+  current      Boolean   @default(false)
+  order        Int       @default(0)
+
+  @@index([traineeId])
+}
+
+model Project {
+  id          String  @id @default(cuid())
+  traineeId   String
+  trainee     Trainee @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  url         String?
+  order       Int     @default(0)
+
+  @@index([traineeId])
 }
 
 // ---------------------------------------------------------------------
@@ -429,6 +630,50 @@ model Course {
   // can cause.
   billingInterval BillingInterval?
   paystackPlanCode String?
+
+  // Course enrollment/subscription system — a SECOND, independent axis
+  // from billingInterval above, not a replacement. billingInterval
+  // stays exactly as it was: it drives a real, live Paystack Plan
+  // resource (see getOrCreatePlanForCourse) for a course that
+  // auto-renews on Paystack's own recurring-billing schedule.
+  // accessModel below decides which of two genuinely different payment
+  // shapes a paid course uses:
+  //   RECURRING_SUBSCRIPTION — the existing, default behavior: a
+  //     Paystack-managed recurring subscription, cadence = billingInterval.
+  //   FIXED_DURATION — new: a one-time charge: this app itself computes
+  //     a fixed access window (accessDurationValue/Unit) from the
+  //     moment of payment, with no Paystack Plan/subscription involved
+  //     at all. Chosen as a genuinely separate mode rather than
+  //     repurposing billingInterval, because billingInterval is baked
+  //     into a live Paystack Plan resource — changing what it means
+  //     would invalidate every Plan already created for existing paid
+  //     courses.
+  accessModel CourseAccessModel @default(RECURRING_SUBSCRIPTION)
+  // Null when accessDurationUnit is LIFETIME (no expiry at all) or when
+  // accessModel is RECURRING_SUBSCRIPTION (this pair is exclusively a
+  // FIXED_DURATION concept) — validated together in coursePricing.ts,
+  // the same single-source-of-truth validator billingInterval/priceKobo
+  // already share.
+  accessDurationValue Int?
+  accessDurationUnit  AccessDurationUnit?
+  // Reminders are scoped to FIXED_DURATION courses only. A
+  // RECURRING_SUBSCRIPTION course already gets Paystack-driven
+  // subscription.not_renew/invoice.payment_failed emails for the same
+  // underlying "your access is ending" concern — a second, independent
+  // reminder system on top would risk duplicate or conflicting
+  // messaging for the same event, not add real value.
+  reminderEnabled          Boolean @default(false)
+  // A real Postgres native array, not a child table — deliberately
+  // different from this schema's own usual "real child table for
+  // anything repeatable" rule (Education, WorkExperience,
+  // DiscoverableCertificate all carry several real fields per row).
+  // This is genuinely just a short, order-irrelevant list of plain
+  // integers with zero per-item metadata; a child table here would be
+  // ceremony without benefit, and Prisma's native Int[] support on
+  // Postgres needs no extra preview feature (unlike the vector type
+  // Question.embedding already uses elsewhere in this same file).
+  reminderDaysBeforeExpiry Int[]   @default([7, 3, 1])
+
   // M41 — admin-configurable per course, not a fixed platform-wide
   // choice, matching the roadmap's own explicit scope. Defaults to
   // OPEN, the same "open by default" reasoning already established for
@@ -471,6 +716,12 @@ model Course {
   // comment for why a single course-scoped model couldn't represent
   // both.
   inactivityAlerts InactivityAlert[]
+  // Course enrollment/subscription system — every payment attempt
+  // (pending, successful, or failed) for this course. See the Payment
+  // model's own comment for why this is separate from PaystackEvent
+  // (raw webhook audit log) and from CourseEnrollment (current-state
+  // access row, still exactly one per trainee per course).
+  payments Payment[]
 
   @@index([published])
 }
@@ -1307,8 +1558,119 @@ model CourseEnrollment {
   paystackSubscriptionCode String?   @unique
   currentPeriodEnd         DateTime?
 
+  // Course enrollment/subscription system — set once, the first time
+  // this course is genuinely completed (see issueCertificateForPassedExam,
+  // the same place a real Certificate row gets created). Deliberately
+  // independent of accessRevokedAt: a trainee who completes a course
+  // keeps this historical fact — and their certificate — even if their
+  // access later lapses without renewal, matching how Certificate
+  // itself already works elsewhere in this schema (never tied to
+  // ongoing subscription status). "Enrollment status" is derived from
+  // this plus unlockedAt/accessRevokedAt (see deriveEnrollmentStatus in
+  // courseAccess.ts) rather than stored as its own enum column here —
+  // a stored value would need to be kept in sync at half a dozen
+  // separate write sites (webhook, processConfirmedCharge, the lazy
+  // expiry sweep, the cron sweep, admin revoke, admin extend), any one
+  // of which could silently drift; a derived value can't disagree with
+  // the fields that actually gate access, by construction.
+  completedAt DateTime?
+
+  payments         Payment[]
+  accessExtensions AccessExtension[]
+  reminderHistory  EnrollmentReminderSent[]
+
   @@unique([traineeId, courseId])
   @@index([traineeId])
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  ABANDONED
+}
+
+// Course enrollment/subscription system — the structured, queryable
+// payment/transaction ledger the existing PaystackEvent table was
+// never meant to be (that one is a raw webhook-idempotency audit log,
+// no amount/currency/status columns, written only on webhook receipt —
+// see its own comment). This is written at BOTH ends of a payment's
+// life: PENDING the moment checkout is initiated (POST
+// /api/courses/[id]/pay), then updated to SUCCESS/FAILED once
+// processConfirmedCharge (or the invoice.payment_failed webhook
+// handler) actually knows the outcome. Deliberately carries no raw
+// Paystack payload field — PaystackEvent already keeps a redacted copy
+// of that (see redact.ts); duplicating it here would be a second place
+// to apply the exact same redaction discipline for no real benefit.
+// `enrollmentId` is nullable because a PENDING payment predates the
+// CourseEnrollment row (which — same as before this feature — is
+// still never created until payment is confirmed, no orphaned
+// "pending enrollment" state introduced).
+model Payment {
+  id           String   @id @default(cuid())
+  traineeId    String
+  trainee      Trainee  @relation(fields: [traineeId], references: [id])
+  courseId     String
+  course       Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  enrollmentId String?
+  enrollment   CourseEnrollment? @relation(fields: [enrollmentId], references: [id])
+  reference    String   @unique
+  amountKobo   Int
+  currency     String   @default("NGN")
+  status       PaymentStatus @default(PENDING)
+  // Paystack's own `channel` field (e.g. "card", "bank") — only ever
+  // known once a charge actually completes, so this is always null at
+  // initiation and populated at confirmation time, never before.
+  method       String?
+  initiatedAt  DateTime  @default(now())
+  confirmedAt  DateTime?
+  failedAt     DateTime?
+
+  @@index([traineeId, courseId])
+  @@index([status])
+}
+
+// Course enrollment/subscription system — idempotency ledger for
+// expiry-reminder emails, same individual-create-plus-caught-P2002
+// discipline as PaystackEvent. Keyed on (enrollmentId, periodEnd,
+// daysBeforeExpiry) rather than just (enrollmentId, daysBeforeExpiry)
+// — periodEnd is included deliberately so a renewal that pushes
+// currentPeriodEnd forward can re-fire the SAME threshold (e.g. "7
+// days before") for the new period, rather than a stale row from a
+// previous, already-lapsed period silently suppressing a genuinely new
+// reminder.
+model EnrollmentReminderSent {
+  id               String   @id @default(cuid())
+  enrollmentId     String
+  enrollment       CourseEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  daysBeforeExpiry Int
+  periodEnd        DateTime
+  sentAt           DateTime @default(now())
+
+  @@unique([enrollmentId, periodEnd, daysBeforeExpiry])
+}
+
+// Course enrollment/subscription system — audit ledger for an admin
+// manually extending a trainee's access. Insert-only (like
+// AiCreditGrant/QaModerationAction), not upsert-per-pair (like
+// CooldownOverride) — an admin extending the same trainee's access
+// twice over time is two distinct, both-worth-keeping events, not a
+// single fact to overwrite. `reason` is required at the API layer
+// (Zod), not just nullable here — matching this schema's existing "no
+// untracked backdoor" convention already stated on CooldownOverride
+// and AiCreditGrant.
+model AccessExtension {
+  id                String   @id @default(cuid())
+  enrollmentId      String
+  enrollment        CourseEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  extendedById      String
+  extendedBy        User     @relation(fields: [extendedById], references: [id])
+  previousPeriodEnd DateTime?
+  newPeriodEnd      DateTime
+  reason            String
+  extendedAt        DateTime @default(now())
+
+  @@index([enrollmentId])
 }
 
 // ---------------------------------------------------------------------
@@ -1372,6 +1734,20 @@ enum BillingInterval {
   MONTHLY
   QUARTERLY
   ANNUALLY
+}
+
+// Course enrollment/subscription system — see Course.accessModel's own
+// comment for the full reasoning on why this is a second, independent
+// axis from BillingInterval rather than a replacement for it.
+enum CourseAccessModel {
+  RECURRING_SUBSCRIPTION
+  FIXED_DURATION
+}
+
+enum AccessDurationUnit {
+  DAYS
+  MONTHS
+  LIFETIME
 }
 
 // ---------------------------------------------------------------------
@@ -1471,6 +1847,30 @@ model PlatformSettings {
   // same "global default, admin-adjustable" shape already established
   // for defaultAiCreditAllowance right above.
   qaWarningsBeforeSuspension Int    @default(3)
+  // Settings-page redesign, Security category — session.ts's
+  // `createSession` used to hardcode these three durations in a
+  // constant (`SESSION_DURATION_BY_ROLE`), never admin-adjustable.
+  // Defaults here are byte-identical to that old constant (12h staff,
+  // 7d trainee, 24h employer — see that file's own comment for the
+  // original reasoning behind each), so leaving these untouched changes
+  // nothing about how any existing session behaves. Staff covers
+  // SUPER_ADMIN/ADMIN/INSTRUCTOR together, same grouping the old
+  // constant already used — they share one workday-shaped session
+  // length, not three independent ones.
+  staffSessionHours    Int @default(12)
+  traineeSessionDays   Int @default(7)
+  employerSessionHours Int @default(24)
+  // Settings-page redesign, Payments category — the platform-wide
+  // default reminder schedule offered when creating a new
+  // FIXED_DURATION paid course (admin/courses/new's own reminderDays
+  // input pre-fills from this instead of a hardcoded "7, 3, 1" literal).
+  // Deliberately does NOT change Course.reminderDaysBeforeExpiry's own
+  // column default below — that stays the DB-level fallback for a
+  // row created without the field at all (e.g. directly via Prisma,
+  // bypassing the admin UI); this is only the UI's starting suggestion,
+  // same "default the admin can override per-course" shape as
+  // defaultAiCreditAllowance above.
+  defaultReminderDaysBeforeExpiry Int[] @default([7, 3, 1])
   updatedAt                DateTime @updatedAt
 }
 
@@ -1720,6 +2120,24 @@ model Employer {
   // there's nothing to walk through before then.
   onboardingCompletedAt DateTime?
 
+  // Personalized landing page — same lastLoginAt/previousLoginAt shape
+  // as Trainee's own fields, applied here since Employer had no
+  // login-tracking at all before this. Set by the employer-login route.
+  lastLoginAt     DateTime?
+  previousLoginAt DateTime?
+
+  // Universal profile system, Phase 2 — company profile enrichment.
+  // "Skills sought" is deliberately NOT a field here: it's derived on
+  // read from JobPostingSkill across this employer's live postings
+  // (see that model's own comment), so it can't drift from what's
+  // actually being recruited for.
+  logoUrl     String?
+  industry    String?
+  companySize String?
+  location    String?
+  description String?
+  profileVisibility ProfileVisibility @default(AUTHENTICATED)
+
   introductionRequests IntroductionRequest[]
   jobPostings          JobPosting[]
 
@@ -1818,9 +2236,53 @@ model JobPosting {
   createdAt    DateTime         @default(now())
 
   applications JobApplication[]
+  skills       JobPostingSkill[]
+  media        JobPostingMedia[]
 
   @@index([status])
   @@index([closingDate])
+}
+
+enum JobPostingMediaType {
+  IMAGE
+  VIDEO
+}
+
+// Job posting media uploads — a real child table, not a JSON array of
+// URLs, matching this schema's existing rule that anything repeatable
+// gets a real table (see Education/WorkExperience/Project's own
+// precedent from the universal profile system). Lets a posting have
+// several images and/or short videos, each independently removable/
+// reorderable, rather than one single "coverImage" field that couldn't
+// represent that. Cascades with its JobPosting — media has no meaning
+// independent of the posting it illustrates.
+model JobPostingMedia {
+  id           String              @id @default(cuid())
+  jobPostingId String
+  jobPosting   JobPosting          @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  type         JobPostingMediaType
+  url          String
+  order        Int                 @default(0)
+  createdAt    DateTime            @default(now())
+
+  @@index([jobPostingId])
+}
+
+// Universal profile system, Phase 2 — which canonical skills this
+// specific posting is looking for. An employer's "skills sought" on
+// their own profile is derived by reading this across all of an
+// employer's live postings (see Employer's own comment) rather than a
+// separate, employer-declared list that could drift from what's
+// actually being recruited for.
+model JobPostingSkill {
+  id           String     @id @default(cuid())
+  jobPostingId String
+  jobPosting   JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  skillId      String
+  skill        Skill      @relation(fields: [skillId], references: [id])
+
+  @@unique([jobPostingId, skillId])
+  @@index([skillId])
 }
 
 // A trainee's application to one specific posting, carrying its own
@@ -1911,6 +2373,38 @@ model UserNotification {
 
   @@index([recipientType, recipientId, readAt])
   @@index([createdAt])
+}
+
+enum ProfileReportStatus {
+  PENDING
+  REVIEWED
+  DISMISSED
+  ACTION_TAKEN
+}
+
+// Universal profile system, Phase 3 — lets any signed-in account flag
+// a trainee or employer profile for admin review. Same
+// reporterType/reportedType string-discriminator precedent
+// UserNotification.recipientType/recipientId already established
+// above, rather than several nullable FK columns for what a real FK
+// can't cleanly express anyway (a report can target either a Trainee
+// or an Employer).
+model ProfileReport {
+  id           String              @id @default(cuid())
+  reporterType String // "TRAINEE" | "STAFF" | "EMPLOYER"
+  reporterId   String
+  reportedType String // "TRAINEE" | "EMPLOYER"
+  reportedId   String
+  reason       String
+  details      String?
+  status       ProfileReportStatus @default(PENDING)
+  reviewedById String?
+  reviewedBy   User?               @relation(fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+  createdAt    DateTime            @default(now())
+
+  @@index([reportedType, reportedId])
+  @@index([status])
 }
 
 // ---------------------------------------------------------------------

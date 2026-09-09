@@ -130,22 +130,16 @@ body {
 }
 
 body {
-  /* M46 — dark mode uses Tailwind's own `dark:` variant here, not the
-     brand-token CSS variables, specifically to respect an explicit,
-     documented prior decision (see the comment directly below): plain
-     white was a deliberate, direct request, reverted from a warm
-     off-white base — repurposing brand-sand for this rule would have
-     silently undone that in light mode, since brand-sand isn't
-     genuinely white, just close to it. This is the one base-layer
-     fix that matters for the whole app; the 369 individual component
-     usages elsewhere were already written as brand tokens and needed
-     no changes at all. */
-  @apply bg-white dark:bg-brand-sand text-brand-ink antialiased font-sans;
-  /* Back to plain white per direct request — the milky #FFFCF1 base
-     was itself a direct, specific request one round ago; reverted just
-     as directly here. The wallpaper pattern below sits on top of
-     whatever this is as an ordinary background-image, so switching the
-     base color back needed no other changes to make. */
+  /* Light mode back to the warm brand-sand cream, per direct request —
+     this app already had this exact token defined and themed (see its
+     own comment in :root above) but light mode was using plain
+     bg-white instead, per an earlier direct request that's now being
+     reversed just as directly. Dark mode is untouched — it already
+     used `dark:bg-brand-sand` and stays exactly as it was, kept
+     "default" per this request. The wallpaper pattern below sits on
+     top of whatever this base color is as an ordinary
+     background-image, so this needed no other changes to make. */
+  @apply bg-brand-sand text-brand-ink antialiased font-sans;
   /* App-wide "wallpaper" — see public/wallpaper-pattern.svg for the
      full design reasoning. v9: opacity halved again on request, 27.5%
      → 13.75% — a faint, subtle presence now, visible on close look

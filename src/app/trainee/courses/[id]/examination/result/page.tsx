@@ -93,6 +93,7 @@ export default function CourseExaminationResultPage({ params }: { params: { id: 
   const nav = [
     { label: "Dashboard", href: "/trainee/dashboard" },
     { label: "Courses", href: "/trainee/courses" },
+    { label: "My Profile", href: "/trainee/profile" },
     { label: "Settings", href: "/trainee/settings" },
   ];
 

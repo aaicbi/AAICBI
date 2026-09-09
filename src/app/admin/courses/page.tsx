@@ -33,6 +33,8 @@ export default function AdminCoursesPage() {
         nav={[
           { label: "Examinations", href: "/admin/dashboard" },
           { label: "Courses", href: "/admin/courses" },
+          { label: "Payments", href: "/admin/payments" },
+          { label: "My Profile", href: "/admin/profile" },
           { label: "Settings", href: "/admin/settings" },
         ]}
         right={<LogoutButton />}

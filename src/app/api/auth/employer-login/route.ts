@@ -48,6 +48,13 @@ export async function POST(req: NextRequest) {
   }
 
   await createSession({ userId: employer.id, email: employer.email, role: "EMPLOYER" });
+  // Personalized landing page — same lastLoginAt/previousLoginAt
+  // pattern as trainee/staff login; employer had no login-tracking at
+  // all before this.
+  await prisma.employer.update({
+    where: { id: employer.id },
+    data: { previousLoginAt: employer.lastLoginAt, lastLoginAt: new Date() },
+  });
   return NextResponse.json({
     id: employer.id,
     companyName: employer.companyName,

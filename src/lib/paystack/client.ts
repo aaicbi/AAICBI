@@ -43,6 +43,11 @@ const VerifyResponseSchema = z.object({
     currency: z.string(),
     gateway_response: z.string().nullable(),
     paid_at: z.string().nullable(),
+    // Course enrollment/subscription system — Paystack's own payment
+    // method label ("card", "bank", "ussd", etc.), captured for
+    // Payment.method. Optional because it's purely informational, never
+    // part of the genuine-success decision below.
+    channel: z.string().nullable().optional(),
     // Needed for M26's activation step — recording who to bill again
     // later (M27), not required for the amount/status check above.
     customer: z.object({ customer_code: z.string() }).optional(),

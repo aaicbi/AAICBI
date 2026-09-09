@@ -14,7 +14,11 @@ export default function AvatarUpload({
   onChange,
 }: {
   avatarUrl: string | null;
-  apiPath: "/api/trainee/avatar" | "/api/admin/avatar";
+  // Universal profile system, Phase 6 — widened to include the
+  // employer logo endpoint. Genuinely the same upload/remove
+  // mechanics this component's own doc comment already describes,
+  // just another image field on another Prisma model.
+  apiPath: "/api/trainee/avatar" | "/api/admin/avatar" | "/api/employer/logo";
   onChange: (url: string | null) => void;
 }) {
   const [uploading, setUploading] = useState(false);
@@ -37,7 +41,7 @@ export default function AvatarUpload({
       return;
     }
     const data = await res.json();
-    onChange(data.avatarUrl);
+    onChange(data.avatarUrl ?? data.logoUrl);
     showToast("Profile picture updated.", "success");
   }
 

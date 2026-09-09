@@ -254,6 +254,17 @@ export async function POST(req: NextRequest) {
   // happens.
   if (eventType === "invoice.payment_failed") {
     try {
+      // Course enrollment/subscription system — keep the structured
+      // Payment ledger in sync with this courtesy notice too. Best-
+      // effort: this reference is a recurring-charge attempt Paystack
+      // generated on its own, so there's no guarantee a Payment row
+      // for it was ever created by this app (that only happens for the
+      // initial checkout in POST /pay) — a miss here is expected and
+      // harmless, not an error.
+      await prisma.payment
+        .update({ where: { reference }, data: { status: "FAILED", failedAt: new Date() } })
+        .catch(() => {});
+
       const enrollment = await findEnrollmentForSubscriptionEvent(data as Record<string, unknown>, false);
       if (!enrollment) {
         console.error(`invoice.payment_failed for reference ${reference}: no matching enrollment found — no notification sent.`);

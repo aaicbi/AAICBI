@@ -30,9 +30,11 @@ const STATUS_COPY: Record<EmployerMe["approvalState"], { title: string; body: st
 };
 
 const NAV = [
+  { label: "Dashboard", href: "/employer/dashboard" },
   { label: "Discover", href: "/employer/discover" },
   { label: "My Introductions", href: "/employer/introductions" },
   { label: "Job Postings", href: "/employer/job-postings" },
+  { label: "My Profile", href: "/employer/profile" },
   { label: "Account", href: "/employer/status" },
   { label: "Settings", href: "/employer/settings" },
 ];

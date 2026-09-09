@@ -5,6 +5,13 @@ import SiteHeader from "@/components/SiteHeader";
 import Logo from "@/components/Logo";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
+import GoogleSignInButton from "@/components/trainee/GoogleSignInButton";
+
+const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+  no_account: "No account found for that Google email. Create an account first.",
+  oauth_failed: "Something went wrong signing in with Google. Please try again.",
+  oauth_not_configured: "Google sign-in isn't set up yet. Please sign in with your email and password instead.",
+};
 
 export default function TraineeLoginPage() {
   return (
@@ -17,9 +24,12 @@ export default function TraineeLoginPage() {
 function TraineeLoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
+  const oauthErrorCode = searchParams.get("error");
+  const [error, setError] = useState<string | null>(
+    oauthErrorCode ? OAUTH_ERROR_MESSAGES[oauthErrorCode] ?? null : null
+  );
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -98,6 +108,14 @@ function TraineeLoginForm() {
               {loading ? "Signing in..." : "Sign in"}
             </Button>
           </form>
+
+          <div className="my-4 flex items-center gap-3">
+            <div className="h-px flex-1 bg-brand-gray" />
+            <span className="text-xs text-gray-500">or</span>
+            <div className="h-px flex-1 bg-brand-gray" />
+          </div>
+
+          <GoogleSignInButton intent="login" />
         </Card>
 
         <p className="mt-4 text-center text-xs">

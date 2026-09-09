@@ -36,7 +36,9 @@ export type NotificationType =
   | "NEW_EMPLOYER_PENDING"
   | "NEW_JOB_POSTING_PENDING"
   | "STAFF_ACCOUNT_CREATED"
-  | "LIKELY_DUPLICATE_PAYMENT";
+  | "LIKELY_DUPLICATE_PAYMENT"
+  | "ACCESS_EXPIRING_REMINDER"
+  | "PAYMENT_RECEIPT";
 
 export interface NotifyByEmailInput {
   recipientType: "TRAINEE" | "STAFF" | "EMPLOYER";

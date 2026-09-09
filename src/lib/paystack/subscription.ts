@@ -97,10 +97,29 @@ const TransactionInitResponseSchema = z.object({
 
 export async function initializeCoursePayment(
   trainee: { id: string; email: string },
-  course: { id: string; title: string; priceKobo: number | null; billingInterval: string | null; paystackPlanCode: string | null }
+  course: {
+    id: string;
+    title: string;
+    priceKobo: number | null;
+    billingInterval: string | null;
+    paystackPlanCode: string | null;
+    // Course enrollment/subscription system — optional and defaulting
+    // to the pre-existing RECURRING_SUBSCRIPTION behavior above, so
+    // every existing call site (which only ever dealt with recurring
+    // paid courses) keeps compiling and behaving exactly as before.
+    accessModel?: "RECURRING_SUBSCRIPTION" | "FIXED_DURATION";
+  }
 ): Promise<{ authorizationUrl: string; reference: string }> {
-  const planCode = await getOrCreatePlanForCourse(course);
   const appUrl = process.env.APP_URL ?? "http://localhost:3000";
+  // FIXED_DURATION is a one-time charge — no Paystack Plan/subscription
+  // involved at all, since access length here is an app-computed
+  // window (computeFixedAccessEnd), not something Paystack's own
+  // recurring-billing cadence drives. `plan` is simply omitted from the
+  // request below in that case.
+  const planCode =
+    (course.accessModel ?? "RECURRING_SUBSCRIPTION") === "RECURRING_SUBSCRIPTION"
+      ? await getOrCreatePlanForCourse(course)
+      : null;
 
   const res = await fetch("https://api.paystack.co/transaction/initialize", {
     method: "POST",
@@ -122,7 +141,11 @@ export async function initializeCoursePayment(
       // relying on account configuration to always agree, and checked
       // again on the verification side in `isGenuinePaymentSuccess`.
       currency: "NGN",
-      plan: planCode,
+      // Omitted entirely for FIXED_DURATION (planCode is null), rather
+      // than sent as `plan: null` — Paystack's transaction/initialize
+      // expects `plan` to either be a real plan code or simply absent
+      // for a one-time charge, not an explicit null.
+      ...(planCode ? { plan: planCode } : {}),
       callback_url: `${appUrl}/trainee/courses/${course.id}/payment-callback`,
       // Read back verbatim in the charge.success webhook — this is
       // the actual mechanism that correlates a confirmed payment back

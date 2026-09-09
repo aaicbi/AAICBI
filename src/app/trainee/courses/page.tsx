@@ -5,6 +5,7 @@ import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/trainee/LogoutButton";
 import Card from "@/components/ui/Card";
 import EmptyState from "@/components/ui/EmptyState";
+import ErrorState from "@/components/ui/ErrorState";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 
@@ -17,11 +18,27 @@ interface CourseRow {
 
 export default function TraineeCoursesPage() {
   const [courses, setCourses] = useState<CourseRow[] | null>(null);
+  const [error, setError] = useState(false);
+
+  function load() {
+    setError(false);
+    setCourses(null);
+    // Bug fix — this used to do `.then((r) => r.json())` with no
+    // `r.ok` check, so a non-200 response (e.g. this session isn't
+    // actually a TRAINEE — every role shares one login cookie in this
+    // app, so a stale admin/employer session hitting a trainee-only
+    // API is a real, reachable case, not just a hypothetical) got its
+    // error-JSON body handed straight to setCourses, and
+    // `courses.map` then crashed the whole page instead of showing a
+    // real error.
+    fetch("/api/courses/published")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then(setCourses)
+      .catch(() => setError(true));
+  }
 
   useEffect(() => {
-    fetch("/api/courses/published")
-      .then((r) => r.json())
-      .then(setCourses);
+    load();
   }, []);
 
   return (
@@ -33,6 +50,7 @@ export default function TraineeCoursesPage() {
           { label: "My Downloads", href: "/trainee/downloads" },
           { label: "Introductions", href: "/trainee/introductions" },
           { label: "Job Board", href: "/trainee/job-postings" },
+          { label: "My Profile", href: "/trainee/profile" },
           { label: "Settings", href: "/trainee/settings" },
         ]}
         right={<LogoutButton />}
@@ -41,6 +59,10 @@ export default function TraineeCoursesPage() {
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Courses</h1>
 
         <div className="mt-6 space-y-3">
+          {error ? (
+            <ErrorState message="We couldn't load your courses." onRetry={load} />
+          ) : (
+            <>
           {courses === null && <SkeletonList rows={4} />}
 
           {courses?.length === 0 && (
@@ -65,6 +87,8 @@ export default function TraineeCoursesPage() {
               </Card>
             </Link>
           ))}
+            </>
+          )}
         </div>
       </main>
     </>

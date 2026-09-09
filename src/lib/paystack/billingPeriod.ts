@@ -19,3 +19,30 @@ export function computePeriodEnd(from: Date, billingInterval: "MONTHLY" | "QUART
   }
   return result;
 }
+
+/**
+ * Course enrollment/subscription system — the FIXED_DURATION
+ * counterpart to computePeriodEnd above, same pure/synchronous
+ * discipline. Distinct function rather than extending computePeriodEnd
+ * itself: that one's signature is baked around BillingInterval, a
+ * Paystack-Plan-cadence concept; this one is a flat value+unit access
+ * window with no Paystack involvement at all. Returns null for
+ * LIFETIME — "never expires," the same meaning a null
+ * CourseEnrollment.currentPeriodEnd already has everywhere else this
+ * schema reads it.
+ */
+export function computeFixedAccessEnd(
+  from: Date,
+  value: number | null,
+  unit: "DAYS" | "MONTHS" | "LIFETIME"
+): Date | null {
+  if (unit === "LIFETIME") return null;
+  const result = new Date(from);
+  const amount = value ?? 0;
+  if (unit === "DAYS") {
+    result.setDate(result.getDate() + amount);
+  } else {
+    result.setMonth(result.getMonth() + amount);
+  }
+  return result;
+}

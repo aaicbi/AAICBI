@@ -92,6 +92,7 @@ export default function QaThreadPage({ params }: { params: { id: string; threadI
     { label: "My Downloads", href: "/trainee/downloads" },
     { label: "Introductions", href: "/trainee/introductions" },
     { label: "Job Board", href: "/trainee/job-postings" },
+    { label: "My Profile", href: "/trainee/profile" },
     { label: "Settings", href: "/trainee/settings" },
   ];
 

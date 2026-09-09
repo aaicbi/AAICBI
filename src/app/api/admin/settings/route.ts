@@ -20,7 +20,13 @@ export async function GET() {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
     const user = await prisma.user.findUniqueOrThrow({
       where: { id: session.userId },
-      select: { aiAssistantEnabled: true, darkMode: true, avatarUrl: true },
+      // `role` added for the settings-page redesign — lets the client
+      // decide whether to even show the Platform section (SUPER_ADMIN
+      // only) instead of showing it to everyone and letting the PUT to
+      // /api/admin/platform-settings fail with a confusing error.
+      // Read-only exposure of a value the viewer already knows about
+      // themselves; no new capability granted.
+      select: { aiAssistantEnabled: true, darkMode: true, avatarUrl: true, role: true },
     });
     return NextResponse.json(user);
   });

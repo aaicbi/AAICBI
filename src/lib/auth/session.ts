@@ -18,6 +18,7 @@
  */
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { prisma } from "@/lib/prisma";
 
 const COOKIE_NAME = "lms_session";
 const secret = () => new TextEncoder().encode(requireStrongSecret("AUTH_SECRET"));
@@ -76,44 +77,79 @@ export interface SessionPayload {
 // hours mid-course is real friction with no corresponding security
 // benefit, since staff (not trainees) are the ones performing the more
 // sensitive actions (creating/publishing exams and course content).
-// This is a judgment call, not a fully "solved" number — revisit the
-// trainee duration if real usage says otherwise.
-const SESSION_DURATION_BY_ROLE: Record<Role, string> = {
-  SUPER_ADMIN: "12h",
-  ADMIN: "12h",
-  INSTRUCTOR: "12h",
-  TRAINEE: "7d",
-  // M31 — an employer isn't performing the same sensitive, frequent
-  // actions a trainee working through a multi-week course is; closer
-  // in shape to a staff member's occasional session than a trainee's
-  // long-running one, but genuinely its own new account type, not
-  // assumed identical to either existing one without a real reason.
-  // 24h — long enough to not be annoying for an infrequent visitor,
-  // short enough to matter for an account holding real applicant
-  // contact information once introductions start getting accepted.
-  EMPLOYER: "24h",
+//
+// M31 — an employer isn't performing the same sensitive, frequent
+// actions a trainee working through a multi-week course is; closer
+// in shape to a staff member's occasional session than a trainee's
+// long-running one, but genuinely its own new account type, not
+// assumed identical to either existing one without a real reason.
+// 24h — long enough to not be annoying for an infrequent visitor,
+// short enough to matter for an account holding real applicant
+// contact information once introductions start getting accepted.
+//
+// Settings-page redesign, Security category — these three numbers were
+// a hardcoded constant for years with a comment saying "revisit... if
+// real usage says otherwise," which nobody could actually act on
+// without a code change and a deploy. Now admin-adjustable via
+// PlatformSettings (see that model's own schema comment) — these
+// values are only the FALLBACK, used if that row can't be read for any
+// reason, and are deliberately byte-identical to the old constant so a
+// database that's never had this row touched behaves exactly as before.
+const DEFAULT_SESSION_HOURS: Record<Role, number> = {
+  SUPER_ADMIN: 12,
+  ADMIN: 12,
+  INSTRUCTOR: 12,
+  TRAINEE: 7 * 24,
+  EMPLOYER: 24,
 };
+
+/**
+ * Reads the admin-configured session length for this role, falling
+ * back to the hardcoded defaults above on any failure — a transient DB
+ * hiccup here must never be the reason someone can't log in. Staff
+ * (SUPER_ADMIN/ADMIN/INSTRUCTOR) share one configured value, same
+ * grouping the original hardcoded constant already used; TRAINEE and
+ * EMPLOYER each get their own.
+ */
+async function getSessionDurationHours(role: Role): Promise<number> {
+  try {
+    const settings = await prisma.platformSettings.findUnique({ where: { id: "singleton" } });
+    if (!settings) return DEFAULT_SESSION_HOURS[role];
+    switch (role) {
+      case "TRAINEE":
+        return settings.traineeSessionDays * 24;
+      case "EMPLOYER":
+        return settings.employerSessionHours;
+      default:
+        return settings.staffSessionHours;
+    }
+  } catch (e) {
+    console.error(`Failed to read configured session duration for role ${role} — falling back to the default:`, e);
+    return DEFAULT_SESSION_HOURS[role];
+  }
+}
 
 // Audit finding, fixed here while adding a new role made it visible:
 // the cookie's own maxAge was a SEPARATE, hand-maintained ternary that
-// only ever special-cased TRAINEE, completely independent of
-// SESSION_DURATION_BY_ROLE above — meaning any role added later (like
+// only ever special-cased TRAINEE, completely independent of the
+// per-role duration above — meaning any role added later (like
 // EMPLOYER, which needed its own 24h duration) would have its browser
 // cookie expire at the OLD 12h default even though the JWT itself was
 // still genuinely valid for 24h, silently logging that role out
 // earlier than intended. Deriving both the JWT expiration and the
-// cookie maxAge from the exact same map closes this for good, rather
-// than trusting two separately-maintained copies of the same duration
-// to stay in sync by hand.
-function durationToSeconds(duration: string): number {
-  const match = duration.match(/^(\d+)([hd])$/);
-  if (!match) throw new Error(`Unrecognized session duration format: ${duration}`);
-  const [, value, unit] = match;
-  return unit === "d" ? Number(value) * 24 * 60 * 60 : Number(value) * 60 * 60;
+// cookie maxAge from the exact same number of hours closes this for
+// good, rather than trusting two separately-maintained copies of the
+// same duration to stay in sync by hand.
+function hoursToSeconds(hours: number): number {
+  return hours * 60 * 60;
 }
 
 export async function createSession(payload: SessionPayload) {
-  const duration = SESSION_DURATION_BY_ROLE[payload.role];
+  const hours = await getSessionDurationHours(payload.role);
+  // Still a relative "Nh" string into jose's setExpirationTime, exactly
+  // the format that already worked here — only the number itself is
+  // now dynamic instead of coming from a static map.
+  const duration = `${hours}h`;
   const token = await new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -125,7 +161,7 @@ export async function createSession(payload: SessionPayload) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: durationToSeconds(duration),
+    maxAge: hoursToSeconds(hours),
   });
 }
 

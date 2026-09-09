@@ -126,6 +126,11 @@ interface CourseDto {
   badges: BadgeDto[];
   hasPublishedExamination: boolean;
   allModulesComplete: boolean;
+  // Course enrollment/subscription system
+  isFree: boolean;
+  accessModel: "RECURRING_SUBSCRIPTION" | "FIXED_DURATION";
+  currentPeriodEnd: string | null;
+  daysRemaining: number | null;
 }
 
 const MATERIAL_ICON: Record<MaterialDto["type"], string> = {
@@ -572,6 +577,7 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
     { label: "My Downloads", href: "/trainee/downloads" },
     { label: "Introductions", href: "/trainee/introductions" },
     { label: "Job Board", href: "/trainee/job-postings" },
+    { label: "My Profile", href: "/trainee/profile" },
     { label: "Settings", href: "/trainee/settings" },
   ];
 
@@ -641,6 +647,39 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
         <h1 className="font-display text-2xl font-semibold text-brand-ink">{course.title}</h1>
         <p className="mt-1 text-xs text-gray-500">Taught by {course.createdBy.name} · AAICBI Staff</p>
         {course.description && <p className="mt-1 text-sm text-gray-600">{course.description}</p>}
+
+        {/* Course enrollment/subscription system — a status banner for
+            a paid enrollment, matching task Section 17's dashboard
+            example format. Free courses and RECURRING_SUBSCRIPTION
+            courses (auto-renewing, no action needed from the trainee)
+            never show this at all; a FIXED_DURATION course only shows
+            it once real days-remaining data exists (daysRemaining is
+            server-computed — see GET /api/courses/[id]'s own comment on
+            why that's never derived from a raw date client-side). */}
+        {!course.isFree && course.accessModel === "FIXED_DURATION" && course.daysRemaining !== null && (
+          <Card
+            variant={course.daysRemaining <= 7 ? "highlighted" : "default"}
+            className="mt-4 flex items-center justify-between"
+          >
+            <p className="text-sm text-brand-ink">
+              {course.daysRemaining > 0 ? (
+                <>
+                  <span className="font-semibold">{course.daysRemaining}</span> day
+                  {course.daysRemaining === 1 ? "" : "s"} of access remaining
+                  {course.currentPeriodEnd && ` (until ${new Date(course.currentPeriodEnd).toLocaleDateString()})`}
+                </>
+              ) : (
+                "Your access has expired"
+              )}
+            </p>
+            {course.daysRemaining <= 14 && (
+              <Button onClick={pay} loading={enrolling}>
+                Renew Access
+              </Button>
+            )}
+          </Card>
+        )}
+        {enrollError && course.daysRemaining !== null && <p className="mt-2 text-xs text-brand-rose">{enrollError}</p>}
 
         {totalModules > 0 && (
           <div className="mt-4">

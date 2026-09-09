@@ -4,6 +4,9 @@ import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { getModuleLockMap, getResumeTarget } from "@/lib/progress";
 import { expireStaleAttemptsForTrainee } from "@/lib/examEngine";
+import { expireLapsedEnrollmentsForTrainee } from "@/lib/courseAccess";
+import { getTimeOfDayGreeting, formatLastVisit } from "@/lib/dashboardHelpers";
+import { getRecentNotifications, getUnreadNotificationCount, getEventsSinceLastVisit } from "@/lib/dashboard/recentNotifications";
 import LogoutButton from "@/components/trainee/LogoutButton";
 import SiteHeader from "@/components/SiteHeader";
 import Button from "@/components/ui/Button";
@@ -11,6 +14,10 @@ import Card from "@/components/ui/Card";
 import EmptyState from "@/components/ui/EmptyState";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 import TraineeOnboarding from "@/components/trainee/TraineeOnboarding";
+import WelcomeHeader from "@/components/dashboard/WelcomeHeader";
+import NotificationSummaryCard from "@/components/dashboard/NotificationSummaryCard";
+import ActivityFeed from "@/components/dashboard/ActivityFeed";
+import QuickActionsCard from "@/components/dashboard/QuickActionsCard";
 
 /**
  * M12 — replaces the M10-era empty shell (browsing-only, no progress)
@@ -64,14 +71,43 @@ export default async function TraineeDashboardPage() {
   // won't get swept).
   await expireStaleAttemptsForTrainee(session.userId);
 
-  const [publishedCourseCount, certificates] = await Promise.all([
+  // Course enrollment/subscription system — same "runs whenever a
+  // trainee actually comes back" best-effort discipline as the exam
+  // attempt sweep just above; see expireLapsedEnrollmentsForTrainee's
+  // own comment for why this alone isn't a complete solution (the
+  // Vercel Cron sweep is the real safety net for someone who never
+  // revisits).
+  await expireLapsedEnrollmentsForTrainee(session.userId);
+
+  const [publishedCourseCount, certificates, notifications, unreadCount] = await Promise.all([
     prisma.course.count({ where: { published: true } }),
     prisma.certificate.findMany({
       where: { traineeId: session.userId, revokedAt: null },
       select: { code: true, issuedAt: true, course: { select: { title: true } } },
       orderBy: { issuedAt: "desc" },
     }),
+    getRecentNotifications("TRAINEE", session.userId, 5),
+    getUnreadNotificationCount("TRAINEE", session.userId),
   ]);
+  const sinceLastVisit = await getEventsSinceLastVisit("TRAINEE", session.userId, trainee.previousLoginAt, 10);
+
+  // Course enrollment/subscription system — task Section 17's
+  // dashboard "expiring soon" note. Scoped the same way the course
+  // page's own status banner is (see GET /api/courses/[id]): only a
+  // real, active, FIXED_DURATION enrollment with a currentPeriodEnd
+  // within the next 14 days ever shows here — a RECURRING_SUBSCRIPTION
+  // course auto-renews and never needs this nudge.
+  const expiringSoon = await prisma.courseEnrollment.findMany({
+    where: {
+      traineeId: session.userId,
+      accessRevokedAt: null,
+      unlockedAt: { not: null },
+      course: { accessModel: "FIXED_DURATION" },
+      currentPeriodEnd: { gte: new Date(), lte: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) },
+    },
+    select: { courseId: true, currentPeriodEnd: true, course: { select: { title: true } } },
+    orderBy: { currentPeriodEnd: "asc" },
+  });
 
   // Same "which courses has this trainee actually started" query as
   // GET /api/trainee/progress — see that route's own comment for why
@@ -144,14 +180,6 @@ export default async function TraineeDashboardPage() {
 
   const hasNothingYet = inProgress.length === 0 && certificates.length === 0;
 
-  // Time-of-day greeting — computed from the server's request time.
-  // A small, honest touch: it makes the dashboard feel like it's
-  // responding to *now*, not a static template. Deliberately simple
-  // three-way split rather than trying to be clever about timezones
-  // the server can't reliably know.
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-
   // A genuine momentum line, assembled only from real counts already
   // computed above — never an invented streak or estimate. Speaks to
   // whichever facts are actually true for this trainee, and stays
@@ -168,6 +196,25 @@ export default async function TraineeDashboardPage() {
     momentumLine = `${activeCount} course${activeCount === 1 ? "" : "s"} in progress`;
   }
 
+  // Real, backend-supported statuses only — never an invented
+  // "Away"/"Offline" this app has no concept of. Checked in this order
+  // because an unverified email is the more actionable of the two if
+  // both happen to be true.
+  const status: { label: string; variant: "success" | "warning" | "danger" } = !trainee.emailVerified
+    ? { label: "Pending Verification", variant: "warning" }
+    : trainee.qaSuspendedAt
+      ? { label: "Q&A Restricted", variant: "danger" }
+      : { label: "Active", variant: "success" };
+
+  const quickActions = [
+    { label: "Continue Learning", href: resumeTarget?.url ?? "/trainee/courses" },
+    { label: "My Downloads", href: "/trainee/downloads" },
+    { label: "Job Board", href: "/trainee/job-postings" },
+    { label: "Introductions", href: "/trainee/introductions" },
+    { label: "My Profile", href: "/trainee/profile" },
+    { label: "Settings", href: "/trainee/settings" },
+  ];
+
   return (
     <>
       <TraineeOnboarding shouldShow={!trainee.onboardingCompletedAt} />
@@ -178,6 +225,7 @@ export default async function TraineeDashboardPage() {
           { label: "My Downloads", href: "/trainee/downloads" },
           { label: "Introductions", href: "/trainee/introductions" },
           { label: "Job Board", href: "/trainee/job-postings" },
+          { label: "My Profile", href: "/trainee/profile" },
           { label: "Settings", href: "/trainee/settings" },
         ]}
         right={<LogoutButton />}
@@ -188,21 +236,43 @@ export default async function TraineeDashboardPage() {
             server-side from the request time) plus a genuine momentum
             line built only from real counts already on the page —
             earned certificates and active courses — never an invented
-            or estimated "streak". The display serif is given room to
-            breathe here (text-3xl, tighter tracking) since this is the
-            first thing a trainee sees and the one place the brand's
-            characterful Fraunces face should feel confident, not
-            timid. */}
-        <p className="text-sm font-medium text-brand-teal">{greeting}</p>
-        <h1 className="mt-0.5 font-display text-3xl font-semibold tracking-tight text-brand-ink">
-          {trainee.name}
-        </h1>
-        {momentumLine && <p className="mt-1.5 text-sm text-gray-600">{momentumLine}</p>}
+            or estimated "streak". Personalized landing page — now
+            factored into the shared WelcomeHeader component (avatar,
+            status, last visit added), same greeting/momentum values as
+            before. */}
+        <WelcomeHeader
+          greeting={getTimeOfDayGreeting()}
+          name={trainee.name}
+          avatarUrl={trainee.avatarUrl}
+          username={trainee.username}
+          roleLabel="Trainee"
+          statusLabel={status.label}
+          statusVariant={status.variant}
+          lastVisitLabel={formatLastVisit(trainee.previousLoginAt)}
+          momentumLine={momentumLine}
+          profileHref="/trainee/profile"
+        />
 
         {!trainee.emailVerified && (
           <div className="mt-4 rounded-lg border border-brand-gold bg-brand-goldLight/50 px-4 py-3 text-sm text-brand-goldText">
             Your email isn&apos;t verified yet — check your inbox for the link we sent when you registered. Didn&apos;t
             get it? Check spam, or ask an admin for help.
+          </div>
+        )}
+
+        {expiringSoon.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {expiringSoon.map((e) => {
+              const daysLeft = Math.ceil((e.currentPeriodEnd!.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+              return (
+                <Link key={e.courseId} href={`/trainee/courses/${e.courseId}`}>
+                  <div className="rounded-lg border border-brand-gold bg-brand-goldLight/50 px-4 py-3 text-sm text-brand-goldText hover:border-brand-tealDeep">
+                    Your access to <span className="font-semibold">{e.course.title}</span> expires in {daysLeft} day
+                    {daysLeft === 1 ? "" : "s"} — renew to keep your progress.
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         )}
 
@@ -234,6 +304,13 @@ export default async function TraineeDashboardPage() {
             </Button>
           </Card>
         )}
+
+        <NotificationSummaryCard notifications={notifications} unreadCount={unreadCount} />
+        <ActivityFeed
+          mode={trainee.previousLoginAt ? "since-last-visit" : "recent"}
+          events={trainee.previousLoginAt ? sinceLastVisit : notifications}
+        />
+        <QuickActionsCard actions={quickActions} />
 
         {hasNothingYet && (
           <div className="mt-8">

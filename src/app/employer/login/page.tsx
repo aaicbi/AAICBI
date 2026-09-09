@@ -36,9 +36,15 @@ export default function EmployerLoginPage() {
     }
     // Bug fix — see trainee/login/page.tsx's own comment for the full
     // reasoning: a hard navigation, not router.push(), guarantees the
-    // status page is rendered fresh with the new session cookie rather
+    // destination is rendered fresh with the new session cookie rather
     // than risking a stale, pre-login cached render.
-    window.location.href = "/employer/status";
+    //
+    // Personalized landing page — now sends every employer to
+    // /employer/dashboard, which itself redirects a still-PENDING or
+    // REJECTED account straight to /employer/status (unchanged, still
+    // the canonical not-yet-approved experience) rather than showing a
+    // half-working dashboard for features they can't use yet.
+    window.location.href = "/employer/dashboard";
   }
 
   return (

@@ -61,6 +61,7 @@ export default function PaymentCallbackPage({ params }: { params: { id: string }
         nav={[
           { label: "Dashboard", href: "/trainee/dashboard" },
           { label: "Courses", href: "/trainee/courses" },
+          { label: "My Profile", href: "/trainee/profile" },
           { label: "Settings", href: "/trainee/settings" },
         ]}
         right={<LogoutButton />}

@@ -9,6 +9,13 @@ import Link from "next/link";
  * official logo asset (e.g. from the separate, more polished AAICBI CBT
  * Platform project), swap the <LogoMark> SVG below for that artwork —
  * everywhere else in the app that uses <Logo /> updates automatically.
+ *
+ * `public/logo.svg` is a standalone static copy of this exact mark —
+ * email clients can't render a React component, so notification emails
+ * (src/lib/notifications/templates.ts's wrapHtml) reference that file
+ * directly by URL instead. Keep the two in sync: an update here that
+ * isn't mirrored there means the logo silently diverges between the
+ * app and the emails it sends.
  */
 function LogoMark({ className }: { className?: string }) {
   return (

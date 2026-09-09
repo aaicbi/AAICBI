@@ -131,6 +131,7 @@ export default function StaffQaThreadPage({ params }: { params: { id: string; th
         nav={[
           { label: "Examinations", href: "/admin/dashboard" },
           { label: "Courses", href: "/admin/courses" },
+          { label: "My Profile", href: "/admin/profile" },
           { label: "Settings", href: "/admin/settings" },
         ]}
         right={<LogoutButton />}

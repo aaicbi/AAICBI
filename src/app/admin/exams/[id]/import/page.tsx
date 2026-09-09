@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import SiteHeader from "@/components/SiteHeader";
+import LogoutButton from "@/components/admin/LogoutButton";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
 import { useToast } from "@/components/ui/Toast";
 
@@ -118,7 +119,15 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
   if (!exam) {
     return (
       <>
-        <SiteHeader />
+        <SiteHeader
+          nav={[
+            { label: "Examinations", href: "/admin/dashboard" },
+            { label: "Courses", href: "/admin/courses" },
+            { label: "My Profile", href: "/admin/profile" },
+            { label: "Settings", href: "/admin/settings" },
+          ]}
+          right={<LogoutButton />}
+        />
         <main className="mx-auto max-w-3xl px-6 py-10">
           <div className="h-6 w-40 animate-pulse rounded-full bg-brand-gray/60" />
           <div className="mt-3 h-8 w-72 animate-pulse rounded-full bg-brand-gray/60" />
@@ -133,7 +142,15 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader
+        nav={[
+          { label: "Examinations", href: "/admin/dashboard" },
+          { label: "Courses", href: "/admin/courses" },
+          { label: "My Profile", href: "/admin/profile" },
+          { label: "Settings", href: "/admin/settings" },
+        ]}
+        right={<LogoutButton />}
+      />
       {modal}
       <main className="mx-auto max-w-3xl px-6 py-10">
       <h1 className="text-2xl font-bold text-gray-900">{exam.title}</h1>

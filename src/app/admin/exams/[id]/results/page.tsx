@@ -1,6 +1,7 @@
 "use client";
 import { Fragment, useEffect, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
+import LogoutButton from "@/components/admin/LogoutButton";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { SkeletonTableRows } from "@/components/ui/Skeleton";
@@ -58,7 +59,15 @@ export default function ExamResultsPage({ params }: { params: { id: string } }) 
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader
+        nav={[
+          { label: "Examinations", href: "/admin/dashboard" },
+          { label: "Courses", href: "/admin/courses" },
+          { label: "My Profile", href: "/admin/profile" },
+          { label: "Settings", href: "/admin/settings" },
+        ]}
+        right={<LogoutButton />}
+      />
       <main className="mx-auto max-w-4xl px-6 py-10">
         <div className="flex items-center justify-between">
           <h1 className="font-display text-2xl font-semibold text-brand-ink">Results</h1>

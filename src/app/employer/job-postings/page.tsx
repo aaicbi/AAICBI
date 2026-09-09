@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/employer/LogoutButton";
 import Card from "@/components/ui/Card";
@@ -9,6 +9,8 @@ import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
 import EmptyState from "@/components/ui/EmptyState";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
+import JobPostingMediaPicker, { StagedMedia } from "@/components/jobPostings/JobPostingMediaPicker";
+import JobPostingMediaGallery, { JobPostingMediaItem } from "@/components/jobPostings/JobPostingMediaGallery";
 
 interface JobPostingDto {
   id: string;
@@ -17,12 +19,15 @@ interface JobPostingDto {
   closingDate: string;
   status: "PENDING_REVIEW" | "APPROVED" | "REJECTED" | "EXPIRED";
   createdAt: string;
+  media: JobPostingMediaItem[];
 }
 
 const NAV = [
+  { label: "Dashboard", href: "/employer/dashboard" },
   { label: "Discover", href: "/employer/discover" },
   { label: "My Introductions", href: "/employer/introductions" },
   { label: "Job Postings", href: "/employer/job-postings" },
+  { label: "My Profile", href: "/employer/profile" },
   { label: "Account", href: "/employer/status" },
   { label: "Settings", href: "/employer/settings" },
 ];
@@ -50,9 +55,13 @@ export default function EmployerJobPostingsPage() {
   const [postingsError, setPostingsError] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [skills, setSkills] = useState("");
   const [closingDate, setClosingDate] = useState(defaultClosingDate());
+  const [stagedMedia, setStagedMedia] = useState<StagedMedia[]>([]);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [removingMediaId, setRemovingMediaId] = useState<string | null>(null);
+  const [addingMediaTo, setAddingMediaTo] = useState<string | null>(null);
   const { showToast } = useToast();
 
   function load() {
@@ -78,18 +87,74 @@ export default function EmployerJobPostingsPage() {
         title,
         description,
         closingDate: new Date(closingDate + "T23:59:59").toISOString(),
+        skillNames: skills
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
       }),
     });
-    setPosting(false);
     if (!res.ok) {
+      setPosting(false);
       const data = await res.json().catch(() => ({}));
       setError(typeof data.error === "string" ? data.error : "Could not post. Try again.");
       return;
     }
+    const created = await res.json();
+
+    // The posting exists now, so staged files (picked before the
+    // posting had an id at all) can finally be uploaded. Uploaded
+    // sequentially, not in parallel — MAX_MEDIA_PER_POSTING is
+    // enforced server-side per request, and a handful of small files
+    // uploading one after another is not a meaningful latency concern
+    // here. A failed upload never rolls back the posting itself
+    // (already succeeded) — it's surfaced as a toast so the employer
+    // can retry adding that one file from the list below.
+    let mediaFailures = 0;
+    for (const staged of stagedMedia) {
+      const formData = new FormData();
+      formData.append("file", staged.file);
+      const mediaRes = await fetch(`/api/job-postings/${created.id}/media`, { method: "POST", body: formData });
+      if (!mediaRes.ok) mediaFailures++;
+      URL.revokeObjectURL(staged.previewUrl);
+    }
+
+    setPosting(false);
     setTitle("");
     setDescription("");
+    setSkills("");
     setClosingDate(defaultClosingDate());
-    showToast("Posting submitted for review.");
+    setStagedMedia([]);
+    showToast(
+      mediaFailures > 0
+        ? `Posting submitted, but ${mediaFailures} media file${mediaFailures === 1 ? "" : "s"} failed to upload. You can add it below.`
+        : "Posting submitted for review.",
+      mediaFailures > 0 ? "error" : "success"
+    );
+    load();
+  }
+
+  async function addMediaToPosting(postingId: string, file: File) {
+    setAddingMediaTo(postingId);
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`/api/job-postings/${postingId}/media`, { method: "POST", body: formData });
+    setAddingMediaTo(null);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showToast(typeof data.error === "string" ? data.error : "Could not upload media.", "error");
+      return;
+    }
+    load();
+  }
+
+  async function removeMedia(postingId: string, mediaId: string) {
+    setRemovingMediaId(mediaId);
+    const res = await fetch(`/api/job-postings/${postingId}/media/${mediaId}`, { method: "DELETE" });
+    setRemovingMediaId(null);
+    if (!res.ok) {
+      showToast("Could not remove media.", "error");
+      return;
+    }
     load();
   }
 
@@ -120,6 +185,15 @@ export default function EmployerJobPostingsPage() {
               className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
             />
             <div>
+              <label className="text-xs font-semibold text-gray-600">Skills you're hiring for (comma-separated, optional)</label>
+              <input
+                value={skills}
+                onChange={(e) => setSkills(e.target.value)}
+                placeholder="e.g. React, SQL, Data Analysis"
+                className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
+              />
+            </div>
+            <div>
               <label className="text-xs font-semibold text-gray-600">Closing date</label>
               <input
                 type="date"
@@ -129,6 +203,7 @@ export default function EmployerJobPostingsPage() {
                 className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
               />
             </div>
+            <JobPostingMediaPicker staged={stagedMedia} onChange={setStagedMedia} />
             {error && <p className="text-sm text-brand-rose">{error}</p>}
             <Button type="submit" loading={posting}>
               Submit for Review
@@ -157,6 +232,20 @@ export default function EmployerJobPostingsPage() {
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-gray-500">Closes {new Date(p.closingDate).toLocaleDateString()}</p>
+
+                <JobPostingMediaGallery
+                  media={p.media}
+                  onRemove={(mediaId) => removeMedia(p.id, mediaId)}
+                  removingId={removingMediaId}
+                />
+                {p.media.length < 5 && (
+                  <PostingMediaAddButton
+                    postingId={p.id}
+                    busy={addingMediaTo === p.id}
+                    onFileSelected={(file) => addMediaToPosting(p.id, file)}
+                  />
+                )}
+
                 {(p.status === "APPROVED" || p.status === "EXPIRED") && (
                   <a href={`/employer/job-postings/${p.id}/applications`} className="mt-2 inline-block text-xs font-semibold text-brand-teal hover:underline">
                     View applications →
@@ -168,5 +257,40 @@ export default function EmployerJobPostingsPage() {
         </div>
       </main>
     </>
+  );
+}
+
+/** A tiny file-input trigger for adding one more media item to an already-created posting — separate from JobPostingMediaPicker, which stages files before a posting id exists at all. */
+function PostingMediaAddButton({
+  busy,
+  onFileSelected,
+}: {
+  postingId: string;
+  busy: boolean;
+  onFileSelected: (file: File) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <div className="mt-2">
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) onFileSelected(file);
+        }}
+        className="hidden"
+      />
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={busy}
+        className="text-xs font-semibold text-brand-teal hover:underline disabled:opacity-60"
+      >
+        {busy ? "Uploading..." : "+ Add media"}
+      </button>
+    </div>
   );
 }

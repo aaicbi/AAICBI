@@ -2,87 +2,58 @@
 import { useEffect, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
-import Card from "@/components/ui/Card";
-import { useToast } from "@/components/ui/Toast";
-import AvatarUpload from "@/components/AvatarUpload";
+import AccountSettingsPanel from "@/components/admin/AccountSettingsPanel";
+import PaymentsSettingsPanel from "@/components/admin/PaymentsSettingsPanel";
+import SecuritySettingsPanel from "@/components/admin/SecuritySettingsPanel";
+import IntegrationsPanel from "@/components/admin/IntegrationsPanel";
+import { ADMIN_AREAS } from "@/lib/adminAreas";
+
+type SectionId = "account" | "payments" | "security" | "integrations";
 
 /**
- * M47/M46 — the staff-facing counterpart to /trainee/settings,
- * starting small rather than growing into a full profile page. See
- * the API route's own comment for why.
+ * Settings-page redesign — was a single flat page (M47's personal
+ * account preferences, plus a grid of links to unrelated admin tools,
+ * all with equal visual weight). Restructured into an actual category
+ * shell: a settings sub-navigation (desktop: vertical list; mobile:
+ * horizontal segmented tabs, same responsive-tabs-over-sidebar pattern
+ * this app already uses elsewhere for narrow screens) over four real
+ * categories.
+ *
+ * "Account" is every staff role's own preferences. The other three
+ * (Payments, Security, Integrations) are SUPER_ADMIN-only and each
+ * back real, previously-hardcoded-or-unreachable platform behavior —
+ * nothing here is a placeholder: Payments covers the AI-credit grant
+ * and default reminder schedule tied to the paid-enrollment lifecycle;
+ * Security covers session length (session.ts) and the Q&A suspension
+ * threshold (qaModeration.ts); Integrations is a read-only status view
+ * of the real third-party services this app already talks to. See each
+ * panel component for the specific fields and why they're real.
+ *
+ * "Admin Areas" (Employers, Job Postings, etc.) is kept as a visually
+ * separate quick-links section below the settings panel, not folded
+ * into the tab switcher — those are operational management tools, not
+ * configuration, and presenting them as another "settings tab" would
+ * misrepresent what they are.
  */
-export default function AdminSettingsPage() {
-  const [aiAssistantEnabled, setAiAssistantEnabled] = useState<boolean | null>(null);
-  const [darkMode, setDarkModeState] = useState<boolean | null>(null);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const { showToast } = useToast();
+const SECTIONS: Array<{ id: SectionId; label: string; icon: string; superAdminOnly?: boolean }> = [
+  { id: "account", label: "Account", icon: "👤" },
+  { id: "payments", label: "Payments", icon: "💳", superAdminOnly: true },
+  { id: "security", label: "Security", icon: "🔒", superAdminOnly: true },
+  { id: "integrations", label: "Integrations", icon: "🔌", superAdminOnly: true },
+];
 
-  // Same mechanism as the trainee settings page — see that file's own
-  // comment on why this keys off a class on <html> rather than
-  // per-component wiring.
-  function applyTheme(enabled: boolean) {
-    document.documentElement.classList.toggle("dark", enabled);
-    // Part 8/9 — persist to the `theme` cookie the root layout reads pre-paint, so the choice holds app-wide (see trainee/settings for the full rationale).
-    document.cookie = `theme=${enabled ? "dark" : "light"}; path=/; max-age=31536000; SameSite=Lax`;
-  }
+export default function AdminSettingsPage() {
+  const [section, setSection] = useState<SectionId>("account");
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
-    const currentlyDark = document.documentElement.classList.contains("dark");
-    setDarkModeState(currentlyDark);
     fetch("/api/admin/settings")
-      .then((r) => {
-        if (!r.ok) throw new Error("Failed to load settings");
-        return r.json();
-      })
-      .then((data) => {
-        if (!data) return;
-        if (typeof data.aiAssistantEnabled === "boolean") setAiAssistantEnabled(data.aiAssistantEnabled);
-        if (typeof data.darkMode === "boolean") {
-          setDarkModeState(data.darkMode);
-          applyTheme(data.darkMode);
-        } else {
-          setDarkModeState(currentlyDark);
-        }
-        setAvatarUrl(data.avatarUrl ?? null);
-      })
-      .catch(() => {
-        setAiAssistantEnabled((prev) => prev ?? false);
-        setDarkModeState((prev) => prev ?? currentlyDark);
-      });
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data) => setRole(typeof data.role === "string" ? data.role : null))
+      .catch(() => {});
   }, []);
 
-  async function toggle(field: "aiAssistantEnabled" | "darkMode") {
-    if (aiAssistantEnabled === null || darkMode === null) return;
-    const nextAi = field === "aiAssistantEnabled" ? !aiAssistantEnabled : aiAssistantEnabled;
-    const nextDark = field === "darkMode" ? !darkMode : darkMode;
-    setAiAssistantEnabled(nextAi); // optimistic
-    setDarkModeState(nextDark);
-    if (field === "darkMode") applyTheme(nextDark);
-    setSaving(true);
-    const res = await fetch("/api/admin/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ aiAssistantEnabled: nextAi, darkMode: nextDark }),
-    });
-    setSaving(false);
-    if (!res.ok) {
-      setAiAssistantEnabled(aiAssistantEnabled); // revert on failure
-      setDarkModeState(darkMode);
-      if (field === "darkMode") applyTheme(darkMode);
-      showToast("Could not save. Please try again.", "error");
-      return;
-    }
-    const updated = await res.json().catch(() => null);
-    if (updated) {
-      if (typeof updated.aiAssistantEnabled === "boolean") setAiAssistantEnabled(updated.aiAssistantEnabled);
-      if (typeof updated.darkMode === "boolean") {
-        setDarkModeState(updated.darkMode);
-        applyTheme(updated.darkMode);
-      }
-    }
-    showToast("Saved.", "success");
-  }
+  const visibleSections = SECTIONS.filter((s) => !s.superAdminOnly || role === "SUPER_ADMIN");
 
   return (
     <>
@@ -90,115 +61,69 @@ export default function AdminSettingsPage() {
         nav={[
           { label: "Examinations", href: "/admin/dashboard" },
           { label: "Courses", href: "/admin/courses" },
+          { label: "My Profile", href: "/admin/profile" },
           { label: "Settings", href: "/admin/settings" },
         ]}
         right={<LogoutButton />}
       />
-      <main className="mx-auto max-w-2xl px-6 py-10">
+      <main className="mx-auto max-w-4xl px-6 py-10">
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Settings</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Manage your account, and jump to the areas you administer.
+          Manage your account and the platform-wide preferences you administer.
         </p>
 
-        {/* Part 5 — the five destinations that used to be cramped,
-            underlined text links directly under the heading (reading
-            as an afterthought) are now a proper navigation panel:
-            real, tappable rows with a label and a one-line description
-            of what each area is for, visually distinct from the actual
-            on-page account settings below. Deliberately NOT a faked
-            "Profile / Security / Password" sidenav — those sections
-            don't exist as separate pages in this app, and inventing
-            empty ones is exactly what the audit warns against. These
-            are genuine admin areas, so they're presented honestly as
-            navigation, grouped and labelled, not disguised as tabs of
-            a settings form they aren't part of. */}
-        <p className="mt-6 text-xs font-semibold uppercase tracking-wide text-gray-500">Admin areas</p>
-        <nav className="mt-2 grid gap-2 sm:grid-cols-2">
-          {[
-            { href: "/admin/platform-settings", label: "Platform-wide settings", desc: "Global configuration for the whole platform" },
-            { href: "/admin/employers", label: "Employer accounts", desc: "Review and approve employer registrations" },
-            { href: "/admin/job-postings", label: "Job posting review", desc: "Approve or reject submitted job postings" },
-            { href: "/admin/testimonials", label: "Testimonials", desc: "Curate trainee reviews shown publicly" },
-            { href: "/admin/staff", label: "Staff accounts", desc: "Create and manage staff members" },
-          ].map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className="group flex items-center justify-between rounded-xl border border-brand-gray bg-brand-surface p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-teal hover:shadow-md"
-            >
-              <span>
-                <span className="block text-sm font-semibold text-brand-ink">{item.label}</span>
-                <span className="mt-0.5 block text-xs text-gray-500">{item.desc}</span>
-              </span>
-              <span className="ml-3 text-brand-teal transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true">
-                →
-              </span>
-            </a>
-          ))}
-        </nav>
-
-        <p className="mt-8 text-xs font-semibold uppercase tracking-wide text-gray-500">Your account</p>
-        <Card className="mt-2">
-          <p className="font-display font-semibold text-brand-ink">Profile Picture</p>
-          <div className="mt-3">
-            <AvatarUpload avatarUrl={avatarUrl} apiPath="/api/admin/avatar" onChange={setAvatarUrl} />
-          </div>
-        </Card>
-
-        <Card className="mt-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="font-display font-semibold text-brand-ink">AI Platform Assistant</p>
-              <p className="mt-1 text-sm text-gray-600">
-                Reports, analytics, and management help powered by AI. Not available yet — turning this on now just
-                means it&apos;ll be ready for you the moment it launches.
-              </p>
-            </div>
-            {aiAssistantEnabled !== null && (
+        <div className="mt-8 flex flex-col gap-8 sm:flex-row">
+          {/* Desktop: a vertical settings nav. Mobile: a horizontal
+              segmented control — the same "sidebar becomes tabs below a
+              breakpoint" reorganization the rest of this app already
+              uses for narrow screens, not just a shrunk-down sidebar. */}
+          <nav className="flex gap-2 overflow-x-auto pb-1 sm:w-48 sm:shrink-0 sm:flex-col sm:overflow-visible sm:pb-0">
+            {visibleSections.map((s) => (
               <button
-                onClick={() => toggle("aiAssistantEnabled")}
-                disabled={saving}
-                role="switch"
-                aria-checked={aiAssistantEnabled}
-                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                  aiAssistantEnabled ? "bg-brand-teal" : "bg-gray-300"
+                key={s.id}
+                onClick={() => setSection(s.id)}
+                aria-current={section === s.id ? "page" : undefined}
+                className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition-colors sm:shrink ${
+                  section === s.id
+                    ? "bg-brand-mint text-brand-tealDeep"
+                    : "text-gray-600 hover:bg-brand-mint/40 hover:text-brand-ink"
                 }`}
               >
-                <span
-                  className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                    aiAssistantEnabled ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
+                <span aria-hidden="true">{s.icon}</span>
+                {s.label}
               </button>
-            )}
-          </div>
-        </Card>
+            ))}
+          </nav>
 
-        <Card className="mt-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="font-display font-semibold text-brand-ink">Dark Mode</p>
-              <p className="mt-1 text-sm text-gray-600">Switch to a dark theme. This follows you across devices.</p>
-            </div>
-            {darkMode !== null && (
-              <button
-                onClick={() => toggle("darkMode")}
-                disabled={saving}
-                role="switch"
-                aria-checked={darkMode}
-                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                  darkMode ? "bg-brand-teal" : "bg-gray-300"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                    darkMode ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
-            )}
+          <div className="min-w-0 flex-1">
+            {section === "account" && <AccountSettingsPanel />}
+            {section === "payments" && <PaymentsSettingsPanel viewerRole={role ?? undefined} />}
+            {section === "security" && <SecuritySettingsPanel viewerRole={role ?? undefined} />}
+            {section === "integrations" && <IntegrationsPanel viewerRole={role ?? undefined} />}
           </div>
-        </Card>
+        </div>
+
+        <div className="mt-10 border-t border-brand-gray pt-8">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Admin areas</p>
+          <p className="mt-1 text-sm text-gray-500">Quick links to the other tools you administer.</p>
+          <nav className="mt-3 grid gap-2 sm:grid-cols-2">
+            {ADMIN_AREAS.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                className="group flex items-center justify-between rounded-xl border border-brand-gray bg-brand-surface p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-teal hover:shadow-md"
+              >
+                <span>
+                  <span className="block text-sm font-semibold text-brand-ink">{item.label}</span>
+                  <span className="mt-0.5 block text-xs text-gray-500">{item.desc}</span>
+                </span>
+                <span className="ml-3 text-brand-teal transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true">
+                  →
+                </span>
+              </a>
+            ))}
+          </nav>
+        </div>
       </main>
     </>
   );

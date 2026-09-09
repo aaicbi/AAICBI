@@ -27,6 +27,7 @@ const NAV = [
   { label: "Courses", href: "/trainee/courses" },
   { label: "Introductions", href: "/trainee/introductions" },
   { label: "Job Board", href: "/trainee/job-postings" },
+  { label: "My Profile", href: "/trainee/profile" },
   { label: "Settings", href: "/trainee/settings" },
 ];
 

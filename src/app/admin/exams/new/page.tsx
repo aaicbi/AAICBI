@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
+import LogoutButton from "@/components/admin/LogoutButton";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 
@@ -50,7 +51,15 @@ export default function NewExamPage() {
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader
+        nav={[
+          { label: "Examinations", href: "/admin/dashboard" },
+          { label: "Courses", href: "/admin/courses" },
+          { label: "My Profile", href: "/admin/profile" },
+          { label: "Settings", href: "/admin/settings" },
+        ]}
+        right={<LogoutButton />}
+      />
       <main className="mx-auto max-w-2xl px-6 py-10">
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Create Examination</h1>
         <Card className="mt-6">

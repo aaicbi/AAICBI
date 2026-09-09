@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
+import LogoutButton from "@/components/admin/LogoutButton";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -91,7 +92,15 @@ export default function TranslationsAdminPage() {
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader
+        nav={[
+          { label: "Examinations", href: "/admin/dashboard" },
+          { label: "Courses", href: "/admin/courses" },
+          { label: "My Profile", href: "/admin/profile" },
+          { label: "Settings", href: "/admin/settings" },
+        ]}
+        right={<LogoutButton />}
+      />
       <main className="mx-auto max-w-3xl px-6 py-10">
         <h1 className="font-display text-2xl font-semibold text-brand-ink">🌍 Translations</h1>
         <p className="mt-1 text-sm text-gray-500">

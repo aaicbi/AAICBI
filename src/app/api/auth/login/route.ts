@@ -39,5 +39,13 @@ export async function POST(req: NextRequest) {
   }
 
   await createSession({ userId: user.id, email: user.email, role: user.role });
+  // Personalized landing page — same lastLoginAt/previousLoginAt
+  // pattern as the trainee login route; staff had no login-tracking
+  // at all before this. Awaited for the same Vercel-serverless-teardown
+  // reasoning that route's own comment explains.
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { previousLoginAt: user.lastLoginAt, lastLoginAt: new Date() },
+  });
   return NextResponse.json({ id: user.id, name: user.name, email: user.email, role: user.role });
 }

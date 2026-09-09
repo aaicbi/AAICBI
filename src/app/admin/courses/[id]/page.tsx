@@ -41,6 +41,14 @@ interface CourseDto {
   isFree: boolean;
   // M41
   qaScope: "OPEN" | "COHORT_SCOPED";
+  // Course enrollment/subscription system
+  priceKobo: number | null;
+  billingInterval: "MONTHLY" | "QUARTERLY" | "ANNUALLY" | null;
+  accessModel: "RECURRING_SUBSCRIPTION" | "FIXED_DURATION";
+  accessDurationValue: number | null;
+  accessDurationUnit: "DAYS" | "MONTHS" | "LIFETIME" | null;
+  reminderEnabled: boolean;
+  reminderDaysBeforeExpiry: number[];
 }
 
 /** Parses the { error: { fieldErrors, formErrors } | string } shapes the
@@ -132,6 +140,42 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
     return null;
   }
 
+  // Course enrollment/subscription system — one PUT covers the whole
+  // pricing/access-model shape at once, same reasoning as
+  // updateEarlyWarningThresholds sending both thresholds together: the
+  // API's own validateCoursePricing rule genuinely spans all of these
+  // fields together, so a partial save (e.g. only isFree, leaving a
+  // stale price behind) could round-trip through a real inconsistent
+  // state even briefly.
+  async function updatePricing(data: {
+    isFree: boolean;
+    priceKobo: number | null;
+    accessModel: "RECURRING_SUBSCRIPTION" | "FIXED_DURATION";
+    billingInterval: "MONTHLY" | "QUARTERLY" | "ANNUALLY" | null;
+    accessDurationValue: number | null;
+    accessDurationUnit: "DAYS" | "MONTHS" | "LIFETIME" | null;
+  }): Promise<string | null> {
+    const res = await fetch(`/api/courses/${params.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) return readApiError(res, "Could not save. Try again.");
+    await loadCourse();
+    return null;
+  }
+
+  async function updateReminders(reminderEnabled: boolean, reminderDaysBeforeExpiry: number[]): Promise<string | null> {
+    const res = await fetch(`/api/courses/${params.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reminderEnabled, reminderDaysBeforeExpiry }),
+    });
+    if (!res.ok) return readApiError(res, "Could not save. Try again.");
+    await loadCourse();
+    return null;
+  }
+
   async function updateCourse(title: string, description: string): Promise<string | null> {
     const res = await fetch(`/api/courses/${params.id}`, {
       method: "PUT",
@@ -217,6 +261,7 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
         nav={[
           { label: "Examinations", href: "/admin/dashboard" },
           { label: "Courses", href: "/admin/courses" },
+          { label: "My Profile", href: "/admin/profile" },
           { label: "Settings", href: "/admin/settings" },
         ]}
         right={<LogoutButton />}
@@ -290,6 +335,10 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
             {publishError && <p className="mt-1 max-w-[16rem] text-xs text-brand-rose">{publishError}</p>}
           </div>
         </div>
+
+        <PricingSettings course={course} onSave={updatePricing} showToast={showToast} />
+
+        <ReminderSettings course={course} onSave={updateReminders} showToast={showToast} />
 
         <EarlyWarningSettings course={course} onSave={updateEarlyWarningThresholds} showToast={showToast} />
 
@@ -414,6 +463,320 @@ function EarlyWarningSettings({
               className="mt-1 w-full max-w-[10rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
             />
           </label>
+          {error && <p className="text-xs text-brand-rose">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+            <button
+              onClick={() => setEditing(false)}
+              className="rounded-lg border border-brand-gray px-3 py-1.5 text-xs font-semibold"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Course enrollment/subscription system — the actual admin-facing
+// control for isFree/priceKobo/accessModel/billingInterval/
+// accessDuration*, none of which had any UI at all before this: the
+// API already fully validated and persisted these fields (M26/coursePricing.ts),
+// but nothing on this page ever rendered or edited them. Same
+// edit/save/error shape as EarlyWarningSettings above, one PUT per
+// save covering the whole cross-validated shape at once (see
+// updatePricing's own comment for why that matters here specifically).
+function PricingSettings({
+  course,
+  onSave,
+  showToast,
+}: {
+  course: CourseDto;
+  onSave: (data: {
+    isFree: boolean;
+    priceKobo: number | null;
+    accessModel: "RECURRING_SUBSCRIPTION" | "FIXED_DURATION";
+    billingInterval: "MONTHLY" | "QUARTERLY" | "ANNUALLY" | null;
+    accessDurationValue: number | null;
+    accessDurationUnit: "DAYS" | "MONTHS" | "LIFETIME" | null;
+  }) => Promise<string | null>;
+  showToast: (message: string, variant?: "success" | "error") => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [isFree, setIsFree] = useState(course.isFree);
+  // Naira, not kobo — the same display convention already used on the
+  // trainee-facing course page (`₦${(priceKobo/100).toLocaleString()}`);
+  // converted back to kobo only at save time.
+  const [priceNaira, setPriceNaira] = useState(course.priceKobo != null ? String(course.priceKobo / 100) : "");
+  const [accessModel, setAccessModel] = useState<"RECURRING_SUBSCRIPTION" | "FIXED_DURATION">(course.accessModel);
+  const [billingInterval, setBillingInterval] = useState<"MONTHLY" | "QUARTERLY" | "ANNUALLY">(
+    course.billingInterval ?? "MONTHLY"
+  );
+  const [durationValue, setDurationValue] = useState(course.accessDurationValue?.toString() ?? "");
+  const [durationUnit, setDurationUnit] = useState<"DAYS" | "MONTHS" | "LIFETIME">(course.accessDurationUnit ?? "DAYS");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function startEditing() {
+    setIsFree(course.isFree);
+    setPriceNaira(course.priceKobo != null ? String(course.priceKobo / 100) : "");
+    setAccessModel(course.accessModel);
+    setBillingInterval(course.billingInterval ?? "MONTHLY");
+    setDurationValue(course.accessDurationValue?.toString() ?? "");
+    setDurationUnit(course.accessDurationUnit ?? "DAYS");
+    setError(null);
+    setEditing(true);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    setError(null);
+    const priceKobo = isFree || priceNaira.trim() === "" ? null : Math.round(Number(priceNaira) * 100);
+    const err = await onSave({
+      isFree,
+      priceKobo,
+      accessModel: isFree ? "RECURRING_SUBSCRIPTION" : accessModel,
+      billingInterval: !isFree && accessModel === "RECURRING_SUBSCRIPTION" ? billingInterval : null,
+      accessDurationValue:
+        !isFree && accessModel === "FIXED_DURATION" && durationUnit !== "LIFETIME" && durationValue.trim() !== ""
+          ? Number(durationValue)
+          : null,
+      accessDurationUnit: !isFree && accessModel === "FIXED_DURATION" ? durationUnit : null,
+    });
+    setSaving(false);
+    if (err) {
+      setError(err);
+      return;
+    }
+    setEditing(false);
+    showToast("Pricing settings saved.");
+  }
+
+  const summary = course.isFree
+    ? "Free — Lifetime access"
+    : course.accessModel === "RECURRING_SUBSCRIPTION"
+      ? `₦${((course.priceKobo ?? 0) / 100).toLocaleString()} / ${course.billingInterval?.toLowerCase() ?? "month"} (auto-renewing)`
+      : `₦${((course.priceKobo ?? 0) / 100).toLocaleString()} — Access: ${
+          course.accessDurationUnit === "LIFETIME" ? "Lifetime" : `${course.accessDurationValue} ${course.accessDurationUnit?.toLowerCase()}`
+        }`;
+
+  return (
+    <div className="mt-4 rounded-lg border border-brand-gray bg-gray-50 p-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-gray-900">💳 Pricing &amp; Access</p>
+          {!editing && <p className="mt-1 text-xs text-gray-600">{summary}</p>}
+        </div>
+        {!editing && (
+          <button onClick={startEditing} className="text-xs font-semibold text-brand-teal hover:underline">
+            Edit
+          </button>
+        )}
+      </div>
+
+      {editing && (
+        <div className="mt-3 space-y-3">
+          <label className="flex items-center gap-2 text-xs text-gray-700">
+            <input type="checkbox" checked={isFree} onChange={(e) => setIsFree(e.target.checked)} />
+            This course is free (lifetime access, no payment)
+          </label>
+
+          {!isFree && (
+            <>
+              <label className="block text-xs text-gray-700">
+                Price (₦)
+                <input
+                  type="number"
+                  min={1}
+                  value={priceNaira}
+                  onChange={(e) => setPriceNaira(e.target.value)}
+                  placeholder="e.g. 50000"
+                  className="mt-1 w-full max-w-[10rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
+                />
+              </label>
+
+              <div className="flex gap-4 text-xs text-gray-700">
+                <label className="flex items-center gap-1.5">
+                  <input
+                    type="radio"
+                    checked={accessModel === "RECURRING_SUBSCRIPTION"}
+                    onChange={() => setAccessModel("RECURRING_SUBSCRIPTION")}
+                  />
+                  Recurring subscription
+                </label>
+                <label className="flex items-center gap-1.5">
+                  <input
+                    type="radio"
+                    checked={accessModel === "FIXED_DURATION"}
+                    onChange={() => setAccessModel("FIXED_DURATION")}
+                  />
+                  Fixed-duration access
+                </label>
+              </div>
+
+              {accessModel === "RECURRING_SUBSCRIPTION" ? (
+                <label className="block text-xs text-gray-700">
+                  Billing interval
+                  <select
+                    value={billingInterval}
+                    onChange={(e) => setBillingInterval(e.target.value as "MONTHLY" | "QUARTERLY" | "ANNUALLY")}
+                    className="mt-1 block w-full max-w-[10rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
+                  >
+                    <option value="MONTHLY">Monthly</option>
+                    <option value="QUARTERLY">Quarterly</option>
+                    <option value="ANNUALLY">Annually</option>
+                  </select>
+                </label>
+              ) : (
+                <div className="flex items-end gap-2">
+                  {durationUnit !== "LIFETIME" && (
+                    <label className="block text-xs text-gray-700">
+                      Duration
+                      <input
+                        type="number"
+                        min={1}
+                        value={durationValue}
+                        onChange={(e) => setDurationValue(e.target.value)}
+                        placeholder="e.g. 90"
+                        className="mt-1 w-full max-w-[8rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
+                      />
+                    </label>
+                  )}
+                  <label className="block text-xs text-gray-700">
+                    Unit
+                    <select
+                      value={durationUnit}
+                      onChange={(e) => setDurationUnit(e.target.value as "DAYS" | "MONTHS" | "LIFETIME")}
+                      className="mt-1 block w-full max-w-[9rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
+                    >
+                      <option value="DAYS">Days</option>
+                      <option value="MONTHS">Months</option>
+                      <option value="LIFETIME">Lifetime</option>
+                    </select>
+                  </label>
+                </div>
+              )}
+            </>
+          )}
+
+          {error && <p className="text-xs text-brand-rose">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+            <button
+              onClick={() => setEditing(false)}
+              className="rounded-lg border border-brand-gray px-3 py-1.5 text-xs font-semibold"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Course enrollment/subscription system — expiry reminders, scoped to
+// FIXED_DURATION courses only (see validateCoursePricing's own rule):
+// a RECURRING_SUBSCRIPTION course already gets Paystack-driven
+// subscription.not_renew/invoice.payment_failed emails, so a second,
+// independent reminder schedule for the same event would risk
+// duplicate or conflicting messaging. Hidden entirely, not just
+// disabled, for a free or recurring course — nothing here could ever
+// take effect for either.
+function ReminderSettings({
+  course,
+  onSave,
+  showToast,
+}: {
+  course: CourseDto;
+  onSave: (reminderEnabled: boolean, reminderDaysBeforeExpiry: number[]) => Promise<string | null>;
+  showToast: (message: string, variant?: "success" | "error") => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [enabled, setEnabled] = useState(course.reminderEnabled);
+  const [days, setDays] = useState(course.reminderDaysBeforeExpiry.join(", "));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (course.isFree || course.accessModel !== "FIXED_DURATION") return null;
+
+  function startEditing() {
+    setEnabled(course.reminderEnabled);
+    setDays(course.reminderDaysBeforeExpiry.join(", "));
+    setError(null);
+    setEditing(true);
+  }
+
+  async function handleSave() {
+    const parsedDays = days
+      .split(",")
+      .map((d) => d.trim())
+      .filter((d) => d !== "")
+      .map(Number);
+    if (enabled && (parsedDays.length === 0 || parsedDays.some((d) => !Number.isInteger(d) || d <= 0))) {
+      setError("Enter a comma-separated list of positive whole days, e.g. 14, 7, 1.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    const err = await onSave(enabled, parsedDays);
+    setSaving(false);
+    if (err) {
+      setError(err);
+      return;
+    }
+    setEditing(false);
+    showToast("Reminder settings saved.");
+  }
+
+  const summary = course.reminderEnabled
+    ? `Reminders at ${course.reminderDaysBeforeExpiry.join(", ")} day(s) before expiry`
+    : "Off";
+
+  return (
+    <div className="mt-4 rounded-lg border border-brand-gray bg-gray-50 p-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-gray-900">⏰ Expiry Reminders</p>
+          {!editing && <p className="mt-1 text-xs text-gray-600">{summary}</p>}
+        </div>
+        {!editing && (
+          <button onClick={startEditing} className="text-xs font-semibold text-brand-teal hover:underline">
+            Edit
+          </button>
+        )}
+      </div>
+
+      {editing && (
+        <div className="mt-3 space-y-3">
+          <label className="flex items-center gap-2 text-xs text-gray-700">
+            <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+            Send trainees an email before their access expires
+          </label>
+          {enabled && (
+            <label className="block text-xs text-gray-700">
+              Days before expiry to send a reminder (comma-separated)
+              <input
+                value={days}
+                onChange={(e) => setDays(e.target.value)}
+                placeholder="e.g. 14, 7, 1"
+                className="mt-1 w-full max-w-[16rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
+              />
+            </label>
+          )}
           {error && <p className="text-xs text-brand-rose">{error}</p>}
           <div className="flex gap-2">
             <button

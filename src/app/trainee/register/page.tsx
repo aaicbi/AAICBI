@@ -1,19 +1,38 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import Logo from "@/components/Logo";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
+import GoogleSignInButton from "@/components/trainee/GoogleSignInButton";
+
+const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+  oauth_failed: "Something went wrong signing up with Google. Please try again.",
+  oauth_not_configured: "Google sign-up isn't set up yet. Please create your account with a password instead.",
+};
 
 export default function TraineeRegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <TraineeRegisterForm />
+    </Suspense>
+  );
+}
+
+function TraineeRegisterForm() {
+  const searchParams = useSearchParams();
+  const oauthErrorCode = searchParams.get("error");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [privacyConsent, setPrivacyConsent] = useState(false);
   const [courseId, setCourseId] = useState("");
   const [freeCourses, setFreeCourses] = useState<{ id: string; title: string }[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    oauthErrorCode ? OAUTH_ERROR_MESSAGES[oauthErrorCode] ?? null : null
+  );
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -151,6 +170,18 @@ export default function TraineeRegisterPage() {
               {loading ? "Creating account..." : "Create account"}
             </Button>
           </form>
+
+          <div className="my-4 flex items-center gap-3">
+            <div className="h-px flex-1 bg-brand-gray" />
+            <span className="text-xs text-gray-500">or</span>
+            <div className="h-px flex-1 bg-brand-gray" />
+          </div>
+
+          {/* Gated behind the same checkbox as the password form's own
+              submit button just above — clicking through to Google
+              must never be a way to skip agreeing to the Privacy
+              Policy, since account creation is possible either way. */}
+          <GoogleSignInButton intent="register" disabled={!privacyConsent} />
         </Card>
 
         <p className="mt-4 text-center text-xs text-gray-500">

@@ -8,6 +8,8 @@ import Badge from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
+import JobPostingMediaDisplay from "@/components/jobPostings/JobPostingMediaDisplay";
+import type { JobPostingMediaItem } from "@/components/jobPostings/JobPostingMediaGallery";
 
 interface JobPostingDto {
   id: string;
@@ -15,6 +17,7 @@ interface JobPostingDto {
   description: string;
   closingDate: string;
   employer: { companyName: string };
+  media: JobPostingMediaItem[];
 }
 interface CertificateOption {
   id: string;
@@ -28,6 +31,7 @@ const NAV = [
   { label: "Courses", href: "/trainee/courses" },
   { label: "Introductions", href: "/trainee/introductions" },
   { label: "Job Board", href: "/trainee/job-postings" },
+  { label: "My Profile", href: "/trainee/profile" },
   { label: "Settings", href: "/trainee/settings" },
 ];
 
@@ -152,6 +156,7 @@ export default function TraineeJobBoardPage() {
                   <span>·</span>
                   <span>{closingLabel(p.closingDate)}</span>
                 </div>
+                <JobPostingMediaDisplay media={p.media} />
                 <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">{p.description}</p>
 
                 {applied.has(p.id) ? (

@@ -15,16 +15,30 @@ interface TraineeListing {
   name: string;
   headline: string | null;
   bio: string | null;
+  location: string | null;
+  openToWork: boolean;
+  employmentStatus: string | null;
+  availabilityTypes: string[];
+  skills: string[];
   certificates: { code: string; courseTitle: string }[];
 }
 
 const NAV = [
+  { label: "Dashboard", href: "/employer/dashboard" },
   { label: "Discover", href: "/employer/discover" },
   { label: "My Introductions", href: "/employer/introductions" },
   { label: "Job Postings", href: "/employer/job-postings" },
+  { label: "My Profile", href: "/employer/profile" },
   { label: "Account", href: "/employer/status" },
   { label: "Settings", href: "/employer/settings" },
 ];
+
+const AVAILABILITY_LABELS: Record<string, string> = {
+  INTERNSHIP: "Internship",
+  FREELANCE: "Freelance",
+  FULL_TIME: "Full-time",
+  PART_TIME: "Part-time",
+};
 
 /**
  * M33 — the actual browsing surface. A 404 from the API here (an
@@ -41,9 +55,18 @@ export default function EmployerDiscoverPage() {
   const [message, setMessage] = useState<Record<string, string>>({});
   const { showToast } = useToast();
 
-  function load() {
+  const [filters, setFilters] = useState({ skill: "", location: "", availability: "", employmentStatus: "" });
+  const [appliedFilters, setAppliedFilters] = useState(filters);
+
+  function load(activeFilters = appliedFilters) {
     setTraineesError(false);
-    fetch("/api/employer/discover")
+    const params = new URLSearchParams();
+    if (activeFilters.skill) params.set("skill", activeFilters.skill);
+    if (activeFilters.location) params.set("location", activeFilters.location);
+    if (activeFilters.availability) params.set("availability", activeFilters.availability);
+    if (activeFilters.employmentStatus) params.set("employmentStatus", activeFilters.employmentStatus);
+    const qs = params.toString();
+    fetch(`/api/employer/discover${qs ? `?${qs}` : ""}`)
       .then((r) => {
         if (r.status === 404) {
           setNotApproved(true);
@@ -57,7 +80,22 @@ export default function EmployerDiscoverPage() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function applyFilters() {
+    setAppliedFilters(filters);
+    setTrainees(null);
+    load(filters);
+  }
+
+  function clearFilters() {
+    const cleared = { skill: "", location: "", availability: "", employmentStatus: "" };
+    setFilters(cleared);
+    setAppliedFilters(cleared);
+    setTrainees(null);
+    load(cleared);
+  }
 
   async function sendIntroduction(traineeId: string) {
     setSendingTo(traineeId);
@@ -95,7 +133,56 @@ export default function EmployerDiscoverPage() {
           Contact information is never shown here — express interest, and the trainee decides what to share.
         </p>
 
-        <div className="mt-6 space-y-3">
+        <Card className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Filter</p>
+          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <input
+              value={filters.skill}
+              onChange={(e) => setFilters((f) => ({ ...f, skill: e.target.value }))}
+              placeholder="Skill, e.g. React"
+              className="rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
+            />
+            <input
+              value={filters.location}
+              onChange={(e) => setFilters((f) => ({ ...f, location: e.target.value }))}
+              placeholder="Location"
+              className="rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
+            />
+            <select
+              value={filters.availability}
+              onChange={(e) => setFilters((f) => ({ ...f, availability: e.target.value }))}
+              className="rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
+            >
+              <option value="">Any availability</option>
+              {Object.entries(AVAILABILITY_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <select
+              value={filters.employmentStatus}
+              onChange={(e) => setFilters((f) => ({ ...f, employmentStatus: e.target.value }))}
+              className="rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
+            >
+              <option value="">Any employment status</option>
+              <option value="STUDENT">Student</option>
+              <option value="EMPLOYED">Employed</option>
+              <option value="UNEMPLOYED">Unemployed</option>
+              <option value="SELF_EMPLOYED">Self-employed</option>
+            </select>
+          </div>
+          <div className="mt-3 flex gap-2">
+            <Button size="sm" onClick={applyFilters}>
+              Apply
+            </Button>
+            <button onClick={clearFilters} className="text-xs font-semibold text-gray-500 hover:text-brand-teal">
+              Clear
+            </button>
+          </div>
+        </Card>
+
+        <div className="mt-4 space-y-3">
           {traineesError ? (
             <ErrorState message="We couldn't load discoverable trainees." onRetry={load} />
           ) : trainees === null ? (
@@ -110,8 +197,30 @@ export default function EmployerDiscoverPage() {
             trainees.map((t) => (
               <Card key={t.id}>
                 <p className="font-display font-semibold text-brand-ink">{t.name}</p>
+                <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
+                  {t.location && <span>{t.location}</span>}
+                  {t.openToWork && (
+                    <span className="rounded-full bg-brand-mint px-2 py-0.5 font-semibold text-brand-tealDeep">
+                      Open to work
+                    </span>
+                  )}
+                  {t.availabilityTypes.map((a) => (
+                    <span key={a} className="rounded-full bg-brand-gray/40 px-2 py-0.5">
+                      {AVAILABILITY_LABELS[a] ?? a}
+                    </span>
+                  ))}
+                </div>
                 {t.headline && <p className="mt-0.5 text-sm text-gray-700">{t.headline}</p>}
                 {t.bio && <p className="mt-1 text-sm text-gray-600">{t.bio}</p>}
+                {t.skills.length > 0 && (
+                  <ul className="mt-2 flex flex-wrap gap-1.5">
+                    {t.skills.map((s) => (
+                      <li key={s} className="rounded-full border border-brand-gray px-2.5 py-1 text-xs text-brand-ink">
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 {t.certificates.length > 0 && (
                   <ul className="mt-2 flex flex-wrap gap-1.5">
                     {t.certificates.map((c) => (

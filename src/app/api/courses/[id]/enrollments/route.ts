@@ -31,6 +31,13 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       include: {
         trainee: { select: { id: true, name: true, email: true } },
         enrolledBy: { select: { name: true } },
+        // Course enrollment/subscription system — the most recent
+        // payment attempt for this trainee+course, for the admin list
+        // to show amount/status/method without a second round trip.
+        // `take: 1` after `initiatedAt: desc`, not the whole history —
+        // this list is about "what's this enrollment's current state,"
+        // not a full ledger (that's the dedicated admin/payments view).
+        payments: { orderBy: { initiatedAt: "desc" }, take: 1 },
       },
     });
     return NextResponse.json(enrollments);

@@ -7,6 +7,7 @@ import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
+import JobPostingMediaGallery, { JobPostingMediaItem } from "@/components/jobPostings/JobPostingMediaGallery";
 
 interface JobPostingDto {
   id: string;
@@ -18,6 +19,7 @@ interface JobPostingDto {
   aiFlagReason: string | null;
   createdAt: string;
   employer: { companyName: string };
+  media: JobPostingMediaItem[];
 }
 
 const STATUS_STYLE: Record<JobPostingDto["status"], string> = {
@@ -45,6 +47,7 @@ export default function AdminJobPostingsPage() {
   const [postings, setPostings] = useState<JobPostingDto[] | null>(null);
   const [postingsError, setPostingsError] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [removingMediaId, setRemovingMediaId] = useState<string | null>(null);
   const { showToast } = useToast();
 
   function load() {
@@ -75,6 +78,23 @@ export default function AdminJobPostingsPage() {
     load();
   }
 
+  /**
+   * Moderation escape hatch — an admin can remove one inappropriate
+   * media item without rejecting the whole posting, reusing the exact
+   * shared endpoint the employer's own management UI calls (this
+   * route already allows either the owning employer or any admin).
+   */
+  async function removeMedia(postingId: string, mediaId: string) {
+    setRemovingMediaId(mediaId);
+    const res = await fetch(`/api/job-postings/${postingId}/media/${mediaId}`, { method: "DELETE" });
+    setRemovingMediaId(null);
+    if (!res.ok) {
+      showToast("Could not remove media.", "error");
+      return;
+    }
+    load();
+  }
+
   const pending = postings?.filter((p) => p.status === "PENDING_REVIEW") ?? [];
   const decided = postings?.filter((p) => p.status !== "PENDING_REVIEW") ?? [];
 
@@ -84,6 +104,7 @@ export default function AdminJobPostingsPage() {
         nav={[
           { label: "Examinations", href: "/admin/dashboard" },
           { label: "Courses", href: "/admin/courses" },
+          { label: "My Profile", href: "/admin/profile" },
           { label: "Settings", href: "/admin/settings" },
         ]}
         right={<LogoutButton />}
@@ -112,6 +133,11 @@ export default function AdminJobPostingsPage() {
                       <p className="mt-1 text-xs font-semibold text-brand-goldText">⚠ {p.aiFlagReason}</p>
                     )}
                     <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">{p.description}</p>
+                    <JobPostingMediaGallery
+                      media={p.media}
+                      onRemove={(mediaId) => removeMedia(p.id, mediaId)}
+                      removingId={removingMediaId}
+                    />
                   </div>
                   <div className="flex shrink-0 gap-2">
                     <Button size="sm" onClick={() => decide(p.id, "APPROVE")} loading={busyId === p.id}>
@@ -144,6 +170,11 @@ export default function AdminJobPostingsPage() {
                       {p.status.replace("_", " ")}
                     </span>
                   </div>
+                  <JobPostingMediaGallery
+                    media={p.media}
+                    onRemove={(mediaId) => removeMedia(p.id, mediaId)}
+                    removingId={removingMediaId}
+                  />
                 </Card>
               ))}
             </div>

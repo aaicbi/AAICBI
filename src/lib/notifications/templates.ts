@@ -27,11 +27,28 @@ function wrapHtml(bodyHtml: string): string {
   // email clients strip custom fonts and many CSS features anyway;
   // this matches what actually survives the trip, not what looks best
   // in a browser preview.
+  //
+  // The logo is a real `<img>` pointed at `public/logo.svg` (a static
+  // copy of the mark from src/components/Logo.tsx — see that file's
+  // own comment), not an inline `<svg>` element: inline SVG is
+  // genuinely unreliable across mail clients (Gmail in particular has a
+  // long, well-documented history of stripping `<svg>` tags outright),
+  // while an externally-referenced image is the ordinary, broadly-
+  // supported way every other logo in every other marketing/receipt
+  // email gets rendered. `alt="AAICBI"` is a deliberate, real fallback,
+  // not decoration — a client with images blocked by default (the
+  // common case on first open) still shows the brand name text right
+  // where the logo would be, and the bold "AAICBI" wordmark beside it
+  // never depends on the image loading at all.
+  const appUrl = process.env.APP_URL ?? "http://localhost:3000";
   return `<!DOCTYPE html>
 <html>
   <body style="margin:0;padding:24px;background:#F7F4EE;font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;">
     <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:8px;padding:32px;">
-      <p style="margin:0 0 24px;font-size:13px;font-weight:bold;letter-spacing:0.05em;color:${BRAND_TEAL};text-transform:uppercase;">AAICBI</p>
+      <div style="margin:0 0 24px;">
+        <img src="${appUrl}/logo.svg" alt="AAICBI" width="28" height="28" style="vertical-align:middle;margin-right:8px;border:0;" />
+        <span style="font-size:13px;font-weight:bold;letter-spacing:0.05em;color:${BRAND_TEAL};text-transform:uppercase;vertical-align:middle;">AAICBI</span>
+      </div>
       ${bodyHtml}
       <p style="margin:32px 0 0;font-size:12px;color:#888;">Africa's AI Capacity Building Initiative · Futybills Tech Community · Uyo, Akwa Ibom State, Nigeria</p>
     </div>
@@ -318,6 +335,119 @@ export function subscriptionEndedEmail(input: SubscriptionEndedEmailInput): Emai
       ${button(input.courseUrl, "View the Course")}
     `),
     text: `Hi ${input.traineeName},\n\nYour subscription to ${input.courseTitle} has ended, and access to the course content has been paused. You're welcome to subscribe again any time to pick up where you left off.\n\n${input.courseUrl}`,
+  };
+}
+
+/**
+ * Course enrollment/subscription system — the FIXED_DURATION
+ * counterpart to subscriptionEndingEmail above, and deliberately a
+ * distinct template rather than reusing it: that one is specifically
+ * about Paystack's "won't renew" flag on a recurring subscription
+ * (task Section 12's renewal-reminder concept doesn't apply there —
+ * see PricingSettings/ReminderSettings's own comment on why reminders
+ * are scoped to FIXED_DURATION only). This one is the admin-configured
+ * "N days before your one-time access window ends" reminder from task
+ * Section 13, and its CTA is genuinely different too — "Renew Access"
+ * (a fresh one-time payment) rather than "Go to the Course."
+ */
+export interface AccessExpiringReminderEmailInput {
+  traineeName: string;
+  courseTitle: string;
+  daysRemaining: number;
+  expiryDate: string;
+  courseUrl: string;
+}
+export function accessExpiringReminderEmail(input: AccessExpiringReminderEmailInput): EmailContent {
+  const dayWord = input.daysRemaining === 1 ? "day" : "days";
+  return {
+    subject: `Your access to ${input.courseTitle} expires in ${input.daysRemaining} ${dayWord}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(input.traineeName)},</p>
+      <p style="margin:0 0 16px;">Your access to <strong>${escapeHtml(input.courseTitle)}</strong> expires in <strong>${input.daysRemaining} ${dayWord}</strong>, on ${escapeHtml(input.expiryDate)}. Renew now to keep your progress uninterrupted.</p>
+      ${button(input.courseUrl, "Renew Access")}
+    `),
+    text: `Hi ${input.traineeName},\n\nYour access to ${input.courseTitle} expires in ${input.daysRemaining} ${dayWord}, on ${input.expiryDate}. Renew now to keep your progress uninterrupted.\n\n${input.courseUrl}`,
+  };
+}
+
+/**
+ * Course enrollment/subscription system — the actual payment receipt
+ * (task Section 12) trainees never got before: `processConfirmedCharge`
+ * previously only ever emailed the OTP unlock code on a first purchase
+ * and sent nothing at all to the trainee on a renewal. Sent on EVERY
+ * genuine successful charge — first purchase and renewal alike — kept
+ * as its own email rather than folded into `paymentOtpEmail` below,
+ * since a receipt is a permanent financial record a trainee may need
+ * to keep or forward (to an employer for reimbursement, for their own
+ * records) and an OTP is a short-lived secret; conflating the two would
+ * make the receipt awkward to reuse once the code has expired.
+ *
+ * `nextBillingDate`/`nextBillingAmountKobo` together are this email's
+ * "invoice for the next payment": for a RECURRING_SUBSCRIPTION course,
+ * Paystack will charge this trainee this exact amount again on this
+ * exact date without any further action from them, so telling them now
+ * is the honest, transparent thing to do — never a surprise charge.
+ * `accessUntil` is the FIXED_DURATION counterpart: there's no future
+ * charge to warn about (renewal is a deliberate, manual choice via
+ * "Renew Access"), just an honest statement of when this specific
+ * payment's access window closes. Exactly one of the two is ever set;
+ * both null means lifetime access, nothing further to say.
+ */
+export interface PaymentReceiptEmailInput {
+  traineeName: string;
+  courseTitle: string;
+  amountKobo: number;
+  reference: string;
+  paidAt: string;
+  method: string | null;
+  nextBillingDate: string | null;
+  nextBillingAmountKobo: number | null;
+  accessUntil: string | null;
+  courseUrl: string;
+}
+export function paymentReceiptEmail(input: PaymentReceiptEmailInput): EmailContent {
+  const amount = `₦${(input.amountKobo / 100).toLocaleString()}`;
+  const rows: Array<[string, string]> = [
+    ["Course", input.courseTitle],
+    ["Amount Paid", amount],
+    ["Payment Reference", input.reference],
+    ["Date", input.paidAt],
+  ];
+  if (input.method) rows.push(["Payment Method", input.method]);
+
+  const htmlRows = rows
+    .map(
+      ([label, value]) =>
+        `<tr><td style="padding:8px 0;border-bottom:1px solid #eee;color:#666;font-size:13px;">${escapeHtml(label)}</td><td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right;font-size:13px;font-weight:bold;">${escapeHtml(value)}</td></tr>`
+    )
+    .join("");
+  const textRows = rows.map(([label, value]) => `${label}: ${value}`).join("\n");
+
+  let nextPaymentHtml = "";
+  let nextPaymentText = "";
+  if (input.nextBillingDate && input.nextBillingAmountKobo != null) {
+    const nextAmount = `₦${(input.nextBillingAmountKobo / 100).toLocaleString()}`;
+    nextPaymentHtml = `<p style="margin:20px 0 0;font-size:13px;color:#666;">Your subscription will automatically renew — the next payment of <strong>${nextAmount}</strong> will be charged on <strong>${escapeHtml(input.nextBillingDate)}</strong>.</p>`;
+    nextPaymentText = `\n\nYour subscription will automatically renew — the next payment of ${nextAmount} will be charged on ${input.nextBillingDate}.`;
+  } else if (input.accessUntil) {
+    nextPaymentHtml = `<p style="margin:20px 0 0;font-size:13px;color:#666;">Your access is valid until <strong>${escapeHtml(input.accessUntil)}</strong>.</p>`;
+    nextPaymentText = `\n\nYour access is valid until ${input.accessUntil}.`;
+  } else {
+    nextPaymentHtml = `<p style="margin:20px 0 0;font-size:13px;color:#666;">You have lifetime access to this course — no further payments needed.</p>`;
+    nextPaymentText = `\n\nYou have lifetime access to this course — no further payments needed.`;
+  }
+
+  return {
+    subject: `Your receipt for ${input.courseTitle}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(input.traineeName)},</p>
+      <p style="margin:0 0 16px;">Thank you for your payment. Here's your receipt.</p>
+      <table style="width:100%;border-collapse:collapse;">${htmlRows}</table>
+      ${nextPaymentHtml}
+      ${button(input.courseUrl, "Go to the Course")}
+      <p style="margin:0;font-size:12px;color:#888;">Keep this email for your records.</p>
+    `),
+    text: `Hi ${input.traineeName},\n\nThank you for your payment. Here's your receipt.\n\n${textRows}${nextPaymentText}\n\n${input.courseUrl}\n\nKeep this email for your records.`,
   };
 }
 
