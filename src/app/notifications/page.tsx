@@ -75,6 +75,7 @@ export default async function NotificationsPage() {
             url: n.url,
             readAt: n.readAt ? n.readAt.toISOString() : null,
             createdAt: n.createdAt.toISOString(),
+            senderLabel: n.senderLabel,
           }))}
         />
       </main>

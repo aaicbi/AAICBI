@@ -46,7 +46,14 @@
   --brand-mint: 228 238 231;
   --brand-gray: 217 217 217;
   --brand-ink: 22 48 43;
-  --brand-sand: 251 248 243;
+  /* An exact hex supplied directly: #F7F5F0 = 247/245/240. Still the
+     same warm, barely-there cream cast (R > G > B), just the precise
+     shade requested rather than a computed one. `brand-surface`
+     (white) is untouched, so cards still lift cleanly off the page.
+     Dark mode's own brand-sand value (below) is a separate variable,
+     deliberately left alone — this request was about the light-mode
+     wallpaper only. */
+  --brand-sand: 247 245 240;
   --brand-surface: 255 255 255;
   --brand-gold: 217 154 52;
   --brand-gold-light: 246 232 204;
@@ -141,10 +148,11 @@ body {
      background-image, so this needed no other changes to make. */
   @apply bg-brand-sand text-brand-ink antialiased font-sans;
   /* App-wide "wallpaper" — see public/wallpaper-pattern.svg for the
-     full design reasoning. v9: opacity halved again on request, 27.5%
-     → 13.75% — a faint, subtle presence now, visible on close look
-     but no longer competing for attention with real content. Same 44
-     instances, same 20 icon types as v8. Its own opacity is baked
+     full design reasoning. v9: opacity halved on request, 27.5% →
+     13.75%. v10: nudged back up a little on request, 13.75% → 19% —
+     still clearly quiet against real content, just a touch more
+     present than v9's near-invisible mark. Same 44 instances, same 20
+     icon types as v8. Its own opacity is baked
      into the file itself, so this is an entirely ordinary
      `background-image` — no z-index or stacking-context tricks
      needed.
@@ -177,7 +185,7 @@ body {
    icons would have shown up unchanged over a dark page, clashing
    rather than sitting quietly the way they were actually designed to.
    `wallpaper-pattern-dark.svg` is a faithful, structurally identical
-   copy — same 44 icon instances, same layout, same 0.1375 opacity —
+   copy — same 44 icon instances, same layout, same 0.19 opacity —
    with each of the 4 stroke colors substituted for that exact token's
    own dark-mode value already defined above (brand-teal, brand-
    tealDeep, brand-green, brand-gold), confirmed directly: 44 exact

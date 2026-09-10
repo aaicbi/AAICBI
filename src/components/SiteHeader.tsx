@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Logo from "./Logo";
+import BackButton from "./BackButton";
 
 interface NavItem {
   label: string;
@@ -32,6 +33,11 @@ interface NavItem {
  * `right` (typically a logout button) moves into the mobile panel too,
  * for the same reason — a control that only appears at desktop widths
  * isn't reachable on the device most trainees actually have.
+ *
+ * Seamless-navigation request — a back button (BackButton.tsx) sits
+ * before the logo on every page this header renders on, rather than
+ * being added per page. See that component's own comment for exactly
+ * when it hides itself.
  */
 export default function SiteHeader({
   right,
@@ -48,7 +54,8 @@ export default function SiteHeader({
   return (
     <header className="relative border-b border-brand-gray">
       <div className="flex items-center justify-between px-4 py-3.5 sm:px-6 sm:py-4">
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-3 sm:gap-8">
+          <BackButton />
           <Logo href={logoHref} />
           {nav && nav.length > 0 && (
             <nav className="hidden items-center gap-5 sm:flex">

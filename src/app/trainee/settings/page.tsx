@@ -6,6 +6,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import AvatarUpload from "@/components/AvatarUpload";
+import ContactAdminCard from "@/components/ContactAdminCard";
 
 import { SUPPORTED_LANGUAGES, LANGUAGE_LABELS, t, type LanguageCode } from "@/lib/i18n";
 
@@ -387,6 +388,9 @@ export default function TraineeSettingsPage() {
           Account verification and password reset emails always send, regardless of this setting — they&apos;re
           essential to using your account.
         </p>
+
+        <p className="mt-8 text-xs font-semibold uppercase tracking-wide text-gray-500">Support</p>
+        <ContactAdminCard />
       </main>
     </>
   );

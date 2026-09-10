@@ -36,6 +36,7 @@
  * pattern the missing SDK option should have provided.
  */
 import { Resend } from "resend";
+import { buildFromHeader } from "@/lib/messaging/broadcastCore";
 
 let client: Resend | null = null;
 function getClient(): Resend | null {
@@ -70,6 +71,12 @@ export interface SendEmailInput {
   subject: string;
   html: string;
   text: string;
+  // Loop broadcast messaging — when set, the email's own "From" display
+  // name becomes this (e.g. "Loop — Systems Manager") instead of the
+  // platform's default, while still sending from the same verified
+  // EMAIL_FROM address. See buildFromHeader's own comment for exactly
+  // how the two are combined. Undefined for every existing call site.
+  fromName?: string;
 }
 
 export interface SendEmailResult {
@@ -99,7 +106,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
     );
   }
 
-  const from = process.env.EMAIL_FROM || "AAICBI <onboarding@resend.dev>";
+  const from = buildFromHeader(process.env.EMAIL_FROM || "AAICBI <onboarding@resend.dev>", input.fromName);
 
   try {
     const result = await withTimeout(

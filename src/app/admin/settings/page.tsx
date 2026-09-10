@@ -6,6 +6,7 @@ import AccountSettingsPanel from "@/components/admin/AccountSettingsPanel";
 import PaymentsSettingsPanel from "@/components/admin/PaymentsSettingsPanel";
 import SecuritySettingsPanel from "@/components/admin/SecuritySettingsPanel";
 import IntegrationsPanel from "@/components/admin/IntegrationsPanel";
+import ContactAdminCard from "@/components/ContactAdminCard";
 import { ADMIN_AREAS } from "@/lib/adminAreas";
 
 type SectionId = "account" | "payments" | "security" | "integrations";
@@ -102,6 +103,45 @@ export default function AdminSettingsPage() {
             {section === "integrations" && <IntegrationsPanel viewerRole={role ?? undefined} />}
           </div>
         </div>
+
+        {role === "SUPER_ADMIN" && (
+          <div className="mt-10 flex flex-col gap-3">
+            <a href="/admin/command" className="block">
+              <div className="group flex items-center justify-between rounded-xl border border-brand-teal bg-brand-mint/40 p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+                <div>
+                  <p className="font-display font-semibold text-brand-ink">🧭 AI Command Center</p>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Ask Loop about any trainee, employer, staff member, or cohort — it can only look things up and
+                    report back, never change anything.
+                  </p>
+                </div>
+                <span className="ml-3 shrink-0 text-brand-teal transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true">
+                  →
+                </span>
+              </div>
+            </a>
+            <a href="/admin/inbox" className="block">
+              <div className="group flex items-center justify-between rounded-xl border border-brand-gray bg-brand-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-teal hover:shadow-md">
+                <div>
+                  <p className="font-display font-semibold text-brand-ink">📥 Admin Inbox</p>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Direct messages sent to you by trainees, employers, and staff.
+                  </p>
+                </div>
+                <span className="ml-3 shrink-0 text-brand-teal transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true">
+                  →
+                </span>
+              </div>
+            </a>
+          </div>
+        )}
+
+        {role && role !== "SUPER_ADMIN" && (
+          <>
+            <p className="mt-10 text-xs font-semibold uppercase tracking-wide text-gray-500">Support</p>
+            <ContactAdminCard />
+          </>
+        )}
 
         <div className="mt-10 border-t border-brand-gray pt-8">
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Admin areas</p>

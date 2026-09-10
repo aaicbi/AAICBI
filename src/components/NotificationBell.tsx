@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import LoopBroadcastPopup from "@/components/LoopBroadcastPopup";
 
 interface NotificationDto {
   id: string;
@@ -9,6 +10,10 @@ interface NotificationDto {
   url: string | null;
   readAt: string | null;
   createdAt: string;
+  // Loop broadcast messaging — set only for type === "LOOP_BROADCAST"
+  // ("Loop — Systems Manager"), null for every other notification type.
+  // See UserNotification's own schema comment.
+  senderLabel: string | null;
 }
 
 /**
@@ -80,6 +85,7 @@ export default function NotificationBell() {
 
   return (
     <div ref={containerRef} className="relative">
+      <LoopBroadcastPopup notifications={notifications} onClose={markRead} />
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
@@ -119,6 +125,9 @@ export default function NotificationBell() {
                   onClick={() => handleClick(n)}
                   className={`block w-full border-b border-brand-gray px-4 py-3 text-left last:border-0 hover:bg-brand-mint/40 ${!n.readAt ? "bg-brand-mint/20" : ""}`}
                 >
+                  {n.senderLabel && (
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-brand-tealDeep">{n.senderLabel}</p>
+                  )}
                   <p className="text-sm font-semibold text-brand-ink">{n.title}</p>
                   <p className="mt-0.5 line-clamp-2 text-xs text-gray-600">{n.body}</p>
                   <p className="mt-1 text-[11px] text-gray-400">{new Date(n.createdAt).toLocaleDateString()}</p>

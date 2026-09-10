@@ -79,6 +79,11 @@ export default async function AdminDashboardPage() {
     { label: "Create Examination", href: "/admin/exams/new" },
     { label: "Courses", href: "/admin/courses" },
     { label: "My Profile", href: "/admin/profile" },
+    // AI Command Center — genuinely SUPER_ADMIN only (unlike the
+    // isApprover-gated items below, which ADMIN can also use), server-
+    // checked here rather than fetched client-side, so there's no risk
+    // of a wrong role briefly seeing a link that will 403 for them.
+    ...(session.role === "SUPER_ADMIN" ? [{ label: "🧭 Ask Loop (Command)", href: "/admin/command" }] : []),
     ...(isApprover ? ADMIN_AREAS.map((a) => ({ label: a.label, href: a.href })) : []),
   ];
 

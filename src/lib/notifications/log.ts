@@ -38,7 +38,18 @@ export type NotificationType =
   | "STAFF_ACCOUNT_CREATED"
   | "LIKELY_DUPLICATE_PAYMENT"
   | "ACCESS_EXPIRING_REMINDER"
-  | "PAYMENT_RECEIPT";
+  | "PAYMENT_RECEIPT"
+  // Loop broadcast messaging — a message a Super Admin directed Loop
+  // to send, delivered through this exact same pipeline. Never
+  // excluded from the in-app feed (see IN_APP_EXCLUDED_TYPES below) —
+  // a broadcast always produces a real, visible UserNotification.
+  | "LOOP_BROADCAST"
+  // The reverse direction — a plain "you have a new message" ping sent
+  // to every Super Admin when someone messages them through the direct
+  // inbox (see SuperAdminMessage's own schema comment). This is only
+  // the notification; the actual message content lives in
+  // SuperAdminMessage, read via GET /api/admin/inbox.
+  | "MESSAGE_TO_ADMIN";
 
 export interface NotifyByEmailInput {
   recipientType: "TRAINEE" | "STAFF" | "EMPLOYER";
@@ -70,6 +81,14 @@ export interface NotifyByEmailInput {
   // template name plus variables, not html/text reused from the email
   // content above.
   whatsapp?: { templateName: string; variables: Record<string, string> };
+  // Loop broadcast messaging — who the RECIPIENT should believe this
+  // came from, e.g. "Loop — Systems Manager." Threaded to both the
+  // email's own display name (see sendEmail's fromName) and the
+  // UserNotification row's senderLabel column (see that model's own
+  // schema comment for the full reasoning). Undefined for every
+  // existing call site — every other notification type stays exactly
+  // "from the system," unchanged.
+  senderLabel?: string;
 }
 
 // The deliberate exclusions from the in-app feed — everything else
@@ -101,7 +120,13 @@ const IN_APP_EXCLUDED_TYPES = new Set<NotificationType>([
 // guarantees, not just something usually true today.
 
 export async function notifyByEmail(input: NotifyByEmailInput): Promise<void> {
-  const result = await sendEmail({ to: input.to, subject: input.subject, html: input.html, text: input.text });
+  const result = await sendEmail({
+    to: input.to,
+    subject: input.subject,
+    html: input.html,
+    text: input.text,
+    fromName: input.senderLabel,
+  });
 
   try {
     await prisma.notificationLog.create({
@@ -179,6 +204,7 @@ export async function notifyByEmail(input: NotifyByEmailInput): Promise<void> {
           title: input.subject,
           body: input.text,
           url: input.url,
+          senderLabel: input.senderLabel ?? null,
         },
       });
     } catch (e) {

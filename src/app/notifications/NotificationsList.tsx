@@ -10,6 +10,7 @@ interface NotificationDto {
   url: string | null;
   readAt: string | null;
   createdAt: string;
+  senderLabel: string | null;
 }
 
 /** Same mark-read/mark-all-read calls as NotificationBell.tsx, applied to a full list instead of a dropdown. */
@@ -48,6 +49,9 @@ export default function NotificationsList({ initialNotifications }: { initialNot
           notifications.map((n) => (
             <Card key={n.id} interactive className={!n.readAt ? "bg-brand-mint/20" : ""}>
               <button onClick={() => handleClick(n)} className="block w-full text-left">
+                {n.senderLabel && (
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-brand-tealDeep">{n.senderLabel}</p>
+                )}
                 <p className="text-sm font-semibold text-brand-ink">{n.title}</p>
                 <p className="mt-1 text-sm text-gray-600">{n.body}</p>
                 <p className="mt-1.5 text-xs text-gray-400">{new Date(n.createdAt).toLocaleString()}</p>

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/employer/LogoutButton";
 import Card from "@/components/ui/Card";
+import ContactAdminCard from "@/components/ContactAdminCard";
 import { useToast } from "@/components/ui/Toast";
 
 const NAV = [
@@ -126,6 +127,9 @@ export default function EmployerSettingsPage() {
             )}
           </div>
         </Card>
+
+        <p className="mt-8 text-xs font-semibold uppercase tracking-wide text-gray-500">Support</p>
+        <ContactAdminCard />
       </main>
     </>
   );

@@ -67,6 +67,23 @@ enum QuestionType {
   // question rendering as a switch on `type`, so new types plug in cleanly.
 }
 
+// Loop Question Bank — a small, closed state machine (a real enum,
+// like Difficulty/AttemptStatus above), not an open-ended growing
+// label. Every question this feature creates carries exactly one of
+// these; every question ANY other feature creates (hand-authored,
+// DOCX-imported, course-exam-paraphrased) leaves Question.bankStatus
+// null and is untouched by any of this.
+enum QuestionBankStatus {
+  PENDING_REVIEW      // fresh from generation + its own self-check, awaiting gate 1
+  PENDING_VALIDATION  // gate 1 approved by a human, queued for independent validation
+  VALIDATED_PASS      // independent validator agreed — auto-promotes to APPROVED
+  VALIDATED_WARNING   // soft concern (e.g. near-duplicate) — needs gate 2
+  VALIDATED_FLAGGED   // objective misalignment or ambiguity — needs gate 2
+  VALIDATED_REJECTED  // independent validator disagreed with the answer — needs gate 2
+  APPROVED            // terminal — live in the bank, needsReview cleared
+  REJECTED            // terminal — rejected at gate 1 or gate 2, kept for audit only
+}
+
 enum AttemptStatus {
   IN_PROGRESS
   SUBMITTED
@@ -236,6 +253,28 @@ model User {
   // as the relations above: every manual access extension this staff
   // member has personally granted, not an untracked backdoor.
   accessExtensionsGranted AccessExtension[]
+  // Loop — every question this staff member has asked the AI Command
+  // Center. SUPER_ADMIN only in practice (see that route's own
+  // requireRole), but the relation itself isn't role-restricted.
+  aiCommandLogs AiCommandLog[]
+  // Loop broadcast messaging — every message send this staff member
+  // has personally authorized, the real internal audit trail behind
+  // whatever the recipient sees as "Loop — Systems Manager." Same
+  // audit-relation pattern as accessExtensionsGranted/employersApproved
+  // above.
+  loopBroadcastsAuthorized LoopBroadcast[]
+  // The simple direct inbox (reverse of Loop broadcast messaging) —
+  // every inbound message this Super Admin has personally marked read,
+  // shared team-wide the same way the message itself is (see
+  // SuperAdminMessage's own comment for why readAt/readById aren't
+  // tracked per-viewer).
+  superAdminMessagesRead SuperAdminMessage[]
+  // Loop Question Bank — every objective this staff member has
+  // personally confirmed, and every gate-1/gate-2/etc. status
+  // transition they've personally acted on. Same audit-relation
+  // pattern as the relations above.
+  moduleLearningObjectivesConfirmed ModuleLearningObjective[]
+  questionBankEventsActed           QuestionBankEvent[]
 }
 
 // Real, persistent trainee account — the key M9 change. Replaces the old
@@ -746,6 +785,9 @@ model Module {
   // M12
   completions ModuleCompletion[]
 
+  // Loop Question Bank
+  learningObjectives ModuleLearningObjective[]
+
   @@index([courseId])
 }
 
@@ -791,6 +833,9 @@ model Material {
   // hand-set — every write to this row updates it automatically.
   updatedAt DateTime     @updatedAt
   downloads MaterialDownload[]
+
+  // Loop Question Bank
+  bankSourceFor QuestionSourceMaterial[]
 
   @@index([lessonId])
 }
@@ -1049,7 +1094,90 @@ model Question {
   options Option[]
   answers Answer[]
 
+  // Loop Question Bank — null for every question created by any other
+  // feature (hand-authored, DOCX-imported, course-exam-paraphrased).
+  // Set only by the new AI-generation pipeline below; see
+  // QuestionBankStatus's own comment for the state machine this walks
+  // through. needsReview/reviewReason above keep their existing
+  // meaning unchanged — every bankStatus except APPROVED implies
+  // needsReview: true; reaching APPROVED clears it, the same "approve"
+  // shorthand PUT /api/questions/[id] already uses.
+  bankStatus      QuestionBankStatus?
+  bankObjectiveId String?
+  bankObjective   ModuleLearningObjective? @relation(fields: [bankObjectiveId], references: [id], onDelete: SetNull)
+  sourceMaterials QuestionSourceMaterial[]
+  bankEvents      QuestionBankEvent[]
+
   @@index([examId])
+}
+
+// Loop Question Bank — a module's confirmed learning objectives, the
+// primary assessment framework every generated question is grounded
+// in. Only ever created by a human's explicit confirm click (Loop only
+// ever DRAFTS objectives via propose_learning_objectives — see
+// src/app/api/admin/loop/ask/route.ts) — same discipline as
+// LoopBroadcast.authorizedById: no AI-driven write ever creates one of
+// these rows on its own.
+model ModuleLearningObjective {
+  id            String   @id @default(cuid())
+  moduleId      String
+  module        Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  text          String
+  order         Int      @default(0)
+  confirmedById String
+  confirmedBy   User     @relation(fields: [confirmedById], references: [id])
+  createdAt     DateTime @default(now())
+
+  generatedQuestions Question[]
+
+  @@index([moduleId])
+}
+
+// Loop Question Bank — which lesson materials actually grounded a
+// generated question, a real join table (this schema's established
+// rule for anything many-to-many/filterable) rather than a scalar id
+// array on Question.
+model QuestionSourceMaterial {
+  id         String   @id @default(cuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  materialId String
+  material   Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, materialId])
+  @@index([materialId])
+}
+
+// Loop Question Bank — the full audit trail behind every status
+// transition a bank question goes through, as real rows (same
+// reasoning as AiCommandLog/LoopBroadcast being their own tables
+// rather than status columns bolted onto an existing model). `kind` is
+// a plain string, not an enum — a new event kind (a future validator
+// dimension, a future third gate) needs no migration, same reasoning
+// as LoopBroadcast.category: e.g. "GENERATED", "SELF_CHECK_DISAGREED",
+// "GATE1_APPROVED", "GATE1_REJECTED", "INDEPENDENT_VALIDATION_PASS",
+// "AUTO_APPROVED", "GATE2_APPROVED", "GATE2_REJECTED".
+model QuestionBankEvent {
+  id         String              @id @default(cuid())
+  questionId String
+  question   Question            @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  fromStatus QuestionBankStatus?
+  toStatus   QuestionBankStatus
+  kind       String
+  note       String?
+  // The independent validator's full structured verdict, when
+  // applicable (correctness disagreement detail, objective-alignment
+  // reason, ambiguity reason, duplicate match + similarity score) — the
+  // second gate review screen reads this, not just `note`.
+  detail     Json?
+  // null = an automated AI-driven transition (generation, validation,
+  // auto-promotion on a clean PASS); set = a human's gate click.
+  actedById  String?
+  actedBy    User?               @relation(fields: [actedById], references: [id])
+  createdAt  DateTime            @default(now())
+
+  @@index([questionId])
+  @@index([createdAt])
 }
 
 model Option {
@@ -2370,6 +2498,17 @@ model UserNotification {
   url           String?
   readAt        DateTime?
   createdAt     DateTime  @default(now())
+  // Loop broadcast messaging — who the RECIPIENT should believe this
+  // came from. Null for every existing notification type (unchanged
+  // behavior — module unlocked, certificate issued, etc. all stay
+  // "from the system" exactly as before); only ever set to "Loop —
+  // Systems Manager" for type = "LOOP_BROADCAST", written by the send
+  // endpoint itself (src/app/api/admin/messages/broadcast/route.ts),
+  // never from client input. Deliberately a separate field from
+  // LoopBroadcast.authorizedById — this is a display choice the
+  // recipient sees, that's the permanent internal audit record of who
+  // actually authorized the send. The two must never be conflated.
+  senderLabel   String?
 
   @@index([recipientType, recipientId, readAt])
   @@index([createdAt])
@@ -2458,4 +2597,147 @@ model Testimonial {
   createdById    String
   createdBy      User          @relation(fields: [createdById], references: [id])
   createdAt      DateTime      @default(now())
+}
+
+// Loop — the AI Command Center's own audit trail. Every question a
+// Super Admin asks and every answer Loop gives is logged here,
+// permanently — this is what makes "the AI got this wrong, why"
+// answerable rather than a shrug, the same principle the Loop Protocol
+// design document itself calls non-negotiable for a hosted AI system.
+//
+// Deliberately just a log, never a source of authority: nothing in
+// this app reads AiCommandLog to make a decision. Loop's own tools
+// (src/lib/loop/tools.ts) remain exhaustively read-only — no tool
+// handed to the model can create, update, or delete a real business
+// record, still an architectural fact enforced by which functions are
+// callable, not a prompt instruction. Loop broadcast messaging (see
+// LoopBroadcast below) is the one place this app now has a genuine
+// write path reachable from a Loop conversation — and even there, the
+// AI conversation itself only ever produces a proposal (a "propose_
+// message" tool call, the exact same terminal-structured-output shape
+// as present_report); the actual database write happens in a
+// completely separate, deterministic, non-AI endpoint
+// (src/app/api/admin/messages/broadcast/route.ts) that runs only when
+// a human clicks Send. Loop still never acts on its own — it prepares,
+// a person decides.
+model AiCommandLog {
+  id        String   @id @default(cuid())
+  askedById String
+  askedBy   User     @relation(fields: [askedById], references: [id])
+  question  String
+  answer    String
+  // Which read-only tools Loop actually called while answering, and
+  // with what arguments — the literal evidence trail behind the
+  // answer, not just the answer itself.
+  toolCalls Json?
+  createdAt DateTime @default(now())
+
+  @@index([askedById])
+  @@index([createdAt])
+}
+
+enum LoopBroadcastStatus {
+  SENT // fan-out completed for every resolved recipient (individual failures still tracked per-row in NotificationLog)
+  PARTIAL // some recipients failed delivery — see recipientCountActual vs. how many NotificationLog rows landed SENT
+  FAILED // the whole send failed before any recipient was reached (e.g. re-resolution returned zero matches)
+}
+
+// Loop broadcast messaging — the real audit trail behind "the Super
+// Admin directed Loop to message N people." Deliberately separate from
+// AiCommandLog above: that model is Loop's own Q&A trail (one row per
+// /ask call, free-form question/answer text); this is one row per
+// ACTUAL SEND, shaped the way a send audit needs — recipient count,
+// category, delivery status — which AiCommandLog was never built to
+// hold.
+//
+// `authorizedById` is the architectural core of the "Loop prepares, a
+// person decides" boundary this feature exists to preserve: it is set
+// from the session of whoever called POST
+// /api/admin/messages/broadcast (a real, logged-in SUPER_ADMIN
+// clicking Send), NEVER from anything Claude said or the request body
+// supplied. `senderLabel` is what the RECIPIENT sees on their own
+// UserNotification row (see that model's own comment) — the two are
+// deliberately different fields holding different values for different
+// audiences, not the same identity read twice.
+model LoopBroadcast {
+  id             String @id @default(cuid())
+  authorizedById String
+  authorizedBy   User   @relation(fields: [authorizedById], references: [id])
+  // A server-side constant at send time, never client-supplied — see
+  // the send route's own comment for why this can never be
+  // overridden by a request body.
+  senderLabel String @default("Loop — Systems Manager")
+
+  // What Loop proposed and the admin confirmed. `recipientFilter` is
+  // the structured criteria (the same RecipientFilter shape
+  // src/lib/messaging/recipients.ts resolves), stored so the send
+  // endpoint re-derives the CURRENT matching set fresh from the
+  // database at send time rather than trusting a snapshot list of ids
+  // an LLM conversation produced minutes earlier. recipientDescription
+  // is Loop's own human-readable phrasing, kept for the audit view.
+  recipientDescription   String
+  recipientFilter        Json
+  recipientCountExpected Int // shown to the admin at confirmation time
+  recipientCountActual   Int // actually resolved and attempted at send time — may differ if the underlying group changed
+
+  // A plain string, not an enum — a new category needs no migration,
+  // the same reasoning already established for Trainee.preferredLanguage.
+  category String
+  subject  String
+  body     String
+
+  status LoopBroadcastStatus
+  sentAt DateTime @default(now())
+
+  @@index([authorizedById])
+  @@index([sentAt])
+}
+
+// The reverse direction of Loop broadcast messaging — a simple direct
+// inbox letting any signed-in trainee, employer, or staff member
+// (other than a Super Admin, who has no reason to message themselves —
+// enforced by that route's own requireRole allow-list) send a message
+// that lands in every Super Admin's inbox.
+//
+// Deliberately NOT routed through Loop's AI at all — unlike the
+// outbound broadcast path, sending raw, untrusted user-typed text
+// through Loop's own reasoning loop would be a genuine new
+// prompt-injection surface this app doesn't currently have (today only
+// a Super Admin's own typed questions ever reach Claude). This is a
+// plain create-and-notify feature, no different in kind from
+// ProfileReport above. Loop can still be ASKED to summarize this inbox
+// later, as a genuine read-only reporting question — that's a separate,
+// optional future addition this model doesn't depend on.
+//
+// A separate model from UserNotification (used only for the "you have
+// a new message" ping sent to every Super Admin via notifyByEmail) for
+// the same reason LoopBroadcast is separate from it: this is the one
+// shared, authoritative row behind an inbound message, not a
+// per-recipient copy. `readAt`/`readById` are deliberately shared
+// across every Super Admin rather than tracked per-viewer — with a
+// small support inbox like this, the point is "has anyone on the team
+// looked at this yet," not a separate unread badge per admin.
+//
+// `senderName`/`senderEmail` are snapshotted at send time, same
+// "snapshot for stability" precedent as Testimonial.traineeName above —
+// the message stays legible (and the admin can still reply by email)
+// even if the sender's own account is later renamed or removed.
+model SuperAdminMessage {
+  id          String @id @default(cuid())
+  senderType  String // "TRAINEE" | "STAFF" | "EMPLOYER"
+  senderId    String
+  senderName  String
+  senderEmail String
+
+  subject String
+  body    String
+
+  readAt   DateTime?
+  readById String?
+  readBy   User?     @relation(fields: [readById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([readAt])
+  @@index([createdAt])
 }
