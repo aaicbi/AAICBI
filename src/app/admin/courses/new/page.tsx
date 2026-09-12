@@ -28,6 +28,12 @@ export default function NewCoursePage() {
   // SUPER_ADMIN-only) — they simply keep this same fallback, exactly
   // the behavior this page always had before the setting existed.
   const [reminderDays, setReminderDays] = useState("7, 3, 1");
+  const [comingSoon, setComingSoon] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
+  const [estimatedDuration, setEstimatedDuration] = useState("");
+  const [objectivesText, setObjectivesText] = useState("");
+  const [benefitsText, setBenefitsText] = useState("");
+  const [prerequisites, setPrerequisites] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -71,6 +77,12 @@ export default function NewCoursePage() {
         accessDurationUnit: !isFree && accessModel === "FIXED_DURATION" ? durationUnit : null,
         reminderEnabled: !isFree && accessModel === "FIXED_DURATION" ? reminderEnabled : false,
         reminderDaysBeforeExpiry: !isFree && accessModel === "FIXED_DURATION" && reminderEnabled ? parsedReminderDays : undefined,
+        comingSoon,
+        imageUrl: imageUrl.trim() || null,
+        estimatedDuration: estimatedDuration.trim() || null,
+        prerequisites: prerequisites.trim() || null,
+        objectives: objectivesText.split("\n").map((s) => s.trim()).filter(Boolean),
+        benefits: benefitsText.split("\n").map((s) => s.trim()).filter(Boolean),
       }),
     });
     setLoading(false);
@@ -125,7 +137,12 @@ export default function NewCoursePage() {
               />
             </div>
 
-            <div className="rounded-lg border border-brand-gray bg-gray-50 p-4">
+            <div className="rounded-lg border border-brand-gray bg-gray-50 p-4 space-y-3">
+              <label className="flex items-center gap-2 text-sm font-semibold text-brand-ink">
+                <input type="checkbox" checked={comingSoon} onChange={(e) => setComingSoon(e.target.checked)} />
+                Mark as "Coming Soon" (display on marketplace, disable enrollment)
+              </label>
+
               <label className="flex items-center gap-2 text-sm font-semibold text-brand-ink">
                 <input type="checkbox" checked={isFree} onChange={(e) => setIsFree(e.target.checked)} />
                 This course is free (lifetime access, no payment)
@@ -226,6 +243,63 @@ export default function NewCoursePage() {
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Marketing Fields */}
+            <div className="space-y-4 border-t border-brand-gray pt-4">
+              <h2 className="font-display text-sm font-semibold text-brand-ink">Marketplace & Course Details</h2>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-brand-ink">Course Cover Image URL</label>
+                <input
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="https://example.com/image.jpg"
+                  className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-brand-ink">Estimated Duration</label>
+                <input
+                  value={estimatedDuration}
+                  onChange={(e) => setEstimatedDuration(e.target.value)}
+                  placeholder="e.g. 6 Weeks (Self-paced)"
+                  className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-brand-ink">Prerequisites / Requirements</label>
+                <input
+                  value={prerequisites}
+                  onChange={(e) => setPrerequisites(e.target.value)}
+                  placeholder="e.g. Basic understanding of web development"
+                  className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-brand-ink">Learning Objectives (One per line)</label>
+                <textarea
+                  value={objectivesText}
+                  onChange={(e) => setObjectivesText(e.target.value)}
+                  placeholder="Master React fundamentals&#10;Build REST APIs with Node.js"
+                  rows={3}
+                  className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-brand-ink">Course Benefits (One per line)</label>
+                <textarea
+                  value={benefitsText}
+                  onChange={(e) => setBenefitsText(e.target.value)}
+                  placeholder="Hands-on portfolio projects&#10;Verified digital certificate"
+                  rows={3}
+                  className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
+                />
+              </div>
             </div>
 
             {error && <p className="text-sm text-brand-rose">{error}</p>}

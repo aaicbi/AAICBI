@@ -9,23 +9,20 @@ import { validateCoursePricing } from "@/lib/coursePricing";
 const CreateCourseSchema = z.object({
   title: z.string().min(3),
   description: z.string().optional(),
-  // Post-M15 milestone — defaults preserved from the schema itself
-  // (isFree true) rather than re-declared here, so this route can
-  // never drift from what an omitted value actually means at the
-  // database level.
   isFree: z.boolean().optional(),
   priceKobo: z.number().int().positive().nullable().optional(),
-  // M26 — same reasoning as priceKobo above.
   billingInterval: z.enum(["MONTHLY", "QUARTERLY", "ANNUALLY"]).nullable().optional(),
-  // Course enrollment/subscription system — same "defaults preserved
-  // from the schema itself" reasoning as isFree above, so an omitted
-  // accessModel means exactly what the schema's own default means
-  // (RECURRING_SUBSCRIPTION), never redeclared here.
   accessModel: z.enum(["RECURRING_SUBSCRIPTION", "FIXED_DURATION"]).optional(),
   accessDurationValue: z.number().int().positive().nullable().optional(),
   accessDurationUnit: z.enum(["DAYS", "MONTHS", "LIFETIME"]).nullable().optional(),
   reminderEnabled: z.boolean().optional(),
   reminderDaysBeforeExpiry: z.array(z.number().int().positive()).optional(),
+  comingSoon: z.boolean().optional(),
+  imageUrl: z.string().nullable().optional(),
+  objectives: z.array(z.string()).optional(),
+  prerequisites: z.string().nullable().optional(),
+  benefits: z.array(z.string()).optional(),
+  estimatedDuration: z.string().nullable().optional(),
 });
 
 /**

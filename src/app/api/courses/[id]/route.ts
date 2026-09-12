@@ -250,42 +250,23 @@ const UpdateCourseSchema = z.object({
   title: z.string().min(3).optional(),
   description: z.string().nullable().optional(),
   published: z.boolean().optional(),
-  // Post-M15 milestone — see validateCoursePricing's own comment.
   isFree: z.boolean().optional(),
   priceKobo: z.number().int().positive().nullable().optional(),
-  // M26 — same reasoning as priceKobo above.
   billingInterval: z.enum(["MONTHLY", "QUARTERLY", "ANNUALLY"]).nullable().optional(),
-  // Course enrollment/subscription system — same reasoning as
-  // priceKobo/billingInterval above.
   accessModel: z.enum(["RECURRING_SUBSCRIPTION", "FIXED_DURATION"]).optional(),
   accessDurationValue: z.number().int().positive().nullable().optional(),
   accessDurationUnit: z.enum(["DAYS", "MONTHS", "LIFETIME"]).nullable().optional(),
   reminderEnabled: z.boolean().optional(),
   reminderDaysBeforeExpiry: z.array(z.number().int().positive()).optional(),
-  // M38 — null (the default, and what's sent to explicitly turn the
-  // feature off again) means disabled for this course; a positive
-  // integer turns it on. Never defaults to a suggested number here —
-  // an admin has to deliberately choose a threshold, the same
-  // "opt-in, never a surprise default" discipline as the fields above.
-  // Upper-bounded (not just positive) after a real gap was noticed:
-  // nothing stopped an obviously-mistyped huge number from being
-  // saved silently as a threshold that would functionally never fire.
-  // 3650 days (10 years) and 1000 attempts are generous enough that no
-  // genuine use case would ever hit them, while still catching a typo.
+  comingSoon: z.boolean().optional(),
+  imageUrl: z.string().nullable().optional(),
+  objectives: z.array(z.string()).optional(),
+  prerequisites: z.string().nullable().optional(),
+  benefits: z.array(z.string()).optional(),
+  estimatedDuration: z.string().nullable().optional(),
   inactivityThresholdDays: z.number().int().positive().max(3650).nullable().optional(),
   failedAttemptsThreshold: z.number().int().positive().max(1000).nullable().optional(),
-  // M45 — null (the default) means "use the platform-wide global
-  // default" (PlatformSettings.defaultAiCreditAllowance), the same
-  // "default plus optional per-course override" shape already used
-  // for the two thresholds above. A real, positive number here
-  // overrides that default for this specific course only — a course
-  // with genuinely different AI-usage needs (a heavier, more
-  // AI-assisted curriculum vs. a lighter one) can be granted a
-  // different allowance without changing the platform-wide default
-  // every other course still relies on.
   aiCreditAllowanceOverride: z.number().int().min(0).max(1_000_000).nullable().optional(),
-  // M41 — admin-configurable per course, matching the roadmap's own
-  // explicit scope.
   qaScope: z.enum(["OPEN", "COHORT_SCOPED"]).optional(),
 });
 

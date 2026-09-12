@@ -49,6 +49,12 @@ interface CourseDto {
   accessDurationUnit: "DAYS" | "MONTHS" | "LIFETIME" | null;
   reminderEnabled: boolean;
   reminderDaysBeforeExpiry: number[];
+  comingSoon?: boolean;
+  imageUrl?: string | null;
+  objectives?: string[];
+  prerequisites?: string | null;
+  benefits?: string[];
+  estimatedDuration?: string | null;
 }
 
 /** Parses the { error: { fieldErrors, formErrors } | string } shapes the
@@ -336,6 +342,21 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
           </div>
         </div>
 
+        <MarketingSettings
+          course={course}
+          onSave={async (data) => {
+            const res = await fetch(`/api/courses/${params.id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(data),
+            });
+            if (!res.ok) return readApiError(res, "Could not save marketing settings.");
+            await loadCourse();
+            return null;
+          }}
+          showToast={showToast}
+        />
+
         <PricingSettings course={course} onSave={updatePricing} showToast={showToast} />
 
         <ReminderSettings course={course} onSave={updateReminders} showToast={showToast} />
@@ -379,6 +400,162 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
 // comment on Course.inactivityThresholdDays/failedAttemptsThreshold —
 // no existing course starts generating alerts nobody asked for just
 // because this milestone shipped.
+function MarketingSettings({
+  course,
+  onSave,
+  showToast,
+}: {
+  course: CourseDto;
+  onSave: (data: {
+    comingSoon: boolean;
+    imageUrl: string | null;
+    estimatedDuration: string | null;
+    prerequisites: string | null;
+    objectives: string[];
+    benefits: string[];
+  }) => Promise<string | null>;
+  showToast: (message: string, variant?: "success" | "error") => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [comingSoon, setComingSoon] = useState(course.comingSoon ?? false);
+  const [imageUrl, setImageUrl] = useState(course.imageUrl ?? "");
+  const [estimatedDuration, setEstimatedDuration] = useState(course.estimatedDuration ?? "");
+  const [prerequisites, setPrerequisites] = useState(course.prerequisites ?? "");
+  const [objectivesText, setObjectivesText] = useState(course.objectives?.join("\n") ?? "");
+  const [benefitsText, setBenefitsText] = useState(course.benefits?.join("\n") ?? "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function startEditing() {
+    setComingSoon(course.comingSoon ?? false);
+    setImageUrl(course.imageUrl ?? "");
+    setEstimatedDuration(course.estimatedDuration ?? "");
+    setPrerequisites(course.prerequisites ?? "");
+    setObjectivesText(course.objectives?.join("\n") ?? "");
+    setBenefitsText(course.benefits?.join("\n") ?? "");
+    setError(null);
+    setEditing(true);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    setError(null);
+    const err = await onSave({
+      comingSoon,
+      imageUrl: imageUrl.trim() || null,
+      estimatedDuration: estimatedDuration.trim() || null,
+      prerequisites: prerequisites.trim() || null,
+      objectives: objectivesText.split("\n").map((s) => s.trim()).filter(Boolean),
+      benefits: benefitsText.split("\n").map((s) => s.trim()).filter(Boolean),
+    });
+    setSaving(false);
+    if (err) {
+      setError(err);
+      return;
+    }
+    setEditing(false);
+    showToast("Marketplace settings saved.");
+  }
+
+  return (
+    <div className="mt-4 rounded-lg border border-brand-gray bg-gray-50 p-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-gray-900">🎨 Marketplace &amp; Public Details</p>
+          {!editing && (
+            <p className="mt-1 text-xs text-gray-600">
+              Status: <span className="font-semibold">{course.comingSoon ? "Coming Soon" : "Available"}</span> · Duration: {course.estimatedDuration || "Not set"}
+            </p>
+          )}
+        </div>
+        {!editing && (
+          <button onClick={startEditing} className="text-xs font-semibold text-brand-teal hover:underline">
+            Edit
+          </button>
+        )}
+      </div>
+
+      {editing && (
+        <div className="mt-3 space-y-3">
+          <label className="flex items-center gap-2 text-xs font-semibold text-brand-ink">
+            <input type="checkbox" checked={comingSoon} onChange={(e) => setComingSoon(e.target.checked)} />
+            Mark as "Coming Soon" (shows COMING SOON badge, disables enrollment)
+          </label>
+
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-brand-ink">Cover Image URL</label>
+            <input
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="https://example.com/cover.jpg"
+              className="w-full rounded-lg border border-brand-gray px-2 py-1.5 text-xs outline-none focus:border-brand-teal"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-brand-ink">Estimated Duration</label>
+            <input
+              value={estimatedDuration}
+              onChange={(e) => setEstimatedDuration(e.target.value)}
+              placeholder="e.g. 8 Weeks (Self-paced)"
+              className="w-full rounded-lg border border-brand-gray px-2 py-1.5 text-xs outline-none focus:border-brand-teal"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-brand-ink">Requirements / Prerequisites</label>
+            <input
+              value={prerequisites}
+              onChange={(e) => setPrerequisites(e.target.value)}
+              placeholder="e.g. Basic computer literacy"
+              className="w-full rounded-lg border border-brand-gray px-2 py-1.5 text-xs outline-none focus:border-brand-teal"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-brand-ink">Learning Objectives (One per line)</label>
+            <textarea
+              value={objectivesText}
+              onChange={(e) => setObjectivesText(e.target.value)}
+              placeholder="Objective 1&#10;Objective 2"
+              rows={3}
+              className="w-full rounded-lg border border-brand-gray px-2 py-1.5 text-xs outline-none focus:border-brand-teal"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-brand-ink">Course Benefits (One per line)</label>
+            <textarea
+              value={benefitsText}
+              onChange={(e) => setBenefitsText(e.target.value)}
+              placeholder="Benefit 1&#10;Benefit 2"
+              rows={3}
+              className="w-full rounded-lg border border-brand-gray px-2 py-1.5 text-xs outline-none focus:border-brand-teal"
+            />
+          </div>
+
+          {error && <p className="text-xs text-brand-rose">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+            <button
+              onClick={() => setEditing(false)}
+              className="rounded-lg border border-brand-gray px-3 py-1.5 text-xs font-semibold"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EarlyWarningSettings({
   course,
   onSave,

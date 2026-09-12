@@ -919,8 +919,22 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
                     <span>
                       {openModule === mod.id ? "▾" : "▸"} Module {i + 1}: {mod.title}
                     </span>
-                    {mod.completed && <Badge variant="success">✓ Completed</Badge>}
-                    {!mod.unlocked && <Badge variant="neutral">🔒 Locked</Badge>}
+                    {mod.completed && (
+                      <Badge variant="success">
+                        <svg className="h-3 w-3 fill-current" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        Completed
+                      </Badge>
+                    )}
+                    {!mod.unlocked && (
+                      <Badge variant="neutral">
+                        <svg className="h-3 w-3 fill-current text-gray-500" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                        </svg>
+                        Locked
+                      </Badge>
+                    )}
                   </div>
                   {mod.description && mod.unlocked && (
                     <div className="mt-0.5 text-sm text-gray-600">{mod.description}</div>

@@ -74,14 +74,14 @@ enum QuestionType {
 // DOCX-imported, course-exam-paraphrased) leaves Question.bankStatus
 // null and is untouched by any of this.
 enum QuestionBankStatus {
-  PENDING_REVIEW      // fresh from generation + its own self-check, awaiting gate 1
-  PENDING_VALIDATION  // gate 1 approved by a human, queued for independent validation
-  VALIDATED_PASS      // independent validator agreed — auto-promotes to APPROVED
-  VALIDATED_WARNING   // soft concern (e.g. near-duplicate) — needs gate 2
-  VALIDATED_FLAGGED   // objective misalignment or ambiguity — needs gate 2
-  VALIDATED_REJECTED  // independent validator disagreed with the answer — needs gate 2
-  APPROVED            // terminal — live in the bank, needsReview cleared
-  REJECTED            // terminal — rejected at gate 1 or gate 2, kept for audit only
+  PENDING_REVIEW // fresh from generation + its own self-check, awaiting gate 1
+  PENDING_VALIDATION // gate 1 approved by a human, queued for independent validation
+  VALIDATED_PASS // independent validator agreed — auto-promotes to APPROVED
+  VALIDATED_WARNING // soft concern (e.g. near-duplicate) — needs gate 2
+  VALIDATED_FLAGGED // objective misalignment or ambiguity — needs gate 2
+  VALIDATED_REJECTED // independent validator disagreed with the answer — needs gate 2
+  APPROVED // terminal — live in the bank, needsReview cleared
+  REJECTED // terminal — rejected at gate 1 or gate 2, kept for audit only
 }
 
 enum AttemptStatus {
@@ -95,10 +95,10 @@ enum MaterialType {
   DOCX
   PPTX
   VIDEO // a URL — see the "video hosting" note in the roadmap under M10:
-        // this is an unlisted YouTube link, not a self-hosted file. The
-        // access control that matters is the trainee having to be logged
-        // in and enrolled to reach the lesson page at all — see
-        // requireRole("TRAINEE") in the course/module/lesson GET routes.
+  // this is an unlisted YouTube link, not a self-hosted file. The
+  // access control that matters is the trainee having to be logged
+  // in and enrolled to reach the lesson page at all — see
+  // requireRole("TRAINEE") in the course/module/lesson GET routes.
 }
 
 // ---------------------------------------------------------------------
@@ -168,12 +168,12 @@ model RateLimitBucket {
 // Staff account — super admin, admin, or instructor. Unchanged in shape
 // from the CBT scaffold's `User` model; only the Role enum grew.
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         Role     @default(INSTRUCTOR)
-  createdAt    DateTime @default(now())
+  id                  String    @id @default(cuid())
+  name                String
+  email               String    @unique
+  passwordHash        String
+  role                Role      @default(INSTRUCTOR)
+  createdAt           DateTime  @default(now())
   // Password reset — M9 audit finding #3: there was no recovery path at
   // all for staff or trainees who forget their password. Same
   // token+expiry shape as Trainee.verifyToken below.
@@ -186,15 +186,15 @@ model User {
   // credit system alongside this one — that was a real, explicit
   // scope decision (a staff tool isn't metered the way a trainee-
   // facing one is), not an oversight matching M45's shape by default.
-  aiAssistantEnabled Boolean @default(false)
+  aiAssistantEnabled  Boolean   @default(false)
   // M46 — same reasoning as Trainee.darkMode above: off by default,
   // a real per-user database preference rather than a local browser
   // setting.
-  darkMode Boolean @default(true)
+  darkMode            Boolean   @default(true)
   // M44 — see Trainee.avatarUrl's own comment for the full reasoning;
   // identical field, same real Vercel Blob storage, just on the staff
   // side.
-  avatarUrl String?
+  avatarUrl           String?
 
   // Personalized landing page — same lastLoginAt/previousLoginAt shape
   // as Trainee's own fields, applied here since staff had no
@@ -208,67 +208,67 @@ model User {
   // reused rather than duplicated. `profileVisibility` is added in
   // Phase 4, hard-capped server-side to PRIVATE/AUTHENTICATED only —
   // never PUBLIC or EMPLOYERS_ONLY — see that route's own Zod schema.
-  username              String? @unique
+  username              String?           @unique
   bio                   String?
   jobTitle              String?
   department            String?
   areasOfResponsibility String?
   profileVisibility     ProfileVisibility @default(PRIVATE)
 
-  exams   Exam[]
-  courses Course[]
+  exams                             Exam[]
+  courses                           Course[]
   // Post-M15 milestone: every cooldown override this staff member has
   // personally granted — the audit trail, not an untracked backdoor.
-  cooldownOverridesGranted CooldownOverride[]
+  cooldownOverridesGranted          CooldownOverride[]
   // Post-M15 milestone: every ADMIN_GRANTED course enrollment this
   // staff member personally created — same audit-trail reasoning as
   // cooldownOverridesGranted directly above.
-  courseEnrollmentsGranted CourseEnrollment[]
+  courseEnrollmentsGranted          CourseEnrollment[]
   // M42 — every UI string translation this staff member has personally
   // approved. Same audit-trail reasoning as cooldownOverridesGranted
   // and courseEnrollmentsGranted above — a name attached to the
   // decision, not an untracked "someone clicked approve."
-  translationsApproved UiStringTranslation[]
+  translationsApproved              UiStringTranslation[]
   // M45 — every AI credit grant/adjustment this staff member has
   // personally made. Same audit-trail reasoning as the relations
   // above — null on the grant side means an automatic system grant
   // (e.g. from a paid subscription), never null here, since this side
   // only exists for grants a real person actually made.
-  aiCreditGrantsIssued AiCreditGrant[]
+  aiCreditGrantsIssued              AiCreditGrant[]
   // M41 — every Q&A moderation action this staff member has personally
   // issued. Same audit-trail reasoning as the relations above.
-  qaModerationActionsIssued QaModerationAction[]
+  qaModerationActionsIssued         QaModerationAction[]
   // M30 — every employer account this staff member has personally
   // approved or rejected, and every job posting they've personally
   // reviewed. Same real audit-trail reasoning as the relations above,
   // not a bare status flag with no record of who decided.
-  employersApproved Employer[]
-  jobPostingsReviewed JobPosting[]
-  testimonialsCreated Testimonial[]
+  employersApproved                 Employer[]
+  jobPostingsReviewed               JobPosting[]
+  testimonialsCreated               Testimonial[]
   // Universal profile system, Phase 3 — same audit-trail reasoning as
   // the relations above: every profile report this staff member has
   // personally decided, not an untracked backdoor.
-  profileReportsReviewed ProfileReport[]
+  profileReportsReviewed            ProfileReport[]
   // Course enrollment/subscription system — same audit-trail reasoning
   // as the relations above: every manual access extension this staff
   // member has personally granted, not an untracked backdoor.
-  accessExtensionsGranted AccessExtension[]
+  accessExtensionsGranted           AccessExtension[]
   // Loop — every question this staff member has asked the AI Command
   // Center. SUPER_ADMIN only in practice (see that route's own
   // requireRole), but the relation itself isn't role-restricted.
-  aiCommandLogs AiCommandLog[]
+  aiCommandLogs                     AiCommandLog[]
   // Loop broadcast messaging — every message send this staff member
   // has personally authorized, the real internal audit trail behind
   // whatever the recipient sees as "Loop — Systems Manager." Same
   // audit-relation pattern as accessExtensionsGranted/employersApproved
   // above.
-  loopBroadcastsAuthorized LoopBroadcast[]
+  loopBroadcastsAuthorized          LoopBroadcast[]
   // The simple direct inbox (reverse of Loop broadcast messaging) —
   // every inbound message this Super Admin has personally marked read,
   // shared team-wide the same way the message itself is (see
   // SuperAdminMessage's own comment for why readAt/readById aren't
   // tracked per-viewer).
-  superAdminMessagesRead SuperAdminMessage[]
+  superAdminMessagesRead            SuperAdminMessage[]
   // Loop Question Bank — every objective this staff member has
   // personally confirmed, and every gate-1/gate-2/etc. status
   // transition they've personally acted on. Same audit-relation
@@ -282,9 +282,9 @@ model User {
 // fresh per exam attempt. A Trainee registers once, verifies their
 // email, and comes back across many courses and attempts over time.
 model Trainee {
-  id            String    @id @default(cuid())
-  name          String
-  email         String    @unique
+  id                   String    @id @default(cuid())
+  name                 String
+  email                String    @unique
   // Google sign-in — widened from required to optional. A trainee who
   // signs up purely through Google has no password at all; `null` here
   // means exactly that, checked explicitly everywhere a password login
@@ -294,14 +294,14 @@ model Trainee {
   // hash regardless of this field's current state — becoming a
   // genuine hybrid (both Google and password login work) is a real,
   // intentionally-supported outcome, not an edge case to prevent.
-  passwordHash  String?
+  passwordHash         String?
   // Google sign-in — the stable, unique subject identifier from
   // Google's ID token (`sub` claim), the correct field to key off for
   // OAuth (not email, which OpenID Connect explicitly does not
   // guarantee is immutable). Null for every trainee who has never
   // signed in with Google. See src/lib/auth/google.ts.
-  googleId      String?   @unique
-  phone         String?
+  googleId             String?   @unique
+  phone                String?
   // M43 — mirrors emailVerified/verifyToken's shape for "is this
   // channel confirmed," combined with M28's OTP shape (a short code +
   // expiry, not a clickable link — a phone number doesn't have
@@ -323,16 +323,16 @@ model Trainee {
   // stateless JWTs (see src/lib/auth/session.ts) that never touch the
   // database on login. Set explicitly by the trainee-login route on
   // every successful login, not inferred from anything else.
-  lastLoginAt   DateTime?
+  lastLoginAt          DateTime?
   // Personalized landing page — the OLD value of lastLoginAt, captured
   // by the login route before it overwrites lastLoginAt with the
   // current moment. Without this second field there's no way to show
   // "you last visited on X" (lastLoginAt alone, read on the very next
   // page load, already says "now") or to compute "what happened since
   // your last visit" — this is the cutoff that comparison needs.
-  previousLoginAt DateTime?
-  emailVerified Boolean   @default(false)
-  verifyToken   String?   @unique
+  previousLoginAt      DateTime?
+  emailVerified        Boolean   @default(false)
+  verifyToken          String?   @unique
   // M9 audit finding #6: a verify token originally had no expiry at
   // all — a leaked or old, unused verification link would work forever,
   // whenever someone eventually clicked it. Tokens are now generated
@@ -340,8 +340,8 @@ model Trainee {
   // route.ts checks this before accepting one.
   verifyTokenExpiresAt DateTime?
   // Password reset — same reasoning as User.resetToken above.
-  resetToken          String?   @unique
-  resetTokenExpiresAt DateTime?
+  resetToken           String?   @unique
+  resetTokenExpiresAt  DateTime?
   // NDPA consent — recorded, not just asked. A checkbox in the UI that
   // isn't persisted anywhere is not evidence of anything; this is the
   // actual auditable record that a specific account agreed to the
@@ -349,8 +349,8 @@ model Trainee {
   // be possible for any account created after this field was added —
   // register/route.ts requires it — but null is the honest state for
   // any row that predates this change).
-  privacyConsentAt DateTime?
-  createdAt        DateTime  @default(now())
+  privacyConsentAt     DateTime?
+  createdAt            DateTime  @default(now())
 
   // M14 — gates the two OPTIONAL notification types (module unlocked,
   // assessment result), never the essential/security-critical ones
@@ -361,7 +361,7 @@ model Trainee {
   // /api/trainee/settings) — closed after M14/M15's own audits
   // flagged this as "field exists, no way to use it except direct DB
   // access."
-  notificationsEnabled Boolean @default(true)
+  notificationsEnabled  Boolean   @default(true)
   // M39 — trainee-toggleable, off by default (auto-loading video the
   // way it already worked before this milestone is the reasonable
   // default; low-bandwidth mode is the opt-in, not the other way
@@ -371,7 +371,7 @@ model Trainee {
   // automatically before a trainee taps anything, not whether the
   // video player does (it never did, for anyone, since the earlier
   // click-to-play fix).
-  lowBandwidthMode Boolean @default(false)
+  lowBandwidthMode      Boolean   @default(false)
   // M42 (technical piece only) — a language preference, off (English)
   // by default. Deliberately a plain string, not an enum: this only
   // needs to distinguish "English" from "Pidgin" today, but a string
@@ -381,14 +381,14 @@ model Trainee {
   // preference will eventually apply to is explicitly NOT part of
   // this field — see M42's own roadmap entry for why that's separate,
   // ongoing work with no real "done."
-  preferredLanguage String @default("en")
+  preferredLanguage     String    @default("en")
   // M46 — off (light) by default, matching this app's actual current
   // look rather than surprising an existing trainee with a changed
   // appearance the first time this ships. A real per-user database
   // preference, not a local browser setting, so it follows a trainee
   // across devices the same way every other setting on this page
   // already does.
-  darkMode Boolean @default(true)
+  darkMode              Boolean   @default(true)
   // A real, dedicated per-account field, matching the same
   // "database preference, not a local browser setting" reasoning
   // darkMode's own comment above already states — a trainee's
@@ -413,45 +413,45 @@ model Trainee {
   // Google-signup trainee gets this field pre-filled from Google's own
   // profile picture; an existing account that later LINKS a Google
   // identity keeps whatever avatar it already had, uploaded or not.
-  avatarUrl String?
+  avatarUrl             String?
   // M45 — off by default, exactly like every other feature this app
   // has ever added ahead of the thing it gates actually existing.
   // Inert until Session 2's actual AI feature exists to check it.
-  aiStudyBuddyEnabled Boolean @default(false)
+  aiStudyBuddyEnabled   Boolean   @default(false)
   // M45 — a denormalized running total, kept in sync with the sum of
   // this trainee's AiCreditGrant rows rather than computed fresh on
   // every read. Real balance, permanent once granted — no expiry,
   // matching the roadmap's own explicit decision on this.
-  aiCreditBalance Int @default(0)
+  aiCreditBalance       Int       @default(0)
 
-  attempts Attempt[]
+  attempts             Attempt[]
   // M12
-  lessonProgress LessonProgress[]
-  moduleCompletions ModuleCompletion[]
+  lessonProgress       LessonProgress[]
+  moduleCompletions    ModuleCompletion[]
   // M15
-  certificates Certificate[]
+  certificates         Certificate[]
   // Whole-project audit recommendation: cohorts — reporting only, never
   // an access gate (see that model's own comment).
-  enrollments EnrollmentRecord[]
+  enrollments          EnrollmentRecord[]
   // Post-M15 milestone: REAL course access control — deliberately a
   // different name from `enrollments` directly above, not just a
   // different type, since the two are genuinely different concepts
   // that happen to share an obvious English word. Reusing the same
   // field name here would make every future reader guess which
   // "enrollment" a piece of code actually means.
-  courseEnrollments CourseEnrollment[]
+  courseEnrollments    CourseEnrollment[]
   // Post-M15 milestone: motivational milestone badges
-  badges Badge[]
+  badges               Badge[]
   // Post-M15 milestone: staff-granted cooldown overrides for this
   // trainee specifically
-  cooldownOverrides CooldownOverride[]
+  cooldownOverrides    CooldownOverride[]
   // M38: split into two, matching the InactivityAlert/FailedAttemptsAlert split
   inactivityAlerts     InactivityAlert[]
   failedAttemptsAlerts FailedAttemptsAlert[]
   // M45 — every credit grant this trainee has ever received, the
   // ledger aiCreditBalance above is kept in sync with.
-  aiCreditGrants AiCreditGrant[]
-  materialDownloads MaterialDownload[]
+  aiCreditGrants       AiCreditGrant[]
+  materialDownloads    MaterialDownload[]
   // M41 — the fast, queryable current-state field, same pattern as
   // CourseEnrollment.accessRevokedAt elsewhere in this schema:
   // QaModerationAction below is the real audit trail (who, when, why),
@@ -461,9 +461,9 @@ model Trainee {
   // constraint. Reading existing threads stays available even while
   // suspended; only posting is blocked, checked at the post route
   // itself, not here.
-  qaSuspendedAt DateTime?
-  qaThreads     QaThread[]
-  qaModerationActions QaModerationAction[]
+  qaSuspendedAt        DateTime?
+  qaThreads            QaThread[]
+  qaModerationActions  QaModerationAction[]
 
   // M30/M32 — the one setting that gates both halves of the employer
   // portal at once (employer discovery browsing AND job-board access),
@@ -472,7 +472,7 @@ model Trainee {
   // trainee wanting only one of the two doesn't get to choose that
   // granularly. Off by default — opt-in only, full stop; a trainee
   // never appears to any employer without actively turning this on.
-  publiclyDiscoverable Boolean @default(false)
+  publiclyDiscoverable     Boolean                   @default(false)
   // M32 — the granular controls M30's own toggle comment above
   // pointed to: what a browsing employer actually sees BEFORE any
   // introduction exists, distinct from the per-action disclosure
@@ -485,8 +485,8 @@ model Trainee {
   // publiclyDiscoverable is true — turning the master toggle off
   // hides these along with everything else, not just the certificate
   // list.
-  discoverableHeadline String?
-  discoverableBio      String?
+  discoverableHeadline     String?
+  discoverableBio          String?
   discoverableCertificates DiscoverableCertificate[]
   // M37 — nullable, generated on demand by the trainee themselves, not
   // assigned automatically at account creation — "reachable only via
@@ -495,43 +495,43 @@ model Trainee {
   // field's schema comment): a separate, legible, opaque identifier
   // rather than the trainee's own cuid `id`, matching M15's
   // established pattern rather than inventing a new one.
-  publicProfileCode String? @unique
-  courseReviews CourseReview[]
-  introductionRequests IntroductionRequest[]
-  jobApplications      JobApplication[]
+  publicProfileCode        String?                   @unique
+  courseReviews            CourseReview[]
+  introductionRequests     IntroductionRequest[]
+  jobApplications          JobApplication[]
   // Course enrollment/subscription system — every payment attempt this
   // trainee has ever made, across every course.
-  payments             Payment[]
+  payments                 Payment[]
 
   // Universal profile system, Phase 1 — the richer, authenticated-only
   // profile surface (distinct from publicProfileCode's anonymous share
   // link above, which keeps its existing narrow scope untouched).
-  username        String?           @unique
-  location        String?
-  linkedinUrl     String?
-  githubUrl       String?
-  portfolioUrl    String?
+  username                String?           @unique
+  location                String?
+  linkedinUrl             String?
+  githubUrl               String?
+  portfolioUrl            String?
   currentEmploymentStatus EmploymentStatus?
   // Master toggle mirroring publiclyDiscoverable's own shape — the
   // specific INTERNSHIP/FREELANCE/FULL_TIME/PART_TIME multi-select
   // lives in availabilityTypes below, not here.
-  openToWork      Boolean           @default(false)
-  resumeUrl       String?
-  resumeUploadedAt DateTime?
-  profileVisibility ProfileVisibility @default(PRIVATE)
+  openToWork              Boolean           @default(false)
+  resumeUrl               String?
+  resumeUploadedAt        DateTime?
+  profileVisibility       ProfileVisibility @default(PRIVATE)
 
-  skills           TraineeSkill[]
-  education        Education[]
-  workExperiences  WorkExperience[]
-  projects         Project[]
+  skills            TraineeSkill[]
+  education         Education[]
+  workExperiences   WorkExperience[]
+  projects          Project[]
   availabilityTypes TraineeAvailabilityType[]
 
   @@index([email])
 }
 
 model Skill {
-  id       String @id @default(cuid())
-  name     String @unique
+  id       String  @id @default(cuid())
+  name     String  @unique
   category String?
 
   traineeSkills    TraineeSkill[]
@@ -615,10 +615,10 @@ model Project {
 // ---------------------------------------------------------------------
 
 model Course {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   title       String
   description String?
-  published   Boolean  @default(false)
+  published   Boolean @default(false)
 
   // M38 — Staff Early-Warning Dashboard. Null means disabled for this
   // course, not "use some default" — every course that already exists
@@ -648,8 +648,8 @@ model Course {
   // waiting to happen at the one place real money changes hands.
   // Null whenever isFree is true; the application layer is responsible
   // for keeping the two consistent — see courses.ts for that guard.
-  isFree    Boolean @default(true)
-  priceKobo Int?
+  isFree           Boolean          @default(true)
+  priceKobo        Int?
   // M26 — both null whenever isFree is true, same reasoning as
   // priceKobo above. `billingInterval` is a real, deliberate per-course
   // choice, not a single platform-wide setting — confirmed directly
@@ -667,7 +667,7 @@ model Course {
   // exactly the kind of mistake this project's own certificate bug
   // earlier in Stage 3 already proved a stale, unrefreshed reference
   // can cause.
-  billingInterval BillingInterval?
+  billingInterval  BillingInterval?
   paystackPlanCode String?
 
   // Course enrollment/subscription system — a SECOND, independent axis
@@ -687,31 +687,30 @@ model Course {
   //     into a live Paystack Plan resource — changing what it means
   //     would invalidate every Plan already created for existing paid
   //     courses.
-  accessModel CourseAccessModel @default(RECURRING_SUBSCRIPTION)
+  accessModel              CourseAccessModel   @default(RECURRING_SUBSCRIPTION)
   // Null when accessDurationUnit is LIFETIME (no expiry at all) or when
   // accessModel is RECURRING_SUBSCRIPTION (this pair is exclusively a
   // FIXED_DURATION concept) — validated together in coursePricing.ts,
   // the same single-source-of-truth validator billingInterval/priceKobo
   // already share.
-  accessDurationValue Int?
-  accessDurationUnit  AccessDurationUnit?
+  accessDurationValue      Int?
+  accessDurationUnit       AccessDurationUnit?
   // Reminders are scoped to FIXED_DURATION courses only. A
   // RECURRING_SUBSCRIPTION course already gets Paystack-driven
   // subscription.not_renew/invoice.payment_failed emails for the same
   // underlying "your access is ending" concern — a second, independent
   // reminder system on top would risk duplicate or conflicting
   // messaging for the same event, not add real value.
-  reminderEnabled          Boolean @default(false)
-  // A real Postgres native array, not a child table — deliberately
-  // different from this schema's own usual "real child table for
-  // anything repeatable" rule (Education, WorkExperience,
-  // DiscoverableCertificate all carry several real fields per row).
-  // This is genuinely just a short, order-irrelevant list of plain
-  // integers with zero per-item metadata; a child table here would be
-  // ceremony without benefit, and Prisma's native Int[] support on
-  // Postgres needs no extra preview feature (unlike the vector type
-  // Question.embedding already uses elsewhere in this same file).
-  reminderDaysBeforeExpiry Int[]   @default([7, 3, 1])
+  reminderEnabled          Boolean             @default(false)
+  reminderDaysBeforeExpiry Int[]               @default([7, 3, 1])
+
+  // Public Course Marketplace & Details extensions
+  comingSoon        Boolean  @default(false)
+  imageUrl          String?
+  objectives        String[] @default([])
+  prerequisites     String?
+  benefits          String[] @default([])
+  estimatedDuration String?
 
   // M41 — admin-configurable per course, not a fixed platform-wide
   // choice, matching the roadmap's own explicit scope. Defaults to
@@ -729,12 +728,12 @@ model Course {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  modules Module[]
+  modules           Module[]
   // M15
-  certificates Certificate[]
-  courseReviews CourseReview[]
+  certificates      Certificate[]
+  courseReviews     CourseReview[]
   // Whole-project audit recommendation: cohorts
-  cohorts Cohort[]
+  cohorts           Cohort[]
   // Post-M15 milestone: at most one course-wide examination per course
   // (see the courseId comment on Exam) — a real relation, not just the
   // foreign key, since the course page needs to look up "does this
@@ -742,7 +741,7 @@ model Course {
   courseExamination Exam?
   // Post-M15 milestone: motivational milestone badges, deliberately
   // separate from certificates — see the schema comment on Badge.
-  badges Badge[]
+  badges            Badge[]
   // Post-M15 milestone: real access control, distinct from Cohort —
   // see the schema comment on CourseEnrollment for why these are two
   // separate models with two separate jobs. Same field-naming
@@ -754,13 +753,13 @@ model Course {
   // FailedAttemptsAlert belongs to Exam instead — see that model's own
   // comment for why a single course-scoped model couldn't represent
   // both.
-  inactivityAlerts InactivityAlert[]
+  inactivityAlerts  InactivityAlert[]
   // Course enrollment/subscription system — every payment attempt
   // (pending, successful, or failed) for this course. See the Payment
   // model's own comment for why this is separate from PaystackEvent
   // (raw webhook audit log) and from CourseEnrollment (current-state
   // access row, still exactly one per trainee per course).
-  payments Payment[]
+  payments          Payment[]
 
   @@index([published])
 }
@@ -803,7 +802,7 @@ model Lesson {
   materials Material[]
 
   // M12
-  progress LessonProgress[]
+  progress  LessonProgress[]
   // M41
   qaThreads QaThread[]
 
@@ -811,9 +810,9 @@ model Lesson {
 }
 
 model Material {
-  id        String       @id @default(cuid())
+  id        String             @id @default(cuid())
   lessonId  String
-  lesson    Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lesson    Lesson             @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   type      MaterialType
   title     String
   // M40 — updated to reflect the real range of what an admin actually
@@ -823,15 +822,15 @@ model Material {
   // the file (hosting the file itself is a later concern, not an M10
   // one).
   url       String
-  order     Int          @default(0)
-  createdAt DateTime     @default(now())
+  order     Int                @default(0)
+  createdAt DateTime           @default(now())
   // M40 — the one new field this milestone needed on an otherwise-
   // unchanged model: without a real "last changed" timestamp, there
   // was no way to know whether a material a trainee downloaded for
   // offline reading has since changed, which this milestone's own
   // scope requires notifying them about. Prisma-managed, not
   // hand-set — every write to this row updates it automatically.
-  updatedAt DateTime     @updatedAt
+  updatedAt DateTime           @updatedAt
   downloads MaterialDownload[]
 
   // Loop Question Bank
@@ -941,45 +940,45 @@ model ModuleCompletion {
 }
 
 model Exam {
-  id                 String   @id @default(cuid())
-  code               String   @unique // e.g. AAICBI-EXCEL-2026 — used in the student URL for a
-                                       // non-module exam, and still auto-generated for a
-                                       // module-scoped one too (kept for admin/debug reference
-                                       // and so the by-code route still resolves it if ever
-                                       // needed) even though a trainee reaches a module
-                                       // assessment via course navigation, not this code.
-  title              String
-  description        String?
-  course             String? // free-text label, predates the real Course relation below —
-                              // still used by non-module exams; a module-scoped exam ignores it
-  module             String? // ditto — free-text, superseded by moduleId for module exams
-  cohort             String?
+  id                    String  @id @default(cuid())
+  code                  String  @unique // e.g. AAICBI-EXCEL-2026 — used in the student URL for a
+  // non-module exam, and still auto-generated for a
+  // module-scoped one too (kept for admin/debug reference
+  // and so the by-code route still resolves it if ever
+  // needed) even though a trainee reaches a module
+  // assessment via course navigation, not this code.
+  title                 String
+  description           String?
+  course                String? // free-text label, predates the real Course relation below —
+  // still used by non-module exams; a module-scoped exam ignores it
+  module                String? // ditto — free-text, superseded by moduleId for module exams
+  cohort                String?
   // M11: set when this Exam IS a Module's assessment. Null for a
   // standalone, by-code exam (the pre-M11, non-course-attached shape,
   // still fully supported). @unique enforces "at most one assessment
   // per module." onDelete: Cascade means deleting a Module also
   // deletes its assessment and every Attempt/Answer under it — matches
   // Course/Module/Lesson/Material's existing cascade behavior.
-  moduleId           String?  @unique
+  moduleId              String? @unique
   // Named `courseModule` (not `module`) only because the legacy
   // free-text `module` field above already owns that name — this is
   // the real relation; that one is just a label.
-  courseModule       Module?  @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  instructions       String?
-  durationMinutes    Int      @default(60)
-  passMarkPercent    Int      @default(80)
-  numQuestions       Int? // how many to draw from the bank per attempt; null = all
-  maxAttempts        Int? // null = unlimited
-  randomizeQuestions Boolean  @default(true)
-  randomizeOptions   Boolean  @default(true)
+  courseModule          Module? @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  instructions          String?
+  durationMinutes       Int     @default(60)
+  passMarkPercent       Int     @default(80)
+  numQuestions          Int? // how many to draw from the bank per attempt; null = all
+  maxAttempts           Int? // null = unlimited
+  randomizeQuestions    Boolean @default(true)
+  randomizeOptions      Boolean @default(true)
   showResultImmediately Boolean @default(true)
-  showCorrectAnswers Boolean  @default(false)
-  allowReview        Boolean  @default(true)
-  monitoringEnabled  Boolean  @default(false)
-  published          Boolean  @default(false)
+  showCorrectAnswers    Boolean @default(false)
+  allowReview           Boolean @default(true)
+  monitoringEnabled     Boolean @default(false)
+  published             Boolean @default(false)
 
   createdById String
-  createdBy   User   @relation(fields: [createdById], references: [id])
+  createdBy   User     @relation(fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -1019,8 +1018,8 @@ model Exam {
   // relation before renaming it — it was defined in the schema but
   // never actually used, which is exactly why this sat undetected
   // through the whole build.
-  courseId     String?  @unique
-  parentCourse Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId     String? @unique
+  parentCourse Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   // Hours a trainee must wait after an attempt before starting another
   // one. Null means no cooldown — every existing module assessment
@@ -1037,7 +1036,7 @@ model Exam {
 
   // Reverse side of CooldownOverride.exam — see that model's own
   // comment for the full reasoning.
-  cooldownOverrides CooldownOverride[]
+  cooldownOverrides    CooldownOverride[]
   // M38 — reverse side of FailedAttemptsAlert.exam. Every module
   // assessment can accumulate its own failed-attempts alert per
   // trainee, independent of every other exam, including other
@@ -1048,17 +1047,17 @@ model Exam {
 }
 
 model Question {
-  id           String       @id @default(cuid())
-  examId       String
-  exam         Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
-  text         String
-  type         QuestionType @default(SINGLE_CHOICE)
-  topic        String?
-  difficulty   Difficulty?  @default(BEGINNER)
-  explanation  String?
-  order        Int          @default(0)
-  needsReview  Boolean      @default(false)
-  reviewReason String?
+  id                      String       @id @default(cuid())
+  examId                  String
+  exam                    Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
+  text                    String
+  type                    QuestionType @default(SINGLE_CHOICE)
+  topic                   String?
+  difficulty              Difficulty?  @default(BEGINNER)
+  explanation             String?
+  order                   Int          @default(0)
+  needsReview             Boolean      @default(false)
+  reviewReason            String?
   // M21 — which module-bank question (if any) this one was AI-
   // generated from, for the course-examination review screen to show
   // side by side with the generated question. A real, structured
@@ -1074,9 +1073,9 @@ model Question {
   // independently-standing question by then, just missing a lineage
   // note.
   generatedFromQuestionId String?
-  generatedFromQuestion   Question?  @relation("QuestionGeneratedFrom", fields: [generatedFromQuestionId], references: [id], onDelete: SetNull)
-  generatedQuestions      Question[] @relation("QuestionGeneratedFrom")
-  createdAt    DateTime     @default(now())
+  generatedFromQuestion   Question?    @relation("QuestionGeneratedFrom", fields: [generatedFromQuestionId], references: [id], onDelete: SetNull)
+  generatedQuestions      Question[]   @relation("QuestionGeneratedFrom")
+  createdAt               DateTime     @default(now())
 
   // M11 duplicate detection — an embedding of this question's text +
   // options, computed once at import time (src/lib/embeddings.ts) and
@@ -1252,10 +1251,10 @@ model Attempt {
   expiresAt   DateTime
   submittedAt DateTime?
 
-  score        Int?
+  score          Int?
   totalQuestions Int?
-  percentage   Float?
-  passed       Boolean?
+  percentage     Float?
+  passed         Boolean?
 
   // M11 audit finding: `passed` used to be computed at submit time by
   // re-reading `exam.passMarkPercent` fresh — meaning if an instructor
@@ -1271,8 +1270,8 @@ model Attempt {
 
   questionOrder Json?
 
-  answers           Answer[]
-  suspiciousEvents  SuspiciousEvent[]
+  answers          Answer[]
+  suspiciousEvents SuspiciousEvent[]
 
   // M13
   performanceSummary PerformanceSummary?
@@ -1290,10 +1289,10 @@ model Attempt {
 }
 
 model Answer {
-  id         String   @id @default(cuid())
-  attemptId  String
-  attempt    Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  questionId String
+  id                String   @id @default(cuid())
+  attemptId         String
+  attempt           Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId        String
   // M11 audit finding: this had no onDelete clause at all before,
   // which — with no application-level check either — meant deleting a
   // Question that any trainee had ever answered (even in an old,
@@ -1304,10 +1303,10 @@ model Answer {
   // silently vanish because staff deleted the question it was
   // answered on) but DELETE /api/questions/[id] now pre-checks for
   // this and returns a clear, actionable 409 instead.
-  question   Question @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  question          Question @relation(fields: [questionId], references: [id], onDelete: Restrict)
   selectedOptionKey String?
-  isCorrect  Boolean?
-  answeredAt DateTime @default(now())
+  isCorrect         Boolean?
+  answeredAt        DateTime @default(now())
 
   @@unique([attemptId, questionId])
   @@index([attemptId])
@@ -1401,7 +1400,7 @@ model NotificationLog {
   // "EARLY_WARNING_STAFF" | "EARLY_WARNING_TRAINEE" — see
   // src/lib/notifications/log.ts for the authoritative list.
   type          String
-  channel       String @default("EMAIL") // "EMAIL" today; "WHATSAPP" is a real value once that channel is live — see whatsapp.ts
+  channel       String   @default("EMAIL") // "EMAIL" today; "WHATSAPP" is a real value once that channel is live — see whatsapp.ts
   // What this notification was ABOUT — a moduleId for MODULE_UNLOCKED,
   // an attemptId for ASSESSMENT_RESULT, a certificateId for
   // CERTIFICATE_ISSUED, null for account-level ones (welcome, password
@@ -1498,7 +1497,7 @@ model Certificate {
   // above: those are per-action (one specific introduction, one
   // specific application), this one is the ongoing browsing-level
   // choice.
-  discoverableListings DiscoverableCertificate[]
+  discoverableListings      DiscoverableCertificate[]
 
   @@unique([traineeId, courseId])
   @@index([traineeId])
@@ -1735,22 +1734,22 @@ enum PaymentStatus {
 // still never created until payment is confirmed, no orphaned
 // "pending enrollment" state introduced).
 model Payment {
-  id           String   @id @default(cuid())
+  id           String            @id @default(cuid())
   traineeId    String
-  trainee      Trainee  @relation(fields: [traineeId], references: [id])
+  trainee      Trainee           @relation(fields: [traineeId], references: [id])
   courseId     String
-  course       Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course       Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
   enrollmentId String?
   enrollment   CourseEnrollment? @relation(fields: [enrollmentId], references: [id])
-  reference    String   @unique
+  reference    String            @unique
   amountKobo   Int
-  currency     String   @default("NGN")
-  status       PaymentStatus @default(PENDING)
+  currency     String            @default("NGN")
+  status       PaymentStatus     @default(PENDING)
   // Paystack's own `channel` field (e.g. "card", "bank") — only ever
   // known once a charge actually completes, so this is always null at
   // initiation and populated at confirmation time, never before.
   method       String?
-  initiatedAt  DateTime  @default(now())
+  initiatedAt  DateTime          @default(now())
   confirmedAt  DateTime?
   failedAt     DateTime?
 
@@ -1768,12 +1767,12 @@ model Payment {
 // previous, already-lapsed period silently suppressing a genuinely new
 // reminder.
 model EnrollmentReminderSent {
-  id               String   @id @default(cuid())
+  id               String           @id @default(cuid())
   enrollmentId     String
   enrollment       CourseEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
   daysBeforeExpiry Int
   periodEnd        DateTime
-  sentAt           DateTime @default(now())
+  sentAt           DateTime         @default(now())
 
   @@unique([enrollmentId, periodEnd, daysBeforeExpiry])
 }
@@ -1788,15 +1787,15 @@ model EnrollmentReminderSent {
 // untracked backdoor" convention already stated on CooldownOverride
 // and AiCreditGrant.
 model AccessExtension {
-  id                String   @id @default(cuid())
+  id                String           @id @default(cuid())
   enrollmentId      String
   enrollment        CourseEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
   extendedById      String
-  extendedBy        User     @relation(fields: [extendedById], references: [id])
+  extendedBy        User             @relation(fields: [extendedById], references: [id])
   previousPeriodEnd DateTime?
   newPeriodEnd      DateTime
   reason            String
-  extendedAt        DateTime @default(now())
+  extendedAt        DateTime         @default(now())
 
   @@index([enrollmentId])
 }
@@ -1966,15 +1965,15 @@ model AiCreditGrant {
 // schema, since every other admin-configurable setting so far has
 // been per-course or per-trainee, never platform-wide.
 model PlatformSettings {
-  id                       String   @id @default("singleton")
-  defaultAiCreditAllowance Int      @default(0)
+  id                              String   @id @default("singleton")
+  defaultAiCreditAllowance        Int      @default(0)
   // M41 — how many open Q&A warnings a trainee accumulates before
   // this app automatically escalates to a suspension, matching the
   // roadmap's own "escalating to suspension if it persists" language.
   // A real, adjustable default (3), not a hardcoded constant — the
   // same "global default, admin-adjustable" shape already established
   // for defaultAiCreditAllowance right above.
-  qaWarningsBeforeSuspension Int    @default(3)
+  qaWarningsBeforeSuspension      Int      @default(3)
   // Settings-page redesign, Security category — session.ts's
   // `createSession` used to hardcode these three durations in a
   // constant (`SESSION_DURATION_BY_ROLE`), never admin-adjustable.
@@ -1985,9 +1984,9 @@ model PlatformSettings {
   // SUPER_ADMIN/ADMIN/INSTRUCTOR together, same grouping the old
   // constant already used — they share one workday-shaped session
   // length, not three independent ones.
-  staffSessionHours    Int @default(12)
-  traineeSessionDays   Int @default(7)
-  employerSessionHours Int @default(24)
+  staffSessionHours               Int      @default(12)
+  traineeSessionDays              Int      @default(7)
+  employerSessionHours            Int      @default(24)
   // Settings-page redesign, Payments category — the platform-wide
   // default reminder schedule offered when creating a new
   // FIXED_DURATION paid course (admin/courses/new's own reminderDays
@@ -1998,8 +1997,8 @@ model PlatformSettings {
   // bypassing the admin UI); this is only the UI's starting suggestion,
   // same "default the admin can override per-course" shape as
   // defaultAiCreditAllowance above.
-  defaultReminderDaysBeforeExpiry Int[] @default([7, 3, 1])
-  updatedAt                DateTime @updatedAt
+  defaultReminderDaysBeforeExpiry Int[]    @default([7, 3, 1])
+  updatedAt                       DateTime @updatedAt
 }
 
 enum QaScope {
@@ -2020,15 +2019,15 @@ enum QaScope {
 // a separate, manual roster system, never automatic on enrollment) —
 // both cases correctly mean "visible to everyone," not an error state.
 model QaThread {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   lessonId    String
-  lesson      Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   cohortId    String?
-  cohort      Cohort?   @relation(fields: [cohortId], references: [id], onDelete: SetNull)
+  cohort      Cohort?  @relation(fields: [cohortId], references: [id], onDelete: SetNull)
   createdById String
-  createdBy   Trainee   @relation(fields: [createdById], references: [id])
+  createdBy   Trainee  @relation(fields: [createdById], references: [id])
   title       String
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime @default(now())
 
   posts QaPost[]
 
@@ -2140,13 +2139,13 @@ model QaModerationAction {
 // natural extension of this one — don't quietly try to bolt it on
 // without designing the schema changes deliberately.
 model Cohort {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   courseId  String
-  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course    Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
   name      String // e.g. "January 2026 Intake"
   startDate DateTime?
   endDate   DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   enrollments EnrollmentRecord[]
   // M41 — see QaThread's own comment on why this is a snapshot at
@@ -2206,11 +2205,11 @@ enum EmployerApprovalState {
 // open self-signup), the same discipline applied here for a third
 // kind of account this app has never had before.
 model Employer {
-  id            String                @id @default(cuid())
-  companyName   String
-  contactName   String
-  email         String                @unique
-  passwordHash  String
+  id                    String                @id @default(cuid())
+  companyName           String
+  contactName           String
+  email                 String                @unique
+  passwordHash          String
   // Audit finding, closed here: the original registration only
   // collected a self-reported name and an email — genuinely nothing
   // an admin could independently verify before approving an account
@@ -2222,23 +2221,23 @@ model Employer {
   // presence stay optional — real signal when present, but not every
   // legitimate small employer maintains all three, so requiring them
   // would reject real companies for the wrong reason.
-  registrationNumber String
-  phone              String
-  website            String?
-  linkedinUrl        String?
-  otherSocialUrl     String?
-  approvalState EmployerApprovalState @default(PENDING)
-  approvedById  String?
-  approvedBy    User?                 @relation(fields: [approvedById], references: [id])
-  approvedAt    DateTime?
-  createdAt     DateTime              @default(now())
+  registrationNumber    String
+  phone                 String
+  website               String?
+  linkedinUrl           String?
+  otherSocialUrl        String?
+  approvalState         EmployerApprovalState @default(PENDING)
+  approvedById          String?
+  approvedBy            User?                 @relation(fields: [approvedById], references: [id])
+  approvedAt            DateTime?
+  createdAt             DateTime              @default(now())
   // M46 — the genuine gap found on a later audit pass: this was
   // originally marked done for trainee/staff only, since the Employer
   // model this field needs didn't exist yet at the time. Same
   // reasoning as Trainee.darkMode/User.darkMode above: off by default,
   // a real per-user database preference rather than a local browser
   // setting.
-  darkMode Boolean @default(true)
+  darkMode              Boolean               @default(true)
   // Same reasoning as Trainee.onboardingCompletedAt's own comment —
   // a real, dedicated per-account field rather than a bare boolean,
   // so the exact date is preserved as a genuine signal, not just
@@ -2259,11 +2258,11 @@ model Employer {
   // read from JobPostingSkill across this employer's live postings
   // (see that model's own comment), so it can't drift from what's
   // actually being recruited for.
-  logoUrl     String?
-  industry    String?
-  companySize String?
-  location    String?
-  description String?
+  logoUrl           String?
+  industry          String?
+  companySize       String?
+  location          String?
+  description       String?
   profileVisibility ProfileVisibility @default(AUTHENTICATED)
 
   introductionRequests IntroductionRequest[]
@@ -2301,7 +2300,7 @@ model IntroductionRequest {
   // profile, matching the roadmap's own explicit "per-action
   // disclosure, not a static public profile" decision.
   includeContactInfo Boolean?
-  respondedAt         DateTime?
+  respondedAt        DateTime?
 
   disclosedCertificates IntroductionDisclosedCertificate[]
 
@@ -2319,11 +2318,11 @@ model IntroductionRequest {
 // "how often has this certificate been shown to an employer" is a
 // real, answerable query rather than implicit in an opaque list.
 model IntroductionDisclosedCertificate {
-  id                     String               @id @default(cuid())
-  introductionRequestId  String
-  introductionRequest    IntroductionRequest  @relation(fields: [introductionRequestId], references: [id], onDelete: Cascade)
-  certificateId          String
-  certificate            Certificate          @relation(fields: [certificateId], references: [id])
+  id                    String              @id @default(cuid())
+  introductionRequestId String
+  introductionRequest   IntroductionRequest @relation(fields: [introductionRequestId], references: [id], onDelete: Cascade)
+  certificateId         String
+  certificate           Certificate         @relation(fields: [certificateId], references: [id])
 
   @@unique([introductionRequestId, certificateId])
   @@index([certificateId])
@@ -2666,7 +2665,7 @@ model LoopBroadcast {
   // A server-side constant at send time, never client-supplied — see
   // the send route's own comment for why this can never be
   // overridden by a request body.
-  senderLabel String @default("Loop — Systems Manager")
+  senderLabel    String @default("Loop — Systems Manager")
 
   // What Loop proposed and the admin confirmed. `recipientFilter` is
   // the structured criteria (the same RecipientFilter shape
@@ -2687,7 +2686,7 @@ model LoopBroadcast {
   body     String
 
   status LoopBroadcastStatus
-  sentAt DateTime @default(now())
+  sentAt DateTime            @default(now())
 
   @@index([authorizedById])
   @@index([sentAt])

@@ -82,7 +82,7 @@ export default async function LandingPage() {
             attempt. Finish a course, and you walk away with a real, publicly verifiable credential.
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-            <Button href="/trainee/courses" size="lg">
+            <Button href="/courses" size="lg">
               Browse Courses
             </Button>
             <Button href="/certificate" variant="secondary" size="lg">
