@@ -74,6 +74,6 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
       })
       .catch((e) => console.error(`Failed to create pending Payment record for reference ${reference}:`, e));
 
-    return NextResponse.json({ authorizationUrl, accessCode, reference });
+    return NextResponse.json({ authorizationUrl, accessCode, reference, email: trainee.email });
   });
 }

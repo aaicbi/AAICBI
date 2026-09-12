@@ -551,16 +551,20 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
     }).PaystackPop;
 
     if (PaystackPop && data.accessCode) {
-      const handler = PaystackPop.setup({
-        key: process.env.NEXT_PUBLIC_PAYSTACK_KEY || "",
+      const paystackOptions: Record<string, unknown> = {
         accessCode: data.accessCode,
+        email: data.email,
         onClose: () => {
           loadCourse();
         },
         callback: () => {
           loadCourse();
         },
-      });
+      };
+      if (process.env.NEXT_PUBLIC_PAYSTACK_KEY) {
+        paystackOptions.key = process.env.NEXT_PUBLIC_PAYSTACK_KEY;
+      }
+      const handler = PaystackPop.setup(paystackOptions);
       handler.openIframe();
     } else {
       // Fallback to full-page redirect if script wasn't loaded / accessCode missing
