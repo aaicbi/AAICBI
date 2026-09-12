@@ -525,6 +525,18 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
   async function pay() {
     setEnrolling(true);
     setEnrollError(null);
+
+    // Dynamically load Paystack Inline JS script if not already present
+    if (typeof window !== "undefined" && !(window as unknown as { PaystackPop?: unknown }).PaystackPop) {
+      await new Promise<void>((resolve) => {
+        const script = document.createElement("script");
+        script.src = "https://js.paystack.co/v1/inline.js";
+        script.onload = () => resolve();
+        script.onerror = () => resolve(); // proceed even if script fails to load
+        document.body.appendChild(script);
+      });
+    }
+
     const res = await fetch(`/api/courses/${params.id}/pay`, { method: "POST" });
     setEnrolling(false);
     if (!res.ok) {
@@ -533,10 +545,27 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
       return;
     }
     const data = await res.json();
-    // A real, full-page navigation to Paystack's own hosted checkout —
-    // not a fetch the app stays in control of. This is the one moment
-    // it deliberately hands off entirely.
-    window.location.href = data.authorizationUrl;
+
+    const PaystackPop = (window as unknown as {
+      PaystackPop?: { setup: (options: Record<string, unknown>) => { openIframe: () => void } };
+    }).PaystackPop;
+
+    if (PaystackPop && data.accessCode) {
+      const handler = PaystackPop.setup({
+        key: process.env.NEXT_PUBLIC_PAYSTACK_KEY || "",
+        accessCode: data.accessCode,
+        onClose: () => {
+          loadCourse();
+        },
+        callback: () => {
+          loadCourse();
+        },
+      });
+      handler.openIframe();
+    } else {
+      // Fallback to full-page redirect if script wasn't loaded / accessCode missing
+      window.location.href = data.authorizationUrl;
+    }
   }
 
   useEffect(() => {
