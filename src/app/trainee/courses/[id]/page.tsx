@@ -553,6 +553,7 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
     if (PaystackPop && data.accessCode) {
       const paystackOptions: Record<string, unknown> = {
         accessCode: data.accessCode,
+        email: data.email,
         onClose: () => {
           loadCourse();
         },
