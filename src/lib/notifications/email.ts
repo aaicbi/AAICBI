@@ -102,7 +102,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
   // probably wrong."
   if (!process.env.APP_URL) {
     console.warn(
-      "APP_URL is not set — this email's links point to http://localhost:3000, which real recipients can't reach. Set APP_URL before sending real notifications (see .env.example)."
+      "APP_URL is not set — this email's links point to https://aaicbi.org, which real recipients can't reach if hosting elsewhere. Set APP_URL before sending real notifications (see .env.example)."
     );
   }
 

@@ -110,7 +110,7 @@ export async function initializeCoursePayment(
     accessModel?: "RECURRING_SUBSCRIPTION" | "FIXED_DURATION";
   }
 ): Promise<{ authorizationUrl: string; reference: string }> {
-  const appUrl = process.env.APP_URL ?? "http://localhost:3000";
+  const appUrl = process.env.APP_URL ?? "https://aaicbi.org";
   // FIXED_DURATION is a one-time charge — no Paystack Plan/subscription
   // involved at all, since access length here is an app-computed
   // window (computeFixedAccessEnd), not something Paystack's own

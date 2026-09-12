@@ -29,7 +29,7 @@ export async function sendDueAccessExpiryReminders(): Promise<number> {
   });
 
   let sentCount = 0;
-  const appUrl = process.env.APP_URL ?? "http://localhost:3000";
+  const appUrl = process.env.APP_URL ?? "https://aaicbi.org";
 
   for (const course of courses) {
     for (const daysBeforeExpiry of course.reminderDaysBeforeExpiry) {

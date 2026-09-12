@@ -11,6 +11,6 @@
  * test email is a much smaller problem than a route crashing outright.
  */
 export function appUrl(path: string): string {
-  const base = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
+  const base = (process.env.APP_URL || "https://aaicbi.org").replace(/\/$/, "");
   return `${base}${path.startsWith("/") ? path : `/${path}`}`;
 }
