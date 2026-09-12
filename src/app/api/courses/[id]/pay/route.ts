@@ -61,7 +61,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
       return NextResponse.json({ error: "You already have access to this course." }, { status: 409 });
     }
 
-    const { authorizationUrl, reference } = await initializeCoursePayment(trainee, course);
+    const { authorizationUrl, accessCode, reference } = await initializeCoursePayment(trainee, course);
 
     // Course enrollment/subscription system — the initiating half of the
     // Payment ledger; processConfirmedCharge upserts this same row by
@@ -74,6 +74,6 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
       })
       .catch((e) => console.error(`Failed to create pending Payment record for reference ${reference}:`, e));
 
-    return NextResponse.json({ authorizationUrl });
+    return NextResponse.json({ authorizationUrl, accessCode, reference });
   });
 }

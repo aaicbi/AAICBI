@@ -92,7 +92,11 @@ export async function getOrCreatePlanForCourse(course: {
 
 const TransactionInitResponseSchema = z.object({
   status: z.boolean(),
-  data: z.object({ authorization_url: z.string(), reference: z.string() }),
+  data: z.object({
+    authorization_url: z.string(),
+    access_code: z.string().optional(),
+    reference: z.string(),
+  }),
 });
 
 export async function initializeCoursePayment(
@@ -109,7 +113,7 @@ export async function initializeCoursePayment(
     // paid courses) keeps compiling and behaving exactly as before.
     accessModel?: "RECURRING_SUBSCRIPTION" | "FIXED_DURATION";
   }
-): Promise<{ authorizationUrl: string; reference: string }> {
+): Promise<{ authorizationUrl: string; accessCode?: string; reference: string }> {
   const appUrl = process.env.APP_URL ?? "https://aaicbi.org";
   // FIXED_DURATION is a one-time charge — no Paystack Plan/subscription
   // involved at all, since access length here is an app-computed
@@ -177,5 +181,9 @@ export async function initializeCoursePayment(
     throw new Error("Paystack transaction initialize returned an unexpected response.");
   }
 
-  return { authorizationUrl: parsed.data.data.authorization_url, reference: parsed.data.data.reference };
+  return {
+    authorizationUrl: parsed.data.data.authorization_url,
+    accessCode: parsed.data.data.access_code,
+    reference: parsed.data.data.reference,
+  };
 }
