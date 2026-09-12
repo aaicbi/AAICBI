@@ -554,6 +554,7 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
       const paystackOptions: Record<string, unknown> = {
         accessCode: data.accessCode,
         email: data.email,
+        amount: data.amountKobo,
         onClose: () => {
           loadCourse();
         },
