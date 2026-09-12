@@ -103,7 +103,7 @@ async function sendPaymentReceipt(params: {
   currentPeriodEnd: Date | null;
   relatedId: string;
 }): Promise<void> {
-  const appUrl = process.env.APP_URL ?? "http://localhost:3000";
+  const appUrl = process.env.APP_URL ?? "https://aaicbi.org";
   const relativeUrl = `/trainee/courses/${params.courseId}`;
   const isRecurring = params.course.accessModel === "RECURRING_SUBSCRIPTION";
 

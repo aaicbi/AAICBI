@@ -80,7 +80,7 @@ async function expireLapsedEnrollments(scopeTraineeId?: string): Promise<number>
       prisma.course.findUnique({ where: { id: enrollment.courseId }, select: { title: true } }),
     ]);
     if (trainee && course && shouldNotifyTrainee(trainee)) {
-      const appUrl = process.env.APP_URL ?? "http://localhost:3000";
+      const appUrl = process.env.APP_URL ?? "https://aaicbi.org";
       const relativeUrl = `/trainee/courses/${enrollment.courseId}`;
       const content = subscriptionEndedEmail({
         traineeName: trainee.name,

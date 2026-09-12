@@ -19,7 +19,7 @@ import { isInactive, shouldTriggerInactivityAlert, shouldTriggerFailedAttemptsAl
 import { notifyByEmail, shouldNotifyTrainee } from "@/lib/notifications/log";
 import { earlyWarningStaffEmail, earlyWarningTraineeEmail } from "@/lib/notifications/templates";
 
-const APP_URL = process.env.APP_URL ?? "http://localhost:3000";
+const APP_URL = process.env.APP_URL ?? "https://aaicbi.org";
 
 /** A simple, total count of this trainee's failed attempts on this
  * ONE exam — not a rolling window, not combined across the course. */

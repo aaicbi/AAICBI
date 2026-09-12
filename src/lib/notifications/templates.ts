@@ -40,7 +40,7 @@ function wrapHtml(bodyHtml: string): string {
   // common case on first open) still shows the brand name text right
   // where the logo would be, and the bold "AAICBI" wordmark beside it
   // never depends on the image loading at all.
-  const appUrl = process.env.APP_URL ?? "http://localhost:3000";
+  const appUrl = process.env.APP_URL ?? "https://aaicbi.org";
   return `<!DOCTYPE html>
 <html>
   <body style="margin:0;padding:24px;background:#F7F4EE;font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;">
