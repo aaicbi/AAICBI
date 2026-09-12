@@ -100,12 +100,21 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // cron run.
     await expireLapsedEnrollmentsForTrainee(session.userId);
 
+    const existingEnrollment = await prisma.courseEnrollment.findUnique({
+      where: { traineeId_courseId: { traineeId: session.userId, courseId: course.id } },
+      select: { source: true, unlockedAt: true, accessRevokedAt: true, completedAt: true, currentPeriodEnd: true },
+    });
+
+    const isExpired = !!existingEnrollment?.accessRevokedAt;
     const enrolled = await hasCourseAccess(session.userId, course.id);
+
     if (!enrolled) {
       return NextResponse.json(
         {
-          error: "You're not enrolled in this course yet.",
-          notEnrolled: true,
+          error: isExpired ? "Your access to this course has expired." : "You're not enrolled in this course yet.",
+          notEnrolled: !isExpired,
+          expired: isExpired,
+          enrollmentStatus: isExpired ? "EXPIRED" : existingEnrollment ? (!existingEnrollment.unlockedAt ? "AWAITING_UNLOCK" : "NOT_ENROLLED") : "NOT_ENROLLED",
           course: { id: course.id, title: course.title, description: course.description, isFree: course.isFree, priceKobo: course.priceKobo, billingInterval: course.billingInterval },
         },
         { status: 403 }
@@ -207,11 +216,19 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // clock must never be able to misrepresent how much access is left.
     const myEnrollment = await prisma.courseEnrollment.findUnique({
       where: { traineeId_courseId: { traineeId: session.userId, courseId: course.id } },
-      select: { currentPeriodEnd: true },
+      select: { source: true, unlockedAt: true, accessRevokedAt: true, completedAt: true, currentPeriodEnd: true },
     });
     const daysRemaining = myEnrollment?.currentPeriodEnd
       ? Math.ceil((myEnrollment.currentPeriodEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
       : null;
+
+    const enrollmentStatus = myEnrollment?.completedAt
+      ? "COMPLETED"
+      : myEnrollment?.accessRevokedAt
+        ? "EXPIRED"
+        : !myEnrollment?.unlockedAt
+          ? "AWAITING_UNLOCK"
+          : "ACTIVE";
 
     return NextResponse.json({
       ...course,
@@ -222,6 +239,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       allModulesComplete,
       currentPeriodEnd: myEnrollment?.currentPeriodEnd ?? null,
       daysRemaining,
+      enrollmentStatus,
+      enrollmentSource: myEnrollment?.source ?? null,
+      isPaid: myEnrollment?.source === "PAID" || !course.isFree,
     });
   });
 }

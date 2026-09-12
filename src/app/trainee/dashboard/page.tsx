@@ -150,12 +150,21 @@ export default async function TraineeDashboardPage() {
           select: { id: true, title: true, modules: { select: { id: true } } },
         });
 
+  const enrollments = await prisma.courseEnrollment.findMany({
+    where: { traineeId: session.userId },
+    select: { courseId: true, source: true, accessRevokedAt: true },
+  });
+  const enrollmentByCourseId = new Map(enrollments.map((e) => [e.courseId, e]));
+
   const inProgress = (
     await Promise.all(
-      courses.map(async (course: { id: string; title: string; modules: { id: string }[] }) => {
+      courses.map(async (course: { id: string; title: string; isFree?: boolean; modules: { id: string }[] }) => {
         const lockMap = await getModuleLockMap(course.id, session.userId);
         const totalModules = course.modules.length;
         const completedModules = Object.values(lockMap).filter((m) => m.completed).length;
+        const enrollment = enrollmentByCourseId.get(course.id);
+        const isPaid = enrollment?.source === "PAID" || !course.isFree;
+        const isExpired = !!enrollment?.accessRevokedAt;
         return {
           courseId: course.id,
           courseTitle: course.title,
@@ -163,6 +172,8 @@ export default async function TraineeDashboardPage() {
           completedModules,
           percentComplete: totalModules === 0 ? 0 : Math.round((completedModules / totalModules) * 100),
           lastActivityAt: lastActivityByCourseId.get(course.id)!,
+          isPaid,
+          isExpired,
         };
       })
     )
@@ -286,7 +297,18 @@ export default async function TraineeDashboardPage() {
             for instance. */}
         {topCourse && (
           <Card variant="highlighted" className="mt-6">
-            <p className="text-xs font-semibold uppercase tracking-wide text-brand-teal">Continue Learning</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wide text-brand-teal">Continue Learning</p>
+              {topCourse.isPaid ? (
+                <span className="rounded-full bg-brand-mint px-2 py-0.5 text-[10px] font-semibold text-brand-teal">
+                  PAID ✓
+                </span>
+              ) : topCourse.isExpired ? (
+                <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-brand-rose">
+                  EXPIRED
+                </span>
+              ) : null}
+            </div>
             <p className="mt-1.5 font-display text-xl font-semibold text-brand-ink">{topCourse.courseTitle}</p>
             {resumeTarget && <p className="mt-1 text-sm text-gray-600">Next: {resumeTarget.label}</p>}
             <div className="mt-3 h-2 w-full rounded-full bg-gray-100">
@@ -366,7 +388,18 @@ export default async function TraineeDashboardPage() {
                 <Link key={c.courseId} href={`/trainee/courses/${c.courseId}`}>
                   <Card interactive className="hover:border-brand-teal">
                     <div className="flex items-center justify-between">
-                      <span className="font-display text-sm font-semibold text-brand-ink">{c.courseTitle}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-display text-sm font-semibold text-brand-ink">{c.courseTitle}</span>
+                        {c.isPaid ? (
+                          <span className="rounded-full bg-brand-mint px-2 py-0.5 text-[10px] font-semibold text-brand-teal">
+                            PAID ✓
+                          </span>
+                        ) : c.isExpired ? (
+                          <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-brand-rose">
+                            EXPIRED
+                          </span>
+                        ) : null}
+                      </div>
                       <span className="text-xs text-gray-500">
                         {c.completedModules} of {c.totalModules} module{c.totalModules === 1 ? "" : "s"}
                       </span>

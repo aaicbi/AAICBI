@@ -131,6 +131,9 @@ interface CourseDto {
   accessModel: "RECURRING_SUBSCRIPTION" | "FIXED_DURATION";
   currentPeriodEnd: string | null;
   daysRemaining: number | null;
+  enrollmentStatus?: "ACTIVE" | "EXPIRED" | "COMPLETED" | "AWAITING_UNLOCK";
+  enrollmentSource?: "FREE" | "ADMIN_GRANTED" | "PAID" | null;
+  isPaid?: boolean;
 }
 
 const MATERIAL_ICON: Record<MaterialDto["type"], string> = {
@@ -476,11 +479,19 @@ interface NotEnrolledCourseDto {
   priceKobo: number | null;
   billingInterval: "MONTHLY" | "QUARTERLY" | "ANNUALLY" | null;
 }
+interface ForbiddenResponseDto {
+  error: string;
+  notEnrolled?: boolean;
+  expired?: boolean;
+  enrollmentStatus?: string;
+  course?: NotEnrolledCourseDto;
+}
 
 export default function TraineeCourseViewPage({ params }: { params: { id: string } }) {
   const [course, setCourse] = useState<CourseDto | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [notEnrolled, setNotEnrolled] = useState<NotEnrolledCourseDto | null>(null);
+  const [expiredInfo, setExpiredInfo] = useState<{ isExpired: boolean; course: NotEnrolledCourseDto } | null>(null);
   const [enrolling, setEnrolling] = useState(false);
   const [enrollError, setEnrollError] = useState<string | null>(null);
   const [openModule, setOpenModule] = useState<string | null>(null);
@@ -489,14 +500,17 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
     fetch(`/api/courses/${params.id}`)
       .then(async (r) => {
         if (r.status === 403) {
-          // M18/M19 — a real, distinct state from "not found": the
-          // course exists and is browsable, the trainee just isn't
-          // enrolled yet. Shows an actual enroll prompt with the
-          // course's basic info, not a generic 404.
-          const data = await r.json().catch(() => null);
-          setNotEnrolled(data?.course ?? null);
+          const data: ForbiddenResponseDto | null = await r.json().catch(() => null);
+          if (data?.expired && data?.course) {
+            setExpiredInfo({ isExpired: true, course: data.course });
+            setNotEnrolled(null);
+          } else {
+            setNotEnrolled(data?.course ?? null);
+            setExpiredInfo(null);
+          }
           return;
         }
+        setExpiredInfo(null);
         if (!r.ok) {
           setNotFound(true);
           return;
@@ -625,6 +639,38 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
       </>
     );
   }
+  if (expiredInfo) {
+    return (
+      <>
+        <SiteHeader nav={nav} right={<LogoutButton />} />
+        <main className="mx-auto max-w-2xl px-6 py-10">
+          <Card variant="highlighted">
+            <div className="flex items-center justify-between">
+              <h1 className="font-display text-xl font-semibold text-brand-ink">{expiredInfo.course.title}</h1>
+              <Badge variant="danger">EXPIRED</Badge>
+            </div>
+            {expiredInfo.course.description && <p className="mt-2 text-sm text-gray-600">{expiredInfo.course.description}</p>}
+            <div className="mt-4 rounded-lg border border-brand-rose bg-red-50 p-4 text-sm text-brand-rose">
+              <p className="font-semibold">Your course access has expired.</p>
+              <p className="mt-1 text-gray-700">
+                Restricted course materials are locked. Re-enroll or renew below to restore full access. Your past enrollment history and progress are safely preserved.
+              </p>
+            </div>
+            {enrollError && <p className="mt-3 text-sm text-brand-rose">{enrollError}</p>}
+            {expiredInfo.course.isFree ? (
+              <Button className="mt-4" onClick={enroll} loading={enrolling}>
+                Re-enroll (Free)
+              </Button>
+            ) : (
+              <Button className="mt-4" onClick={pay} loading={enrolling}>
+                Renew Access (₦{((expiredInfo.course.priceKobo ?? 0) / 100).toLocaleString()})
+              </Button>
+            )}
+          </Card>
+        </main>
+      </>
+    );
+  }
   if (notEnrolled) {
     return (
       <>
@@ -678,9 +724,49 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
     <>
       <SiteHeader nav={nav} right={<LogoutButton />} />
       <main className="mx-auto max-w-3xl px-6 py-10">
-        <h1 className="font-display text-2xl font-semibold text-brand-ink">{course.title}</h1>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="font-display text-2xl font-semibold text-brand-ink">{course.title}</h1>
+          <div className="flex items-center gap-2">
+            {course.isPaid ? (
+              <Badge variant="success">PAID ✓</Badge>
+            ) : course.isFree ? (
+              <Badge variant="neutral">FREE</Badge>
+            ) : null}
+            {course.enrollmentStatus === "EXPIRED" ? (
+              <Badge variant="danger">EXPIRED</Badge>
+            ) : course.enrollmentStatus === "ACTIVE" ? (
+              <Badge variant="success">ACCESS ACTIVE</Badge>
+            ) : course.enrollmentStatus === "COMPLETED" ? (
+              <Badge variant="gold">COMPLETED 🎓</Badge>
+            ) : null}
+          </div>
+        </div>
         <p className="mt-1 text-xs text-gray-500">Taught by {course.createdBy.name} · AAICBI Staff</p>
         {course.description && <p className="mt-1 text-sm text-gray-600">{course.description}</p>}
+
+        {/* Payment & Access Summary Strip */}
+        <Card className="mt-4 grid grid-cols-2 gap-3 p-4 text-xs sm:grid-cols-4">
+          <div>
+            <span className="text-gray-500 block">Payment Status</span>
+            <span className="font-semibold text-brand-ink">{course.isPaid ? "Paid ✓" : "Free"}</span>
+          </div>
+          <div>
+            <span className="text-gray-500 block">Access Status</span>
+            <span className="font-semibold text-brand-ink">{course.enrollmentStatus ?? "ACTIVE"}</span>
+          </div>
+          <div>
+            <span className="text-gray-500 block">Access Expiration</span>
+            <span className="font-semibold text-brand-ink">
+              {course.currentPeriodEnd ? new Date(course.currentPeriodEnd).toLocaleDateString() : "Lifetime / Unlimited"}
+            </span>
+          </div>
+          <div>
+            <span className="text-gray-500 block">Time Remaining</span>
+            <span className="font-semibold text-brand-ink">
+              {course.daysRemaining !== null ? `${course.daysRemaining} day(s)` : "N/A"}
+            </span>
+          </div>
+        </Card>
 
         {/* Course enrollment/subscription system — a status banner for
             a paid enrollment, matching task Section 17's dashboard

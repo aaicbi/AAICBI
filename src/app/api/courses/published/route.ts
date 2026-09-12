@@ -12,12 +12,38 @@ import { withApiErrors } from "@/lib/apiError";
  */
 export async function GET() {
   return withApiErrors(async () => {
-    await requireRole("TRAINEE");
+    const session = await requireRole("TRAINEE");
     const courses = await prisma.course.findMany({
       where: { published: true },
       orderBy: { createdAt: "desc" },
-      include: { _count: { select: { modules: true } } },
+      include: {
+        _count: { select: { modules: true } },
+        courseEnrollments: {
+          where: { traineeId: session.userId },
+          select: { source: true, unlockedAt: true, accessRevokedAt: true, completedAt: true },
+        },
+      },
     });
-    return NextResponse.json(courses);
+
+    const result = courses.map((c) => {
+      const enrollment = c.courseEnrollments[0] ?? null;
+      const isPaid = enrollment?.source === "PAID" || !c.isFree;
+      const isEnrolled = !!enrollment && !!enrollment.unlockedAt && !enrollment.accessRevokedAt;
+      const isExpired = !!enrollment?.accessRevokedAt;
+      return {
+        id: c.id,
+        title: c.title,
+        description: c.description,
+        isFree: c.isFree,
+        priceKobo: c.priceKobo,
+        billingInterval: c.billingInterval,
+        _count: c._count,
+        isPaid,
+        isEnrolled,
+        isExpired,
+      };
+    });
+
+    return NextResponse.json(result);
   });
 }

@@ -13,6 +13,10 @@ interface CourseRow {
   id: string;
   title: string;
   description: string | null;
+  isFree: boolean;
+  isPaid: boolean;
+  isEnrolled: boolean;
+  isExpired: boolean;
   _count: { modules: number };
 }
 
@@ -77,7 +81,22 @@ export default function TraineeCoursesPage() {
             <Link key={course.id} href={`/trainee/courses/${course.id}`}>
               <Card interactive className="flex items-center justify-between hover:border-brand-teal">
                 <div>
-                  <div className="font-display text-base font-semibold text-brand-ink">{course.title}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-display text-base font-semibold text-brand-ink">{course.title}</span>
+                    {course.isPaid && course.isEnrolled ? (
+                      <span className="rounded-full bg-brand-mint px-2 py-0.5 text-[10px] font-semibold text-brand-teal">
+                        PAID ✓
+                      </span>
+                    ) : course.isExpired ? (
+                      <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-brand-rose">
+                        EXPIRED
+                      </span>
+                    ) : course.isFree ? (
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600">
+                        FREE
+                      </span>
+                    ) : null}
+                  </div>
                   {course.description && <div className="mt-0.5 text-sm text-gray-600">{course.description}</div>}
                   <div className="mt-1.5 text-xs text-gray-500">
                     {course._count.modules} module{course._count.modules === 1 ? "" : "s"}

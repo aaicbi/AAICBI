@@ -274,6 +274,15 @@ export async function processConfirmedCharge(reference: string): Promise<Process
         currentPeriodEnd,
         relatedId: enrollment.id,
       });
+
+      const adminContent = {
+        subject: `New Payment Received: ${course.title}`,
+        html: `<p>Trainee <strong>${trainee.name}</strong> (${trainee.email}) paid ₦${(expectedAmountKobo / 100).toLocaleString()} for <strong>${course.title}</strong> (Ref: ${reference}).</p>`,
+        text: `Trainee ${trainee.name} (${trainee.email}) paid ₦${(expectedAmountKobo / 100).toLocaleString()} for ${course.title} (Ref: ${reference}).`,
+      };
+      await notifyAllAdminStaff("PAYMENT_RECEIPT", enrollment.id, adminContent, "/admin/payments").catch(
+        (e) => console.error(`Failed to send admin payment notification for reference ${reference}:`, e)
+      );
     }
     console.log(`OTP issued for trainee ${traineeId}, course ${courseId}, reference ${reference} — awaiting verification before unlocking.`);
     // M45 — every successful paid charge grants a fresh batch of AI
@@ -317,6 +326,15 @@ export async function processConfirmedCharge(reference: string): Promise<Process
         currentPeriodEnd,
         relatedId: enrollment.id,
       });
+
+      const adminContent = {
+        subject: `Payment / Renewal Received: ${course.title}`,
+        html: `<p>Trainee <strong>${trainee.name}</strong> (${trainee.email}) paid ₦${(expectedAmountKobo / 100).toLocaleString()} for <strong>${course.title}</strong> (Ref: ${reference}).</p>`,
+        text: `Trainee ${trainee.name} (${trainee.email}) paid ₦${(expectedAmountKobo / 100).toLocaleString()} for ${course.title} (Ref: ${reference}).`,
+      };
+      await notifyAllAdminStaff("PAYMENT_RECEIPT", enrollment.id, adminContent, "/admin/payments").catch(
+        (e) => console.error(`Failed to send admin payment notification for reference ${reference}:`, e)
+      );
     }
 
     // Course enrollment/subscription system — a renewal landing with
