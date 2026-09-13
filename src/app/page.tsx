@@ -82,7 +82,11 @@ export default async function LandingPage() {
             attempt. Finish a course, and you walk away with a real, publicly verifiable credential.
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-            <Button href="/trainee/courses" size="lg">
+            {/* Course catalogue upgrade — this used to point at
+                /trainee/courses, which forced a login wall before a
+                visitor saw anything at all. /courses is the genuinely
+                public catalogue that closes that exact gap. */}
+            <Button href="/courses" size="lg">
               Browse Courses
             </Button>
             <Button href="/certificate" variant="secondary" size="lg">

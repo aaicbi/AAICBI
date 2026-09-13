@@ -80,7 +80,7 @@ export default async function TraineeDashboardPage() {
   await expireLapsedEnrollmentsForTrainee(session.userId);
 
   const [publishedCourseCount, certificates, notifications, unreadCount] = await Promise.all([
-    prisma.course.count({ where: { published: true } }),
+    prisma.course.count({ where: { status: "PUBLISHED" } }),
     prisma.certificate.findMany({
       where: { traineeId: session.userId, revokedAt: null },
       select: { code: true, issuedAt: true, course: { select: { title: true } } },
@@ -146,7 +146,7 @@ export default async function TraineeDashboardPage() {
         // only, so an unpublished course a trainee once had activity in
         // doesn't show up here linking to a page that now 404s for them.
         await prisma.course.findMany({
-          where: { id: { in: courseIds }, published: true },
+          where: { id: { in: courseIds }, status: "PUBLISHED" },
           select: { id: true, title: true, modules: { select: { id: true } } },
         });
 

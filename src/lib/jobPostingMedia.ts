@@ -34,7 +34,9 @@ export function validateJobPostingMediaFile(file: { type: string; size: number }
 }
 
 export async function uploadJobPostingMedia(file: File, pathPrefix: string): Promise<string> {
-  const blob = await put(`job-postings/${pathPrefix}-${Date.now()}`, file, { access: "public" });
+  // addRandomSuffix explicit — @vercel/blob 1.0.0+ defaults this to
+  // false; this app still wants unguessable, collision-proof URLs.
+  const blob = await put(`job-postings/${pathPrefix}-${Date.now()}`, file, { access: "public", addRandomSuffix: true });
   return blob.url;
 }
 

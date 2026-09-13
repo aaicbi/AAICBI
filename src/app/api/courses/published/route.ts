@@ -14,7 +14,7 @@ export async function GET() {
   return withApiErrors(async () => {
     const session = await requireRole("TRAINEE");
     const courses = await prisma.course.findMany({
-      where: { published: true },
+      where: { status: "PUBLISHED" },
       orderBy: { createdAt: "desc" },
       include: {
         _count: { select: { modules: true } },
@@ -37,6 +37,12 @@ export async function GET() {
         isFree: c.isFree,
         priceKobo: c.priceKobo,
         billingInterval: c.billingInterval,
+        // Course catalogue upgrade — a few new display fields for the
+        // browse-list cards, matching what the public catalogue list
+        // (GET /api/courses/public) already shows.
+        category: c.category,
+        level: c.level,
+        flyerUrl: c.showFlyer ? c.flyerUrl : null,
         _count: c._count,
         isPaid,
         isEnrolled,

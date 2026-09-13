@@ -17,8 +17,14 @@ interface CourseRow {
   isPaid: boolean;
   isEnrolled: boolean;
   isExpired: boolean;
+  // Course catalogue upgrade
+  category: string | null;
+  level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | null;
+  flyerUrl: string | null;
   _count: { modules: number };
 }
+
+const LEVEL_LABEL: Record<string, string> = { BEGINNER: "Beginner", INTERMEDIATE: "Intermediate", ADVANCED: "Advanced" };
 
 export default function TraineeCoursesPage() {
   const [courses, setCourses] = useState<CourseRow[] | null>(null);
@@ -79,9 +85,15 @@ export default function TraineeCoursesPage() {
 
           {courses?.map((course) => (
             <Link key={course.id} href={`/trainee/courses/${course.id}`}>
-              <Card interactive className="flex items-center justify-between hover:border-brand-teal">
-                <div>
-                  <div className="flex items-center gap-2">
+              <Card interactive className="flex items-center gap-4 hover:border-brand-teal">
+                {course.flyerUrl && (
+                  <div className="h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-brand-mint">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- a real, dynamically-uploaded external URL. */}
+                    <img src={course.flyerUrl} alt="" className="h-full w-full object-cover" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="font-display text-base font-semibold text-brand-ink">{course.title}</span>
                     {course.isPaid && course.isEnrolled ? (
                       <span className="rounded-full bg-brand-mint px-2 py-0.5 text-[10px] font-semibold text-brand-teal">
@@ -96,9 +108,15 @@ export default function TraineeCoursesPage() {
                         FREE
                       </span>
                     ) : null}
+                    {course.level && (
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600">
+                        {LEVEL_LABEL[course.level]}
+                      </span>
+                    )}
                   </div>
                   {course.description && <div className="mt-0.5 text-sm text-gray-600">{course.description}</div>}
                   <div className="mt-1.5 text-xs text-gray-500">
+                    {course.category && `${course.category} · `}
                     {course._count.modules} module{course._count.modules === 1 ? "" : "s"}
                   </div>
                 </div>

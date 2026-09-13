@@ -24,6 +24,17 @@ export default function TraineeRegisterPage() {
 function TraineeRegisterForm() {
   const searchParams = useSearchParams();
   const oauthErrorCode = searchParams.get("error");
+  // Course catalogue upgrade — registration itself has no session to
+  // redirect with (it emails a verification link rather than logging
+  // the trainee in directly), so `next` doesn't drive a redirect here.
+  // Instead it's forwarded onto the "sign in" links this page already
+  // renders, using the exact same safe-redirect validation
+  // trainee/login/page.tsx already applies, so the chain "public course
+  // page -> sign up -> verify email -> sign in -> land back on the
+  // course" survives all the way through.
+  const next = searchParams.get("next");
+  const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
+  const loginHref = safeNext ? `/trainee/login?next=${encodeURIComponent(safeNext)}` : "/trainee/login";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -80,7 +91,7 @@ function TraineeRegisterForm() {
           <p className="mt-3 text-sm text-gray-600">
             Your account has been created. We&apos;ve sent a verification link to your email address — click it to
             activate your account, then{" "}
-            <a href="/trainee/login" className="text-brand-teal hover:underline">
+            <a href={loginHref} className="text-brand-teal hover:underline">
               sign in
             </a>
             . Didn&apos;t get it? Check your spam folder, or ask an admin for help.
@@ -186,7 +197,7 @@ function TraineeRegisterForm() {
 
         <p className="mt-4 text-center text-xs text-gray-500">
           Already have an account?{" "}
-          <a href="/trainee/login" className="text-brand-teal hover:underline">
+          <a href={loginHref} className="text-brand-teal hover:underline">
             Sign in
           </a>
         </p>

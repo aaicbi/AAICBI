@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { initializeCoursePayment } from "@/lib/paystack/subscription";
+import { isCoursePubliclyVisible } from "@/lib/courseStatus";
 
 /**
  * POST /api/courses/[id]/pay — the paid counterpart to
@@ -29,7 +30,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
       select: {
         id: true,
         title: true,
-        published: true,
+        status: true,
         isFree: true,
         priceKobo: true,
         billingInterval: true,
@@ -37,7 +38,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
         accessModel: true,
       },
     });
-    if (!course || !course.published) {
+    if (!course || !isCoursePubliclyVisible(course.status)) {
       return NextResponse.json({ error: "Course not found." }, { status: 404 });
     }
     if (course.isFree) {

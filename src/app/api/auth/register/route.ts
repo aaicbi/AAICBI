@@ -137,9 +137,9 @@ export async function POST(req: NextRequest) {
       try {
         const course = await prisma.course.findUnique({
           where: { id: parsed.data.courseId },
-          select: { id: true, published: true, isFree: true },
+          select: { id: true, status: true, isFree: true },
         });
-        if (course?.published && course.isFree) {
+        if (course?.status === "PUBLISHED" && course.isFree) {
           await prisma.courseEnrollment.create({
             data: { traineeId: trainee.id, courseId: course.id, source: "FREE", unlockedAt: new Date() },
           });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
+import { isCoursePubliclyVisible } from "@/lib/courseStatus";
 
 /**
  * POST /api/courses/[id]/enroll — genuinely minimal, on purpose. Just
@@ -18,9 +19,9 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
     const course = await prisma.course.findUnique({
       where: { id: params.id },
-      select: { id: true, published: true, isFree: true },
+      select: { id: true, status: true, isFree: true },
     });
-    if (!course || !course.published) {
+    if (!course || !isCoursePubliclyVisible(course.status)) {
       return NextResponse.json({ error: "Course not found." }, { status: 404 });
     }
     if (!course.isFree) {

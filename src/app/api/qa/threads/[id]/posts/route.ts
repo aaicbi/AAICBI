@@ -9,6 +9,7 @@ import { getTraineeCohortForCourse } from "@/lib/qaScope";
 import { notifyByEmail, shouldNotifyTrainee } from "@/lib/notifications/log";
 import { qaReplyEmail } from "@/lib/notifications/templates";
 import { appUrl } from "@/lib/appUrl";
+import { isCoursePubliclyVisible } from "@/lib/courseStatus";
 
 const ReplySchema = z.object({ content: z.string().trim().min(1) });
 
@@ -43,14 +44,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
               select: {
                 id: true,
                 courseId: true,
-                course: { select: { published: true, createdById: true } },
+                course: { select: { status: true, createdById: true } },
               },
             },
           },
         },
       },
     });
-    if (!thread || !thread.lesson.module.course.published) {
+    if (!thread || !isCoursePubliclyVisible(thread.lesson.module.course.status)) {
       return NextResponse.json({ error: "Thread not found." }, { status: 404 });
     }
     const courseId = thread.lesson.module.courseId;

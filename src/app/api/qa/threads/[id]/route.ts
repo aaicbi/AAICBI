@@ -5,6 +5,7 @@ import { withApiErrors } from "@/lib/apiError";
 import { hasCourseAccess } from "@/lib/courseAccess";
 import { getModuleLockStatus } from "@/lib/progress";
 import { getTraineeCohortForCourse } from "@/lib/qaScope";
+import { isCoursePubliclyVisible } from "@/lib/courseStatus";
 
 /**
  * GET /api/qa/threads/[id] — a single thread with all its posts.
@@ -36,7 +37,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         lesson: {
           select: {
             module: {
-              select: { id: true, courseId: true, course: { select: { published: true, createdById: true } } },
+              select: { id: true, courseId: true, course: { select: { status: true, createdById: true } } },
             },
           },
         },
@@ -46,7 +47,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         },
       },
     });
-    if (!thread || !thread.lesson.module.course.published) {
+    if (!thread || !isCoursePubliclyVisible(thread.lesson.module.course.status)) {
       return NextResponse.json({ error: "Thread not found." }, { status: 404 });
     }
     const courseId = thread.lesson.module.courseId;

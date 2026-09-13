@@ -276,7 +276,7 @@ export async function getPlatformOverview() {
   ] = await Promise.all([
     prisma.trainee.count(),
     prisma.employer.groupBy({ by: ["approvalState"], _count: { _all: true } }),
-    prisma.course.count({ where: { published: true } }),
+    prisma.course.count({ where: { status: "PUBLISHED" } }),
     prisma.courseEnrollment.count({ where: { accessRevokedAt: null, unlockedAt: { not: null } } }),
     prisma.payment.aggregate({ where: { status: "SUCCESS" }, _sum: { amountKobo: true } }),
     prisma.employer.count({ where: { approvalState: "PENDING" } }),

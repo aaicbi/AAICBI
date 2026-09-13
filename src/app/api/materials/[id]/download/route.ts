@@ -6,6 +6,7 @@ import { hasCourseAccess } from "@/lib/courseAccess";
 import { getModuleLockStatus } from "@/lib/progress";
 import { resolveDownloadUrl } from "@/lib/materialUrl";
 import { isPubliclyFetchableUrl } from "@/lib/ssrfGuard";
+import { isCoursePubliclyVisible } from "@/lib/courseStatus";
 
 /**
  * M40 — the actual tracking this milestone's content-change
@@ -106,14 +107,14 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
               select: {
                 id: true,
                 courseId: true,
-                course: { select: { published: true } },
+                course: { select: { status: true } },
               },
             },
           },
         },
       },
     });
-    if (!material || !material.lesson.module.course.published) {
+    if (!material || !isCoursePubliclyVisible(material.lesson.module.course.status)) {
       return NextResponse.json({ error: "Material not found." }, { status: 404 });
     }
 

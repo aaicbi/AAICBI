@@ -32,11 +32,12 @@ export function validateAvatarFile(file: { type: string; size: number }): string
 }
 
 export async function uploadAvatar(file: File, pathPrefix: string): Promise<string> {
-  // addRandomSuffix defaults to true, which is exactly right here —
-  // two different people uploading a file that happens to share a
-  // name shouldn't collide, and it means the URL itself can't be
-  // guessed from a predictable pattern.
-  const blob = await put(`avatars/${pathPrefix}-${Date.now()}`, file, { access: "public" });
+  // addRandomSuffix explicit — the SDK's own default flipped to false
+  // in @vercel/blob 1.0.0, but this app still wants it: two different
+  // people uploading a file that happens to share a name shouldn't
+  // collide, and it means the URL itself can't be guessed from a
+  // predictable pattern.
+  const blob = await put(`avatars/${pathPrefix}-${Date.now()}`, file, { access: "public", addRandomSuffix: true });
   return blob.url;
 }
 

@@ -60,6 +60,29 @@ enum Difficulty {
   ADVANCED
 }
 
+// Course catalogue upgrade — a real, closed set of course states,
+// additive alongside the existing Course.published boolean (see that
+// field's own updated comment for why the boolean stays rather than
+// being dropped). DRAFT/UNPUBLISHED/ARCHIVED are all treated
+// identically to today's published:false everywhere — this is a
+// richer vocabulary for the SAME single "is this publicly visible"
+// gate, not a change to what that gate does.
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  UNPUBLISHED
+  ARCHIVED
+}
+
+// Course catalogue upgrade — a genuinely new closed set (how the
+// training is delivered), same "real enum, not a duplicated string"
+// discipline as Difficulty/AttemptStatus above.
+enum TrainingFormat {
+  SELF_PACED
+  INSTRUCTOR_LED
+  HYBRID
+}
+
 enum QuestionType {
   SINGLE_CHOICE
   // MULTI_SELECT, TRUE_FALSE, FILL_BLANK, SHORT_ANSWER, MATCHING — future types.
@@ -618,7 +641,74 @@ model Course {
   id          String   @id @default(cuid())
   title       String
   description String?
+  // Course catalogue upgrade — DEPRECATED. Superseded by `status`
+  // below; kept here, unwritten-to going forward, only because
+  // dropping a column is a destructive migration this project's own
+  // history never runs. Every real read site has been migrated to
+  // `status` — see src/lib/courseStatus.ts.
   published   Boolean  @default(false)
+  status      CourseStatus @default(DRAFT)
+
+  // Course catalogue upgrade — marketing/discovery content. All
+  // optional: a course created before this feature (or one an admin
+  // simply hasn't filled in yet) degrades gracefully to a plainer
+  // page, never a broken one.
+  category         String?
+  // Reuses the existing Difficulty enum (already Question.difficulty's
+  // type) rather than inventing a duplicate 3-tier enum.
+  level            Difficulty?
+  // Deliberately NOT a reuse of accessDurationValue/accessDurationUnit
+  // below — those already mean something different and load-bearing
+  // (the real paid-access window for a FIXED_DURATION course).
+  // Conflating "6-week bootcamp" marketing copy with real billing
+  // duration is exactly the kind of stale-reuse bug this schema's own
+  // comments elsewhere already warn against. This is plain display
+  // text only, e.g. "6 weeks, 3 hrs/week".
+  durationDisplay  String?
+  trainingFormat   TrainingFormat?
+  // Free text per a deliberate decision: staff User profiles are
+  // capped at PRIVATE/AUTHENTICATED visibility by the existing
+  // Universal Profile System (Phase 4) — linking real staff accounts
+  // to a page now reachable by anonymous visitors would cut against
+  // that established privacy design. This is just display copy the
+  // admin types, e.g. "Jane Doe, Senior Data Analyst".
+  instructorNames  String?
+  // List-shaped marketing content — real Postgres arrays, matching
+  // reminderDaysBeforeExpiry's own precedent below, not a child table
+  // (no per-item metadata, order-irrelevant, admin-authored per
+  // course).
+  prerequisites    String[] @default([])
+  targetAudience   String?
+  skillsGained     String[] @default([])
+  learningOutcomes String[] @default([])
+  // Deliberately admin-authored per course, never a hardcoded list —
+  // "what to expect" varies genuinely by course.
+  whatToExpect     String[] @default([])
+
+  // Course catalogue upgrade — per-section visibility toggles.
+  // Individual typed columns, not a grouped Json blob, matching
+  // PlatformSettings's own precedent for conceptually-grouped settings
+  // that are always read together. All default to true — the safe,
+  // additive default: every existing course keeps its fuller marketing
+  // page automatically once content is filled in, nothing regresses to
+  // hidden on migration day.
+  showWhatYoullLearn     Boolean @default(true)
+  showOutline            Boolean @default(true)
+  showWhatToExpect       Boolean @default(true)
+  showRequirements       Boolean @default(true)
+  showAudience           Boolean @default(true)
+  showCurriculumDownload Boolean @default(true)
+  showFlyer              Boolean @default(true)
+
+  // Course catalogue upgrade — flyer image + curriculum document,
+  // uploaded via src/lib/courseFlyer.ts/courseCurriculum.ts (the same
+  // validate/upload/best-effort-delete-old shape already used by
+  // avatar.ts/resume.ts). Paired with an upload timestamp, matching
+  // Trainee.resumeUrl/resumeUploadedAt's existing shape.
+  flyerUrl             String?
+  flyerUploadedAt      DateTime?
+  curriculumUrl        String?
+  curriculumUploadedAt DateTime?
 
   // M38 — Staff Early-Warning Dashboard. Null means disabled for this
   // course, not "use some default" — every course that already exists
@@ -763,6 +853,7 @@ model Course {
   payments Payment[]
 
   @@index([published])
+  @@index([status])
 }
 
 model Module {

@@ -12,6 +12,8 @@ import LockedDoodle from "@/components/doodles/LockedDoodle";
 import AchievementDoodle from "@/components/doodles/AchievementDoodle";
 import { extractYouTubeId, extractGoogleDriveFileId } from "@/lib/materialUrl";
 import { useToast } from "@/components/ui/Toast";
+import CourseMarketingView from "@/components/courses/CourseMarketingView";
+import type { MarketingView } from "@/lib/courseMarketing";
 
 interface MaterialDto {
   id: string;
@@ -471,14 +473,14 @@ function LessonCompleteToggle({
  * teal/gray rather than alarming, matching that doodle's own stated
  * purpose ("not yet," not a failure state).
  */
-interface NotEnrolledCourseDto {
-  id: string;
-  title: string;
-  description: string | null;
-  isFree: boolean;
-  priceKobo: number | null;
-  billingInterval: "MONTHLY" | "QUARTERLY" | "ANNUALLY" | null;
-}
+// Course catalogue upgrade — widened to the full MarketingView shape;
+// the API now returns this same shape for both the "never enrolled"
+// and "access expired" cases, since both hit the same !enrolled
+// branch in courses/[id]/route.ts. The expired-access UI below still
+// only reads a handful of these fields (title/description/price) —
+// it's a "renew your access" prompt, not the full marketing re-pitch
+// the never-enrolled case now gets.
+type NotEnrolledCourseDto = MarketingView;
 interface ForbiddenResponseDto {
   error: string;
   notEnrolled?: boolean;
@@ -675,30 +677,31 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
     return (
       <>
         <SiteHeader nav={nav} right={<LogoutButton />} />
-        <main className="mx-auto max-w-2xl px-6 py-10">
-          <Card>
-            <h1 className="font-display text-xl font-semibold text-brand-ink">{notEnrolled.title}</h1>
-            {notEnrolled.description && <p className="mt-2 text-sm text-gray-600">{notEnrolled.description}</p>}
-            <p className="mt-4 text-sm text-gray-600">
-              You&apos;re not enrolled in this course yet.
-              {notEnrolled.isFree
-                ? " It's free — enroll below to get started."
-                : ` ₦${((notEnrolled.priceKobo ?? 0) / 100).toLocaleString()} / ${
-                    notEnrolled.billingInterval?.toLowerCase() ?? "month"
-                  } — you'll pay securely via Paystack.`}
-            </p>
-            {enrollError && <p className="mt-3 text-sm text-brand-rose">{enrollError}</p>}
-            {notEnrolled.isFree ? (
-              <Button className="mt-4" onClick={enroll} loading={enrolling}>
-                Enroll
-              </Button>
-            ) : (
-              <Button className="mt-4" onClick={pay} loading={enrolling}>
-                Pay & Enroll
-              </Button>
-            )}
-          </Card>
-        </main>
+        <CourseMarketingView
+          data={notEnrolled}
+          actions={
+            <div>
+              <p className="text-sm text-gray-600">
+                You&apos;re not enrolled in this course yet.
+                {notEnrolled.isFree
+                  ? " It's free — enroll below to get started."
+                  : ` ₦${((notEnrolled.priceKobo ?? 0) / 100).toLocaleString()} / ${
+                      notEnrolled.billingInterval?.toLowerCase() ?? "month"
+                    } — you'll pay securely via Paystack.`}
+              </p>
+              {enrollError && <p className="mt-2 text-sm text-brand-rose">{enrollError}</p>}
+              {notEnrolled.isFree ? (
+                <Button className="mt-3" onClick={enroll} loading={enrolling}>
+                  Enroll
+                </Button>
+              ) : (
+                <Button className="mt-3" onClick={pay} loading={enrolling}>
+                  Pay & Enroll
+                </Button>
+              )}
+            </div>
+          }
+        />
       </>
     );
   }

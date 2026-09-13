@@ -20,7 +20,7 @@ import { withApiErrors } from "@/lib/apiError";
 export async function GET() {
   return withApiErrors(async () => {
     const courses = await prisma.course.findMany({
-      where: { published: true, isFree: true },
+      where: { status: "PUBLISHED", isFree: true },
       orderBy: { createdAt: "desc" },
       select: { id: true, title: true, description: true },
     });

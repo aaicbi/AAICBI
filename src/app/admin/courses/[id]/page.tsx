@@ -5,6 +5,9 @@ import LogoutButton from "@/components/admin/LogoutButton";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { COURSE_STATUS_VALUES, COURSE_STATUS_LABEL } from "@/lib/courseStatus";
+import type { CourseStatus } from "@prisma/client";
+import CourseMarketingSettings, { type CourseMarketingFields } from "./CourseMarketingSettings";
 
 interface MaterialDto {
   id: string;
@@ -31,7 +34,7 @@ interface CourseDto {
   id: string;
   title: string;
   description: string | null;
-  published: boolean;
+  status: CourseStatus;
   modules: ModuleDto[];
   // M38
   inactivityThresholdDays: number | null;
@@ -49,6 +52,28 @@ interface CourseDto {
   accessDurationUnit: "DAYS" | "MONTHS" | "LIFETIME" | null;
   reminderEnabled: boolean;
   reminderDaysBeforeExpiry: number[];
+  // Course catalogue upgrade
+  category: string | null;
+  level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | null;
+  durationDisplay: string | null;
+  trainingFormat: "SELF_PACED" | "INSTRUCTOR_LED" | "HYBRID" | null;
+  instructorNames: string | null;
+  prerequisites: string[];
+  targetAudience: string | null;
+  skillsGained: string[];
+  learningOutcomes: string[];
+  whatToExpect: string[];
+  showWhatYoullLearn: boolean;
+  showOutline: boolean;
+  showWhatToExpect: boolean;
+  showRequirements: boolean;
+  showAudience: boolean;
+  showCurriculumDownload: boolean;
+  showFlyer: boolean;
+  flyerUrl: string | null;
+  flyerUploadedAt: string | null;
+  curriculumUrl: string | null;
+  curriculumUploadedAt: string | null;
 }
 
 /** Parses the { error: { fieldErrors, formErrors } | string } shapes the
@@ -95,18 +120,19 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
-  async function togglePublish() {
+  async function changeStatus(nextStatus: CourseStatus) {
     if (!course) return;
     setPublishError(null);
-    const nextPublished = !course.published;
-    if (nextPublished && course.modules.length === 0) {
+    // Same guard as before, now checked against a transition TO
+    // PUBLISHED specifically, rather than a binary toggle.
+    if (nextStatus === "PUBLISHED" && course.modules.length === 0) {
       setPublishError("Add at least one module before publishing.");
       return;
     }
     const res = await fetch(`/api/courses/${params.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ published: nextPublished }),
+      body: JSON.stringify({ status: nextStatus }),
     });
     if (!res.ok) {
       setPublishError(await readApiError(res, "Could not update the course. Try again."));
@@ -134,6 +160,22 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ qaScope }),
+    });
+    if (!res.ok) return readApiError(res, "Could not save. Try again.");
+    await loadCourse();
+    return null;
+  }
+
+  // Course catalogue upgrade — one PUT covers whichever marketing
+  // fields (or a single visibility toggle) the caller sends; every
+  // field is independently optional server-side, so a toggle flip and
+  // the full "Save course information" click both just go through this
+  // same function with different payload shapes.
+  async function updateMarketing(fields: Partial<CourseMarketingFields>): Promise<string | null> {
+    const res = await fetch(`/api/courses/${params.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fields),
     });
     if (!res.ok) return readApiError(res, "Could not save. Try again.");
     await loadCourse();
@@ -236,6 +278,44 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
     await loadCourse();
   }
 
+  // Course catalogue upgrade — reorder. No new endpoint: the existing
+  // PUT /api/modules/[id] and PUT /api/lessons/[id] routes already
+  // accept an optional `order`, confirmed directly before writing
+  // this — this just swaps `order` between two adjacent siblings with
+  // two sequential PUTs, the same "no new backend needed" reasoning
+  // the plan called for.
+  async function moveModule(moduleId: string, direction: "up" | "down") {
+    if (!course) return;
+    const sorted = [...course.modules].sort((a, b) => a.order - b.order);
+    const idx = sorted.findIndex((m) => m.id === moduleId);
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (idx === -1 || swapIdx < 0 || swapIdx >= sorted.length) return;
+    const a = sorted[idx];
+    const b = sorted[swapIdx];
+    await Promise.all([
+      fetch(`/api/modules/${a.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ order: b.order }) }),
+      fetch(`/api/modules/${b.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ order: a.order }) }),
+    ]);
+    await loadCourse();
+  }
+
+  async function moveLesson(moduleId: string, lessonId: string, direction: "up" | "down") {
+    if (!course) return;
+    const mod = course.modules.find((m) => m.id === moduleId);
+    if (!mod) return;
+    const sorted = [...mod.lessons].sort((a, b) => a.order - b.order);
+    const idx = sorted.findIndex((l) => l.id === lessonId);
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (idx === -1 || swapIdx < 0 || swapIdx >= sorted.length) return;
+    const a = sorted[idx];
+    const b = sorted[swapIdx];
+    await Promise.all([
+      fetch(`/api/lessons/${a.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ order: b.order }) }),
+      fetch(`/api/lessons/${b.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ order: a.order }) }),
+    ]);
+    await loadCourse();
+  }
+
   if (notFound) {
     return (
       <>
@@ -322,16 +402,24 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
             >
               🎓 Course Examination
             </a>
-            <button
-              onClick={togglePublish}
-              className={
-                course.published
-                  ? "rounded-lg border border-brand-gray px-4 py-2 text-sm font-semibold hover:border-brand-rose hover:text-brand-rose"
-                  : "rounded-lg bg-brand-teal px-4 py-2 text-sm font-semibold text-white hover:bg-brand-tealDeep"
-              }
+            <a
+              href={`/admin/courses/${params.id}/preview`}
+              className="mb-2 block text-xs font-semibold text-brand-teal hover:underline"
             >
-              {course.published ? "Unpublish" : "Publish"}
-            </button>
+              👁️ Preview as Trainee
+            </a>
+            <label className="mb-1 block text-xs font-semibold text-gray-500">Status</label>
+            <select
+              value={course.status}
+              onChange={(e) => changeStatus(e.target.value as CourseStatus)}
+              className="rounded-lg border border-brand-gray px-3 py-2 text-sm font-semibold"
+            >
+              {COURSE_STATUS_VALUES.map((s) => (
+                <option key={s} value={s}>
+                  {COURSE_STATUS_LABEL[s]}
+                </option>
+              ))}
+            </select>
             {publishError && <p className="mt-1 max-w-[16rem] text-xs text-brand-rose">{publishError}</p>}
           </div>
         </div>
@@ -346,9 +434,25 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
 
         <QaScopeSettings course={course} onSave={updateQaScope} showToast={showToast} />
 
+        <CourseMarketingSettings
+          courseId={course.id}
+          course={course}
+          onSave={updateMarketing}
+          onChanged={loadCourse}
+          showToast={showToast}
+        />
+
         <div className="mt-8 space-y-4">
-          {course.modules.map((mod) => (
-            <ModuleCard key={mod.id} module={mod} onChanged={loadCourse} onDelete={() => deleteModule(mod.id)} />
+          {course.modules.map((mod, i) => (
+            <ModuleCard
+              key={mod.id}
+              module={mod}
+              onChanged={loadCourse}
+              onDelete={() => deleteModule(mod.id)}
+              onMoveUp={i > 0 ? () => moveModule(mod.id, "up") : undefined}
+              onMoveDown={i < course.modules.length - 1 ? () => moveModule(mod.id, "down") : undefined}
+              onMoveLesson={moveLesson}
+            />
           ))}
         </div>
 
@@ -957,10 +1061,16 @@ function ModuleCard({
   module: mod,
   onChanged,
   onDelete,
+  onMoveUp,
+  onMoveDown,
+  onMoveLesson,
 }: {
   module: ModuleDto;
   onChanged: () => void;
   onDelete: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  onMoveLesson: (moduleId: string, lessonId: string, direction: "up" | "down") => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const [addingLesson, setAddingLesson] = useState(false);
@@ -1035,7 +1145,25 @@ function ModuleCard({
                 {mod.lessons.length} lesson{mod.lessons.length === 1 ? "" : "s"}
               </div>
             </button>
-            <div className="flex shrink-0 gap-3">
+            <div className="flex shrink-0 items-center gap-3">
+              <div className="flex gap-1">
+                <button
+                  onClick={onMoveUp}
+                  disabled={!onMoveUp}
+                  aria-label="Move module up"
+                  className="rounded border border-brand-gray px-1.5 py-0.5 text-xs disabled:opacity-30"
+                >
+                  ▲
+                </button>
+                <button
+                  onClick={onMoveDown}
+                  disabled={!onMoveDown}
+                  aria-label="Move module down"
+                  className="rounded border border-brand-gray px-1.5 py-0.5 text-xs disabled:opacity-30"
+                >
+                  ▼
+                </button>
+              </div>
               {/* M11 — a module's bank-backed assessment lives on its own
                   page (upload/review/publish is a much bigger surface
                   than fits inline in this already-611-line builder) */}
@@ -1055,8 +1183,15 @@ function ModuleCard({
 
       {expanded && !editing && (
         <div className="space-y-3 border-t border-brand-gray bg-gray-50/60 p-4">
-          {mod.lessons.map((lesson) => (
-            <LessonCard key={lesson.id} lesson={lesson} onChanged={onChanged} onDelete={() => deleteLesson(lesson.id)} />
+          {mod.lessons.map((lesson, i) => (
+            <LessonCard
+              key={lesson.id}
+              lesson={lesson}
+              onChanged={onChanged}
+              onDelete={() => deleteLesson(lesson.id)}
+              onMoveUp={i > 0 ? () => onMoveLesson(mod.id, lesson.id, "up") : undefined}
+              onMoveDown={i < mod.lessons.length - 1 ? () => onMoveLesson(mod.id, lesson.id, "down") : undefined}
+            />
           ))}
 
           {addingLesson ? (
@@ -1091,10 +1226,14 @@ function LessonCard({
   lesson,
   onChanged,
   onDelete,
+  onMoveUp,
+  onMoveDown,
 }: {
   lesson: LessonDto;
   onChanged: () => void;
   onDelete: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }) {
   const [addingMaterial, setAddingMaterial] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -1179,7 +1318,25 @@ function LessonCard({
           <div className="text-sm font-semibold text-gray-900">{lesson.title}</div>
           {lesson.description && <div className="text-xs text-gray-600">{lesson.description}</div>}
         </div>
-        <div className="flex shrink-0 gap-3">
+        <div className="flex shrink-0 items-center gap-3">
+          <div className="flex gap-1">
+            <button
+              onClick={onMoveUp}
+              disabled={!onMoveUp}
+              aria-label="Move lesson up"
+              className="rounded border border-brand-gray px-1.5 py-0.5 text-xs disabled:opacity-30"
+            >
+              ▲
+            </button>
+            <button
+              onClick={onMoveDown}
+              disabled={!onMoveDown}
+              aria-label="Move lesson down"
+              className="rounded border border-brand-gray px-1.5 py-0.5 text-xs disabled:opacity-30"
+            >
+              ▼
+            </button>
+          </div>
           <button onClick={() => setEditing(true)} className="text-xs font-semibold text-brand-teal hover:underline">
             Edit
           </button>

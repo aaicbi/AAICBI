@@ -9,12 +9,13 @@ import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
+import { COURSE_STATUS_LABEL, COURSE_STATUS_BADGE_VARIANT } from "@/lib/courseStatus";
 
 interface CourseRow {
   id: string;
   title: string;
   description: string | null;
-  published: boolean;
+  status: "DRAFT" | "PUBLISHED" | "UNPUBLISHED" | "ARCHIVED";
   _count: { modules: number };
 }
 
@@ -65,9 +66,7 @@ export default function AdminCoursesPage() {
                     <span>
                       {course._count.modules} module{course._count.modules === 1 ? "" : "s"}
                     </span>
-                    <Badge variant={course.published ? "success" : "neutral"}>
-                      {course.published ? "Published" : "Draft"}
-                    </Badge>
+                    <Badge variant={COURSE_STATUS_BADGE_VARIANT[course.status]}>{COURSE_STATUS_LABEL[course.status]}</Badge>
                   </div>
                 </div>
                 <span className="shrink-0 text-sm font-semibold text-brand-teal">Manage →</span>

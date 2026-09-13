@@ -24,7 +24,9 @@ export function validateResumeFile(file: { type: string; size: number }): string
 }
 
 export async function uploadResume(file: File, pathPrefix: string): Promise<string> {
-  const blob = await put(`resumes/${pathPrefix}-${Date.now()}`, file, { access: "public" });
+  // addRandomSuffix explicit — @vercel/blob 1.0.0+ defaults this to
+  // false; this app still wants unguessable, collision-proof URLs.
+  const blob = await put(`resumes/${pathPrefix}-${Date.now()}`, file, { access: "public", addRandomSuffix: true });
   return blob.url;
 }
 

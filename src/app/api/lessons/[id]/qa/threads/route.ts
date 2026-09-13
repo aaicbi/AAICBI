@@ -6,6 +6,7 @@ import { withApiErrors } from "@/lib/apiError";
 import { hasCourseAccess } from "@/lib/courseAccess";
 import { getModuleLockStatus } from "@/lib/progress";
 import { getTraineeCohortForCourse, qaThreadVisibilityFilter } from "@/lib/qaScope";
+import { isCoursePubliclyVisible } from "@/lib/courseStatus";
 
 const CreateThreadSchema = z.object({
   title: z.string().trim().min(3),
@@ -28,10 +29,10 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       where: { id: params.id },
       select: {
         id: true,
-        module: { select: { id: true, courseId: true, course: { select: { published: true, qaScope: true } } } },
+        module: { select: { id: true, courseId: true, course: { select: { status: true, qaScope: true } } } },
       },
     });
-    if (!lesson || !lesson.module.course.published) {
+    if (!lesson || !isCoursePubliclyVisible(lesson.module.course.status)) {
       return NextResponse.json({ error: "Lesson not found." }, { status: 404 });
     }
     const courseId = lesson.module.courseId;
@@ -78,10 +79,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       where: { id: params.id },
       select: {
         id: true,
-        module: { select: { id: true, courseId: true, course: { select: { published: true, qaScope: true } } } },
+        module: { select: { id: true, courseId: true, course: { select: { status: true, qaScope: true } } } },
       },
     });
-    if (!lesson || !lesson.module.course.published) {
+    if (!lesson || !isCoursePubliclyVisible(lesson.module.course.status)) {
       return NextResponse.json({ error: "Lesson not found." }, { status: 404 });
     }
     const courseId = lesson.module.courseId;

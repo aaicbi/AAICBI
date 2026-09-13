@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { getModuleLockStatus } from "@/lib/progress";
 import { hasCourseAccess } from "@/lib/courseAccess";
+import { isCoursePubliclyVisible } from "@/lib/courseStatus";
 
 const BodySchema = z.object({ completed: z.boolean() });
 
@@ -34,12 +35,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
     const lesson = await prisma.lesson.findUnique({
       where: { id: params.id },
-      select: { id: true, module: { select: { id: true, courseId: true, course: { select: { published: true } } } } },
+      select: { id: true, module: { select: { id: true, courseId: true, course: { select: { status: true } } } } },
     });
     // Same "don't confirm existence" reasoning as the course/module GET
     // routes: an unpublished course's lesson 404s for a trainee exactly
     // like a nonexistent one would.
-    if (!lesson || !lesson.module.course.published) {
+    if (!lesson || !isCoursePubliclyVisible(lesson.module.course.status)) {
       return NextResponse.json({ error: "Lesson not found." }, { status: 404 });
     }
 

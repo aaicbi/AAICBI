@@ -7,6 +7,9 @@ import { guardCourseDeletable } from "@/lib/deletionGuards";
 import { getModuleLockMap } from "@/lib/progress";
 import { validateCoursePricing } from "@/lib/coursePricing";
 import { hasCourseAccess, expireLapsedEnrollmentsForTrainee } from "@/lib/courseAccess";
+import { isCoursePubliclyVisible } from "@/lib/courseStatus";
+import { requireOwnedCourse } from "@/lib/courseOwnership";
+import { buildMarketingView } from "@/lib/courseMarketing";
 
 const fullTree = {
   createdBy: { select: { name: true } },
@@ -64,7 +67,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // else's course.
     const isOwner = isStaff && (session.role === "SUPER_ADMIN" || course.createdById === session.userId);
 
-    if (!course.published && !isOwner) {
+    if (!isCoursePubliclyVisible(course.status) && !isOwner) {
       // Same 404 whether the course doesn't exist or just isn't visible
       // to this requester — don't confirm a draft course's existence to
       // anyone who shouldn't see it.
@@ -115,7 +118,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           notEnrolled: !isExpired,
           expired: isExpired,
           enrollmentStatus: isExpired ? "EXPIRED" : existingEnrollment ? (!existingEnrollment.unlockedAt ? "AWAITING_UNLOCK" : "NOT_ENROLLED") : "NOT_ENROLLED",
-          course: { id: course.id, title: course.title, description: course.description, isFree: course.isFree, priceKobo: course.priceKobo, billingInterval: course.billingInterval },
+          // Course catalogue upgrade — the full pre-enrollment marketing
+          // view (outline titles, curriculum, flyer, etc.), the same
+          // shape-builder the staff preview route and the public
+          // catalogue detail route both use, so all three surfaces can
+          // never quietly drift apart on what a prospective trainee sees.
+          course: buildMarketingView(course),
         },
         { status: 403 }
       );
@@ -249,7 +257,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 const UpdateCourseSchema = z.object({
   title: z.string().min(3).optional(),
   description: z.string().nullable().optional(),
-  published: z.boolean().optional(),
+  status: z.enum(["DRAFT", "PUBLISHED", "UNPUBLISHED", "ARCHIVED"]).optional(),
   // Post-M15 milestone — see validateCoursePricing's own comment.
   isFree: z.boolean().optional(),
   priceKobo: z.number().int().positive().nullable().optional(),
@@ -287,15 +295,38 @@ const UpdateCourseSchema = z.object({
   // M41 — admin-configurable per course, matching the roadmap's own
   // explicit scope.
   qaScope: z.enum(["OPEN", "COHORT_SCOPED"]).optional(),
+
+  // Course catalogue upgrade — marketing/discovery content. All
+  // optional, all edited via CourseMarketingSettings on the builder
+  // page, same "settled after creation, not part of the create form"
+  // pattern as every other settings block on this page.
+  category: z.string().trim().max(100).nullable().optional(),
+  level: z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]).nullable().optional(),
+  durationDisplay: z.string().trim().max(100).nullable().optional(),
+  trainingFormat: z.enum(["SELF_PACED", "INSTRUCTOR_LED", "HYBRID"]).nullable().optional(),
+  instructorNames: z.string().trim().max(300).nullable().optional(),
+  prerequisites: z.array(z.string().trim().min(1).max(300)).max(20).optional(),
+  targetAudience: z.string().trim().max(1000).nullable().optional(),
+  skillsGained: z.array(z.string().trim().min(1).max(200)).max(30).optional(),
+  learningOutcomes: z.array(z.string().trim().min(1).max(300)).max(20).optional(),
+  whatToExpect: z.array(z.string().trim().min(1).max(200)).max(20).optional(),
+  showWhatYoullLearn: z.boolean().optional(),
+  showOutline: z.boolean().optional(),
+  showWhatToExpect: z.boolean().optional(),
+  showRequirements: z.boolean().optional(),
+  showAudience: z.boolean().optional(),
+  showCurriculumDownload: z.boolean().optional(),
+  showFlyer: z.boolean().optional(),
 });
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    const course = await prisma.course.findUnique({ where: { id: params.id } });
-    if (!course || course.createdById !== session.userId) {
-      return NextResponse.json({ error: "Course not found." }, { status: 404 });
-    }
+    // Course catalogue upgrade — folded into the shared requireOwnedCourse
+    // helper (courseOwnership.ts) instead of the inline check this route
+    // used to hand-roll; same "not found" wording either way, so no
+    // observable behavior change, just one fewer duplicated check.
+    const course = await requireOwnedCourse(params.id, session.userId);
 
     const body = await req.json();
     const parsed = UpdateCourseSchema.safeParse(body);
@@ -358,10 +389,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    const course = await prisma.course.findUnique({ where: { id: params.id } });
-    if (!course || course.createdById !== session.userId) {
-      return NextResponse.json({ error: "Course not found." }, { status: 404 });
-    }
+    await requireOwnedCourse(params.id, session.userId);
     // M11 audit finding — a Course delete cascades through every one
     // of its modules' assessments too; see deletionGuards.ts.
     await guardCourseDeletable(params.id);

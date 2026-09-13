@@ -5,6 +5,7 @@ import { withApiErrors } from "@/lib/apiError";
 import { hasCourseAccess } from "@/lib/courseAccess";
 import { getModuleLockStatus } from "@/lib/progress";
 import { getTraineeCohortForCourse } from "@/lib/qaScope";
+import { isCoursePubliclyVisible } from "@/lib/courseStatus";
 
 /**
  * POST /api/qa/posts/[id]/like — a toggle, not a separate like/unlike
@@ -40,7 +41,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
                   select: {
                     id: true,
                     courseId: true,
-                    course: { select: { published: true, createdById: true } },
+                    course: { select: { status: true, createdById: true } },
                   },
                 },
               },
@@ -49,7 +50,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
         },
       },
     });
-    if (!post || !post.thread.lesson.module.course.published) {
+    if (!post || !isCoursePubliclyVisible(post.thread.lesson.module.course.status)) {
       return NextResponse.json({ error: "Post not found." }, { status: 404 });
     }
     const courseId = post.thread.lesson.module.courseId;

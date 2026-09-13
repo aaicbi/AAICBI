@@ -56,7 +56,7 @@ export async function GET() {
       // course GET route already blocks an unpublished course for
       // anyone but its owner). Filtering here means the dashboard
       // never advertises a link that's guaranteed to fail.
-      where: { id: { in: courseIds }, published: true },
+      where: { id: { in: courseIds }, status: "PUBLISHED" },
       select: { id: true, title: true, modules: { select: { id: true } } },
     });
 
