@@ -5,9 +5,8 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { requireOwnedMaterial } from "@/lib/courseOwnership";
 import { safeUrl, isAllowedVideoUrl } from "@/lib/materialUrl";
-import { notifyByEmail, shouldNotifyTrainee } from "@/lib/notifications/log";
-import { materialUpdatedEmail } from "@/lib/notifications/templates";
-import { appUrl } from "@/lib/appUrl";
+import { notifyDownloadersOfMaterialChange } from "@/lib/notifications/materialChange";
+import { deleteLessonMaterialBestEffort } from "@/lib/lessonMaterial";
 
 const UpdateMaterialSchema = z.object({
   type: z.enum(["PDF", "DOCX", "PPTX", "VIDEO"]).optional(),
@@ -47,58 +46,18 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     // M40 — the actual content-change notification this milestone's
     // own scope requires. Only the URL genuinely represents different
     // content worth telling a trainee about — a title or ordering
-    // change doesn't affect what's sitting on their device. Every
-    // trainee who's ever downloaded this material gets notified again
-    // on every genuine change, not just the first — someone who was
-    // told about an earlier change they haven't acted on yet still
-    // deserves to know about a newer one, rather than that being
-    // silently folded into "already notified." Wrapped so a
-    // notification failure can never block the update that already
-    // succeeded, the same discipline used throughout this project.
+    // change doesn't affect what's sitting on their device. See
+    // notifyDownloadersOfMaterialChange for the full reasoning
+    // (extracted so the file-upload replace route can trigger the
+    // identical notification, not just a URL edit).
     if (parsed.data.url && parsed.data.url !== existing.url) {
-      try {
-        const downloads = await prisma.materialDownload.findMany({
-  where: { materialId: params.id },
-  select: {
-    id: true,
-    trainee: { select: { id: true, name: true, email: true, notificationsEnabled: true } },
-  },
-});
-        if (downloads.length > 0) {
-          // `existing` already carries lesson.module.course from
-          // requireOwnedMaterial's own include — no separate query
-          // needed for this.
-          const relativeUrl = `/trainee/courses/${existing.lesson.module.courseId}`;
-          const courseUrl = appUrl(relativeUrl);
-          for (const download of downloads) {
-            if (!shouldNotifyTrainee(download.trainee)) continue;
-            const content = materialUpdatedEmail({
-              traineeName: download.trainee.name,
-              materialTitle: updated.title,
-              courseTitle: existing.lesson.module.course.title,
-              courseUrl,
-            });
-            await notifyByEmail({
-              recipientType: "TRAINEE",
-              recipientId: download.trainee.id,
-              to: download.trainee.email,
-              type: "MATERIAL_UPDATED",
-              relatedId: params.id,
-              // Same audit sweep as MODULE_UNLOCKED/ASSESSMENT_RESULT.
-              url: relativeUrl,
-              subject: content.subject,
-              html: content.html,
-              text: content.text,
-            }).catch((e) => console.error(`Failed to send material-updated email to trainee ${download.trainee.id}:`, e));
-          }
-          await prisma.materialDownload.updateMany({
-            where: { materialId: params.id },
-            data: { notifiedOfChangeAt: new Date() },
-          });
-        }
-      } catch (e) {
-        console.error(`Material-updated notification failed for material ${params.id}:`, e);
-      }
+      await notifyDownloadersOfMaterialChange(params.id, updated.title, existing);
+      // Best-effort cleanup: if the material's old URL was a file this
+      // app itself uploaded (not an admin-pasted external link), and
+      // it's being replaced by a different URL, the old blob is now
+      // orphaned. isLessonMaterialBlobUrl guards against ever calling
+      // del() on an external link.
+      await deleteLessonMaterialBestEffort(existing.url);
     }
 
     return NextResponse.json(updated);
@@ -108,8 +67,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedMaterial(params.id, session.userId);
+    const existing = await requireOwnedMaterial(params.id, session.userId);
     await prisma.material.delete({ where: { id: params.id } });
+    await deleteLessonMaterialBestEffort(existing.url);
     return NextResponse.json({ ok: true });
   });
 }

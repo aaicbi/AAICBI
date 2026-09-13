@@ -368,7 +368,12 @@ function MaterialItem({ material, lowBandwidthMode }: { material: MaterialDto; l
           <div className="aspect-video w-full overflow-hidden rounded-lg border border-brand-gray bg-black">
             <YouTubeThumbnailPlayer videoId={videoId} title={material.title} lowBandwidthMode={lowBandwidthMode} />
           </div>
-          <DownloadButton materialId={material.id} title={material.title} />
+          {/* No download button here — YouTube's Terms of Service don't
+              allow downloading video content, and there's no legitimate
+              way to fetch raw file bytes from a watch URL, so this
+              button could only ever fail. See the download route's own
+              comment for the full reasoning; Drive-hosted video below
+              genuinely can be downloaded and keeps its button. */}
         </div>
       );
     }

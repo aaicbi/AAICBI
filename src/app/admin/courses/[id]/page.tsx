@@ -1241,24 +1241,44 @@ function LessonCard({
   const { confirm, modal } = useConfirmModal();
   const { showToast } = useToast();
 
-  async function addMaterial(type: string, title: string, url: string): Promise<string | null> {
-    const res = await fetch(`/api/lessons/${lesson.id}/materials`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, title, url }),
-    });
+  // urlOrFile is a string for the "paste a link" path (JSON, unchanged
+  // from before) or a File for the "upload a file" path (multipart,
+  // hitting the new .../materials/upload route instead).
+  async function addMaterial(type: string, title: string, urlOrFile: string | File): Promise<string | null> {
+    let res: Response;
+    if (typeof urlOrFile === "string") {
+      res = await fetch(`/api/lessons/${lesson.id}/materials`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, title, url: urlOrFile }),
+      });
+    } else {
+      const formData = new FormData();
+      formData.append("type", type);
+      formData.append("title", title);
+      formData.append("file", urlOrFile);
+      res = await fetch(`/api/lessons/${lesson.id}/materials/upload`, { method: "POST", body: formData });
+    }
     if (!res.ok) return readApiError(res, "Could not add the material. Try again.");
     setAddingMaterial(false);
     onChanged();
     return null;
   }
 
-  async function updateMaterial(materialId: string, type: string, title: string, url: string): Promise<string | null> {
-    const res = await fetch(`/api/materials/${materialId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, title, url }),
-    });
+  async function updateMaterial(materialId: string, type: string, title: string, urlOrFile: string | File): Promise<string | null> {
+    let res: Response;
+    if (typeof urlOrFile === "string") {
+      res = await fetch(`/api/materials/${materialId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, title, url: urlOrFile }),
+      });
+    } else {
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("file", urlOrFile);
+      res = await fetch(`/api/materials/${materialId}/upload`, { method: "POST", body: formData });
+    }
     if (!res.ok) return readApiError(res, "Could not save. Try again.");
     setEditingMaterialId(null);
     onChanged();
@@ -1396,6 +1416,12 @@ function LessonCard({
   );
 }
 
+const MATERIAL_FILE_ACCEPT: Record<string, string> = {
+  PDF: "application/pdf",
+  DOCX: ".doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  PPTX: ".ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation",
+};
+
 function MaterialForm({
   initialType = "PDF",
   initialTitle = "",
@@ -1409,13 +1435,21 @@ function MaterialForm({
   initialUrl?: string;
   submitLabel?: string;
   onCancel: () => void;
-  onSubmit: (type: string, title: string, url: string) => Promise<string | null>;
+  onSubmit: (type: string, title: string, urlOrFile: string | File) => Promise<string | null>;
 }) {
   const [type, setType] = useState(initialType);
   const [title, setTitle] = useState(initialTitle);
   const [url, setUrl] = useState(initialUrl);
+  const [file, setFile] = useState<File | null>(null);
+  // Upload is the default for PDF/DOCX/PPTX — matching what most
+  // admins actually have (a file on their machine, not an
+  // already-hosted link). VIDEO never gets this toggle at all; it's
+  // always a link.
+  const [mode, setMode] = useState<"upload" | "link">(initialType === "VIDEO" ? "link" : "upload");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const effectiveMode = type === "VIDEO" ? "link" : mode;
 
   return (
     <div className="mt-2 space-y-2 rounded-lg border border-brand-gray bg-gray-50 p-3">
@@ -1438,23 +1472,82 @@ function MaterialForm({
           className="flex-1 rounded border border-brand-gray px-2 py-1.5 text-xs"
         />
       </div>
-      <input
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        placeholder={type === "VIDEO" ? "https://youtube.com/watch?v=... (unlisted)" : "https://..."}
-        className="w-full rounded border border-brand-gray px-2 py-1.5 text-xs"
-      />
+
+      {type !== "VIDEO" && (
+        <div className="flex gap-3 text-xs text-gray-700">
+          <label className="flex items-center gap-1">
+            <input type="radio" checked={mode === "upload"} onChange={() => setMode("upload")} /> Upload a file
+          </label>
+          <label className="flex items-center gap-1">
+            <input type="radio" checked={mode === "link"} onChange={() => setMode("link")} /> Paste a link
+          </label>
+        </div>
+      )}
+
+      {effectiveMode === "link" ? (
+        <input
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder={type === "VIDEO" ? "https://youtube.com/watch?v=... (unlisted)" : "https://..."}
+          className="w-full rounded border border-brand-gray px-2 py-1.5 text-xs"
+        />
+      ) : (
+        <div>
+          {initialUrl && !file && (
+            <p className="mb-1 text-xs text-gray-600">
+              Current file:{" "}
+              <a href={initialUrl} target="_blank" rel="noopener noreferrer" className="text-brand-teal hover:underline">
+                view
+              </a>{" "}
+              — choose a new file below to replace it, or leave blank to keep it.
+            </p>
+          )}
+          <input
+            type="file"
+            accept={MATERIAL_FILE_ACCEPT[type]}
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            aria-label="Material file"
+            className="w-full text-xs"
+          />
+        </div>
+      )}
+
       {error && <p className="text-xs text-brand-rose">{error}</p>}
       <div className="flex gap-2">
         <button
           disabled={saving}
           onClick={async () => {
-            if (!title.trim() || !url.trim()) {
-              setError("Title and URL are both required.");
+            if (!title.trim()) {
+              setError("Enter a material title.");
+              return;
+            }
+            if (effectiveMode === "link") {
+              if (!url.trim()) {
+                setError("Enter a URL, or switch to Upload a file.");
+                return;
+              }
+              setSaving(true);
+              const err = await onSubmit(type, title.trim(), url.trim());
+              setSaving(false);
+              if (err) setError(err);
+              return;
+            }
+            // Upload mode, editing, no new file chosen — just save the
+            // title, leaving the already-uploaded file untouched rather
+            // than forcing a re-upload for a title-only change.
+            if (!file) {
+              if (initialUrl) {
+                setSaving(true);
+                const err = await onSubmit(type, title.trim(), initialUrl);
+                setSaving(false);
+                if (err) setError(err);
+                return;
+              }
+              setError("Choose a file to upload, or switch to Paste a link.");
               return;
             }
             setSaving(true);
-            const err = await onSubmit(type, title.trim(), url.trim());
+            const err = await onSubmit(type, title.trim(), file);
             setSaving(false);
             if (err) setError(err);
           }}
