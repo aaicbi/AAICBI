@@ -50,7 +50,14 @@ export default function PublicCoursesPage() {
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Courses</h1>
         <p className="mt-1 text-sm text-gray-500">Browse what&apos;s available — sign up when you&apos;re ready to enroll.</p>
 
-        <div className="mt-8 space-y-4">
+        {/* space-y-4 (16px) still wasn't visually distinct enough per a
+            real report — the dark-mode card surface and page
+            background are only ~8/255 apart in RGB value, so a modest
+            gap barely registered even though it was genuinely there.
+            Bumped further, and each card also gets its own bottom
+            shadow via Card's existing elevation, but the real fix here
+            is just more physical distance between cards. */}
+        <div className="mt-8 space-y-6">
           {courses === null && <SkeletonList rows={4} />}
           {courses?.length === 0 && <EmptyState title="No courses available yet" description="Check back soon." />}
 

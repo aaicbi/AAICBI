@@ -26,9 +26,14 @@ const NAV = [
  *     Enroll/Pay-with-Paystack flow — not duplicated here.
  *   - 200 with `enrollmentStatus` present (an enrolled trainee's own
  *     view) -> redirect to the same page for the full experience.
- *   - 200 with no `enrollmentStatus` (a staff member's own builder-
- *     shaped response) -> stay here; a rare, harmless edge case, not
- *     worth extra role-detection plumbing for.
+ *   - 200 with no `enrollmentStatus` but a `createdById` (a staff
+ *     member's own raw builder-shaped response — that's the one field
+ *     always present on it and never on the trainee shape) -> redirect
+ *     to the admin course builder. Bug fix: this used to be treated as
+ *     a "rare, harmless edge case" and left alone, but it's exactly
+ *     what a logged-in staff member visiting this page hits every
+ *     time — they'd see "Log in to Enroll" despite already being
+ *     logged in, which is the real complaint this fixes.
  */
 export default function PublicCourseDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -51,6 +56,8 @@ export default function PublicCourseDetailPage({ params }: { params: { id: strin
           const body = await r.json().catch(() => null);
           if (body && typeof body.enrollmentStatus === "string") {
             router.replace(`/trainee/courses/${params.id}`);
+          } else if (body && typeof body.createdById === "string") {
+            router.replace(`/admin/courses/${params.id}`);
           }
         }
       })
