@@ -12,6 +12,17 @@ import { withApiErrors } from "@/lib/apiError";
  * form) — this is the real, general-purpose catalogue, richer fields,
  * every published course regardless of price.
  */
+// Bug fix: this route takes no request param and never calls
+// cookies()/headers() (deliberately — it's genuinely anonymous), which
+// gave Next.js nothing to signal dynamic rendering with. Route Handlers
+// like that are eligible for static optimization by default, meaning
+// this could get cached at BUILD time and keep serving that frozen
+// snapshot in production — confirmed as the actual cause of a real
+// report: a course published well after the last deploy simply never
+// appeared on the public catalogue. Forcing dynamic rendering means
+// every request genuinely re-queries the database.
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiErrors(async () => {
     const courses = await prisma.course.findMany({

@@ -17,6 +17,14 @@ import { withApiErrors } from "@/lib/apiError";
  * anything else an authenticated trainee's browsing view gets. Least
  * exposure for a genuinely public, anonymous-reachable surface.
  */
+// Bug fix — same root cause as api/courses/public/route.ts (see its
+// comment): a genuinely anonymous Route Handler with no cookies()/
+// headers() call gives Next.js nothing to signal dynamic rendering
+// with, so it's eligible for build-time static caching. Forces every
+// request to genuinely re-query the database instead of risking a
+// frozen snapshot from the last deploy.
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiErrors(async () => {
     const courses = await prisma.course.findMany({

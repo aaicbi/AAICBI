@@ -18,6 +18,14 @@ import { buildMarketingView } from "@/lib/courseMarketing";
  * authenticated GET /api/courses/[id] to decide whether to redirect an
  * already-enrolled trainee to their full course view instead.
  */
+// Same fix as the sibling list route (api/courses/public/route.ts) —
+// see its comment for the full reasoning. This route's dynamic [id]
+// segment doesn't reliably force dynamic rendering on its own; an
+// unpublished/archived course could otherwise keep showing here off a
+// stale build-time cache even after being pulled from the catalogue,
+// not just newly-published ones failing to appear.
+export const dynamic = "force-dynamic";
+
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const course = await prisma.course.findUnique({
