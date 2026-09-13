@@ -93,9 +93,6 @@ function AdminLoginForm() {
             Forgot your password?
           </a>
         </p>
-        <p className="mt-4 text-xs text-gray-500">
-          Demo login (after <code>npm run db:seed</code>): admin@aaicbi.africa / ChangeMe123!
-        </p>
       </main>
     </>
   );
