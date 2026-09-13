@@ -71,34 +71,55 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     // auto-publish (§32 stage 12 is a separate, explicit admin action).
     const existingCount = await prisma.question.count({ where: { examId: exam.id } });
 
+    // Bug fix: this used to be a batch-array prisma.$transaction(array)
+    // call — that form defaults to a 5-second timeout, fine for a
+    // handful of questions but genuinely too tight once a document has
+    // enough of them (each question + its options is several inserts,
+    // all over this app's remote Neon connection). Past that count the
+    // whole import failed outright with "Transaction already closed,"
+    // confirmed directly against a real ~20-question import. The
+    // batch-array form's TypeScript types in this Prisma version only
+    // accept `isolationLevel`, not `timeout` — converted to the
+    // interactive/callback form instead (matching
+    // modules/[id]/assessment/import/route.ts's own identical fix),
+    // which does accept an explicit timeout while keeping this route's
+    // existing all-or-nothing guarantee: either every question from the
+    // document is saved, or none are.
     const created = await prisma.$transaction(
-      extracted.map((item, idx) =>
-        prisma.question.create({
-          data: {
-            examId: exam.id,
-            text: item.structured.question,
-            topic: item.structured.topic,
-            difficulty: (item.structured.difficulty?.toUpperCase() as
-              | "BEGINNER"
-              | "INTERMEDIATE"
-              | "ADVANCED"
-              | undefined) ?? "BEGINNER",
-            explanation: item.structured.explanation,
-            order: existingCount + idx,
-            needsReview: item.needsReview,
-            reviewReason: item.reviewReason,
-            options: {
-              create: item.structured.options.map((text, optIdx) => ({
-                text,
-                key: String.fromCharCode(65 + optIdx), // A, B, C...
-                isCorrect: optIdx === item.structured.correct_option_index,
-                order: optIdx,
-              })),
+      async (tx: any) => {
+        const results = [];
+        for (let idx = 0; idx < extracted.length; idx++) {
+          const item = extracted[idx];
+          const question = await tx.question.create({
+            data: {
+              examId: exam.id,
+              text: item.structured.question,
+              topic: item.structured.topic,
+              difficulty: (item.structured.difficulty?.toUpperCase() as
+                | "BEGINNER"
+                | "INTERMEDIATE"
+                | "ADVANCED"
+                | undefined) ?? "BEGINNER",
+              explanation: item.structured.explanation,
+              order: existingCount + idx,
+              needsReview: item.needsReview,
+              reviewReason: item.reviewReason,
+              options: {
+                create: item.structured.options.map((text: string, optIdx: number) => ({
+                  text,
+                  key: String.fromCharCode(65 + optIdx), // A, B, C...
+                  isCorrect: optIdx === item.structured.correct_option_index,
+                  order: optIdx,
+                })),
+              },
             },
-          },
-          include: { options: true },
-        })
-      )
+            include: { options: true },
+          });
+          results.push(question);
+        }
+        return results;
+      },
+      { timeout: 100_000, maxWait: 10_000 }
     );
 
     const validCount = created.filter((q) => !q.needsReview).length;

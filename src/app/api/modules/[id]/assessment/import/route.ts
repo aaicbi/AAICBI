@@ -141,6 +141,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     let duplicatesFound = 0;
     const examId = exam.id;
 
+    // Bug fix: this transaction had no explicit timeout, so it fell
+    // back to Prisma's 5-second default — plenty for a handful of
+    // questions, not enough once a document has enough of them for the
+    // per-question create+options+embedding-save loop above to run
+    // past that mark over this app's remote Neon connection. Confirmed
+    // directly against a real import that failed with "Transaction
+    // already closed" at exactly the 5000ms mark. Same fix as its
+    // sibling route (exams/[id]/import/route.ts): raise the timeout
+    // rather than drop the transaction, keeping this route's own
+    // documented all-or-nothing guarantee (see the audit-fix comment
+    // above this function) intact.
     const created = await prisma.$transaction(async (tx: any) => {
       const results = [];
       for (let idx = 0; idx < extracted.length; idx++) {
@@ -189,7 +200,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         results.push(question);
       }
       return results;
-    });
+    }, { timeout: 100_000, maxWait: 10_000 });
 
     const validCount = created.filter((q: { needsReview: boolean }) => !q.needsReview).length;
 
