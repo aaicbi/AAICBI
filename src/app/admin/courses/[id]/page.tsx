@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
@@ -1448,6 +1448,7 @@ function MaterialForm({
   const [mode, setMode] = useState<"upload" | "link">(initialType === "VIDEO" ? "link" : "upload");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const effectiveMode = type === "VIDEO" ? "link" : mode;
 
@@ -1502,13 +1503,30 @@ function MaterialForm({
               — choose a new file below to replace it, or leave blank to keep it.
             </p>
           )}
+          {/* The native file input is kept hidden and triggered via this
+              app's own styled button — matching AvatarUpload/
+              CourseFlyerUpload/CourseCurriculumUpload exactly. The
+              native input's own visible filename text doesn't reliably
+              pick up this app's dark-mode text color (it rendered
+              unreadable — black on a dark background — when shown
+              directly), so the selected filename is shown via this
+              component's own themed text instead. */}
           <input
+            ref={fileInputRef}
             type="file"
             accept={MATERIAL_FILE_ACCEPT[type]}
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             aria-label="Material file"
-            className="w-full text-xs"
+            className="hidden"
           />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="rounded border border-brand-gray px-2.5 py-1.5 text-xs font-semibold text-brand-ink"
+          >
+            Choose file
+          </button>
+          {file && <p className="mt-1 truncate text-xs text-brand-ink">{file.name}</p>}
         </div>
       )}
 
