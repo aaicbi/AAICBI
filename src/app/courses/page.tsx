@@ -50,7 +50,7 @@ export default function PublicCoursesPage() {
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Courses</h1>
         <p className="mt-1 text-sm text-gray-500">Browse what&apos;s available — sign up when you&apos;re ready to enroll.</p>
 
-        <div className="mt-8 space-y-3">
+        <div className="mt-8 space-y-4">
           {courses === null && <SkeletonList rows={4} />}
           {courses?.length === 0 && <EmptyState title="No courses available yet" description="Check back soon." />}
 

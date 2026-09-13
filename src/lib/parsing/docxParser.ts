@@ -53,6 +53,65 @@ const OPTION_START = /^([A-Da-d])[).]\s+(.*)$/;
 // Matches "Answer: A", "Correct Answer: a)", "Answer: A)" etc.
 const ANSWER_LINE = /^(?:correct\s+answer|answer)\s*:\s*\(?([A-Da-d])\)?/i;
 
+// Matches a NEXT option marker embedded further along a line that
+// already matched OPTION_START — e.g. the " B. " inside "...that
+// column B. The Zap has too many letters...". Requires a leading space
+// so this never fires mid-word.
+const INLINE_OPTION_MARKER = /\s([A-Da-d])[).]\s+/g;
+
+/**
+ * Bug fix: OPTION_START's `(.*)$` is greedy, so a document that puts
+ * all four options on ONE line (common — many authors don't press
+ * Enter between "A. ..." and "B. ...") had every option after the
+ * first silently swallowed into option A's own text, confirmed
+ * directly against a real import: every question in an affected
+ * document ended up with exactly one Option row whose text was all
+ * four choices run together, and — since there was only ever one
+ * option — no correct answer could ever be marked, which is exactly
+ * why the result screen had nothing to highlight as correct.
+ *
+ * This looks for the NEXT option letters in strict sequence (A, then
+ * B, then C, then D) within the text OPTION_START already captured,
+ * and splits on those boundaries. Sequence-strict on purpose — a
+ * stray "B)" or "C." that happens to occur naturally inside an
+ * option's own prose won't match unless it's genuinely the next
+ * expected letter, so this only activates for the real inline-options
+ * case, not just any line containing a letter+period. Finds nothing to
+ * split on (the normal one-option-per-line case, or a genuinely
+ * ambiguous line) → returns the single option unchanged, same as
+ * before this fix; never invents structure it isn't confident about,
+ * matching this file's own stated "don't guess" design.
+ */
+function splitInlineOptions(startLabel: string, text: string): { label: string; text: string }[] {
+  const boundaries: { index: number; length: number; label: string }[] = [];
+  let expected = String.fromCharCode(startLabel.charCodeAt(0) + 1);
+
+  INLINE_OPTION_MARKER.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = INLINE_OPTION_MARKER.exec(text)) !== null) {
+    const label = match[1].toUpperCase();
+    if (label === expected && expected <= "D") {
+      boundaries.push({ index: match.index, length: match[0].length, label });
+      expected = String.fromCharCode(expected.charCodeAt(0) + 1);
+    }
+  }
+
+  if (boundaries.length === 0) {
+    return [{ label: startLabel, text: text.trim() }];
+  }
+
+  const results: { label: string; text: string }[] = [];
+  let cursor = 0;
+  let currentLabel = startLabel;
+  for (const b of boundaries) {
+    results.push({ label: currentLabel, text: text.slice(cursor, b.index).trim() });
+    cursor = b.index + b.length;
+    currentLabel = b.label;
+  }
+  results.push({ label: currentLabel, text: text.slice(cursor).trim() });
+  return results;
+}
+
 export function splitIntoQuestionBlocks(rawText: string): RawQuestionBlock[] {
   const lines = rawText
     .split(/\r?\n/)
@@ -87,7 +146,7 @@ export function splitIntoQuestionBlocks(rawText: string): RawQuestionBlock[] {
       };
       rawLines = [line];
     } else if (current && optMatch) {
-      current.options.push({ label: optMatch[1].toUpperCase(), text: optMatch[2].trim() });
+      current.options.push(...splitInlineOptions(optMatch[1].toUpperCase(), optMatch[2]));
       rawLines.push(line);
     } else if (current && ansMatch) {
       current.answerLabel = ansMatch[1].toUpperCase();
