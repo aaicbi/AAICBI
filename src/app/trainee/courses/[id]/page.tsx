@@ -769,16 +769,20 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
             visibility toggle. */}
         {course.whatsappGroupUrl && (
           <div className="mt-3">
-            <Button
+            {/* Deliberately not the shared Button component's variants
+                here — a request to make this specific CTA noticeable
+                at rest (teal outline, not just on hover) with a
+                distinctly different, filled look on hover, which isn't
+                one of Button's existing variants. */}
+            <a
               href={course.whatsappGroupUrl}
-              variant="secondary"
-              size="sm"
-              iconLeft={<Icon icon={MessageCircle} size="sm" />}
               target="_blank"
               rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full border-2 border-brand-teal px-4 py-2 text-sm font-semibold text-brand-teal transition-colors hover:bg-brand-teal hover:text-white"
             >
+              <Icon icon={MessageCircle} size="sm" />
               Join WhatsApp Group
-            </Button>
+            </a>
           </div>
         )}
 
