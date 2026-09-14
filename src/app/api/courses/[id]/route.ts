@@ -10,6 +10,7 @@ import { hasCourseAccess, expireLapsedEnrollmentsForTrainee } from "@/lib/course
 import { isCoursePubliclyVisible } from "@/lib/courseStatus";
 import { requireOwnedCourse } from "@/lib/courseOwnership";
 import { buildMarketingView } from "@/lib/courseMarketing";
+import { safeUrl } from "@/lib/materialUrl";
 
 const fullTree = {
   createdBy: { select: { name: true } },
@@ -317,6 +318,17 @@ const UpdateCourseSchema = z.object({
   showAudience: z.boolean().optional(),
   showCurriculumDownload: z.boolean().optional(),
   showFlyer: z.boolean().optional(),
+
+  // WhatsApp group-study link — restricted to the real invite-link
+  // domain (not just "any URL") so this field actually does what its
+  // name says, the same discipline as isAllowedVideoUrl for VIDEO
+  // materials. null clears it (removes the trainee-facing button).
+  whatsappGroupUrl: safeUrl
+    .refine((url) => new URL(url).hostname === "chat.whatsapp.com", {
+      message: "Enter a real WhatsApp group invite link (starts with https://chat.whatsapp.com/...).",
+    })
+    .nullable()
+    .optional(),
 });
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {

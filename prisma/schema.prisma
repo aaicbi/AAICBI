@@ -710,6 +710,17 @@ model Course {
   curriculumUrl        String?
   curriculumUploadedAt DateTime?
 
+  // WhatsApp group-study link — deliberately NOT one of the show*
+  // toggles/buildMarketingView fields above: those all gate what an
+  // anonymous or not-yet-enrolled visitor sees on the public marketing
+  // page, but a group-study invite link is for trainees who are
+  // actually taking the course, not a marketing draw for prospective
+  // ones. Only ever surfaced on the authenticated, already-enrolled
+  // trainee course page — presence of the URL alone is what shows the
+  // button there, no separate visibility toggle needed for a field
+  // that was never public to begin with.
+  whatsappGroupUrl String?
+
   // M38 — Staff Early-Warning Dashboard. Null means disabled for this
   // course, not "use some default" — every course that already exists
   // when this ships should NOT suddenly start generating alerts nobody

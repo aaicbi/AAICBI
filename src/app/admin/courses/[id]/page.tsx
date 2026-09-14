@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   MessageSquare,
+  MessageCircle,
   Key,
   AlertTriangle,
   Eye,
@@ -89,6 +90,7 @@ interface CourseDto {
   flyerUploadedAt: string | null;
   curriculumUrl: string | null;
   curriculumUploadedAt: string | null;
+  whatsappGroupUrl: string | null;
 }
 
 /** Parses the { error: { fieldErrors, formErrors } | string } shapes the
@@ -175,6 +177,17 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ qaScope }),
+    });
+    if (!res.ok) return readApiError(res, "Could not save. Try again.");
+    await loadCourse();
+    return null;
+  }
+
+  async function updateWhatsappGroup(whatsappGroupUrl: string | null): Promise<string | null> {
+    const res = await fetch(`/api/courses/${params.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ whatsappGroupUrl }),
     });
     if (!res.ok) return readApiError(res, "Could not save. Try again.");
     await loadCourse();
@@ -448,6 +461,8 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
         <AiCreditOverrideSettings course={course} onSave={updateAiCreditOverride} showToast={showToast} />
 
         <QaScopeSettings course={course} onSave={updateQaScope} showToast={showToast} />
+
+        <WhatsappGroupSettings course={course} onSave={updateWhatsappGroup} showToast={showToast} />
 
         <CourseMarketingSettings
           courseId={course.id}
@@ -1076,6 +1091,91 @@ function QaScopeSettings({
         >
           Cohort-scoped
         </button>
+      </div>
+      {error && <p className="mt-2 text-xs text-brand-rose">{error}</p>}
+    </div>
+  );
+}
+
+/**
+ * WhatsApp group-study link — a real "Join WhatsApp Group" button on
+ * the enrolled trainee's course page, not a marketing field (see the
+ * schema comment on Course.whatsappGroupUrl for why it's deliberately
+ * separate from CourseMarketingSettings' show*-gated public fields).
+ * Restricted server-side to real chat.whatsapp.com invite links —
+ * error surfaces here exactly like every other settings block's own
+ * inline error state.
+ */
+function WhatsappGroupSettings({
+  course,
+  onSave,
+  showToast,
+}: {
+  course: CourseDto;
+  onSave: (url: string | null) => Promise<string | null>;
+  showToast: (message: string, variant?: "success" | "error") => void;
+}) {
+  const [url, setUrl] = useState(course.whatsappGroupUrl ?? "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSave() {
+    setSaving(true);
+    setError(null);
+    const err = await onSave(url.trim() || null);
+    setSaving(false);
+    if (err) {
+      setError(err);
+      return;
+    }
+    showToast("WhatsApp group link saved.");
+  }
+
+  async function handleRemove() {
+    setSaving(true);
+    setError(null);
+    const err = await onSave(null);
+    setSaving(false);
+    if (err) {
+      setError(err);
+      return;
+    }
+    setUrl("");
+    showToast("WhatsApp group link removed.");
+  }
+
+  return (
+    <div className="mt-4 rounded-lg border border-brand-gray bg-gray-50 p-4">
+      <p className="text-sm font-semibold text-gray-900">
+        <Icon icon={MessageCircle} size="sm" className="mr-1 inline align-text-bottom" /> WhatsApp Study Group
+      </p>
+      <p className="mt-1 text-xs text-gray-600">
+        Paste the group's invite link — enrolled trainees will see a &quot;Join WhatsApp Group&quot; button on the
+        course page. Leave blank if this course has no group.
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <input
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://chat.whatsapp.com/..."
+          className="min-w-0 flex-1 rounded-lg border border-brand-gray px-2.5 py-1.5 text-sm outline-none focus:border-brand-teal"
+        />
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+        >
+          {saving ? "Saving..." : "Save"}
+        </button>
+        {course.whatsappGroupUrl && (
+          <button
+            onClick={handleRemove}
+            disabled={saving}
+            className="rounded-lg border border-brand-gray px-3 py-1.5 text-xs font-semibold text-brand-rose disabled:opacity-60"
+          >
+            Remove
+          </button>
+        )}
       </div>
       {error && <p className="mt-2 text-xs text-brand-rose">{error}</p>}
     </div>

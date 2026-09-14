@@ -11,7 +11,7 @@ import MaterialTypeIcon from "@/components/ui/MaterialTypeIcon";
 import CorrectnessMark from "@/components/ui/CorrectnessMark";
 import Icon from "@/components/ui/Icon";
 import { AchievementIcon, AssessmentIcon } from "@/components/icons/brand";
-import { ChevronDown, ChevronRight, Lock, MessageSquare, ArrowRight, Star } from "lucide-react";
+import { ChevronDown, ChevronRight, Lock, MessageSquare, MessageCircle, ArrowRight, Star } from "lucide-react";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 import LockedDoodle from "@/components/doodles/LockedDoodle";
 import AchievementDoodle from "@/components/doodles/AchievementDoodle";
@@ -141,6 +141,7 @@ interface CourseDto {
   enrollmentStatus?: "ACTIVE" | "EXPIRED" | "COMPLETED" | "AWAITING_UNLOCK";
   enrollmentSource?: "FREE" | "ADMIN_GRANTED" | "PAID" | null;
   isPaid?: boolean;
+  whatsappGroupUrl: string | null;
 }
 
 /**
@@ -759,6 +760,27 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
         </div>
         <p className="mt-1 text-xs text-gray-500">Taught by {course.createdBy.name} · AAICBI Staff</p>
         {course.description && <p className="mt-1 text-sm text-gray-600">{course.description}</p>}
+
+        {/* WhatsApp group-study link — only ever shown here, on the
+            already-enrolled trainee's own course page, never on the
+            public marketing page. Presence of the URL is what shows
+            the button; see the schema comment on
+            Course.whatsappGroupUrl for why there's no separate
+            visibility toggle. */}
+        {course.whatsappGroupUrl && (
+          <div className="mt-3">
+            <Button
+              href={course.whatsappGroupUrl}
+              variant="secondary"
+              size="sm"
+              iconLeft={<Icon icon={MessageCircle} size="sm" />}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Join WhatsApp Group
+            </Button>
+          </div>
+        )}
 
         {/* Payment & Access Summary Strip */}
         <Card className="mt-4 grid grid-cols-2 gap-3 p-4 text-xs sm:grid-cols-4">
