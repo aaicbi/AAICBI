@@ -99,19 +99,34 @@ Rules:
 - "difficulty" is your best-effort estimate from the question's content alone — Beginner, Intermediate, or Advanced. Use null only if the question is too fragmentary to judge.
 - Respond with ONLY the JSON object. No preamble, no markdown fences.`;
 
-export async function extractQuestion(block: RawQuestionBlock): Promise<ExtractedQuestion> {
-  const userPrompt = buildUserPrompt(block);
+// Bug fix / resilience: confirmed directly (sent the exact real block
+// text that failed during a live import to the API 3 times in a row —
+// all 3 succeeded cleanly) that an occasional malformed response is
+// real AI response variance, not a deterministic prompt bug. Retrying
+// once before giving up turns most of these into a clean, automatic
+// result instead of a manual-review item — directly serving the "we
+// want this to be automated" goal, since a transient miss shouldn't
+// cost a human a review pass when the very same input reliably
+// succeeds on a second try.
+const MAX_ATTEMPTS = 2;
 
+/** One raw attempt: call the API, parse, validate. Returns the parsed
+ * StructuredQuestion on success, or a string failure reason on any
+ * kind of miss (no text / invalid JSON / schema mismatch) — the caller
+ * decides whether to retry or give up. */
+async function attemptExtraction(
+  userPrompt: string
+): Promise<{ ok: true; data: StructuredQuestion } | { ok: false; reason: string }> {
   const response = await client.messages.create({
     model: "claude-sonnet-4-5",
-    max_tokens: 1000,
+    max_tokens: 1500, // bumped from 1000 — extracting a real explanation now makes responses longer than before
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: userPrompt }],
   });
 
   const textBlock = response.content.find((b) => b.type === "text");
   if (!textBlock || textBlock.type !== "text") {
-    return unresolvedFallback(block, "AI returned no text content.");
+    return { ok: false, reason: "AI returned no text content." };
   }
 
   let parsed: unknown;
@@ -119,15 +134,34 @@ export async function extractQuestion(block: RawQuestionBlock): Promise<Extracte
     const cleaned = textBlock.text.replace(/```json|```/g, "").trim();
     parsed = JSON.parse(cleaned);
   } catch {
-    return unresolvedFallback(block, "AI response was not valid JSON.");
+    return { ok: false, reason: "AI response was not valid JSON." };
   }
 
   const result = StructuredQuestionSchema.safeParse(parsed);
   if (!result.success) {
-    return unresolvedFallback(block, "AI response did not match the expected schema.");
+    return { ok: false, reason: "AI response did not match the expected schema." };
   }
 
-  const structured = result.data;
+  return { ok: true, data: result.data };
+}
+
+export async function extractQuestion(block: RawQuestionBlock): Promise<ExtractedQuestion> {
+  const userPrompt = buildUserPrompt(block);
+
+  let lastReason = "AI request did not produce a usable response.";
+  let structured: StructuredQuestion | null = null;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const outcome = await attemptExtraction(userPrompt);
+    if (outcome.ok) {
+      structured = outcome.data;
+      break;
+    }
+    lastReason = outcome.reason;
+  }
+
+  if (!structured) {
+    return unresolvedFallback(block, `${lastReason} (retried ${MAX_ATTEMPTS} times)`);
+  }
   const { index: correctIndex, wasCorrected: indexWasCorrected } = resolveCorrectOptionIndex(
     structured.correct_option_index,
     structured.options.length
