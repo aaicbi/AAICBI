@@ -83,7 +83,10 @@ export default async function AdminDashboardPage() {
     // isApprover-gated items below, which ADMIN can also use), server-
     // checked here rather than fetched client-side, so there's no risk
     // of a wrong role briefly seeing a link that will 403 for them.
-    ...(session.role === "SUPER_ADMIN" ? [{ label: "🧭 Ask Loop (Command)", href: "/admin/command" }] : []),
+    // Nav items are plain-text labels (SiteHeader's NavItem has no icon
+    // slot) — dropped the emoji prefix rather than widen that shared
+    // component's API for the one nav item that had one.
+    ...(session.role === "SUPER_ADMIN" ? [{ label: "Ask Loop (Command)", href: "/admin/command" }] : []),
     ...(isApprover ? ADMIN_AREAS.map((a) => ({ label: a.label, href: a.href })) : []),
   ];
 

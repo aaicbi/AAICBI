@@ -8,6 +8,8 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import Icon from "@/components/ui/Icon";
+import { ArrowRight } from "lucide-react";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 import { COURSE_STATUS_LABEL, COURSE_STATUS_BADGE_VARIANT } from "@/lib/courseStatus";
 
@@ -69,7 +71,9 @@ export default function AdminCoursesPage() {
                     <Badge variant={COURSE_STATUS_BADGE_VARIANT[course.status]}>{COURSE_STATUS_LABEL[course.status]}</Badge>
                   </div>
                 </div>
-                <span className="shrink-0 text-sm font-semibold text-brand-teal">Manage →</span>
+                <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-teal">
+                  Manage <Icon icon={ArrowRight} size="sm" />
+                </span>
               </Card>
             </Link>
           ))}

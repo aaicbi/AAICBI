@@ -8,6 +8,9 @@ import { SkeletonTableRows } from "@/components/ui/Skeleton";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
 import { useToast } from "@/components/ui/Toast";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
+import BackLink from "@/components/ui/BackLink";
+import Icon from "@/components/ui/Icon";
+import { AchievementIcon } from "@/components/icons/brand";
 
 interface RosterEntry {
   trainee: { id: string; name: string; email: string };
@@ -117,12 +120,12 @@ export default function CohortDetailPage({ params }: { params: { id: string } })
       />
       {modal}
       <main className="mx-auto max-w-3xl px-6 py-10">
-        <a
+        <BackLink
           href={cohort ? `/admin/courses/${cohort.course.id}/cohorts` : "#"}
           className="text-sm text-brand-teal hover:underline"
         >
-          ← Back to cohorts
-        </a>
+          Back to cohorts
+        </BackLink>
         {!cohort ? (
           <div className="mt-4 h-8 w-64 animate-pulse rounded-full bg-brand-gray/60" />
         ) : (
@@ -197,7 +200,7 @@ export default function CohortDetailPage({ params }: { params: { id: string } })
                             rel="noopener noreferrer"
                             className="text-xs font-semibold text-brand-gold hover:underline"
                           >
-                            🎓 View
+                            <Icon icon={AchievementIcon} size="sm" className="mr-1 inline align-text-bottom" /> View
                           </a>
                         ) : (
                           <span className="text-xs text-gray-400">Not yet</span>

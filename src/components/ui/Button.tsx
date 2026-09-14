@@ -21,6 +21,13 @@ interface ButtonOwnProps {
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
+  /** Icon system — pass an `<Icon icon={Save} size="sm" />`. Additive:
+   * every existing call site with no icon prop renders byte-identical
+   * to before. `loading`'s spinner already occupies the same visual
+   * slot an icon would, so the two coalesce (spinner wins) rather than
+   * both rendering at once. */
+  iconLeft?: React.ReactNode;
+  iconRight?: React.ReactNode;
 }
 type ButtonAsButton = ButtonOwnProps &
   Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "href"> & { href?: undefined };
@@ -43,7 +50,7 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
 };
 
 const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
-  ({ variant = "primary", size = "md", loading, className = "", children, ...rest }, ref) => {
+  ({ variant = "primary", size = "md", loading, className = "", iconLeft, iconRight, children, ...rest }, ref) => {
     // Audit finding, closed here: no button anywhere in this app
     // marked itself non-selectable, so clicking or double-clicking a
     // button could trigger the browser's own text-selection caret —
@@ -54,12 +61,17 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
     // component every button already goes through.
     const classes = `inline-flex select-none items-center justify-center gap-2 rounded-lg font-semibold transition-colors disabled:cursor-not-allowed ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]} ${className}`;
 
-    const spinner = loading && (
+    // Bug fix while adding iconLeft/iconRight below: `loading && (...)`
+    // evaluates to `false` (not `undefined`) when not loading, and
+    // `false ?? iconLeft` would NOT fall through to iconLeft — `??`
+    // only falls through on null/undefined. Explicit ternary so the
+    // coalesce actually works.
+    const spinner = loading ? (
       <span
         className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"
         aria-hidden="true"
       />
-    );
+    ) : undefined;
 
     if ("href" in rest && rest.href) {
       const { href, ...anchorRest } = rest as ButtonAsLink;
@@ -70,8 +82,9 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
           className={classes}
           {...(anchorRest as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
         >
-          {spinner}
+          {spinner ?? iconLeft}
           {children}
+          {iconRight}
         </Link>
       );
     }
@@ -84,8 +97,9 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
         className={classes}
         {...buttonRest}
       >
-        {spinner}
+        {spinner ?? iconLeft}
         {children}
+        {iconRight}
       </button>
     );
   }

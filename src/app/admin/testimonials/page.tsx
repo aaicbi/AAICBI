@@ -7,6 +7,8 @@ import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
+import StarRating from "@/components/ui/StarRating";
+import CorrectnessMark from "@/components/ui/CorrectnessMark";
 
 interface ReviewDto {
   id: string;
@@ -24,15 +26,6 @@ interface TestimonialDto {
   rating: number | null;
   courseTitle: string | null;
   published: boolean;
-}
-
-function Stars({ rating }: { rating: number }) {
-  return (
-    <span style={{ color: "#d4a017" }}>
-      {"★".repeat(rating)}
-      <span style={{ color: "#d1d5db" }}>{"★".repeat(5 - rating)}</span>
-    </span>
-  );
 }
 
 /**
@@ -159,12 +152,14 @@ export default function AdminTestimonialsPage() {
                     <p className="font-display font-semibold text-brand-ink">{r.traineeName}</p>
                     <p className="text-xs text-gray-500">{r.courseTitle}</p>
                     <p className="mt-1">
-                      <Stars rating={r.rating} />
+                      <StarRating rating={r.rating} />
                     </p>
                     {r.reviewText && <p className="mt-1.5 text-sm text-gray-700">{r.reviewText}</p>}
                   </div>
                   {r.alreadyPromoted ? (
-                    <span className="shrink-0 text-xs font-semibold text-brand-teal">✓ Promoted</span>
+                    <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-brand-teal">
+                      <CorrectnessMark state="correct" label={undefined} /> Promoted
+                    </span>
                   ) : r.reviewText ? (
                     <Button size="sm" onClick={() => promote(r.id)} loading={busyId === r.id} className="shrink-0">
                       Promote
@@ -244,7 +239,7 @@ export default function AdminTestimonialsPage() {
                     {t.courseTitle && <p className="text-xs text-gray-500">{t.courseTitle}</p>}
                     {t.rating && (
                       <p className="mt-1">
-                        <Stars rating={t.rating} />
+                        <StarRating rating={t.rating} />
                       </p>
                     )}
                     <p className="mt-1.5 text-sm text-gray-700">{t.quote}</p>

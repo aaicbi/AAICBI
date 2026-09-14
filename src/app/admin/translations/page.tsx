@@ -8,6 +8,8 @@ import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { SUPPORTED_LANGUAGES, LANGUAGE_LABELS, type LanguageCode } from "@/lib/i18n";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { Globe } from "lucide-react";
+import Icon from "@/components/ui/Icon";
 
 interface TranslationRow {
   id: string;
@@ -102,7 +104,9 @@ export default function TranslationsAdminPage() {
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-3xl px-6 py-10">
-        <h1 className="font-display text-2xl font-semibold text-brand-ink">🌍 Translations</h1>
+        <h1 className="flex items-center gap-2 font-display text-2xl font-semibold text-brand-ink">
+          <Icon icon={Globe} size="lg" /> Translations
+        </h1>
         <p className="mt-1 text-sm text-gray-500">
           Nothing here reaches a trainee until it&apos;s approved below — machine-drafted, whether from Google
           Translate or AI, is always a starting point, never the final word.

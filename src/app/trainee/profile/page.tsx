@@ -9,6 +9,9 @@ import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
 import Toggle from "@/components/ui/Toggle";
+import AvatarFallback from "@/components/ui/AvatarFallback";
+import { X } from "lucide-react";
+import Icon from "@/components/ui/Icon";
 import ProfileCompletionBanner from "@/components/ui/ProfileCompletionBanner";
 import { computeTraineeCompletion } from "@/lib/profileCompletion";
 import ResumeUpload from "@/components/ResumeUpload";
@@ -257,7 +260,9 @@ export default function TraineeProfilePage() {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={core.avatarUrl} alt="" className="h-full w-full object-cover" />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-2xl text-brand-teal">🙂</div>
+              <div className="flex h-full w-full items-center justify-center">
+                <AvatarFallback size="lg" />
+              </div>
             )}
           </div>
           <div>
@@ -468,7 +473,7 @@ export default function TraineeProfilePage() {
                         aria-label={`Remove ${s.name}`}
                         className="text-brand-teal hover:text-brand-rose"
                       >
-                        ✕
+                        <Icon icon={X} size="sm" />
                       </button>
                     </li>
                   ))}

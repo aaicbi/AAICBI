@@ -7,6 +7,7 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import CorrectnessMark from "@/components/ui/CorrectnessMark";
 
 interface OptionDto {
   id: string;
@@ -248,7 +249,7 @@ export default function CourseExaminationPage({ params }: { params: { id: string
                 <ul className="mt-2 space-y-1">
                   {q.options.map((o) => (
                     <li key={o.id} className={`text-xs ${o.isCorrect ? "font-semibold text-brand-teal" : "text-gray-600"}`}>
-                      {o.isCorrect ? "✓ " : "· "}
+                      <CorrectnessMark state={o.isCorrect ? "correct" : "neutral"} label={o.isCorrect ? "Correct answer" : undefined} />{" "}
                       {o.text}
                     </li>
                   ))}

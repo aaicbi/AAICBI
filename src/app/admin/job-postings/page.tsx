@@ -8,6 +8,8 @@ import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
 import JobPostingMediaGallery, { JobPostingMediaItem } from "@/components/jobPostings/JobPostingMediaGallery";
+import { AlertTriangle } from "lucide-react";
+import Icon from "@/components/ui/Icon";
 
 interface JobPostingDto {
   id: string;
@@ -130,7 +132,9 @@ export default function AdminJobPostingsPage() {
                       {p.employer.companyName} · Closes {new Date(p.closingDate).toLocaleDateString()}
                     </p>
                     {p.aiFlagged && (
-                      <p className="mt-1 text-xs font-semibold text-brand-goldText">⚠ {p.aiFlagReason}</p>
+                      <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-brand-goldText">
+                        <Icon icon={AlertTriangle} size="sm" /> {p.aiFlagReason}
+                      </p>
                     )}
                     <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">{p.description}</p>
                     <JobPostingMediaGallery

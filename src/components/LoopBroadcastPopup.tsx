@@ -1,4 +1,6 @@
 "use client";
+import { X } from "lucide-react";
+import Icon from "@/components/ui/Icon";
 
 interface NotificationDto {
   id: string;
@@ -60,9 +62,7 @@ export default function LoopBroadcastPopup({ notifications, onClose }: LoopBroad
               aria-label="Close"
               className="-mt-1 -mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-gray-400 hover:bg-brand-mint hover:text-brand-teal"
             >
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M18 6 6 18M6 6l12 12" />
-              </svg>
+              <Icon icon={X} size="sm" />
             </button>
           </div>
           <p className="mt-1.5 text-sm font-semibold text-brand-ink">{n.title}</p>

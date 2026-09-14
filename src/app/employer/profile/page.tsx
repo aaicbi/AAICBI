@@ -8,6 +8,8 @@ import Badge from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
+import AvatarFallback from "@/components/ui/AvatarFallback";
+import CorrectnessMark from "@/components/ui/CorrectnessMark";
 import ProfileCompletionBanner from "@/components/ui/ProfileCompletionBanner";
 import { computeEmployerCompletion } from "@/lib/profileCompletion";
 import AvatarUpload from "@/components/AvatarUpload";
@@ -121,14 +123,24 @@ export default function EmployerProfilePage() {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={logoUrl} alt="" className="h-full w-full object-cover" />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-2xl text-brand-teal">🏢</div>
+              <div className="flex h-full w-full items-center justify-center">
+                <AvatarFallback variant="company" size="lg" />
+              </div>
             )}
           </div>
           <div>
             <h1 className="font-display text-2xl font-semibold text-brand-ink">{profile?.companyName ?? "Company Profile"}</h1>
             {profile && (
               <Badge variant={profile.approvalState === "APPROVED" ? "success" : profile.approvalState === "REJECTED" ? "danger" : "warning"}>
-                {profile.approvalState === "APPROVED" ? "✓ Verified Employer" : profile.approvalState === "REJECTED" ? "Not Approved" : "Pending Review"}
+                {profile.approvalState === "APPROVED" ? (
+                  <>
+                    <CorrectnessMark state="correct" label={undefined} /> Verified Employer
+                  </>
+                ) : profile.approvalState === "REJECTED" ? (
+                  "Not Approved"
+                ) : (
+                  "Pending Review"
+                )}
               </Badge>
             )}
           </div>

@@ -7,6 +7,7 @@ import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import AvatarUpload from "@/components/AvatarUpload";
 import ContactAdminCard from "@/components/ContactAdminCard";
+import CorrectnessMark from "@/components/ui/CorrectnessMark";
 
 import { SUPPORTED_LANGUAGES, LANGUAGE_LABELS, t, type LanguageCode } from "@/lib/i18n";
 
@@ -486,7 +487,9 @@ function WhatsAppSettings({
 
       {optedIn && verifiedAt ? (
         <div className="mt-3">
-          <p className="text-xs text-brand-teal">✓ Verified — {phone}</p>
+          <p className="inline-flex items-center gap-1 text-xs text-brand-teal">
+            <CorrectnessMark state="correct" label={undefined} /> Verified — {phone}
+          </p>
           <button onClick={optOut} disabled={busy} className="mt-2 text-xs font-semibold text-brand-rose hover:underline disabled:opacity-60">
             Turn off WhatsApp notifications
           </button>

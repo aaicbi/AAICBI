@@ -1,10 +1,25 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import {
+  MessageSquare,
+  Key,
+  AlertTriangle,
+  Eye,
+  Clock,
+  Bot,
+  ChevronDown,
+  ChevronRight,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import Icon from "@/components/ui/Icon";
+import MaterialTypeIcon from "@/components/ui/MaterialTypeIcon";
+import { AchievementIcon, CohortIcon, AssessmentIcon, PaymentsIcon } from "@/components/icons/brand";
 import { COURSE_STATUS_VALUES, COURSE_STATUS_LABEL } from "@/lib/courseStatus";
 import type { CourseStatus } from "@prisma/client";
 import CourseMarketingSettings, { type CourseMarketingFields } from "./CourseMarketingSettings";
@@ -370,43 +385,43 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
               href={`/admin/courses/${params.id}/certificates`}
               className="mb-2 block text-xs font-semibold text-brand-teal hover:underline"
             >
-              🎓 Certificates Issued
+              <Icon icon={AchievementIcon} size="sm" className="mr-1 inline align-text-bottom" /> Certificates Issued
             </a>
             <a
               href={`/admin/courses/${params.id}/qa`}
               className="mb-2 block text-xs font-semibold text-brand-teal hover:underline"
             >
-              💬 Q&amp;A
+              <Icon icon={MessageSquare} size="sm" className="mr-1 inline align-text-bottom" /> Q&amp;A
             </a>
             <a
               href={`/admin/courses/${params.id}/enrollments`}
               className="mb-2 block text-xs font-semibold text-brand-teal hover:underline"
             >
-              🔑 Enrollments
+              <Icon icon={Key} size="sm" className="mr-1 inline align-text-bottom" /> Enrollments
             </a>
             <a
               href={`/admin/courses/${params.id}/cohorts`}
               className="mb-2 block text-xs font-semibold text-brand-teal hover:underline"
             >
-              👥 Cohorts / Intakes
+              <Icon icon={CohortIcon} size="sm" className="mr-1 inline align-text-bottom" /> Cohorts / Intakes
             </a>
             <a
               href={`/admin/courses/${params.id}/early-warnings`}
               className="mb-2 block text-xs font-semibold text-brand-teal hover:underline"
             >
-              ⚠️ Early Warnings
+              <Icon icon={AlertTriangle} size="sm" className="mr-1 inline align-text-bottom" /> Early Warnings
             </a>
             <a
               href={`/admin/courses/${params.id}/examination`}
               className="mb-2 block text-xs font-semibold text-brand-teal hover:underline"
             >
-              🎓 Course Examination
+              <Icon icon={AssessmentIcon} size="sm" className="mr-1 inline align-text-bottom" /> Course Examination
             </a>
             <a
               href={`/admin/courses/${params.id}/preview`}
               className="mb-2 block text-xs font-semibold text-brand-teal hover:underline"
             >
-              👁️ Preview as Trainee
+              <Icon icon={Eye} size="sm" className="mr-1 inline align-text-bottom" /> Preview as Trainee
             </a>
             <label className="mb-1 block text-xs font-semibold text-gray-500">Status</label>
             <select
@@ -528,7 +543,9 @@ function EarlyWarningSettings({
     <div className="mt-4 rounded-lg border border-brand-gray bg-gray-50 p-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold text-gray-900">⚠️ Early-Warning Thresholds</p>
+          <p className="text-sm font-semibold text-gray-900">
+            <Icon icon={AlertTriangle} size="sm" className="mr-1 inline align-text-bottom" /> Early-Warning Thresholds
+          </p>
           {!editing && (
             <p className="mt-1 text-xs text-gray-600">
               Inactivity: <span className="font-medium">{inactivityLabel}</span> · Failed attempts (per module):{" "}
@@ -675,7 +692,9 @@ function PricingSettings({
     <div className="mt-4 rounded-lg border border-brand-gray bg-gray-50 p-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold text-gray-900">💳 Pricing &amp; Access</p>
+          <p className="text-sm font-semibold text-gray-900">
+            <Icon icon={PaymentsIcon} size="sm" className="mr-1 inline align-text-bottom" /> Pricing &amp; Access
+          </p>
           {!editing && <p className="mt-1 text-xs text-gray-600">{summary}</p>}
         </div>
         {!editing && (
@@ -854,7 +873,9 @@ function ReminderSettings({
     <div className="mt-4 rounded-lg border border-brand-gray bg-gray-50 p-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold text-gray-900">⏰ Expiry Reminders</p>
+          <p className="text-sm font-semibold text-gray-900">
+            <Icon icon={Clock} size="sm" className="mr-1 inline align-text-bottom" /> Expiry Reminders
+          </p>
           {!editing && <p className="mt-1 text-xs text-gray-600">{summary}</p>}
         </div>
         {!editing && (
@@ -946,7 +967,9 @@ function AiCreditOverrideSettings({
     <div className="mt-4 rounded-lg border border-brand-gray bg-gray-50 p-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold text-gray-900">🤖 AI Study Buddy Credit Override</p>
+          <p className="text-sm font-semibold text-gray-900">
+            <Icon icon={Bot} size="sm" className="mr-1 inline align-text-bottom" /> AI Study Buddy Credit Override
+          </p>
           {!editing && (
             <p className="mt-1 text-xs text-gray-600">
               Granted per paid enrollment/renewal: <span className="font-medium">{label}</span>
@@ -1028,7 +1051,9 @@ function QaScopeSettings({
 
   return (
     <div className="mt-4 rounded-lg border border-brand-gray bg-gray-50 p-4">
-      <p className="text-sm font-semibold text-gray-900">💬 Q&amp;A Scope</p>
+      <p className="text-sm font-semibold text-gray-900">
+        <Icon icon={MessageSquare} size="sm" className="mr-1 inline align-text-bottom" /> Q&amp;A Scope
+      </p>
       <p className="mt-1 text-xs text-gray-600">
         Who can see and post in a thread. Cohort-scoped only makes sense once real cohorts exist for this course.
       </p>
@@ -1138,7 +1163,7 @@ function ModuleCard({
           <>
             <button onClick={() => setExpanded((e) => !e)} className="flex-1 text-left">
               <div className="font-semibold text-gray-900">
-                {expanded ? "▾" : "▸"} {mod.title}
+                <Icon icon={expanded ? ChevronDown : ChevronRight} size="sm" className="mr-1 inline align-text-bottom" /> {mod.title}
               </div>
               {mod.description && <div className="mt-0.5 text-sm text-gray-600">{mod.description}</div>}
               <div className="mt-0.5 text-xs text-gray-500">
@@ -1153,7 +1178,7 @@ function ModuleCard({
                   aria-label="Move module up"
                   className="rounded border border-brand-gray px-1.5 py-0.5 text-xs disabled:opacity-30"
                 >
-                  ▲
+                  <Icon icon={ArrowUp} size="sm" />
                 </button>
                 <button
                   onClick={onMoveDown}
@@ -1161,7 +1186,7 @@ function ModuleCard({
                   aria-label="Move module down"
                   className="rounded border border-brand-gray px-1.5 py-0.5 text-xs disabled:opacity-30"
                 >
-                  ▼
+                  <Icon icon={ArrowDown} size="sm" />
                 </button>
               </div>
               {/* M11 — a module's bank-backed assessment lives on its own
@@ -1214,13 +1239,6 @@ function ModuleCard({
     </div>
   );
 }
-
-const MATERIAL_ICON: Record<MaterialDto["type"], string> = {
-  PDF: "📄",
-  DOCX: "📝",
-  PPTX: "📊",
-  VIDEO: "🎬",
-};
 
 function LessonCard({
   lesson,
@@ -1346,7 +1364,7 @@ function LessonCard({
               aria-label="Move lesson up"
               className="rounded border border-brand-gray px-1.5 py-0.5 text-xs disabled:opacity-30"
             >
-              ▲
+              <Icon icon={ArrowUp} size="sm" />
             </button>
             <button
               onClick={onMoveDown}
@@ -1354,7 +1372,7 @@ function LessonCard({
               aria-label="Move lesson down"
               className="rounded border border-brand-gray px-1.5 py-0.5 text-xs disabled:opacity-30"
             >
-              ▼
+              <Icon icon={ArrowDown} size="sm" />
             </button>
           </div>
           <button onClick={() => setEditing(true)} className="text-xs font-semibold text-brand-teal hover:underline">
@@ -1383,7 +1401,7 @@ function LessonCard({
             ) : (
               <li key={m.id} className="flex flex-col gap-1 rounded bg-brand-mint/50 px-2 py-1.5 text-xs sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:py-1">
                 <span>
-                  {MATERIAL_ICON[m.type]} {m.title}{" "}
+                  <MaterialTypeIcon type={m.type} /> {m.title}{" "}
                   <span className="text-gray-500">({m.type}{m.type === "VIDEO" ? " — YouTube" : ""})</span>
                 </span>
                 <span className="flex shrink-0 gap-2">

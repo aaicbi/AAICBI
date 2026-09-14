@@ -1,5 +1,7 @@
 "use client";
 import { createContext, useCallback, useContext, useState } from "react";
+import { CheckCircle2, XCircle, Info } from "lucide-react";
+import Icon from "./Icon";
 
 /**
  * One shared toast system, replacing the inconsistent mix of fading
@@ -35,10 +37,10 @@ const VARIANT_CLASSES: Record<ToastVariant, string> = {
   error: "border-brand-rose bg-brand-surface text-brand-rose",
   info: "border-brand-gray bg-brand-surface text-brand-ink",
 };
-const VARIANT_ICON: Record<ToastVariant, string> = {
-  success: "✓",
-  error: "✕",
-  info: "ℹ",
+const VARIANT_ICON: Record<ToastVariant, typeof CheckCircle2> = {
+  success: CheckCircle2,
+  error: XCircle,
+  info: Info,
 };
 
 let nextId = 1;
@@ -64,7 +66,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             role="status"
             className={`pointer-events-auto flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold shadow-lg animate-[toast-in_0.2s_ease-out] ${VARIANT_CLASSES[t.variant]}`}
           >
-            <span aria-hidden="true">{VARIANT_ICON[t.variant]}</span>
+            <Icon icon={VARIANT_ICON[t.variant]} size="sm" />
             {t.message}
           </div>
         ))}

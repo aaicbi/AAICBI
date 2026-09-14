@@ -8,6 +8,7 @@ import Badge from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
+import AvatarFallback from "@/components/ui/AvatarFallback";
 import AvatarUpload from "@/components/AvatarUpload";
 import Toggle from "@/components/ui/Toggle";
 import ProfileCompletionBanner from "@/components/ui/ProfileCompletionBanner";
@@ -125,7 +126,9 @@ export default function AdminProfilePage() {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-2xl text-brand-teal">🙂</div>
+              <div className="flex h-full w-full items-center justify-center">
+                <AvatarFallback size="lg" />
+              </div>
             )}
           </div>
           <div>

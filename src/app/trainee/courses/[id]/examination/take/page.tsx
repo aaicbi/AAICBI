@@ -5,6 +5,8 @@ import Timer from "@/components/exam/Timer";
 import { NavigationGrid } from "@/components/exam/NavigationPanel";
 import Logo from "@/components/Logo";
 import Button from "@/components/ui/Button";
+import Icon from "@/components/ui/Icon";
+import { Star, ChevronLeft, ChevronRight, X } from "lucide-react";
 
 interface AttemptData {
   attemptId: string;
@@ -157,8 +159,9 @@ export default function TakeCourseExaminationPage({ params }: { params: { id: st
             <span>
               Question {current + 1} of {attempt.questions.length}
             </span>
-            <button onClick={() => toggleMark(current)} className="font-semibold text-brand-gold">
-              {marked.has(current) ? "★ Marked for review" : "☆ Mark for review"}
+            <button onClick={() => toggleMark(current)} className="inline-flex items-center gap-1 font-semibold text-brand-gold">
+              <Icon icon={Star} size="sm" className={marked.has(current) ? "fill-current" : "fill-none"} />
+              {marked.has(current) ? "Marked for review" : "Mark for review"}
             </button>
           </div>
           <div className="mb-4 h-1.5 w-full rounded-full bg-gray-100">
@@ -194,13 +197,16 @@ export default function TakeCourseExaminationPage({ params }: { params: { id: st
           <div className="mt-5 flex items-center justify-between">
             <Button
               variant="secondary"
+              iconLeft={<Icon icon={ChevronLeft} size="sm" />}
               onClick={() => setCurrent((c) => Math.max(0, c - 1))}
               disabled={current === 0}
             >
-              ← Previous
+              Previous
             </Button>
             {current < attempt.questions.length - 1 ? (
-              <Button onClick={() => setCurrent((c) => c + 1)}>Next →</Button>
+              <Button iconRight={<Icon icon={ChevronRight} size="sm" />} onClick={() => setCurrent((c) => c + 1)}>
+                Next
+              </Button>
             ) : (
               <Button onClick={() => setConfirmSubmit(true)}>Review &amp; Submit</Button>
             )}
@@ -234,7 +240,7 @@ export default function TakeCourseExaminationPage({ params }: { params: { id: st
             <div className="mb-4 flex items-center justify-between">
               <span className="font-display font-semibold text-brand-ink">Questions</span>
               <button onClick={() => setNavOpen(false)} aria-label="Close navigation" className="text-gray-500">
-                ✕
+                <Icon icon={X} size="sm" />
               </button>
             </div>
             <NavigationGrid

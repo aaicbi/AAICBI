@@ -8,6 +8,7 @@ import Badge from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
+import CorrectnessMark from "@/components/ui/CorrectnessMark";
 import JobPostingMediaDisplay from "@/components/jobPostings/JobPostingMediaDisplay";
 import type { JobPostingMediaItem } from "@/components/jobPostings/JobPostingMediaGallery";
 
@@ -152,7 +153,9 @@ export default function TraineeJobBoardPage() {
                 <p className="font-display font-semibold text-brand-ink">{p.title}</p>
                 <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
                   <span>{p.employer.companyName}</span>
-                  <Badge variant="success">✓ Verified Employer</Badge>
+                  <Badge variant="success">
+                    <CorrectnessMark state="correct" label={undefined} /> Verified Employer
+                  </Badge>
                   <span>·</span>
                   <span>{closingLabel(p.closingDate)}</span>
                 </div>
@@ -160,7 +163,9 @@ export default function TraineeJobBoardPage() {
                 <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">{p.description}</p>
 
                 {applied.has(p.id) ? (
-                  <p className="mt-3 text-xs font-semibold text-brand-teal">✓ Applied</p>
+                  <p className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-teal">
+                    <CorrectnessMark state="correct" label={undefined} /> Applied
+                  </p>
                 ) : applyingTo === p.id ? (
                   <div className="mt-3 space-y-2 border-t border-brand-gray pt-3">
                     <label className="flex items-center gap-2 text-sm">

@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import Icon from "@/components/ui/Icon";
 
 interface OutlineLesson {
   id: string;
@@ -37,7 +39,9 @@ export default function CourseOutlineAccordion({ modules }: { modules: OutlineMo
               <span className="font-semibold text-brand-ink">
                 Module {i + 1} — {m.title}
               </span>
-              <span className="shrink-0 text-gray-400">{isOpen ? "▾" : "▸"}</span>
+              <span className="shrink-0 text-gray-400">
+                <Icon icon={isOpen ? ChevronDown : ChevronRight} size="sm" />
+              </span>
             </button>
             {isOpen && (
               <ul className="space-y-1.5 bg-brand-sand/30 px-4 pb-4 pt-1">

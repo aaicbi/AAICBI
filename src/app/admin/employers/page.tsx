@@ -7,6 +7,8 @@ import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
+import { AlertTriangle } from "lucide-react";
+import Icon from "@/components/ui/Icon";
 
 interface EmployerDto {
   id: string;
@@ -106,7 +108,9 @@ export default function AdminEmployersPage() {
                     <p className="text-xs text-gray-500">
                       {e.contactName} · {e.email}
                       {e.isFreeEmailProvider && (
-                        <span className="ml-1 font-semibold text-brand-goldText">⚠ free email provider</span>
+                        <span className="ml-1 inline-flex items-center gap-1 font-semibold text-brand-goldText">
+                          <Icon icon={AlertTriangle} size="sm" /> free email provider
+                        </span>
                       )}
                     </p>
                     <p className="mt-1 text-xs text-gray-500">

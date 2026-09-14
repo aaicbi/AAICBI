@@ -4,6 +4,8 @@ import Badge from "@/components/ui/Badge";
 import CourseOutlineAccordion from "@/components/courses/CourseOutlineAccordion";
 import CourseFlyerLightbox from "@/components/courses/CourseFlyerLightbox";
 import type { MarketingView } from "@/lib/courseMarketing";
+import Icon from "@/components/ui/Icon";
+import { CheckCircle2, FileText } from "lucide-react";
 
 const LEVEL_LABEL: Record<string, string> = { BEGINNER: "Beginner", INTERMEDIATE: "Intermediate", ADVANCED: "Advanced" };
 const FORMAT_LABEL: Record<string, string> = {
@@ -104,7 +106,7 @@ export default function CourseMarketingView({ data, actions }: { data: Marketing
           <ul className="mt-2 grid gap-2 sm:grid-cols-2">
             {[...data.learningOutcomes, ...data.skillsGained].map((item, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                <span className="mt-0.5 text-brand-teal">✓</span>
+                <Icon icon={CheckCircle2} size="sm" className="mt-0.5 shrink-0 text-brand-teal" />
                 {item}
               </li>
             ))}
@@ -169,7 +171,7 @@ export default function CourseMarketingView({ data, actions }: { data: Marketing
             rel="noreferrer"
             className="mt-3 inline-flex items-center gap-2 rounded-lg bg-brand-teal px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-tealDeep"
           >
-            📄 Download Curriculum
+            <Icon icon={FileText} size="sm" /> Download Curriculum
           </a>
         </section>
       )}

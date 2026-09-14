@@ -18,6 +18,9 @@ import WelcomeHeader from "@/components/dashboard/WelcomeHeader";
 import NotificationSummaryCard from "@/components/dashboard/NotificationSummaryCard";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import QuickActionsCard from "@/components/dashboard/QuickActionsCard";
+import CorrectnessMark from "@/components/ui/CorrectnessMark";
+import Icon from "@/components/ui/Icon";
+import { AchievementIcon } from "@/components/icons/brand";
 
 /**
  * M12 — replaces the M10-era empty shell (browsing-only, no progress)
@@ -300,8 +303,8 @@ export default async function TraineeDashboardPage() {
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold uppercase tracking-wide text-brand-teal">Continue Learning</p>
               {topCourse.isPaid ? (
-                <span className="rounded-full bg-brand-mint px-2 py-0.5 text-[10px] font-semibold text-brand-teal">
-                  PAID ✓
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-brand-mint px-2 py-0.5 text-[10px] font-semibold text-brand-teal">
+                  PAID <CorrectnessMark state="correct" label={undefined} />
                 </span>
               ) : topCourse.isExpired ? (
                 <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-brand-rose">
@@ -363,9 +366,7 @@ export default async function TraineeDashboardPage() {
                 <Link key={cert.code} href={`/certificate/${cert.code}`} target="_blank" rel="noopener noreferrer">
                   <Card variant="celebratory" interactive className="h-full">
                     <div className="flex items-start gap-3">
-                      <span className="text-2xl" aria-hidden="true">
-                        🎓
-                      </span>
+                      <Icon icon={AchievementIcon} size="lg" />
                       <div>
                         <p className="font-display text-sm font-semibold text-brand-ink">{cert.course.title}</p>
                         <p className="mt-0.5 text-xs text-gray-500">
@@ -391,8 +392,8 @@ export default async function TraineeDashboardPage() {
                       <div className="flex items-center gap-2">
                         <span className="font-display text-sm font-semibold text-brand-ink">{c.courseTitle}</span>
                         {c.isPaid ? (
-                          <span className="rounded-full bg-brand-mint px-2 py-0.5 text-[10px] font-semibold text-brand-teal">
-                            PAID ✓
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-brand-mint px-2 py-0.5 text-[10px] font-semibold text-brand-teal">
+                            PAID <CorrectnessMark state="correct" label={undefined} />
                           </span>
                         ) : c.isExpired ? (
                           <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-brand-rose">

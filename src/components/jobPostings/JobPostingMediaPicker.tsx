@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { MAX_MEDIA_PER_POSTING } from "@/lib/jobPostingMedia";
+import { X } from "lucide-react";
+import Icon from "@/components/ui/Icon";
 
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const VIDEO_TYPES = ["video/mp4", "video/webm"];
@@ -124,7 +126,7 @@ export default function JobPostingMediaPicker({
                 aria-label="Remove"
                 className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-xs text-white opacity-0 transition-opacity hover:bg-black/80 group-hover:opacity-100"
               >
-                ✕
+                <Icon icon={X} size="sm" />
               </button>
             </div>
           ))}

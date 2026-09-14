@@ -3,6 +3,8 @@ import { useState } from "react";
 import CourseFlyerUpload from "@/components/admin/CourseFlyerUpload";
 import CourseCurriculumUpload from "@/components/admin/CourseCurriculumUpload";
 import Toggle from "@/components/ui/Toggle";
+import Icon from "@/components/ui/Icon";
+import { ClipboardList } from "lucide-react";
 
 export interface CourseMarketingFields {
   category: string | null;
@@ -106,7 +108,9 @@ export default function CourseMarketingSettings({
 
   return (
     <div className="mt-4 rounded-lg border border-brand-gray bg-gray-50 p-4">
-      <p className="text-sm font-semibold text-gray-900">📋 Course Information &amp; Marketing Materials</p>
+      <p className="flex items-center gap-1 text-sm font-semibold text-gray-900">
+        <Icon icon={ClipboardList} size="sm" /> Course Information &amp; Marketing Materials
+      </p>
       <p className="mt-1 text-xs text-gray-600">
         Shown on the public course page before a trainee enrolls — the fuller this is, the more a prospective trainee
         can evaluate the course up front.

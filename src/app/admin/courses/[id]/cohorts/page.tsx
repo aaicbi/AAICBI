@@ -7,6 +7,9 @@ import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
+import BackLink from "@/components/ui/BackLink";
+import { ArrowRight } from "lucide-react";
+import Icon from "@/components/ui/Icon";
 
 interface CohortRow {
   id: string;
@@ -107,9 +110,9 @@ export default function CourseCohortsPage({ params }: { params: { id: string } }
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-3xl px-6 py-10">
-        <a href={`/admin/courses/${params.id}`} className="text-sm text-brand-teal hover:underline">
-          ← Back to course
-        </a>
+        <BackLink href={`/admin/courses/${params.id}`} className="text-sm text-brand-teal hover:underline">
+          Back to course
+        </BackLink>
         <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="font-display text-2xl font-semibold text-brand-ink">Cohorts / Intakes</h1>
           <Button variant={showForm ? "secondary" : "primary"} onClick={() => setShowForm(!showForm)}>
@@ -181,8 +184,8 @@ export default function CourseCohortsPage({ params }: { params: { id: string } }
                       </p>
                     )}
                   </div>
-                  <span className="shrink-0 text-xs text-gray-500">
-                    {c._count.enrollments} trainee{c._count.enrollments === 1 ? "" : "s"} →
+                  <span className="inline-flex shrink-0 items-center gap-1 text-xs text-gray-500">
+                    {c._count.enrollments} trainee{c._count.enrollments === 1 ? "" : "s"} <Icon icon={ArrowRight} size="sm" />
                   </span>
                 </Card>
               </a>

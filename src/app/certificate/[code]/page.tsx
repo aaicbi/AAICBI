@@ -8,6 +8,9 @@ import Logo from "@/components/Logo";
 import PrintCertificateButton from "@/components/PrintCertificateButton";
 import Badge from "@/components/ui/Badge";
 import AchievementDoodle from "@/components/doodles/AchievementDoodle";
+import { XCircle, AlertTriangle } from "lucide-react";
+import Icon from "@/components/ui/Icon";
+import { VerifiedCredentialIcon } from "@/components/icons/brand";
 
 /**
  * M15 — the public certificate verification page. No authentication —
@@ -75,7 +78,7 @@ export default async function CertificateVerificationPage({ params }: { params: 
         <SiteHeader nav={nav} />
         <main className="mx-auto max-w-md px-6 py-16 text-center">
           <div className="rounded-2xl border border-brand-roseLight bg-brand-roseLight/40 p-8">
-            <p className="text-3xl" aria-hidden="true">✕</p>
+            <Icon icon={XCircle} size="xl" className="text-brand-rose" />
             <p className="mt-3 font-display text-lg font-semibold text-brand-rose">Certificate Not Found</p>
             {/* Audit finding, closed here: hardcoded hex, same pattern
                 already fixed on the public profile page — see that
@@ -96,7 +99,7 @@ export default async function CertificateVerificationPage({ params }: { params: 
         <SiteHeader nav={nav} />
         <main className="mx-auto max-w-md px-6 py-16 text-center">
           <div className="rounded-2xl border border-brand-goldLight bg-brand-goldLight/50 p-8">
-            <p className="text-3xl">⚠</p>
+            <Icon icon={AlertTriangle} size="xl" className="text-brand-goldText" />
             {/* Audit finding, closed here: same hardcoded-hex pattern
                 as the rose case above, now for gold — see
                 `brand-gold-text`'s own schema comment for why a
@@ -174,7 +177,9 @@ export default async function CertificateVerificationPage({ params }: { params: 
             </div>
 
             <div className="mt-8 flex justify-center">
-              <Badge variant="gold">✓ Verified by AAICBI</Badge>
+              <Badge variant="gold">
+                <Icon icon={VerifiedCredentialIcon} size="sm" className="mr-1 inline align-text-bottom" /> Verified by AAICBI
+              </Badge>
             </div>
           </div>
         </div>

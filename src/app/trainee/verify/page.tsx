@@ -5,6 +5,8 @@ import SiteHeader from "@/components/SiteHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
+import CorrectnessMark from "@/components/ui/CorrectnessMark";
+import BackLink from "@/components/ui/BackLink";
 
 type Status = "checking" | "success" | "error";
 
@@ -65,7 +67,9 @@ function VerifyEmailContent() {
 
         {status === "success" && (
           <Card className="w-full">
-            <Badge variant="success">✓ Email Verified</Badge>
+            <Badge variant="success">
+              <CorrectnessMark state="correct" label={undefined} /> Email Verified
+            </Badge>
             <p className="mt-3 text-sm text-gray-600">Your account is verified. You can now sign in.</p>
             <Button href="/trainee/login" className="mt-4">
               Sign In
@@ -75,11 +79,13 @@ function VerifyEmailContent() {
 
         {status === "error" && (
           <Card className="w-full">
-            <Badge variant="danger">✕ Verification Failed</Badge>
+            <Badge variant="danger">
+              <CorrectnessMark state="incorrect" label={undefined} /> Verification Failed
+            </Badge>
             <p className="mt-3 text-sm text-gray-600">{message}</p>
-            <a href="/trainee/login" className="mt-4 inline-block text-sm font-semibold text-brand-teal hover:underline">
+            <BackLink href="/trainee/login" className="mt-4 inline-flex text-sm font-semibold text-brand-teal hover:underline">
               Back to Sign In
-            </a>
+            </BackLink>
           </Card>
         )}
       </main>

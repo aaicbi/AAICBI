@@ -5,6 +5,10 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import AchievementDoodle from "@/components/doodles/AchievementDoodle";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
+import StarRating from "@/components/ui/StarRating";
+import CorrectnessMark from "@/components/ui/CorrectnessMark";
+import Icon from "@/components/ui/Icon";
+import { ArrowRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -129,8 +133,8 @@ export default async function LandingPage() {
                 who wants to confirm a credential is genuine, an employer, a client, anyone, can check it in
                 seconds.
               </p>
-              <Link href="/certificate" className="mt-4 inline-block text-sm font-semibold text-brand-teal hover:underline">
-                Verify a certificate →
+              <Link href="/certificate" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-teal hover:underline">
+                Verify a certificate <Icon icon={ArrowRight} size="sm" />
               </Link>
             </div>
           </div>
@@ -149,16 +153,19 @@ export default async function LandingPage() {
               {testimonials.map((t: (typeof testimonials)[number]) => (
                 <Card key={t.id}>
                   {t.rating && (
-                    <p className="mb-2" style={{ color: "#d4a017" }}>
-                      {"★".repeat(t.rating)}
-                      <span style={{ color: "#d1d5db" }}>{"★".repeat(5 - t.rating)}</span>
+                    <p className="mb-2">
+                      <StarRating rating={t.rating} />
                     </p>
                   )}
                   <p className="text-sm leading-relaxed text-gray-700">&ldquo;{t.quote}&rdquo;</p>
                   <p className="mt-3 text-sm font-semibold text-brand-ink">{t.traineeName}</p>
                   {t.courseTitle && <p className="text-xs text-gray-500">{t.courseTitle}</p>}
                   <div className="mt-2 flex items-center gap-2">
-                    {t.courseReviewId && <Badge variant="success">✓ Verified Trainee Review</Badge>}
+                    {t.courseReviewId && (
+                      <Badge variant="success">
+                        <CorrectnessMark state="correct" label={undefined} /> Verified Trainee Review
+                      </Badge>
+                    )}
                     <span className="text-xs text-gray-400">
                       {new Date(t.createdAt).toLocaleDateString(undefined, { month: "long", year: "numeric" })}
                     </span>

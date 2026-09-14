@@ -6,6 +6,9 @@ import LogoutButton from "@/components/trainee/LogoutButton";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
+import BackLink from "@/components/ui/BackLink";
+import { CheckCircle2 } from "lucide-react";
+import Icon from "@/components/ui/Icon";
 
 interface ExamMeta {
   id: string;
@@ -98,15 +101,17 @@ export default function CourseExaminationIntroPage({ params }: { params: { id: s
     <>
       <SiteHeader nav={nav} right={<LogoutButton />} />
       <main className="mx-auto max-w-2xl px-6 py-10">
-        <a href={`/trainee/courses/${params.id}`} className="text-sm text-brand-teal hover:underline">
-          ← Back to course
-        </a>
+        <BackLink href={`/trainee/courses/${params.id}`} className="text-sm text-brand-teal hover:underline">
+          Back to course
+        </BackLink>
         <h1 className="mt-2 font-display text-2xl font-semibold text-brand-ink">{meta.title}</h1>
 
         {meta.attempts.length > 0 && (
           <Card variant="highlighted" className="mt-3 flex flex-wrap items-center gap-2 text-sm text-gray-700">
             {bestPassed ? (
-              <Badge variant="success">✓ Already passed</Badge>
+              <Badge variant="success">
+                <Icon icon={CheckCircle2} size="sm" className="mr-1 inline align-text-bottom" /> Already passed
+              </Badge>
             ) : (
               <Badge variant="neutral">Attempted before</Badge>
             )}

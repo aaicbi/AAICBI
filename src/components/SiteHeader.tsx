@@ -1,8 +1,10 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { X, Menu } from "lucide-react";
 import Logo from "./Logo";
 import BackButton from "./BackButton";
+import Icon from "./ui/Icon";
 
 interface NavItem {
   label: string;
@@ -81,15 +83,7 @@ export default function SiteHeader({
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-brand-ink hover:bg-brand-mint sm:hidden"
           >
-            {mobileOpen ? (
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                <path d="M6 6 L18 18 M18 6 L6 18" />
-              </svg>
-            ) : (
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                <path d="M4 7 H20 M4 12 H20 M4 17 H20" />
-              </svg>
-            )}
+            {mobileOpen ? <Icon icon={X} size="md" /> : <Icon icon={Menu} size="md" />}
           </button>
         )}
       </div>

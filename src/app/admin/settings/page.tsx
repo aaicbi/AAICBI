@@ -8,6 +8,10 @@ import SecuritySettingsPanel from "@/components/admin/SecuritySettingsPanel";
 import IntegrationsPanel from "@/components/admin/IntegrationsPanel";
 import ContactAdminCard from "@/components/ContactAdminCard";
 import { ADMIN_AREAS } from "@/lib/adminAreas";
+import Icon from "@/components/ui/Icon";
+import { User, CreditCard, Lock, Plug, Inbox, ArrowRight } from "lucide-react";
+import { LoopIcon } from "@/components/icons/brand";
+import type { LucideIcon } from "lucide-react";
 
 type SectionId = "account" | "payments" | "security" | "integrations";
 
@@ -36,11 +40,11 @@ type SectionId = "account" | "payments" | "security" | "integrations";
  * configuration, and presenting them as another "settings tab" would
  * misrepresent what they are.
  */
-const SECTIONS: Array<{ id: SectionId; label: string; icon: string; superAdminOnly?: boolean }> = [
-  { id: "account", label: "Account", icon: "👤" },
-  { id: "payments", label: "Payments", icon: "💳", superAdminOnly: true },
-  { id: "security", label: "Security", icon: "🔒", superAdminOnly: true },
-  { id: "integrations", label: "Integrations", icon: "🔌", superAdminOnly: true },
+const SECTIONS: Array<{ id: SectionId; label: string; icon: LucideIcon; superAdminOnly?: boolean }> = [
+  { id: "account", label: "Account", icon: User },
+  { id: "payments", label: "Payments", icon: CreditCard, superAdminOnly: true },
+  { id: "security", label: "Security", icon: Lock, superAdminOnly: true },
+  { id: "integrations", label: "Integrations", icon: Plug, superAdminOnly: true },
 ];
 
 export default function AdminSettingsPage() {
@@ -90,7 +94,7 @@ export default function AdminSettingsPage() {
                     : "text-gray-600 hover:bg-brand-mint/40 hover:text-brand-ink"
                 }`}
               >
-                <span aria-hidden="true">{s.icon}</span>
+                <Icon icon={s.icon} size="sm" />
                 {s.label}
               </button>
             ))}
@@ -109,27 +113,31 @@ export default function AdminSettingsPage() {
             <a href="/admin/command" className="block">
               <div className="group flex items-center justify-between rounded-xl border border-brand-teal bg-brand-mint/40 p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
                 <div>
-                  <p className="font-display font-semibold text-brand-ink">🧭 AI Command Center</p>
+                  <p className="flex items-center gap-1.5 font-display font-semibold text-brand-ink">
+                    <Icon icon={LoopIcon} size="sm" /> AI Command Center
+                  </p>
                   <p className="mt-1 text-sm text-gray-600">
                     Ask Loop about any trainee, employer, staff member, or cohort — it can only look things up and
                     report back, never change anything.
                   </p>
                 </div>
-                <span className="ml-3 shrink-0 text-brand-teal transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true">
-                  →
+                <span className="ml-3 shrink-0 text-brand-teal transition-transform duration-200 group-hover:translate-x-0.5">
+                  <Icon icon={ArrowRight} size="sm" />
                 </span>
               </div>
             </a>
             <a href="/admin/inbox" className="block">
               <div className="group flex items-center justify-between rounded-xl border border-brand-gray bg-brand-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-teal hover:shadow-md">
                 <div>
-                  <p className="font-display font-semibold text-brand-ink">📥 Admin Inbox</p>
+                  <p className="flex items-center gap-1.5 font-display font-semibold text-brand-ink">
+                    <Icon icon={Inbox} size="sm" /> Admin Inbox
+                  </p>
                   <p className="mt-1 text-sm text-gray-600">
                     Direct messages sent to you by trainees, employers, and staff.
                   </p>
                 </div>
-                <span className="ml-3 shrink-0 text-brand-teal transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true">
-                  →
+                <span className="ml-3 shrink-0 text-brand-teal transition-transform duration-200 group-hover:translate-x-0.5">
+                  <Icon icon={ArrowRight} size="sm" />
                 </span>
               </div>
             </a>
@@ -157,8 +165,8 @@ export default function AdminSettingsPage() {
                   <span className="block text-sm font-semibold text-brand-ink">{item.label}</span>
                   <span className="mt-0.5 block text-xs text-gray-500">{item.desc}</span>
                 </span>
-                <span className="ml-3 text-brand-teal transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true">
-                  →
+                <span className="ml-3 text-brand-teal transition-transform duration-200 group-hover:translate-x-0.5">
+                  <Icon icon={ArrowRight} size="sm" />
                 </span>
               </a>
             ))}

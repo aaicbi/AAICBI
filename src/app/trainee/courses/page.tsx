@@ -8,6 +8,9 @@ import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
+import CorrectnessMark from "@/components/ui/CorrectnessMark";
+import Icon from "@/components/ui/Icon";
+import { ArrowRight } from "lucide-react";
 
 interface CourseRow {
   id: string;
@@ -96,8 +99,8 @@ export default function TraineeCoursesPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-display text-base font-semibold text-brand-ink">{course.title}</span>
                     {course.isPaid && course.isEnrolled ? (
-                      <span className="rounded-full bg-brand-mint px-2 py-0.5 text-[10px] font-semibold text-brand-teal">
-                        PAID ✓
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-brand-mint px-2 py-0.5 text-[10px] font-semibold text-brand-teal">
+                        PAID <CorrectnessMark state="correct" label={undefined} />
                       </span>
                     ) : course.isExpired ? (
                       <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-brand-rose">
@@ -120,7 +123,9 @@ export default function TraineeCoursesPage() {
                     {course._count.modules} module{course._count.modules === 1 ? "" : "s"}
                   </div>
                 </div>
-                <span className="shrink-0 text-sm font-semibold text-brand-teal">View →</span>
+                <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-teal">
+                  View <Icon icon={ArrowRight} size="sm" />
+                </span>
               </Card>
             </Link>
           ))}

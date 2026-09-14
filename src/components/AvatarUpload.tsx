@@ -1,6 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
+import AvatarFallback from "@/components/ui/AvatarFallback";
 
 /**
  * M44 — one shared component for both trainee and staff settings,
@@ -66,7 +67,9 @@ export default function AvatarUpload({
           // local asset next/image's optimizer is meant for.
           <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-2xl text-brand-teal">🙂</div>
+          <div className="flex h-full w-full items-center justify-center">
+            <AvatarFallback size="lg" />
+          </div>
         )}
       </div>
       <div>

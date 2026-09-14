@@ -5,6 +5,7 @@ import LogoutButton from "@/components/admin/LogoutButton";
 import Badge from "@/components/ui/Badge";
 import CourseMarketingView from "@/components/courses/CourseMarketingView";
 import type { MarketingView } from "@/lib/courseMarketing";
+import BackLink from "@/components/ui/BackLink";
 
 /**
  * /admin/courses/[id]/preview — "Preview as Trainee," exactly what a
@@ -34,9 +35,7 @@ export default function CourseAdminPreviewPage({ params }: { params: { id: strin
             <Badge variant="warning">Previewing as trainee</Badge>
             <span className="text-xs text-gray-600">This is exactly what a prospective trainee sees before enrolling.</span>
           </div>
-          <a href={`/admin/courses/${params.id}`} className="text-xs font-semibold text-brand-teal hover:underline">
-            ← Back to editor
-          </a>
+          <BackLink href={`/admin/courses/${params.id}`}>Back to editor</BackLink>
         </div>
       </div>
 

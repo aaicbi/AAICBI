@@ -6,6 +6,9 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import BackLink from "@/components/ui/BackLink";
+import { Heart } from "lucide-react";
+import Icon from "@/components/ui/Icon";
 
 interface PostDto {
   id: string;
@@ -100,9 +103,7 @@ export default function QaThreadPage({ params }: { params: { id: string; threadI
     <>
       <SiteHeader nav={nav} right={<LogoutButton />} />
       <main className="mx-auto max-w-2xl px-6 py-10">
-        <a href={`/trainee/lessons/${params.id}/qa`} className="text-xs font-semibold text-brand-teal hover:underline">
-          ← Back to Q&amp;A
-        </a>
+        <BackLink href={`/trainee/lessons/${params.id}/qa`}>Back to Q&amp;A</BackLink>
 
         {thread === null ? (
           <SkeletonList />
@@ -125,7 +126,7 @@ export default function QaThreadPage({ params }: { params: { id: string; threadI
                       onClick={() => toggleLike(p.id)}
                       className={`flex items-center gap-1 text-xs font-semibold ${p.likedByMe ? "text-brand-rose" : "text-gray-400 hover:text-brand-rose"}`}
                     >
-                      {p.likedByMe ? "♥" : "♡"} {p.likeCount > 0 && p.likeCount}
+                      <Icon icon={Heart} size="sm" className={p.likedByMe ? "fill-current" : "fill-none"} /> {p.likeCount > 0 && p.likeCount}
                     </button>
                   </div>
                 </Card>

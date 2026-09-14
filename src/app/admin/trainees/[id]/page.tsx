@@ -6,6 +6,9 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
+import BackLink from "@/components/ui/BackLink";
+import { MapPin } from "lucide-react";
+import Icon from "@/components/ui/Icon";
 
 const NAV = [
   { label: "Examinations", href: "/admin/dashboard" },
@@ -100,9 +103,7 @@ export default function AdminTraineeDetailPage({ params }: { params: { id: strin
     <>
       <SiteHeader nav={NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-2xl px-6 py-10">
-        <a href="/admin/trainees" className="text-xs font-semibold text-brand-teal hover:underline">
-          ← Back to Trainees
-        </a>
+        <BackLink href="/admin/trainees">Back to Trainees</BackLink>
 
         {trainee === null ? (
           <div className="mt-4">
@@ -130,7 +131,11 @@ export default function AdminTraineeDetailPage({ params }: { params: { id: strin
             <Card className="mt-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Profile</p>
               <div className="mt-2 space-y-1 text-sm text-gray-700">
-                {trainee.location && <p>📍 {trainee.location}</p>}
+                {trainee.location && (
+                  <p className="flex items-center gap-1">
+                    <Icon icon={MapPin} size="sm" /> {trainee.location}
+                  </p>
+                )}
                 {trainee.currentEmploymentStatus && <p>Status: {trainee.currentEmploymentStatus}</p>}
                 {trainee.availabilityTypes.length > 0 && <p>Open to: {trainee.availabilityTypes.join(", ")}</p>}
                 <p className="flex flex-wrap gap-3 pt-1">

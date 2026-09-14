@@ -8,6 +8,8 @@ import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
 import EmptyState from "@/components/ui/EmptyState";
+import { ArrowRight } from "lucide-react";
+import Icon from "@/components/ui/Icon";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 import JobPostingMediaPicker, { StagedMedia } from "@/components/jobPostings/JobPostingMediaPicker";
 import JobPostingMediaGallery, { JobPostingMediaItem } from "@/components/jobPostings/JobPostingMediaGallery";
@@ -247,8 +249,8 @@ export default function EmployerJobPostingsPage() {
                 )}
 
                 {(p.status === "APPROVED" || p.status === "EXPIRED") && (
-                  <a href={`/employer/job-postings/${p.id}/applications`} className="mt-2 inline-block text-xs font-semibold text-brand-teal hover:underline">
-                    View applications →
+                  <a href={`/employer/job-postings/${p.id}/applications`} className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-brand-teal hover:underline">
+                    View applications <Icon icon={ArrowRight} size="sm" />
                   </a>
                 )}
               </Card>

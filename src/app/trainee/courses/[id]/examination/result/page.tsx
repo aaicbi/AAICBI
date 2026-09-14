@@ -5,6 +5,8 @@ import LogoutButton from "@/components/trainee/LogoutButton";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
+import CorrectnessMark from "@/components/ui/CorrectnessMark";
+import BackLink from "@/components/ui/BackLink";
 
 interface ReviewQuestion {
   questionText: string;
@@ -62,7 +64,10 @@ function ReviewSection({ review }: { review: ReviewQuestion[] }) {
                           : "border-brand-gray text-gray-600"
                     }`}
                   >
-                    {o.isCorrect ? "✓ " : wasSelected ? "✕ " : ""}
+                    <CorrectnessMark
+                      state={o.isCorrect ? "correct" : wasSelected ? "incorrect" : "neutral"}
+                      label={o.isCorrect ? "Correct answer" : wasSelected ? "Your answer (incorrect)" : undefined}
+                    />{" "}
                     {o.text}
                     {wasSelected && !o.isCorrect && <span className="ml-1 text-xs text-brand-rose">(your answer)</span>}
                   </div>
@@ -115,9 +120,9 @@ export default function CourseExaminationResultPage({ params }: { params: { id: 
         <SiteHeader nav={nav} right={<LogoutButton />} />
         <main className="mx-auto flex min-h-[calc(100vh-73px)] max-w-sm flex-col items-center justify-center px-6 text-center">
           <p className="text-gray-700">{result.message}</p>
-          <a href={`/trainee/courses/${params.id}`} className="mt-6 text-sm font-semibold text-brand-teal hover:underline">
-            ← Back to course
-          </a>
+          <BackLink href={`/trainee/courses/${params.id}`} className="mt-6 text-sm font-semibold text-brand-teal hover:underline">
+            Back to course
+          </BackLink>
         </main>
       </>
     );

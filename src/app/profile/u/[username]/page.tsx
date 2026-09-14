@@ -3,6 +3,8 @@ import { getSession } from "@/lib/auth/session";
 import { canViewProfile } from "@/lib/profileVisibility";
 import SiteHeader from "@/components/SiteHeader";
 import Card from "@/components/ui/Card";
+import BackLink from "@/components/ui/BackLink";
+import AvatarFallback from "@/components/ui/AvatarFallback";
 
 /**
  * Universal profile system, Phase 4 — the authenticated-viewing rich
@@ -105,11 +107,7 @@ function dashboardHrefForRole(role: string | null): string | null {
 function BackToDashboard({ viewerRole }: { viewerRole: string | null }) {
   const href = dashboardHrefForRole(viewerRole);
   if (!href) return null;
-  return (
-    <a href={href} className="text-xs font-semibold text-brand-teal hover:underline">
-      ← Back to Dashboard
-    </a>
-  );
+  return <BackLink href={href}>Back to Dashboard</BackLink>;
 }
 
 const AVAILABILITY_LABELS: Record<string, string> = {
@@ -154,7 +152,9 @@ function TraineeProfileView({
               // eslint-disable-next-line @next/next/no-img-element
               <img src={trainee.avatarUrl} alt="" className="h-full w-full object-cover" />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-2xl text-brand-teal">🙂</div>
+              <div className="flex h-full w-full items-center justify-center">
+                <AvatarFallback size="lg" />
+              </div>
             )}
           </div>
           <div>
@@ -311,7 +311,9 @@ function StaffProfileView({
               // eslint-disable-next-line @next/next/no-img-element
               <img src={staff.avatarUrl} alt="" className="h-full w-full object-cover" />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-2xl text-brand-teal">🙂</div>
+              <div className="flex h-full w-full items-center justify-center">
+                <AvatarFallback size="lg" />
+              </div>
             )}
           </div>
           <div>

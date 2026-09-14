@@ -5,6 +5,8 @@ import LogoutButton from "@/components/admin/LogoutButton";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { SkeletonTableRows } from "@/components/ui/Skeleton";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import Icon from "@/components/ui/Icon";
 
 interface PerformanceSummaryDto {
   strengths: string[];
@@ -140,7 +142,11 @@ export default function ExamResultsPage({ params }: { params: { id: string } }) 
                               generation, see the schema comment on
                               PerformanceSummary); this cell is just silent for
                               those rather than showing a broken/empty link. */}
-                          {a.performanceSummary && (expanded === a.id ? "▾ Hide analysis" : "▸ AI analysis")}
+                          {a.performanceSummary && (
+                            <span className="inline-flex items-center gap-1">
+                              <Icon icon={expanded === a.id ? ChevronDown : ChevronRight} size="sm" /> {expanded === a.id ? "Hide analysis" : "AI analysis"}
+                            </span>
+                          )}
                         </td>
                       </tr>
                       {expanded === a.id && a.performanceSummary && (

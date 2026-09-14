@@ -4,6 +4,10 @@ import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
 import { useToast } from "@/components/ui/Toast";
+import { AlertTriangle } from "lucide-react";
+import Icon from "@/components/ui/Icon";
+import CorrectnessMark from "@/components/ui/CorrectnessMark";
+import BackLink from "@/components/ui/BackLink";
 
 interface OptionDto {
   id: string;
@@ -255,9 +259,9 @@ export default function ModuleAssessmentPage({ params }: { params: { id: string 
       {modal}
       <main className="mx-auto max-w-3xl px-6 py-10">
         {courseId && (
-          <a href={`/admin/courses/${courseId}`} className="text-sm text-brand-teal hover:underline">
-            ← Back to course
-          </a>
+          <BackLink href={`/admin/courses/${courseId}`} className="text-sm text-brand-teal hover:underline">
+            Back to course
+          </BackLink>
         )}
         <h1 className="mt-2 font-display text-2xl font-semibold text-brand-ink">
           {moduleTitle ? `${moduleTitle} — Assessment` : "Module Assessment"}
@@ -495,8 +499,8 @@ function QuestionCard({
       }`}
     >
       {question.needsReview && (
-        <p className="mb-2 text-xs font-semibold text-brand-goldText">
-          ⚠ {question.reviewReason ?? "Needs review — correct answer could not be confidently identified."}
+        <p className="mb-2 flex items-center gap-1 text-xs font-semibold text-brand-goldText">
+          <Icon icon={AlertTriangle} size="sm" /> {question.reviewReason ?? "Needs review — correct answer could not be confidently identified."}
         </p>
       )}
 
@@ -538,8 +542,8 @@ function QuestionCard({
           <p className="font-medium text-gray-900">{question.text}</p>
           <ul className="mt-2 space-y-1 text-sm">
             {question.options.map((o) => (
-              <li key={o.id} className={o.isCorrect ? "font-semibold text-brand-teal" : "text-gray-600"}>
-                {o.key}) {o.text} {o.isCorrect && "✓"}
+              <li key={o.id} className={o.isCorrect ? "flex items-center gap-1 font-semibold text-brand-teal" : "text-gray-600"}>
+                {o.key}) {o.text} {o.isCorrect && <CorrectnessMark state="correct" label="Correct answer" />}
               </li>
             ))}
           </ul>

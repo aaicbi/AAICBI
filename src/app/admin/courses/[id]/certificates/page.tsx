@@ -8,6 +8,9 @@ import { SkeletonTableRows } from "@/components/ui/Skeleton";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
 import { useToast } from "@/components/ui/Toast";
 import AchievementDoodle from "@/components/doodles/AchievementDoodle";
+import BackLink from "@/components/ui/BackLink";
+import { ArrowRight } from "lucide-react";
+import Icon from "@/components/ui/Icon";
 
 interface CertificateRow {
   id: string;
@@ -120,9 +123,9 @@ export default function CourseCertificatesPage({ params }: { params: { id: strin
       />
       {modal}
       <main className="mx-auto max-w-3xl px-6 py-10">
-        <a href={`/admin/courses/${params.id}`} className="text-sm text-brand-teal hover:underline">
-          ← Back to course
-        </a>
+        <BackLink href={`/admin/courses/${params.id}`} className="text-sm text-brand-teal hover:underline">
+          Back to course
+        </BackLink>
         <h1 className="mt-2 font-display text-2xl font-semibold text-brand-ink">Certificates Issued</h1>
 
         {certificates !== null && certificates.length === 0 ? (
@@ -167,7 +170,7 @@ export default function CourseCertificatesPage({ params }: { params: { id: strin
                         rel="noopener noreferrer"
                         className="text-xs font-semibold text-brand-teal hover:underline"
                       >
-                        View →
+                        View <Icon icon={ArrowRight} size="sm" className="inline" />
                       </a>
                       <button
                         onClick={() => toggleRevoked(c.id, !!c.revokedAt)}

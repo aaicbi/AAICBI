@@ -1,6 +1,8 @@
 "use client";
 import { useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
+import Icon from "@/components/ui/Icon";
+import { Image as ImageIcon } from "lucide-react";
 
 /**
  * Course catalogue upgrade — the flyer counterpart to AvatarUpload.tsx,
@@ -62,7 +64,7 @@ export default function CourseFlyerUpload({
           // eslint-disable-next-line @next/next/no-img-element -- a real, dynamically-uploaded external URL.
           <img src={flyerUrl} alt="Course flyer" className="h-full w-full object-cover" />
         ) : (
-          <span className="text-3xl">🖼️</span>
+          <Icon icon={ImageIcon} size="xl" />
         )}
       </div>
       <div>

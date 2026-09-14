@@ -1,6 +1,8 @@
 "use client";
 import { useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
+import Icon from "@/components/ui/Icon";
+import { FileText } from "lucide-react";
 
 /**
  * Course catalogue upgrade — the curriculum-document counterpart to
@@ -59,7 +61,7 @@ export default function CourseCurriculumUpload({
     <div>
       {curriculumUrl && (
         <div className="mb-2 flex items-center gap-2 rounded-lg border border-brand-gray bg-gray-50 px-3 py-2 text-sm">
-          <span>📄</span>
+          <Icon icon={FileText} size="sm" />
           <a href={curriculumUrl} target="_blank" rel="noreferrer" className="font-semibold text-brand-teal hover:underline">
             View current curriculum
           </a>

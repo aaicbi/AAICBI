@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { Timer as TimerIcon } from "lucide-react";
+import Icon from "@/components/ui/Icon";
 
 interface TimerProps {
   /** Seconds remaining as reported by the server at attempt start. */
@@ -64,7 +66,7 @@ export default function Timer({ initialSecondsRemaining, clientStartedAt, onExpi
           : "bg-brand-mint text-brand-teal"
       }`}
     >
-      <span aria-hidden>⏱</span>
+      <Icon icon={TimerIcon} size="sm" />
       <span aria-live="polite">
         {String(mins).padStart(2, "0")}:{String(secs).padStart(2, "0")}
       </span>

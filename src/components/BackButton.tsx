@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
+import Icon from "./ui/Icon";
 
 /**
  * Rendered from SiteHeader itself rather than added to each page
@@ -40,9 +42,7 @@ export default function BackButton() {
       aria-label="Go back"
       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-600 hover:bg-brand-mint hover:text-brand-teal"
     >
-      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M15 18l-6-6 6-6" />
-      </svg>
+      <Icon icon={ChevronLeft} size="md" />
     </button>
   );
 }

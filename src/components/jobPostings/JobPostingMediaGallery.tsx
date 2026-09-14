@@ -1,3 +1,6 @@
+import { X } from "lucide-react";
+import Icon from "@/components/ui/Icon";
+
 export interface JobPostingMediaItem {
   id: string;
   type: "IMAGE" | "VIDEO";
@@ -41,7 +44,7 @@ export default function JobPostingMediaGallery({
               aria-label="Remove media"
               className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-xs text-white opacity-0 transition-opacity hover:bg-black/80 disabled:opacity-60 group-hover:opacity-100"
             >
-              ✕
+              <Icon icon={X} size="sm" />
             </button>
           )}
         </div>

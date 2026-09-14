@@ -6,6 +6,7 @@ import Card from "@/components/ui/Card";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
+import MaterialTypeIcon from "@/components/ui/MaterialTypeIcon";
 
 interface DownloadDto {
   materialId: string;
@@ -17,8 +18,6 @@ interface DownloadDto {
   downloadedAt: string;
   isStale: boolean;
 }
-
-const TYPE_ICON: Record<DownloadDto["type"], string> = { PDF: "📄", DOCX: "📝", PPTX: "📊", VIDEO: "🎬" };
 
 /**
  * M40 — "the trainee able to remove a downloaded item themselves,"
@@ -87,7 +86,7 @@ export default function TraineeDownloadsPage() {
               <Card key={d.materialId} className="flex items-center justify-between gap-4">
                 <div className="min-w-0">
                   <p className="flex items-center gap-1.5 font-display font-semibold text-brand-ink">
-                    {TYPE_ICON[d.type]} {d.title}
+                    <MaterialTypeIcon type={d.type} /> {d.title}
                   </p>
                   <p className="mt-0.5 truncate text-xs text-gray-500">
                     {d.courseTitle} · {d.lessonTitle}

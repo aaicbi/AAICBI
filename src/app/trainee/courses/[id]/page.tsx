@@ -7,6 +7,11 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import MaterialTypeIcon from "@/components/ui/MaterialTypeIcon";
+import CorrectnessMark from "@/components/ui/CorrectnessMark";
+import Icon from "@/components/ui/Icon";
+import { AchievementIcon, AssessmentIcon } from "@/components/icons/brand";
+import { ChevronDown, ChevronRight, Lock, MessageSquare, ArrowRight, Star } from "lucide-react";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 import LockedDoodle from "@/components/doodles/LockedDoodle";
 import AchievementDoodle from "@/components/doodles/AchievementDoodle";
@@ -137,13 +142,6 @@ interface CourseDto {
   enrollmentSource?: "FREE" | "ADMIN_GRANTED" | "PAID" | null;
   isPaid?: boolean;
 }
-
-const MATERIAL_ICON: Record<MaterialDto["type"], string> = {
-  PDF: "📄",
-  DOCX: "📝",
-  PPTX: "📊",
-  VIDEO: "🎬",
-};
 
 /**
  * M10 audit finding #2: video materials were rendering as a plain
@@ -363,7 +361,7 @@ function MaterialItem({ material, lowBandwidthMode }: { material: MaterialDto; l
       return (
         <div className="space-y-1.5">
           <p className="flex items-center gap-1.5 text-sm font-medium text-brand-ink">
-            {MATERIAL_ICON.VIDEO} {material.title}
+            <MaterialTypeIcon type="VIDEO" /> {material.title}
           </p>
           <div className="aspect-video w-full overflow-hidden rounded-lg border border-brand-gray bg-black">
             <YouTubeThumbnailPlayer videoId={videoId} title={material.title} lowBandwidthMode={lowBandwidthMode} />
@@ -385,7 +383,7 @@ function MaterialItem({ material, lowBandwidthMode }: { material: MaterialDto; l
       return (
         <div className="space-y-1.5">
           <p className="flex items-center gap-1.5 text-sm font-medium text-brand-ink">
-            {MATERIAL_ICON.VIDEO} {material.title}
+            <MaterialTypeIcon type="VIDEO" /> {material.title}
           </p>
           <div className="aspect-video w-full overflow-hidden rounded-lg border border-brand-gray bg-black">
             <GoogleDriveThumbnailPlayer fileId={driveFileId} title={material.title} lowBandwidthMode={lowBandwidthMode} />
@@ -410,7 +408,7 @@ function MaterialItem({ material, lowBandwidthMode }: { material: MaterialDto; l
         rel="noopener noreferrer"
         className="flex items-center gap-1.5 text-sm text-brand-teal hover:underline"
       >
-        {MATERIAL_ICON[material.type]} {material.title}
+        <MaterialTypeIcon type={material.type} /> {material.title}
       </a>
       <DownloadButton materialId={material.id} title={material.title} />
     </div>
@@ -454,7 +452,13 @@ function LessonCompleteToggle({
           : "border-brand-gray text-gray-600 hover:border-brand-teal hover:text-brand-teal"
       }`}
     >
-      {completed ? "✓ Completed" : "Mark Complete"}
+      {completed ? (
+        <>
+          <CorrectnessMark state="correct" label={undefined} /> Completed
+        </>
+      ) : (
+        "Mark Complete"
+      )}
     </button>
   );
 }
@@ -736,7 +740,9 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
           <h1 className="font-display text-2xl font-semibold text-brand-ink">{course.title}</h1>
           <div className="flex items-center gap-2">
             {course.isPaid ? (
-              <Badge variant="success">PAID ✓</Badge>
+              <Badge variant="success">
+                PAID <CorrectnessMark state="correct" label={undefined} />
+              </Badge>
             ) : course.isFree ? (
               <Badge variant="neutral">FREE</Badge>
             ) : null}
@@ -745,7 +751,9 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
             ) : course.enrollmentStatus === "ACTIVE" ? (
               <Badge variant="success">ACCESS ACTIVE</Badge>
             ) : course.enrollmentStatus === "COMPLETED" ? (
-              <Badge variant="gold">COMPLETED 🎓</Badge>
+              <Badge variant="gold">
+                COMPLETED <Icon icon={AchievementIcon} size="sm" className="inline align-text-bottom" />
+              </Badge>
             ) : null}
           </div>
         </div>
@@ -756,7 +764,15 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
         <Card className="mt-4 grid grid-cols-2 gap-3 p-4 text-xs sm:grid-cols-4">
           <div>
             <span className="text-gray-500 block">Payment Status</span>
-            <span className="font-semibold text-brand-ink">{course.isPaid ? "Paid ✓" : "Free"}</span>
+            <span className="inline-flex items-center gap-1 font-semibold text-brand-ink">
+              {course.isPaid ? (
+                <>
+                  Paid <CorrectnessMark state="correct" label={undefined} />
+                </>
+              ) : (
+                "Free"
+              )}
+            </span>
           </div>
           <div>
             <span className="text-gray-500 block">Access Status</span>
@@ -836,12 +852,12 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
           <a href={`/certificate/${course.certificate.code}`} target="_blank" rel="noopener noreferrer">
             <Card variant="celebratory" interactive className="mt-4 flex items-center justify-between">
               <span className="flex items-center gap-2 text-sm font-semibold text-brand-ink">
-                <span className="text-lg" aria-hidden="true">
-                  🎓
-                </span>{" "}
+                <Icon icon={AchievementIcon} size="lg" />
                 Certificate earned — view &amp; share
               </span>
-              <Badge variant="gold">{course.certificate.code} →</Badge>
+              <Badge variant="gold">
+                {course.certificate.code} <Icon icon={ArrowRight} size="sm" className="inline" />
+              </Badge>
             </Card>
           </a>
         )}
@@ -885,21 +901,19 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
           <a href={`/trainee/courses/${params.id}/examination`}>
             <Card interactive className="mt-4 flex items-center justify-between">
               <span className="flex items-center gap-2 text-sm font-semibold text-brand-ink">
-                <span className="text-lg" aria-hidden="true">
-                  🎓
-                </span>{" "}
+                <Icon icon={AssessmentIcon} size="lg" />
                 Course Examination available
               </span>
-              <span className="text-xs font-semibold text-brand-teal">Start →</span>
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-brand-teal">
+                Start <Icon icon={ArrowRight} size="sm" />
+              </span>
             </Card>
           </a>
         )}
         {course.hasPublishedExamination && !course.allModulesComplete && (
           <Card className="mt-4">
             <span className="flex items-center gap-2 text-sm font-semibold text-gray-500">
-              <span className="text-lg" aria-hidden="true">
-                🎓
-              </span>{" "}
+              <Icon icon={AssessmentIcon} size="lg" />
               Course Examination — complete every module first
             </span>
           </Card>
@@ -924,11 +938,19 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
               >
                 <div>
                   <div className={`flex flex-wrap items-center gap-1.5 font-display font-semibold ${mod.unlocked ? "text-brand-ink" : "text-gray-500"}`}>
-                    <span>
-                      {openModule === mod.id ? "▾" : "▸"} Module {i + 1}: {mod.title}
+                    <span className="inline-flex items-center gap-1">
+                      <Icon icon={openModule === mod.id ? ChevronDown : ChevronRight} size="sm" /> Module {i + 1}: {mod.title}
                     </span>
-                    {mod.completed && <Badge variant="success">✓ Completed</Badge>}
-                    {!mod.unlocked && <Badge variant="neutral">🔒 Locked</Badge>}
+                    {mod.completed && (
+                      <Badge variant="success">
+                        <CorrectnessMark state="correct" label={undefined} /> Completed
+                      </Badge>
+                    )}
+                    {!mod.unlocked && (
+                      <Badge variant="neutral">
+                        <Icon icon={Lock} size="sm" className="mr-1 inline align-text-bottom" /> Locked
+                      </Badge>
+                    )}
                   </div>
                   {mod.description && mod.unlocked && (
                     <div className="mt-0.5 text-sm text-gray-600">{mod.description}</div>
@@ -968,7 +990,7 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
                         href={`/trainee/lessons/${lesson.id}/qa`}
                         className="mt-1 inline-block text-xs font-semibold text-brand-teal hover:underline"
                       >
-                        💬 Q&amp;A
+                        <Icon icon={MessageSquare} size="sm" className="mr-1 inline align-text-bottom" /> Q&amp;A
                       </a>
                       {lesson.materials.length > 0 ? (
                         <ul className="mt-2 space-y-3">
@@ -1063,9 +1085,9 @@ function CourseReviewSection({ courseId }: { courseId: string }) {
             key={n}
             onClick={() => setRating(n)}
             aria-label={`${n} star${n === 1 ? "" : "s"}`}
-            className="text-2xl leading-none"
+            className="leading-none"
           >
-            <span style={{ color: n <= rating ? "#d4a017" : "#d1d5db" }}>★</span>
+            <Icon icon={Star} size="lg" className={n <= rating ? "fill-brand-gold text-brand-gold" : "fill-none text-brand-gray"} />
           </button>
         ))}
       </div>

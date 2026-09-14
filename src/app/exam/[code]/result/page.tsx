@@ -5,6 +5,7 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import AchievementDoodle from "@/components/doodles/AchievementDoodle";
+import CorrectnessMark from "@/components/ui/CorrectnessMark";
 
 interface ReviewQuestion {
   questionText: string;
@@ -62,7 +63,10 @@ function ReviewSection({ review }: { review: ReviewQuestion[] }) {
                           : "border-brand-gray text-gray-600"
                     }`}
                   >
-                    {o.isCorrect ? "✓ " : wasSelected ? "✕ " : ""}
+                    <CorrectnessMark
+                      state={o.isCorrect ? "correct" : wasSelected ? "incorrect" : "neutral"}
+                      label={o.isCorrect ? "Correct answer" : wasSelected ? "Your answer (incorrect)" : undefined}
+                    />{" "}
                     {o.text}
                     {wasSelected && !o.isCorrect && <span className="ml-1 text-xs text-brand-rose">(your answer)</span>}
                   </div>

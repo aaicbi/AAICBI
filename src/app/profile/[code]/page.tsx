@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rateLimit";
 import SiteHeader from "@/components/SiteHeader";
 import Logo from "@/components/Logo";
+import { XCircle } from "lucide-react";
+import Icon from "@/components/ui/Icon";
 
 /**
  * M37 — the public shareable trainee profile, matching the exact
@@ -62,7 +64,7 @@ export default async function PublicProfilePage({ params }: { params: { code: st
         <SiteHeader />
         <main className="mx-auto max-w-md px-6 py-16 text-center">
           <div className="rounded-2xl border border-brand-roseLight bg-brand-roseLight/40 p-8">
-            <p className="text-3xl" aria-hidden="true">✕</p>
+            <Icon icon={XCircle} size="xl" className="text-brand-rose" />
             <p className="mt-3 font-display text-lg font-semibold text-brand-rose">Profile Not Available</p>
             {/* Audit finding, closed here: this was a hardcoded hex
                 (#8a2e39), not a theme token — dark, muted red text

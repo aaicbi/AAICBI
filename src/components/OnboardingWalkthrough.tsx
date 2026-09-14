@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import { ChevronLeft } from "lucide-react";
+import Icon from "@/components/ui/Icon";
 
 export interface OnboardingStep {
   icon?: React.ReactNode;
@@ -65,9 +67,9 @@ export default function OnboardingWalkthrough({
           <button
             onClick={() => setIndex((i) => Math.max(0, i - 1))}
             disabled={index === 0}
-            className="text-xs font-semibold text-gray-500 disabled:opacity-0"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 disabled:opacity-0"
           >
-            ← Back
+            <Icon icon={ChevronLeft} size="sm" /> Back
           </button>
           <button
             onClick={() => (isLast ? onComplete() : setIndex((i) => i + 1))}

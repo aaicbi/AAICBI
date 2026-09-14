@@ -7,6 +7,9 @@ import Badge from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
+import BackLink from "@/components/ui/BackLink";
+import { AlertTriangle } from "lucide-react";
+import Icon from "@/components/ui/Icon";
 
 interface InactivityAlertRow {
   id: string;
@@ -81,10 +84,12 @@ export default function EarlyWarningsPage({ params }: { params: { id: string } }
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-3xl px-6 py-10">
-        <a href={`/admin/courses/${params.id}`} className="text-sm text-brand-teal hover:underline">
-          ← Back to course
-        </a>
-        <h1 className="mt-2 font-display text-2xl font-semibold text-brand-ink">⚠️ Early Warnings</h1>
+        <BackLink href={`/admin/courses/${params.id}`} className="text-sm text-brand-teal hover:underline">
+          Back to course
+        </BackLink>
+        <h1 className="mt-2 flex items-center gap-2 font-display text-2xl font-semibold text-brand-ink">
+          <Icon icon={AlertTriangle} size="lg" /> Early Warnings
+        </h1>
         <p className="mt-1 text-sm text-gray-500">
           Trainees who&apos;ve crossed a threshold you set for this course. Set or change the thresholds from the
           course page itself.

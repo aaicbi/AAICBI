@@ -5,6 +5,7 @@ import LogoutButton from "@/components/employer/LogoutButton";
 import Card from "@/components/ui/Card";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
+import BackLink from "@/components/ui/BackLink";
 
 interface ApplicationDto {
   id: string;
@@ -51,9 +52,7 @@ export default function EmployerApplicationsPage({ params }: { params: { id: str
     <>
       <SiteHeader nav={NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-2xl px-6 py-10">
-        <a href="/employer/job-postings" className="text-xs font-semibold text-brand-teal hover:underline">
-          ← Back to Job Postings
-        </a>
+        <BackLink href="/employer/job-postings">Back to Job Postings</BackLink>
         <h1 className="mt-2 font-display text-2xl font-semibold text-brand-ink">Applications</h1>
 
         <div className="mt-6 space-y-3">

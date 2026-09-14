@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Badge from "@/components/ui/Badge";
+import AvatarFallback from "@/components/ui/AvatarFallback";
 
 type StatusVariant = "success" | "warning" | "danger" | "neutral" | "gold";
 
@@ -50,7 +51,9 @@ export default function WelcomeHeader({
               // eslint-disable-next-line @next/next/no-img-element
               <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-xl text-brand-teal">🙂</div>
+              <div className="flex h-full w-full items-center justify-center">
+                <AvatarFallback size="md" />
+              </div>
             )}
           </div>
         </Link>
