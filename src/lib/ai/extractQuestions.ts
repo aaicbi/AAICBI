@@ -68,11 +68,32 @@ export function resolveCorrectOptionIndex(
   return { index: null, wasCorrected: true };
 }
 
+// Bug fix: this prompt never told the model the full output shape —
+// only correct_option_index/topic/difficulty/confident were ever named
+// anywhere in the text it receives. "question", "options", and
+// critically "explanation" were never mentioned at all, so the model
+// had no signal an explanation field existed or was wanted, even when
+// the source document had one written out for every question —
+// confirmed directly against a real document that does include
+// explanations, which still came back null for all 30 questions.
+// Spelling out the exact JSON shape up front removes the ambiguity.
 const SYSTEM_PROMPT = `You structure exam questions extracted from a Word document into clean JSON.
+
+Return exactly this JSON shape:
+{
+  "question": string,               // the question text, cleaned up
+  "options": string[],              // each option's text, cleaned up, WITHOUT the leading "A."/"B."/etc. label
+  "correct_option_index": number | null,
+  "explanation": string | null,
+  "topic": string | null,
+  "difficulty": "Beginner" | "Intermediate" | "Advanced" | null,
+  "confident": boolean
+}
 
 Rules:
 - Never invent a correct answer. If the source text does not clearly indicate which option is correct, set "correct_option_index" to null and "confident" to false.
 - "correct_option_index" is ZERO-INDEXED: 0 means the first option in your "options" array (i.e. "A"), 1 means the second ("B"), and so on. Never 1-indexed.
+- "explanation": if the source text includes a written explanation or rationale for why the answer is correct, extract it into this field — clean up whitespace only, don't rewrite or summarize it. If the source has no explanation for this question, use null. Never invent one.
 - Do not change the meaning of the question or options — clean up whitespace and obvious OCR/formatting artifacts only.
 - "topic" should be a short 2-4 word label (e.g. "Excel Formulas", "Data Cleaning"). If genuinely unclear, use null.
 - "difficulty" is your best-effort estimate from the question's content alone — Beginner, Intermediate, or Advanced. Use null only if the question is too fragmentary to judge.
