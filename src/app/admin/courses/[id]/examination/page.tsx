@@ -31,10 +31,39 @@ interface ExamDto {
   id: string;
   title: string;
   published: boolean;
+  instructions: string | null;
+  durationMinutes: number;
+  passMarkPercent: number;
+  numQuestions: number | null;
+  maxAttempts: number | null;
+  retakeCooldownHours: number | null;
+  randomizeQuestions: boolean;
+  randomizeOptions: boolean;
+  showResultImmediately: boolean;
+  showCorrectAnswers: boolean;
+  allowReview: boolean;
   questions: QuestionDto[];
 }
 
 const DISAGREEMENT_MARKER = "Self-consistency check disagreed";
+
+function settingsFromExam(exam: ExamDto) {
+  return {
+    title: exam.title,
+    instructions: exam.instructions ?? "",
+    durationMinutes: exam.durationMinutes,
+    passMarkPercent: exam.passMarkPercent,
+    numQuestions: exam.numQuestions ? String(exam.numQuestions) : "",
+    maxAttempts: exam.maxAttempts ? String(exam.maxAttempts) : "",
+    retakeCooldownHours: exam.retakeCooldownHours ? String(exam.retakeCooldownHours) : "",
+    randomizeQuestions: exam.randomizeQuestions,
+    randomizeOptions: exam.randomizeOptions,
+    showResultImmediately: exam.showResultImmediately,
+    showCorrectAnswers: exam.showCorrectAnswers,
+    allowReview: exam.allowReview,
+  };
+}
+type ExaminationSettings = ReturnType<typeof settingsFromExam>;
 
 /**
  * M21 — the review screen for a course examination's AI-generated
@@ -52,6 +81,9 @@ export default function CourseExaminationPage({ params }: { params: { id: string
   const [publishing, setPublishing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const [settings, setSettings] = useState<ExaminationSettings | null>(null);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settingsSaved, setSettingsSaved] = useState(false);
   const { showToast } = useToast();
 
   function load() {
@@ -61,7 +93,9 @@ export default function CourseExaminationPage({ params }: { params: { id: string
           setNotFound(true);
           return;
         }
-        setExam(await r.json());
+        const data = await r.json();
+        setExam(data);
+        setSettings(settingsFromExam(data));
         setNotFound(false);
       })
       .catch(() => setNotFound(true));
@@ -137,6 +171,40 @@ export default function CourseExaminationPage({ params }: { params: { id: string
       return;
     }
     showToast("Course examination published.", "success");
+    load();
+  }
+
+  async function saveSettings() {
+    if (!settings) return;
+    setSavingSettings(true);
+    setSettingsSaved(false);
+    const payload = {
+      title: settings.title,
+      instructions: settings.instructions || null,
+      durationMinutes: settings.durationMinutes,
+      passMarkPercent: settings.passMarkPercent,
+      numQuestions: settings.numQuestions ? Number(settings.numQuestions) : null,
+      maxAttempts: settings.maxAttempts ? Number(settings.maxAttempts) : null,
+      retakeCooldownHours: settings.retakeCooldownHours ? Number(settings.retakeCooldownHours) : null,
+      randomizeQuestions: settings.randomizeQuestions,
+      randomizeOptions: settings.randomizeOptions,
+      showResultImmediately: settings.showResultImmediately,
+      showCorrectAnswers: settings.showCorrectAnswers,
+      allowReview: settings.allowReview,
+    };
+    const res = await fetch(`/api/courses/${params.id}/examination`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    setSavingSettings(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showToast(typeof data.error === "string" ? data.error : "Could not save settings.", "error");
+      return;
+    }
+    setSettingsSaved(true);
+    showToast("Settings saved.", "success");
     load();
   }
 
@@ -225,6 +293,107 @@ export default function CourseExaminationPage({ params }: { params: { id: string
           </div>
         </div>
 
+        {/* Settings */}
+        {settings && (
+          <details className="mt-8 rounded-lg border border-brand-gray p-4">
+            <summary className="cursor-pointer font-semibold text-gray-900">Examination Settings</summary>
+            <div className="mt-4 space-y-4">
+              <Field label="Title">
+                <input
+                  value={settings.title}
+                  onChange={(e) => setSettings({ ...settings, title: e.target.value })}
+                  className="input"
+                />
+              </Field>
+              <Field label="Instructions">
+                <textarea
+                  value={settings.instructions}
+                  onChange={(e) => setSettings({ ...settings, instructions: e.target.value })}
+                  className="input"
+                  rows={3}
+                />
+              </Field>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Duration (minutes)">
+                  <input
+                    type="number"
+                    min={1}
+                    value={settings.durationMinutes}
+                    onChange={(e) => setSettings({ ...settings, durationMinutes: Number(e.target.value) })}
+                    className="input"
+                  />
+                </Field>
+                <Field label="Pass Mark (%)">
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={settings.passMarkPercent}
+                    onChange={(e) => setSettings({ ...settings, passMarkPercent: Number(e.target.value) })}
+                    className="input"
+                  />
+                </Field>
+                <Field label="Questions per attempt (blank = all)">
+                  <input
+                    type="number"
+                    min={1}
+                    value={settings.numQuestions}
+                    onChange={(e) => setSettings({ ...settings, numQuestions: e.target.value })}
+                    className="input"
+                  />
+                </Field>
+                <Field label="Max attempts (blank = unlimited)">
+                  <input
+                    type="number"
+                    min={1}
+                    value={settings.maxAttempts}
+                    onChange={(e) => setSettings({ ...settings, maxAttempts: e.target.value })}
+                    className="input"
+                  />
+                </Field>
+                <Field label="Retake cooldown (hours, blank = none)">
+                  <input
+                    type="number"
+                    min={0}
+                    value={settings.retakeCooldownHours}
+                    onChange={(e) => setSettings({ ...settings, retakeCooldownHours: e.target.value })}
+                    className="input"
+                  />
+                </Field>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm text-gray-700">
+                {(
+                  [
+                    ["randomizeQuestions", "Randomize question order"],
+                    ["randomizeOptions", "Randomize option order"],
+                    ["showResultImmediately", "Show result immediately"],
+                    ["showCorrectAnswers", "Show correct answers after submit"],
+                    ["allowReview", "Allow reviewing before submit"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <label key={key} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={settings[key]}
+                      onChange={(e) => setSettings({ ...settings, [key]: e.target.checked })}
+                      className="h-4 w-4 accent-brand-teal"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              <button
+                onClick={saveSettings}
+                disabled={savingSettings}
+                className="rounded-lg bg-brand-teal px-4 py-2 text-sm font-semibold text-white hover:bg-brand-tealDeep disabled:opacity-60"
+              >
+                {savingSettings ? "Saving..." : "Save Settings"}
+              </button>
+              {settingsSaved && <span className="ml-3 text-sm text-brand-teal">Saved.</span>}
+            </div>
+          </details>
+        )}
+
         <div className="mt-6 space-y-4">
           {sortedQuestions.map((q) => {
             const disagreement = q.reviewReason?.includes(DISAGREEMENT_MARKER);
@@ -296,5 +465,14 @@ export default function CourseExaminationPage({ params }: { params: { id: string
         </div>
       </main>
     </>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-semibold text-gray-600">{label}</span>
+      {children}
+    </label>
   );
 }
