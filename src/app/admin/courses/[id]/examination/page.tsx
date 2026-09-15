@@ -8,6 +8,7 @@ import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import CorrectnessMark from "@/components/ui/CorrectnessMark";
+import { useConfirmModal } from "@/components/ui/useConfirmModal";
 
 interface OptionDto {
   id: string;
@@ -84,6 +85,9 @@ export default function CourseExaminationPage({ params }: { params: { id: string
   const [settings, setSettings] = useState<ExaminationSettings | null>(null);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const { confirm, modal } = useConfirmModal();
   const { showToast } = useToast();
 
   function load() {
@@ -157,6 +161,46 @@ export default function CourseExaminationPage({ params }: { params: { id: string
       return;
     }
     showToast("Rejected — the question has been removed.", "success");
+    load();
+  }
+
+  function toggleSelect(questionId: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(questionId) ? next.delete(questionId) : next.add(questionId);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (!exam) return;
+    setSelected((prev) => (prev.size === exam.questions.length ? new Set() : new Set(exam.questions.map((q) => q.id))));
+  }
+
+  async function bulkDeleteQuestions() {
+    if (!exam || selected.size === 0) return;
+    const ok = await confirm({
+      title: `Delete ${selected.size} question${selected.size === 1 ? "" : "s"}?`,
+      description: "This can't be undone. Any selected question that already has a trainee answer recorded will be skipped, not deleted.",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
+    setBulkDeleting(true);
+    const res = await fetch(`/api/exams/${exam.id}/questions`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ questionIds: Array.from(selected) }),
+    });
+    setBulkDeleting(false);
+    if (!res.ok) {
+      showToast("Could not delete the selected questions. Try again.", "error");
+      return;
+    }
+    const data = await res.json();
+    const skippedNote = data.skipped.length > 0 ? ` ${data.skipped.length} skipped (already has trainee answers recorded).` : "";
+    showToast(`Deleted ${data.deleted} question(s).${skippedNote}`, data.deleted > 0 ? "success" : "error");
+    setSelected(new Set());
     load();
   }
 
@@ -272,6 +316,7 @@ export default function CourseExaminationPage({ params }: { params: { id: string
         ]}
         right={<LogoutButton />}
       />
+      {modal}
       <main className="mx-auto max-w-3xl px-6 py-10">
         <div className="flex items-center justify-between">
           <div>
@@ -394,22 +439,59 @@ export default function CourseExaminationPage({ params }: { params: { id: string
           </details>
         )}
 
-        <div className="mt-6 space-y-4">
+        {exam.questions.length > 0 && (
+          <div className="mt-6 flex items-center justify-between">
+            <label className="flex items-center gap-2 text-xs font-semibold text-gray-600">
+              <input
+                type="checkbox"
+                checked={selected.size === exam.questions.length}
+                onChange={toggleSelectAll}
+                className="h-4 w-4 accent-brand-teal"
+              />
+              Select all
+            </label>
+            {selected.size > 0 && (
+              <div className="flex items-center gap-3 rounded-lg border border-brand-rose bg-brand-roseLight/30 px-3 py-1.5 text-sm">
+                <span>{selected.size} selected</span>
+                <button
+                  onClick={bulkDeleteQuestions}
+                  disabled={bulkDeleting}
+                  className="rounded-lg bg-brand-rose px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                >
+                  {bulkDeleting ? "Deleting..." : "Delete selected"}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="mt-4 space-y-4">
           {sortedQuestions.map((q) => {
             const disagreement = q.reviewReason?.includes(DISAGREEMENT_MARKER);
             return (
               <Card key={q.id} className={disagreement ? "border-2 border-brand-rose" : undefined}>
                 <div className="flex items-start justify-between gap-3">
-                  {editingId === q.id ? (
-                    <textarea
-                      value={editText}
-                      onChange={(e) => setEditText(e.target.value)}
-                      className="w-full rounded-lg border border-brand-gray p-2 text-sm"
-                      rows={3}
+                  <div className="flex flex-1 items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(q.id)}
+                      onChange={() => toggleSelect(q.id)}
+                      className="mt-1.5 h-4 w-4 accent-brand-teal"
+                      aria-label="Select this question"
                     />
-                  ) : (
-                    <p className="text-sm font-medium text-brand-ink">{q.text}</p>
-                  )}
+                    <div className="flex-1">
+                      {editingId === q.id ? (
+                        <textarea
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          className="w-full rounded-lg border border-brand-gray p-2 text-sm"
+                          rows={3}
+                        />
+                      ) : (
+                        <p className="text-sm font-medium text-brand-ink">{q.text}</p>
+                      )}
+                    </div>
+                  </div>
                   {q.needsReview && (
                     <Badge variant={disagreement ? "danger" : "warning"}>{disagreement ? "Disagreement" : "Needs review"}</Badge>
                   )}

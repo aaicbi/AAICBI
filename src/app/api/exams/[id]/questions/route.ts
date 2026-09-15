@@ -15,6 +15,12 @@ const CreateQuestionSchema = z.object({
   options: z.array(OptionSchema).min(2).max(6),
 });
 
+// Bulk counterpart to DELETE /api/questions/[id]. Capped higher than
+// gate1-bulk's 50 (a different, AI-workflow-scoped action) — 200 is
+// generous enough for a "select all" even on the largest realistic
+// DOCX import, while still bounding a single request's work.
+const BulkDeleteSchema = z.object({ questionIds: z.array(z.string()).min(1).max(200) });
+
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
@@ -78,5 +84,62 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     return NextResponse.json(question, { status: 201 });
+  });
+}
+
+/**
+ * DELETE /api/exams/[id]/questions — bulk delete, scoped to this exam
+ * the same way gate1-bulk scopes to examId: an id in the request body
+ * can only ever be acted on if it genuinely belongs to this exam. One
+ * route serves a module assessment, a standalone exam, and a course
+ * examination alike — all three are just an Exam row (see the model's
+ * own schema comment), so nothing exam-type-specific is needed here.
+ *
+ * Deliberately not a single all-or-nothing transaction: unlike DELETE
+ * /api/questions/[id] (which throws via guardQuestionDeletable so one
+ * bad id fails the whole request), a multi-select "delete these" click
+ * should delete everything it safely can and report back exactly what
+ * it skipped and why — a batch of 30 shouldn't fail entirely because
+ * one of them already has a trainee answer recorded against it.
+ */
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  return withApiErrors(async () => {
+    const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
+    await requireOwnedExam(params.id, session.userId); // M11 audit finding — see courseOwnership.ts
+
+    const body = await req.json().catch(() => null);
+    const parsed = BulkDeleteSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "A list of question ids is required." }, { status: 400 });
+    }
+
+    const questions = await prisma.question.findMany({
+      where: { id: { in: parsed.data.questionIds }, examId: params.id },
+      select: { id: true },
+    });
+    const foundIds = new Set(questions.map((q) => q.id));
+    const notFoundIds = parsed.data.questionIds.filter((id) => !foundIds.has(id));
+
+    // Same rule as guardQuestionDeletable, applied to the whole batch
+    // in one query instead of one round trip per id.
+    const answerCounts = await prisma.answer.groupBy({
+      by: ["questionId"],
+      where: { questionId: { in: Array.from(foundIds) } },
+      _count: { _all: true },
+    });
+    const protectedIds = new Set(answerCounts.map((a) => a.questionId));
+
+    const deletableIds = Array.from(foundIds).filter((id) => !protectedIds.has(id));
+    const result = deletableIds.length > 0 ? await prisma.question.deleteMany({ where: { id: { in: deletableIds } } }) : { count: 0 };
+
+    const skipped = [
+      ...notFoundIds.map((id) => ({ id, reason: "Not part of this assessment." })),
+      ...Array.from(protectedIds).map((id) => ({
+        id,
+        reason: "Already has trainee answers recorded — edit it instead of deleting it.",
+      })),
+    ];
+
+    return NextResponse.json({ deleted: result.count, skipped });
   });
 }

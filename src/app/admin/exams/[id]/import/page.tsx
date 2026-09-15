@@ -37,6 +37,8 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [importSummary, setImportSummary] = useState<{ questionsDetected: number; validQuestions: number; questionsRequiringReview: number } | null>(null);
   const [publishError, setPublishError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { confirm, modal } = useConfirmModal();
   const { showToast } = useToast();
@@ -92,6 +94,46 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
       return;
     }
     showToast("Question deleted.", "success");
+    await loadExam();
+  }
+
+  function toggleSelect(qId: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(qId) ? next.delete(qId) : next.add(qId);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (!exam) return;
+    setSelected((prev) => (prev.size === exam.questions.length ? new Set() : new Set(exam.questions.map((q) => q.id))));
+  }
+
+  async function bulkDeleteQuestions() {
+    if (!exam || selected.size === 0) return;
+    const ok = await confirm({
+      title: `Delete ${selected.size} question${selected.size === 1 ? "" : "s"}?`,
+      description: "This can't be undone. Any selected question that already has a trainee answer recorded will be skipped, not deleted.",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
+    setBulkDeleting(true);
+    const res = await fetch(`/api/exams/${exam.id}/questions`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ questionIds: Array.from(selected) }),
+    });
+    setBulkDeleting(false);
+    if (!res.ok) {
+      showToast("Could not delete the selected questions. Try again.", "error");
+      return;
+    }
+    const data = await res.json();
+    const skippedNote = data.skipped.length > 0 ? ` ${data.skipped.length} skipped (already has trainee answers recorded).` : "";
+    showToast(`Deleted ${data.deleted} question(s).${skippedNote}`, data.deleted > 0 ? "success" : "error");
+    setSelected(new Set());
     await loadExam();
   }
 
@@ -195,15 +237,43 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
       <div className="mt-8 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-gray-900">Questions ({exam.questions.length})</h2>
-          <a href={`/admin/exams/${exam.id}/results`} className="inline-flex items-center gap-1 text-sm text-brand-teal hover:underline">
-            View results <Icon icon={ArrowRight} size="sm" />
-          </a>
+          <div className="flex items-center gap-4">
+            {exam.questions.length > 0 && (
+              <label className="flex items-center gap-2 text-xs font-semibold text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={selected.size === exam.questions.length}
+                  onChange={toggleSelectAll}
+                  className="h-4 w-4 accent-brand-teal"
+                />
+                Select all
+              </label>
+            )}
+            <a href={`/admin/exams/${exam.id}/results`} className="inline-flex items-center gap-1 text-sm text-brand-teal hover:underline">
+              View results <Icon icon={ArrowRight} size="sm" />
+            </a>
+          </div>
         </div>
+
+        {selected.size > 0 && (
+          <div className="flex items-center justify-between rounded-lg border border-brand-rose bg-brand-roseLight/30 p-3 text-sm">
+            <span>{selected.size} selected</span>
+            <button
+              onClick={bulkDeleteQuestions}
+              disabled={bulkDeleting}
+              className="rounded-lg bg-brand-rose px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+            >
+              {bulkDeleting ? "Deleting..." : "Delete selected"}
+            </button>
+          </div>
+        )}
 
         {exam.questions.map((q) => (
           <QuestionCard
             key={q.id}
             question={q}
+            selected={selected.has(q.id)}
+            onToggleSelect={() => toggleSelect(q.id)}
             onApprove={() => approveQuestion(q.id)}
             onDelete={() => deleteQuestion(q.id)}
             onSave={(text, options) => saveEdits(q.id, text, options)}
@@ -246,11 +316,15 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
 
 function QuestionCard({
   question,
+  selected,
+  onToggleSelect,
   onApprove,
   onDelete,
   onSave,
 }: {
   question: QuestionDto;
+  selected: boolean;
+  onToggleSelect: () => void;
   onApprove: () => void;
   onDelete: () => void;
   onSave: (text: string, options: OptionDto[]) => void;
@@ -261,10 +335,18 @@ function QuestionCard({
 
   return (
     <div
-      className={`rounded-lg border p-4 ${
+      className={`flex items-start gap-3 rounded-lg border p-4 ${
         question.needsReview ? "border-brand-gold bg-brand-goldLight/40" : "border-brand-gray"
       }`}
     >
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={onToggleSelect}
+        className="mt-1.5 h-4 w-4 accent-brand-teal"
+        aria-label="Select this question"
+      />
+      <div className="flex-1">
       {question.needsReview && (
         <p className="mb-2 flex items-center gap-1 text-xs font-semibold text-brand-goldText">
           <Icon icon={AlertTriangle} size="sm" /> {question.reviewReason ?? "Needs review — correct answer could not be confidently identified."}
@@ -333,6 +415,7 @@ function QuestionCard({
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
