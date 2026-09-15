@@ -128,6 +128,7 @@ interface CourseDto {
   title: string;
   description: string | null;
   createdBy: { name: string };
+  instructorNames: string | null;
   modules: ModuleDto[];
   certificate: CertificateDto | null;
   badges: BadgeDto[];
@@ -779,7 +780,17 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
             ) : null}
           </div>
         </div>
-        <p className="mt-1 text-xs text-gray-500">Taught by {course.createdBy.name} · AAICBI Staff</p>
+        {/* Bug fix: this used to always show course.createdBy.name —
+            whichever admin/instructor account built the course in the
+            builder, not necessarily who actually teaches it. Prefers
+            the real, admin-typed instructorNames field (see its own
+            schema comment — free-text display copy, deliberately not
+            tied to a staff account) and only falls back to the
+            creator's name for a course that hasn't set it yet, so
+            nothing regresses to blank. */}
+        <p className="mt-1 text-xs text-gray-500">
+          Taught by {course.instructorNames || course.createdBy.name} · AAICBI Staff
+        </p>
         {course.description && <p className="mt-1 text-sm text-gray-600">{course.description}</p>}
 
         {/* WhatsApp group-study link — only ever shown here, on the
