@@ -280,7 +280,17 @@ export async function getResumeTarget(courseId: string, traineeId: string): Prom
 
   const nextLesson = currentModule.lessons.find((l: { id: string }) => !completedLessonIds.has(l.id));
   if (nextLesson) {
-    return { url: `/trainee/lessons/${nextLesson.id}`, label: nextLesson.title };
+    // Bug fix: `/trainee/lessons/${nextLesson.id}` was never a real
+    // page — lessons are only ever viewed inline on the course page's
+    // own module accordion (src/app/trainee/lessons/[id]/ only has a
+    // /qa subroute, nothing at its own root), so this 404'd every
+    // single time "Resume" pointed at a lesson. The course page reads
+    // ?module=/&lesson= to open the right module and scroll the right
+    // lesson into view — see its own comments on this.
+    return {
+      url: `/trainee/courses/${courseId}?module=${currentModule.id}&lesson=${nextLesson.id}`,
+      label: nextLesson.title,
+    };
   }
 
   // Every lesson in this module is done, but the module itself isn't

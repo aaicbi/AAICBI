@@ -530,7 +530,13 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
         const data = await r.json();
         setCourse(data);
         setNotEnrolled(null);
-        setOpenModule((current) => current ?? data.modules[0]?.id ?? null);
+        // Resume-from-dashboard support: getResumeTarget links here
+        // with ?module=<id> (and, for a specific next lesson,
+        // &lesson=<id> too — see the scroll-into-view effect below) so
+        // "Resume" actually opens the right module instead of always
+        // defaulting to the first one.
+        const moduleParam = new URLSearchParams(window.location.search).get("module");
+        setOpenModule((current) => current ?? moduleParam ?? data.modules[0]?.id ?? null);
       })
       .catch(() => setNotFound(true));
   }
@@ -603,6 +609,21 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
     loadCourse();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
+
+  // Companion to the ?module= handling above: once the course (and its
+  // now-open module) has rendered, scroll the specific lesson
+  // getResumeTarget pointed at into view — same "exact next lesson"
+  // resume behavior the dashboard card promises, just landing here
+  // instead of on a standalone lesson page that doesn't exist.
+  useEffect(() => {
+    if (!course) return;
+    const lessonParam = new URLSearchParams(window.location.search).get("lesson");
+    if (!lessonParam) return;
+    const t = setTimeout(() => {
+      document.getElementById(`lesson-${lessonParam}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+    return () => clearTimeout(t);
+  }, [course]);
 
   // M39 — fetched once here, at the top of the page, and threaded down
   // to every MaterialItem/YouTubeThumbnailPlayer as a plain prop rather
@@ -1000,7 +1021,7 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
                 <div className="space-y-3 border-t border-brand-gray bg-gray-50/60 p-4">
                   <ModuleAssessmentStrip courseId={course.id} moduleId={mod.id} />
                   {mod.lessons.map((lesson) => (
-                    <Card key={lesson.id} className="p-3">
+                    <Card key={lesson.id} id={`lesson-${lesson.id}`} className="p-3">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="text-sm font-semibold text-brand-ink">{lesson.title}</div>
