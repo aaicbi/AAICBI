@@ -24,9 +24,20 @@ export function validateCurriculumFile(file: { type: string; size: number }): st
 }
 
 export async function uploadCurriculum(file: File, pathPrefix: string): Promise<string> {
+  // Bug fix — see lessonMaterial.ts's identical fix: no `contentType`
+  // and no extension in the pathname meant Blob stored this as
+  // application/octet-stream instead of the real PDF/DOC type, so
+  // opening the curriculum link force-downloaded it with an
+  // unreadable filename instead of previewing/naming it properly —
+  // the exact same bug reported for lesson materials.
+  const extension = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
   // addRandomSuffix explicit — @vercel/blob 1.0.0+ defaults this to
   // false; this app still wants unguessable, collision-proof URLs.
-  const blob = await put(`course-curricula/${pathPrefix}-${Date.now()}`, file, { access: "public", addRandomSuffix: true });
+  const blob = await put(`course-curricula/${pathPrefix}-${Date.now()}${extension}`, file, {
+    access: "public",
+    addRandomSuffix: true,
+    contentType: file.type,
+  });
   return blob.url;
 }
 

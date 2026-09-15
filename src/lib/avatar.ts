@@ -32,12 +32,26 @@ export function validateAvatarFile(file: { type: string; size: number }): string
 }
 
 export async function uploadAvatar(file: File, pathPrefix: string): Promise<string> {
+  // Bug fix — see lessonMaterial.ts's identical fix for the full
+  // reasoning: neither an explicit `contentType` nor a file extension
+  // in the pathname was ever passed to `put()`, so Blob stored this as
+  // application/octet-stream instead of the real image type. Avatars
+  // are usually rendered via <img>, which many browsers still decode
+  // regardless of Content-Type, but an avatar opened directly (e.g. a
+  // trainee's own "view full size" link) would otherwise force-
+  // download it with an extensionless, unreadable filename exactly
+  // like the reported lesson-material bug did.
+  const extension = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
   // addRandomSuffix explicit — the SDK's own default flipped to false
   // in @vercel/blob 1.0.0, but this app still wants it: two different
   // people uploading a file that happens to share a name shouldn't
   // collide, and it means the URL itself can't be guessed from a
   // predictable pattern.
-  const blob = await put(`avatars/${pathPrefix}-${Date.now()}`, file, { access: "public", addRandomSuffix: true });
+  const blob = await put(`avatars/${pathPrefix}-${Date.now()}${extension}`, file, {
+    access: "public",
+    addRandomSuffix: true,
+    contentType: file.type,
+  });
   return blob.url;
 }
 

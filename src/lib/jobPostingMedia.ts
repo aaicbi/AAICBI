@@ -34,9 +34,20 @@ export function validateJobPostingMediaFile(file: { type: string; size: number }
 }
 
 export async function uploadJobPostingMedia(file: File, pathPrefix: string): Promise<string> {
+  // Bug fix — see lessonMaterial.ts's identical fix: no `contentType`
+  // and no extension in the pathname meant Blob stored this as
+  // application/octet-stream instead of the real image/video type —
+  // for the VIDEO case specifically, that would have kept an
+  // <video>/<source> element from recognising and playing it at all,
+  // not just made a direct link download oddly.
+  const extension = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
   // addRandomSuffix explicit — @vercel/blob 1.0.0+ defaults this to
   // false; this app still wants unguessable, collision-proof URLs.
-  const blob = await put(`job-postings/${pathPrefix}-${Date.now()}`, file, { access: "public", addRandomSuffix: true });
+  const blob = await put(`job-postings/${pathPrefix}-${Date.now()}${extension}`, file, {
+    access: "public",
+    addRandomSuffix: true,
+    contentType: file.type,
+  });
   return blob.url;
 }
 

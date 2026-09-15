@@ -32,10 +32,26 @@ export function validateLessonMaterialFile(
 }
 
 export async function uploadLessonMaterial(file: File, pathPrefix: string): Promise<string> {
+  // Bug fix: neither an explicit `contentType` nor a file extension in
+  // the pathname was ever passed to `put()`, so Blob had no way to
+  // know this was a PDF/DOCX/PPTX and stored it as
+  // application/octet-stream — which a browser can only ever download,
+  // never preview inline, opening as a random-looking file with no
+  // extension (the blob's own key) instead of the document itself.
+  // `file.type` is exactly the real MIME type — already validated
+  // against ALLOWED_TYPES above — so pass it straight through, and
+  // keep the original extension in the pathname too as a second,
+  // independent signal (matches how the sibling upload libs still
+  // don't do this — see the note left on all of them together).
+  const extension = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
   // addRandomSuffix explicit — see courseFlyer.ts's identical note:
   // @vercel/blob 1.0.0+ defaults this to false, but this app still
   // wants unguessable, collision-proof URLs.
-  const blob = await put(`lesson-materials/${pathPrefix}-${Date.now()}`, file, { access: "public", addRandomSuffix: true });
+  const blob = await put(`lesson-materials/${pathPrefix}-${Date.now()}${extension}`, file, {
+    access: "public",
+    addRandomSuffix: true,
+    contentType: file.type,
+  });
   return blob.url;
 }
 
