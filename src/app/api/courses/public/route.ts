@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiErrors } from "@/lib/apiError";
+import { getCourseLifecyclePhase } from "@/lib/courseLifecycle";
 
 /**
  * GET /api/courses/public — genuinely anonymous, no session required.
@@ -41,7 +42,18 @@ export async function GET() {
         billingInterval: true,
         showFlyer: true,
         flyerUrl: true,
-        _count: { select: { modules: true } },
+        // Coming Soon Courses — schedule fields, so the catalogue page
+        // can partition into "Upcoming"/"Available" and the dedicated
+        // /courses/upcoming page can list+sort every scheduled course,
+        // both without a second round-trip.
+        startDate: true,
+        endDate: true,
+        registrationDeadline: true,
+        locationType: true,
+        venue: true,
+        capacity: true,
+        lifecyclePhaseOverride: true,
+        _count: { select: { modules: true, courseEnrollments: true } },
       },
     });
 
@@ -58,6 +70,14 @@ export async function GET() {
       billingInterval: c.billingInterval,
       flyerUrl: c.showFlyer ? c.flyerUrl : null,
       moduleCount: c._count.modules,
+      startDate: c.startDate,
+      endDate: c.endDate,
+      registrationDeadline: c.registrationDeadline,
+      locationType: c.locationType,
+      venue: c.venue,
+      capacity: c.capacity,
+      enrolledCount: c._count.courseEnrollments,
+      lifecyclePhase: getCourseLifecyclePhase(c),
     }));
 
     return NextResponse.json(result);

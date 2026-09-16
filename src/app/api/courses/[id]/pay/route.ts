@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { initializeCoursePayment } from "@/lib/paystack/subscription";
 import { isCoursePubliclyVisible } from "@/lib/courseStatus";
+import { isRegistrationOpen } from "@/lib/courseLifecycle";
 
 /**
  * POST /api/courses/[id]/pay — the paid counterpart to
@@ -36,10 +37,20 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
         billingInterval: true,
         paystackPlanCode: true,
         accessModel: true,
+        startDate: true,
+        endDate: true,
+        registrationDeadline: true,
+        lifecyclePhaseOverride: true,
       },
     });
     if (!course || !isCoursePubliclyVisible(course.status)) {
       return NextResponse.json({ error: "Course not found." }, { status: 404 });
+    }
+    // Coming Soon Courses — a course with no schedule fields set is
+    // never blocked here, so every existing course behaves exactly as
+    // before.
+    if (!isRegistrationOpen(course)) {
+      return NextResponse.json({ error: "Registration for this course is not currently open." }, { status: 400 });
     }
     if (course.isFree) {
       return NextResponse.json({ error: "This course is free — use the Enroll button instead." }, { status: 400 });

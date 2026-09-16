@@ -3,22 +3,24 @@ import { useEffect, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
+import Icon from "@/components/ui/Icon";
 import EmptyState from "@/components/ui/EmptyState";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import UpcomingCourseCard, { type UpcomingCourseRow } from "@/components/courses/UpcomingCourseCard";
+import { CalendarClock, ArrowRight } from "lucide-react";
 
-interface PublicCourseRow {
-  id: string;
-  title: string;
-  description: string | null;
-  category: string | null;
+interface PublicCourseRow extends UpcomingCourseRow {
   level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | null;
-  isFree: boolean;
-  priceKobo: number | null;
-  flyerUrl: string | null;
   moduleCount: number;
 }
 
 const LEVEL_LABEL: Record<string, string> = { BEGINNER: "Beginner", INTERMEDIATE: "Intermediate", ADVANCED: "Advanced" };
+
+// Coming Soon Courses — only these phases read as genuinely "coming
+// soon" for the carousel; STARTED/COMPLETED courses fall through to
+// the ordinary "Available Courses" list below unchanged, exactly like
+// any course that never set schedule fields at all.
+const UPCOMING_PHASES = new Set(["COMING_SOON", "REGISTRATION_OPEN", "REGISTRATION_CLOSED"]);
 
 /**
  * /courses — the genuinely public course catalogue, reachable by
@@ -37,6 +39,16 @@ export default function PublicCoursesPage() {
       .catch(() => setCourses([]));
   }, []);
 
+  // Coming Soon Courses — a course only ever appears in one of the two
+  // sections below, never both: genuinely "coming soon"-flavored
+  // phases go in the carousel, everything else (no schedule at all,
+  // already STARTED, or COMPLETED) is an ordinary available course,
+  // exactly as before this feature existed.
+  const upcomingCourses = (courses ?? [])
+    .filter((c) => c.lifecyclePhase && UPCOMING_PHASES.has(c.lifecyclePhase))
+    .sort((a, b) => new Date(a.startDate ?? 0).getTime() - new Date(b.startDate ?? 0).getTime());
+  const availableCourses = (courses ?? []).filter((c) => !c.lifecyclePhase || !UPCOMING_PHASES.has(c.lifecyclePhase));
+
   return (
     <>
       <SiteHeader
@@ -50,6 +62,8 @@ export default function PublicCoursesPage() {
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Courses</h1>
         <p className="mt-1 text-sm text-gray-500">Browse what&apos;s available — sign up when you&apos;re ready to enroll.</p>
 
+        <h2 className="mt-10 font-display text-lg font-semibold text-brand-ink">Available Courses</h2>
+
         {/* Explicit 216px (72px + a further +144px) per direct request —
             not on Tailwind's default spacing scale, hence the
             arbitrary-value syntax rather than a named step. */}
@@ -57,7 +71,7 @@ export default function PublicCoursesPage() {
           {courses === null && <SkeletonList rows={4} />}
           {courses?.length === 0 && <EmptyState title="No courses available yet" description="Check back soon." />}
 
-          {courses?.map((course) => (
+          {availableCourses.map((course) => (
             <a key={course.id} href={`/courses/${course.id}`}>
               <Card interactive className="flex items-center gap-4 hover:border-brand-teal">
                 {course.flyerUrl && (
@@ -82,6 +96,34 @@ export default function PublicCoursesPage() {
             </a>
           ))}
         </div>
+
+        {/* Coming Soon Courses — a horizontal carousel of upcoming
+            courses, sorted soonest-first, positioned below the existing
+            Available Courses list per direct request. Links out to the
+            dedicated /courses/upcoming page for the full list. */}
+        {upcomingCourses.length > 0 && (
+          <div className="mt-16">
+            <div className="flex items-baseline justify-between">
+              <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-brand-ink">
+                <Icon icon={CalendarClock} size="sm" className="text-brand-gold" />
+                Upcoming Courses
+              </h2>
+              <a
+                href="/courses/upcoming"
+                className="inline-flex items-center gap-1 text-sm font-semibold text-brand-teal hover:underline"
+              >
+                See all upcoming <Icon icon={ArrowRight} size="sm" />
+              </a>
+            </div>
+            <div className="mt-4 flex snap-x gap-4 overflow-x-auto pb-4">
+              {upcomingCourses.map((course) => (
+                <div key={course.id} className="w-64 shrink-0 snap-start">
+                  <UpcomingCourseCard course={course} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
     </>
   );

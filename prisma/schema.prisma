@@ -83,6 +83,33 @@ enum TrainingFormat {
   HYBRID
 }
 
+// Coming Soon Courses — where a scheduled course is actually delivered.
+// A genuinely new closed set, same discipline as TrainingFormat above
+// (which describes SELF_PACED/INSTRUCTOR_LED/HYBRID delivery style, a
+// different axis from where people physically show up).
+enum CourseLocationType {
+  PHYSICAL
+  ONLINE
+  HYBRID
+}
+
+// Coming Soon Courses — a course's own pre/post-launch timeline stage,
+// deliberately a SEPARATE axis from CourseStatus above. CourseStatus
+// still means exactly what it always has ("is this in the catalogue at
+// all"); this describes, for a course that IS in the catalogue, where
+// it currently sits relative to its own start/end/registrationDeadline
+// dates. Computed by getCourseLifecyclePhase (src/lib/courseLifecycle.ts)
+// — a pure function of `now` vs. those dates, not a stored+swept field
+// like JobPosting.status — except when lifecyclePhaseOverride below is
+// explicitly set, in which case the override always wins.
+enum CourseLifecyclePhase {
+  COMING_SOON
+  REGISTRATION_OPEN
+  REGISTRATION_CLOSED
+  STARTED
+  COMPLETED
+}
+
 enum QuestionType {
   SINGLE_CHOICE
   // MULTI_SELECT, TRUE_FALSE, FILL_BLANK, SHORT_ANSWER, MATCHING — future types.
@@ -721,6 +748,31 @@ model Course {
   // that was never public to begin with.
   whatsappGroupUrl String?
 
+  // Coming Soon Courses — schedule/registration fields for a course
+  // being advertised before it starts. All nullable: a course that
+  // never sets any of these behaves exactly as it always has (see
+  // getCourseLifecyclePhase's own comment — no startDate means no
+  // computed phase at all, so nothing downstream treats an ordinary
+  // course as "coming soon" by accident).
+  startDate            DateTime?
+  endDate              DateTime?
+  registrationDeadline DateTime?
+  locationType         CourseLocationType?
+  // Physical/hybrid only in practice (an ONLINE course has no venue),
+  // but not DB-enforced — the admin UI simply hides this field for
+  // ONLINE, matching how flyerUrl/curriculumUrl above stay valid
+  // columns even when their own show* toggle is off.
+  venue                String?
+  // Informational only for this build — displayed as "X of Y seats
+  // registered," never enforced against new enrollments. Real
+  // enforcement would need a race-safe check inside the Paystack
+  // webhook path (src/lib/paystack/reconcile.ts), out of scope here.
+  capacity             Int?
+  // Admin manual override — null means "compute the phase from the
+  // dates above" (the normal case); set means the override always
+  // wins, no date math at all. See getCourseLifecyclePhase.
+  lifecyclePhaseOverride CourseLifecyclePhase?
+
   // M38 — Staff Early-Warning Dashboard. Null means disabled for this
   // course, not "use some default" — every course that already exists
   // when this ships should NOT suddenly start generating alerts nobody
@@ -865,6 +917,7 @@ model Course {
 
   @@index([published])
   @@index([status])
+  @@index([startDate])
 }
 
 model Module {

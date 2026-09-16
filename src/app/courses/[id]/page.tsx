@@ -85,18 +85,36 @@ export default function PublicCourseDetailPage({ params }: { params: { id: strin
     );
   }
 
+  // Coming Soon Courses — registration is only actually open when the
+  // computed phase is REGISTRATION_OPEN or the course has no schedule
+  // at all (`null`, an ordinary course, unaffected by this feature).
+  // Every other phase gets an informational state instead of a
+  // clickable CTA — matching the same rule the enroll/pay routes
+  // enforce server-side (isRegistrationOpen), just reflected here so a
+  // visitor never sees a button that would just 400 if clicked.
+  const registrationOpen = data.lifecyclePhase === null || data.lifecyclePhase === "REGISTRATION_OPEN";
+
   return (
     <>
       <SiteHeader nav={NAV} />
       <CourseMarketingView
         data={data}
         actions={
-          <div className="flex flex-wrap gap-2">
-            <Button href={`/trainee/login?next=/courses/${params.id}`}>Log in to Enroll</Button>
-            <Button variant="secondary" href={`/trainee/register?next=/courses/${params.id}`}>
-              New here? Sign up
-            </Button>
-          </div>
+          registrationOpen ? (
+            <div className="flex flex-wrap gap-2">
+              <Button href={`/trainee/login?next=/courses/${params.id}`}>Log in to Enroll</Button>
+              <Button variant="secondary" href={`/trainee/register?next=/courses/${params.id}`}>
+                New here? Sign up
+              </Button>
+            </div>
+          ) : (
+            <p className="rounded-lg bg-brand-mint px-4 py-2.5 text-sm font-semibold text-brand-tealDeep">
+              {data.lifecyclePhase === "COMING_SOON" && "Registration opens soon — check back for dates."}
+              {data.lifecyclePhase === "REGISTRATION_CLOSED" && "Registration for this course has closed."}
+              {data.lifecyclePhase === "STARTED" && "This course has already started."}
+              {data.lifecyclePhase === "COMPLETED" && "This course has ended."}
+            </p>
+          )
         }
       />
     </>

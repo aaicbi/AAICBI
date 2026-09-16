@@ -27,6 +27,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
           orderBy: { order: "asc" },
           include: { lessons: { orderBy: { order: "asc" }, select: { id: true, title: true } } },
         },
+        // Coming Soon Courses — feeds buildMarketingView's enrolledCount.
+        _count: { select: { courseEnrollments: true } },
       },
     });
     if (!course) {

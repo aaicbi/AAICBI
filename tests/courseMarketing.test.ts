@@ -36,6 +36,15 @@ function baseCourse(overrides: Partial<MarketingSourceCourse> = {}): MarketingSo
         lessons: [{ id: "l1", title: "Lesson 1" }],
       },
     ],
+    // Coming Soon Courses
+    startDate: null,
+    endDate: null,
+    registrationDeadline: null,
+    locationType: null,
+    venue: null,
+    capacity: null,
+    lifecyclePhaseOverride: null,
+    _count: { courseEnrollments: 0 },
     ...overrides,
   };
 }
@@ -117,5 +126,19 @@ describe("buildMarketingView", () => {
     // Core identity/pricing fields are never toggle-gated.
     expect(view.title).toBe("Data Analytics");
     expect(view.isFree).toBe(false);
+  });
+
+  it("computes lifecyclePhase from schedule fields, and null when no startDate is set", () => {
+    const noSchedule = buildMarketingView(baseCourse());
+    expect(noSchedule.lifecyclePhase).toBeNull();
+
+    const future = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
+    const scheduled = buildMarketingView(baseCourse({ startDate: future, registrationDeadline: future }));
+    expect(scheduled.lifecyclePhase).toBe("REGISTRATION_OPEN");
+  });
+
+  it("passes through enrolledCount from _count.courseEnrollments", () => {
+    const view = buildMarketingView(baseCourse({ _count: { courseEnrollments: 7 } }));
+    expect(view.enrolledCount).toBe(7);
   });
 });

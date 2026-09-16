@@ -12,12 +12,21 @@ import Icon from "@/components/ui/Icon";
 import { ArrowRight } from "lucide-react";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 import { COURSE_STATUS_LABEL, COURSE_STATUS_BADGE_VARIANT } from "@/lib/courseStatus";
+import {
+  getCourseLifecyclePhase,
+  COURSE_LIFECYCLE_PHASE_LABEL,
+  COURSE_LIFECYCLE_PHASE_BADGE_VARIANT,
+} from "@/lib/courseLifecycle";
 
 interface CourseRow {
   id: string;
   title: string;
   description: string | null;
   status: "DRAFT" | "PUBLISHED" | "UNPUBLISHED" | "ARCHIVED";
+  startDate: string | null;
+  endDate: string | null;
+  registrationDeadline: string | null;
+  lifecyclePhaseOverride: "COMING_SOON" | "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "STARTED" | "COMPLETED" | null;
   _count: { modules: number };
 }
 
@@ -59,7 +68,9 @@ export default function AdminCoursesPage() {
             />
           )}
 
-          {courses?.map((course) => (
+          {courses?.map((course) => {
+            const phase = getCourseLifecyclePhase(course);
+            return (
             <Link key={course.id} href={`/admin/courses/${course.id}`}>
               <Card interactive className="flex items-center justify-between hover:border-brand-teal">
                 <div>
@@ -69,6 +80,9 @@ export default function AdminCoursesPage() {
                       {course._count.modules} module{course._count.modules === 1 ? "" : "s"}
                     </span>
                     <Badge variant={COURSE_STATUS_BADGE_VARIANT[course.status]}>{COURSE_STATUS_LABEL[course.status]}</Badge>
+                    {phase && (
+                      <Badge variant={COURSE_LIFECYCLE_PHASE_BADGE_VARIANT[phase]}>{COURSE_LIFECYCLE_PHASE_LABEL[phase]}</Badge>
+                    )}
                   </div>
                 </div>
                 <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-teal">
@@ -76,7 +90,8 @@ export default function AdminCoursesPage() {
                 </span>
               </Card>
             </Link>
-          ))}
+            );
+          })}
         </div>
       </main>
     </>

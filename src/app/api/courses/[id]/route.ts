@@ -11,6 +11,7 @@ import { isCoursePubliclyVisible } from "@/lib/courseStatus";
 import { requireOwnedCourse } from "@/lib/courseOwnership";
 import { buildMarketingView } from "@/lib/courseMarketing";
 import { safeUrl } from "@/lib/materialUrl";
+import { validateCourseSchedule } from "@/lib/courseSchedule";
 
 const fullTree = {
   createdBy: { select: { name: true } },
@@ -23,6 +24,10 @@ const fullTree = {
       },
     },
   },
+  // Coming Soon Courses — feeds the "X of Y seats registered" display
+  // in buildMarketingView; cheap enough to always include rather than
+  // conditionally select it per caller.
+  _count: { select: { courseEnrollments: true } },
 };
 
 /**
@@ -329,6 +334,21 @@ const UpdateCourseSchema = z.object({
     })
     .nullable()
     .optional(),
+
+  // Coming Soon Courses — schedule/registration fields. All optional,
+  // edited via CourseScheduleSettings on the builder page, same
+  // "settled after creation, not part of the create form" pattern as
+  // every other settings block on this page.
+  startDate: z.coerce.date().nullable().optional(),
+  endDate: z.coerce.date().nullable().optional(),
+  registrationDeadline: z.coerce.date().nullable().optional(),
+  locationType: z.enum(["PHYSICAL", "ONLINE", "HYBRID"]).nullable().optional(),
+  venue: z.string().trim().max(300).nullable().optional(),
+  capacity: z.number().int().positive().max(100_000).nullable().optional(),
+  lifecyclePhaseOverride: z
+    .enum(["COMING_SOON", "REGISTRATION_OPEN", "REGISTRATION_CLOSED", "STARTED", "COMPLETED"])
+    .nullable()
+    .optional(),
 });
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
@@ -370,6 +390,18 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     });
     if (pricingError) {
       return NextResponse.json({ error: pricingError }, { status: 400 });
+    }
+
+    // Coming Soon Courses — same merge-with-existing-state-before-
+    // validating reasoning as pricing above, so an admin adjusting only
+    // one schedule field doesn't need to resend the others.
+    const resultingStartDate = parsed.data.startDate !== undefined ? parsed.data.startDate : course.startDate;
+    const resultingEndDate = parsed.data.endDate !== undefined ? parsed.data.endDate : course.endDate;
+    const resultingRegistrationDeadline =
+      parsed.data.registrationDeadline !== undefined ? parsed.data.registrationDeadline : course.registrationDeadline;
+    const scheduleError = validateCourseSchedule(resultingStartDate, resultingEndDate, resultingRegistrationDeadline);
+    if (scheduleError) {
+      return NextResponse.json({ error: scheduleError }, { status: 400 });
     }
 
     // M26 — a real gap this closes: if price or interval genuinely

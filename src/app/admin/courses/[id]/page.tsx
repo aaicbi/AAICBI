@@ -24,6 +24,7 @@ import { AchievementIcon, CohortIcon, AssessmentIcon, PaymentsIcon } from "@/com
 import { COURSE_STATUS_VALUES, COURSE_STATUS_LABEL } from "@/lib/courseStatus";
 import type { CourseStatus } from "@prisma/client";
 import CourseMarketingSettings, { type CourseMarketingFields } from "./CourseMarketingSettings";
+import CourseScheduleSettings, { type CourseScheduleFields } from "./CourseScheduleSettings";
 
 interface MaterialDto {
   id: string;
@@ -91,6 +92,14 @@ interface CourseDto {
   curriculumUrl: string | null;
   curriculumUploadedAt: string | null;
   whatsappGroupUrl: string | null;
+  // Coming Soon Courses
+  startDate: string | null;
+  endDate: string | null;
+  registrationDeadline: string | null;
+  locationType: "PHYSICAL" | "ONLINE" | "HYBRID" | null;
+  venue: string | null;
+  capacity: number | null;
+  lifecyclePhaseOverride: "COMING_SOON" | "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "STARTED" | "COMPLETED" | null;
 }
 
 /** Parses the { error: { fieldErrors, formErrors } | string } shapes the
@@ -200,6 +209,19 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
   // the full "Save course information" click both just go through this
   // same function with different payload shapes.
   async function updateMarketing(fields: Partial<CourseMarketingFields>): Promise<string | null> {
+    const res = await fetch(`/api/courses/${params.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fields),
+    });
+    if (!res.ok) return readApiError(res, "Could not save. Try again.");
+    await loadCourse();
+    return null;
+  }
+
+  // Coming Soon Courses — same one-PUT-covers-whatever-was-sent shape
+  // as updateMarketing above.
+  async function updateSchedule(fields: Partial<CourseScheduleFields>): Promise<string | null> {
     const res = await fetch(`/api/courses/${params.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -463,6 +485,8 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
         <QaScopeSettings course={course} onSave={updateQaScope} showToast={showToast} />
 
         <WhatsappGroupSettings course={course} onSave={updateWhatsappGroup} showToast={showToast} />
+
+        <CourseScheduleSettings course={course} onSave={updateSchedule} showToast={showToast} />
 
         <CourseMarketingSettings
           courseId={course.id}

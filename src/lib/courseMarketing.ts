@@ -14,7 +14,19 @@
  * any `materials`, `createdBy`, and any progress/attempt/certificate/
  * enrollment data are NEVER included. That's not a toggle; it's the
  * one thing this function structurally cannot leak.
+ *
+ * Coming Soon Courses — the schedule fields have no show* toggle of
+ * their own (unlike flyer/curriculum/outline etc. above): a course
+ * with no startDate simply has nothing to show, and one WITH a
+ * startDate is specifically being advertised as upcoming, so there's
+ * no scenario where an admin would want the dates hidden while still
+ * wanting the course itself visible. `lifecyclePhase` is computed
+ * once, here, via getCourseLifecyclePhase — the single source of
+ * truth every caller reads, rather than each of the three call sites
+ * recomputing it themselves.
  */
+import { getCourseLifecyclePhase } from "@/lib/courseLifecycle";
+import type { CourseLifecyclePhase, CourseLocationType } from "@prisma/client";
 
 export interface MarketingSourceCourse {
   id: string;
@@ -44,6 +56,15 @@ export interface MarketingSourceCourse {
   showAudience: boolean;
   showOutline: boolean;
   modules: { id: string; title: string; lessons: { id: string; title: string }[] }[];
+  // Coming Soon Courses
+  startDate: Date | string | null;
+  endDate: Date | string | null;
+  registrationDeadline: Date | string | null;
+  locationType: CourseLocationType | null;
+  venue: string | null;
+  capacity: number | null;
+  lifecyclePhaseOverride: CourseLifecyclePhase | null;
+  _count: { courseEnrollments: number };
 }
 
 export interface MarketingView {
@@ -67,6 +88,15 @@ export interface MarketingView {
   prerequisites: string[];
   targetAudience: string | null;
   modules: { id: string; title: string; lessons: { id: string; title: string }[] }[];
+  // Coming Soon Courses
+  startDate: Date | string | null;
+  endDate: Date | string | null;
+  registrationDeadline: Date | string | null;
+  locationType: CourseLocationType | null;
+  venue: string | null;
+  capacity: number | null;
+  enrolledCount: number;
+  lifecyclePhase: CourseLifecyclePhase | null;
 }
 
 export function buildMarketingView(course: MarketingSourceCourse): MarketingView {
@@ -97,5 +127,13 @@ export function buildMarketingView(course: MarketingSourceCourse): MarketingView
           lessons: m.lessons.map((l) => ({ id: l.id, title: l.title })),
         }))
       : [],
+    startDate: course.startDate,
+    endDate: course.endDate,
+    registrationDeadline: course.registrationDeadline,
+    locationType: course.locationType,
+    venue: course.venue,
+    capacity: course.capacity,
+    enrolledCount: course._count.courseEnrollments,
+    lifecyclePhase: getCourseLifecyclePhase(course),
   };
 }
