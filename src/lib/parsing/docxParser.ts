@@ -44,8 +44,16 @@ export async function extractTextFromDocx(buffer: Buffer): Promise<string> {
   return text;
 }
 
-// Matches "1.", "1)", "Question 1:", "Question 1." at the start of a line.
-const QUESTION_START = /^(?:question\s*)?(\d{1,3})[).:]\s+/i;
+// Matches "1.", "1)", "Question 1:", "Question 1." at the start of a
+// line, OR a bare "Question 1" with no trailing punctuation at all —
+// a real, previously-unsupported variant confirmed against a real
+// scenario-based assessment document, where the question number sits
+// alone on its own line ("Question 1"), followed by "Scenario:"/
+// "Question:" sub-labels before the actual question text. The bare
+// form requires the WHOLE line to be just "Question" + a number ($
+// anchor) specifically so it can never misfire on ordinary prose that
+// happens to start with a digit or mention "Question" mid-sentence.
+const QUESTION_START = /^(?:question\s*)?\d{1,3}[).:]\s+|^question\s+\d{1,3}\s*$/i;
 
 // Matches "A.", "A)", "a.", "a)" at the start of a line.
 const OPTION_START = /^([A-Da-d])[).]\s+(.*)$/;

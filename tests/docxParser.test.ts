@@ -102,4 +102,79 @@ Answer: A
     expect(blocks[0].options).toHaveLength(4);
     expect(blocks[0].options[0].text).toBe("A spreadsheet, e.g. Excel or Google Sheets");
   });
+
+  // Bug fix — a real scenario-based assessment document formats the
+  // question number as a bare "Question 1" on its own line with no
+  // trailing punctuation, followed by "Scenario:"/"Question:"
+  // sub-labels before the actual question text. QUESTION_START
+  // previously required a trailing "."/")"/":" and so never matched
+  // this line at all, meaning zero question blocks were ever created
+  // for the whole document — confirmed directly against the real file
+  // that surfaced this ("we could not identify any... questions" on a
+  // genuinely valid 50-question document).
+  it("parses a bare 'Question N' header with no trailing punctuation, scenario-style", () => {
+    const text = `
+Question 1
+
+Scenario:
+
+Ada starts with 10000 and spends 3500.
+
+Question:
+
+Which calculation determines Ada's remaining money?
+
+A. 10000 + 3500
+B. 10000 - 3500
+C. 3500 - 10000
+D. 10000 * 3500
+
+Correct Answer: B — 10000 - 3500
+
+Explanation:
+
+Subtract the amount spent from the starting amount.
+
+Question 2
+
+Scenario:
+
+Musa buys a shirt and a belt.
+
+Question:
+
+Which calculation gives the total cost?
+
+A. 2500 - 1200
+B. 2500 / 1200
+C. 2500 + 1200
+D. 2500 * 1200
+
+Correct Answer: C — 2500 + 1200
+`;
+    const blocks = splitIntoQuestionBlocks(text);
+    expect(blocks).toHaveLength(2);
+    expect(blocks[0].questionText).toContain("Ada starts with 10000");
+    expect(blocks[0].questionText).toContain("remaining money");
+    expect(blocks[0].options).toHaveLength(4);
+    expect(blocks[0].answerLabel).toBe("B");
+    expect(blocks[0].rawText).toContain("Explanation:");
+    expect(blocks[1].answerLabel).toBe("C");
+  });
+
+  it("the bare 'Question N' form requires the whole line to be just that — a line with trailing words doesn't misfire", () => {
+    const text = `
+1. A tricky question
+Question 5 was the hardest one on the last test, students said.
+A. Option one
+B. Option two
+Answer: A
+`;
+    const blocks = splitIntoQuestionBlocks(text);
+    // "Question 5 was..." has trailing words after the number, so the
+    // $ anchor correctly rejects it as a new block boundary — it's
+    // just ordinary continuation text on the one real question (#1).
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].questionText).toContain("Question 5 was the hardest");
+  });
 });
