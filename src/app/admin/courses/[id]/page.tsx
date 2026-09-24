@@ -12,6 +12,7 @@ import {
   ChevronRight,
   ArrowUp,
   ArrowDown,
+  LineChart,
 } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
@@ -445,6 +446,12 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
               className="mb-2 block text-xs font-semibold text-brand-teal hover:underline"
             >
               <Icon icon={AlertTriangle} size="sm" className="mr-1 inline align-text-bottom" /> Early Warnings
+            </a>
+            <a
+              href={`/admin/courses/${params.id}/performance`}
+              className="mb-2 block text-xs font-semibold text-brand-teal hover:underline"
+            >
+              <Icon icon={LineChart} size="sm" className="mr-1 inline align-text-bottom" /> Performance
             </a>
             <a
               href={`/admin/courses/${params.id}/examination`}

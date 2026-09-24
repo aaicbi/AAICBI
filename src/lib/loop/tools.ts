@@ -26,6 +26,7 @@ import type { RecipientFilter } from "@/lib/messaging/recipients";
 import { resolveModuleByQuery } from "@/lib/loop/moduleLookup";
 import { generateBankQuestionBatch } from "@/lib/ai/generateBankQuestions";
 import { validateBankQuestionBatch } from "@/lib/ai/validateBankQuestions";
+import { getModuleAssessmentStats } from "@/lib/performanceDashboard";
 
 // ---------------------------------------------------------------------
 // search_people
@@ -499,6 +500,38 @@ async function runBankValidationTool(input: Record<string, unknown>): Promise<un
 }
 
 // ---------------------------------------------------------------------
+// get_module_assessment_stats — the Trainee Performance Dashboard's
+// per-module aggregation (src/lib/performanceDashboard.ts), reused
+// here verbatim rather than reimplemented, so Loop and the dashboard
+// page can never drift into two different answers for the same
+// question. Takes a free-text moduleQuery, the same
+// resolveModuleByQuery pattern analyze_module_materials/
+// generate_bank_questions already use, since Claude has no module ids
+// memorized any more than an admin typing a module's name does.
+
+export const GET_MODULE_ASSESSMENT_STATS_TOOL = {
+  name: "get_module_assessment_stats",
+  description:
+    "Get assessment stats for one module: whether it has an assessment configured, how many distinct trainees have attempted it, total attempts, average score, and pass rate. Use this to answer questions like \"has anyone done module 3's assessment yet\" or \"how is the Data Cleaning assessment performing.\"",
+  input_schema: {
+    type: "object" as const,
+    properties: { moduleQuery: { type: "string", description: "The module's name or a fragment of it, e.g. \"Data Cleaning\" or \"Module 3\"." } },
+    required: ["moduleQuery"],
+  },
+};
+
+async function getModuleAssessmentStatsTool(input: Record<string, unknown>): Promise<unknown> {
+  const moduleQuery = typeof input.moduleQuery === "string" ? input.moduleQuery : "";
+  const moduleLookup = await resolveModuleByQuery(moduleQuery);
+  if (!moduleLookup.module) {
+    return { error: "No matching module found.", ambiguousMatches: moduleLookup.ambiguousMatches };
+  }
+
+  const [stats] = await getModuleAssessmentStats(moduleLookup.module.courseId, moduleLookup.module.id);
+  return { module: `${moduleLookup.module.courseTitle} — ${moduleLookup.module.title}`, ...stats };
+}
+
+// ---------------------------------------------------------------------
 // Tool registry — the Anthropic-facing schemas plus the dispatcher.
 // This array IS the complete set of things Loop can ever do; nothing
 // outside this list is reachable from a Loop conversation.
@@ -563,6 +596,7 @@ export const LOOP_TOOL_SCHEMAS = [
   ANALYZE_MODULE_MATERIALS_TOOL,
   GENERATE_BANK_QUESTIONS_TOOL,
   RUN_BANK_VALIDATION_TOOL,
+  GET_MODULE_ASSESSMENT_STATS_TOOL,
 ];
 
 export async function runLoopTool(name: string, input: Record<string, unknown>, askedById: string): Promise<unknown> {
@@ -598,6 +632,8 @@ export async function runLoopTool(name: string, input: Record<string, unknown>, 
       return generateBankQuestionsTool(input, askedById);
     case "run_bank_validation":
       return runBankValidationTool(input);
+    case "get_module_assessment_stats":
+      return getModuleAssessmentStatsTool(input);
     default:
       // Genuinely unreachable given LOOP_TOOL_SCHEMAS is the exact list
       // handed to the model — Claude cannot name a tool that isn't in

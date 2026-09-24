@@ -12,6 +12,7 @@ import { prisma } from "@/lib/prisma";
 export interface ResolvedModule {
   id: string;
   title: string;
+  courseId: string;
   courseTitle: string;
 }
 
@@ -25,7 +26,7 @@ export interface ResolveModuleResult {
 export async function resolveModuleByQuery(query: string): Promise<ResolveModuleResult> {
   const modules = await prisma.module.findMany({
     where: { title: { contains: query, mode: "insensitive" } },
-    select: { id: true, title: true, course: { select: { title: true } } },
+    select: { id: true, title: true, courseId: true, course: { select: { title: true } } },
     take: 10,
   });
 
@@ -35,5 +36,5 @@ export async function resolveModuleByQuery(query: string): Promise<ResolveModule
   }
 
   const match = modules[0];
-  return { module: { id: match.id, title: match.title, courseTitle: match.course.title } };
+  return { module: { id: match.id, title: match.title, courseId: match.courseId, courseTitle: match.course.title } };
 }
