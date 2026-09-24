@@ -501,6 +501,10 @@ model Trainee {
   // M45 — every credit grant this trainee has ever received, the
   // ledger aiCreditBalance above is kept in sync with.
   aiCreditGrants AiCreditGrant[]
+  // Loop for Trainees — the Learning Buddy persona's own Q&A audit
+  // trail, mirroring User.aiCommandLogs' identical relation for the
+  // staff Executive Assistant persona.
+  aiCommandLogs AiCommandLog[]
   materialDownloads MaterialDownload[]
   // M41 — the fast, queryable current-state field, same pattern as
   // CourseEnrollment.accessRevokedAt elsewhere in this schema:
@@ -2777,8 +2781,27 @@ model Testimonial {
 // a person decides.
 model AiCommandLog {
   id        String   @id @default(cuid())
-  askedById String
-  askedBy   User     @relation(fields: [askedById], references: [id])
+  // Staff-authored Loop turns (the Executive Assistant persona) — the
+  // only kind that existed before the trainee-facing Learning Buddy
+  // persona. Loosened from required to optional (a safe, additive
+  // direction — no existing row is affected, every one of them already
+  // has a real value here) specifically so a trainee-authored row can
+  // leave this null instead.
+  askedById String?
+  askedBy   User?    @relation(fields: [askedById], references: [id])
+  // Trainee-authored Loop turns (the Learning Buddy persona) — new,
+  // additive, mirrors askedById/askedBy above but points at Trainee
+  // instead of User, since a single FK can't point at either table.
+  // Same polymorphic-author shape NotificationLog already uses
+  // elsewhere in this schema (recipientType/recipientId), just kept as
+  // two real relations here (rather than a plain type+id string pair)
+  // since — unlike NotificationLog's many recipient kinds — there are
+  // only ever these two, and a real FK gives referential integrity for
+  // free. Exactly one of askedById/askedByTraineeId is set per row,
+  // enforced in application code (the route that writes this), not a
+  // DB constraint.
+  askedByTraineeId String?
+  askedByTrainee   Trainee? @relation(fields: [askedByTraineeId], references: [id])
   question  String
   answer    String
   // Which read-only tools Loop actually called while answering, and
@@ -2788,6 +2811,7 @@ model AiCommandLog {
   createdAt DateTime @default(now())
 
   @@index([askedById])
+  @@index([askedByTraineeId])
   @@index([createdAt])
 }
 

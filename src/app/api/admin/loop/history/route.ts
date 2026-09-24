@@ -9,23 +9,30 @@ import { withApiErrors } from "@/lib/apiError";
  * Super Admin's questions, not just the caller's own — this is a
  * shared assistant for the whole leadership team, not a private
  * per-user chat history.
+ *
+ * Explicitly scoped to staff-authored rows (`askedById: { not: null }`)
+ * — since Loop for Trainees started writing trainee-authored rows to
+ * this same table (askedByTraineeId instead), this sidebar must not
+ * start mixing trainee Q&A into the staff view. Each persona reads
+ * only its own kind of row.
  */
 export async function GET() {
   return withApiErrors(async () => {
     await requireRole("SUPER_ADMIN");
 
     const logs = await prisma.aiCommandLog.findMany({
+      where: { askedById: { not: null } },
       orderBy: { createdAt: "desc" },
       take: 30,
       select: { id: true, question: true, answer: true, createdAt: true, askedBy: { select: { name: true } } },
     });
 
     return NextResponse.json(
-      logs.map((l: { id: string; question: string; answer: string; createdAt: Date; askedBy: { name: string } }) => ({
+      logs.map((l) => ({
         id: l.id,
         question: l.question,
         answer: l.answer,
-        askedByName: l.askedBy.name,
+        askedByName: l.askedBy?.name ?? "Unknown",
         createdAt: l.createdAt,
       }))
     );

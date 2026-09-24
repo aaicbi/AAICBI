@@ -239,6 +239,7 @@ export default async function TraineeDashboardPage() {
           { label: "My Downloads", href: "/trainee/downloads" },
           { label: "Introductions", href: "/trainee/introductions" },
           { label: "Job Board", href: "/trainee/job-postings" },
+          { label: "Ask Loop", href: "/trainee/buddy" },
           { label: "My Profile", href: "/trainee/profile" },
           { label: "Settings", href: "/trainee/settings" },
         ]}

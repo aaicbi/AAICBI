@@ -201,6 +201,7 @@ export default function TraineeSettingsPage() {
         nav={[
           { label: t("Dashboard", translations), href: "/trainee/dashboard" },
           { label: t("Courses", translations), href: "/trainee/courses" },
+          { label: t("Ask Loop", translations), href: "/trainee/buddy" },
           { label: t("My Profile", translations), href: "/trainee/profile" },
           { label: t("Settings", translations), href: "/trainee/settings" },
         ]}
