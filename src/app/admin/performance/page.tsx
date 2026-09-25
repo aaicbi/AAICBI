@@ -61,7 +61,7 @@ export default function GeneralPerformancePage() {
             <select
               value={courseId}
               onChange={(e) => setCourseId(e.target.value)}
-              className="w-full max-w-md rounded-lg border border-brand-gray px-3 py-2.5 text-sm font-semibold text-brand-ink outline-none focus:border-brand-teal"
+              className="w-full max-w-md rounded-lg border border-brand-gray px-3 py-2.5 text-sm font-semibold outline-none focus:border-brand-teal"
             >
               <option value="">Select a course…</option>
               {courses.map((c) => (
