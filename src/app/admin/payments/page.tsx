@@ -71,6 +71,7 @@ export default function AdminPaymentsPage() {
         nav={[
           { label: "Examinations", href: "/admin/dashboard" },
           { label: "Courses", href: "/admin/courses" },
+          { label: "Performance", href: "/admin/performance" },
           { label: "Payments", href: "/admin/payments" },
           { label: "My Profile", href: "/admin/profile" },
           { label: "Settings", href: "/admin/settings" },
