@@ -327,6 +327,9 @@ export default function CourseExaminationPage({ params }: { params: { id: string
             </p>
           </div>
           <div className="flex gap-2">
+            <Button variant="secondary" href={`/admin/exams/${exam.id}/results`}>
+              View Results
+            </Button>
             <Button variant="secondary" onClick={generate} loading={generating}>
               Generate More
             </Button>

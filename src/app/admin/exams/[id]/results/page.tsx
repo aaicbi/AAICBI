@@ -5,7 +5,8 @@ import LogoutButton from "@/components/admin/LogoutButton";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { SkeletonTableRows } from "@/components/ui/Skeleton";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
+import { ChevronDown, ChevronRight, Clock } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 
 interface PerformanceSummaryDto {
@@ -21,6 +22,7 @@ interface AttemptRow {
   percentage: number | null;
   passed: boolean | null;
   submittedAt: string | null;
+  traineeId: string;
   trainee: { name: string; email: string };
   performanceSummary: PerformanceSummaryDto | null;
 }
@@ -40,6 +42,8 @@ export default function ExamResultsPage({ params }: { params: { id: string } }) 
   const [data, setData] = useState<ResultsResponse | null>(null);
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [waiving, setWaiving] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     const q = new URLSearchParams({ examId: params.id, ...(search ? { q: search } : {}) });
@@ -47,6 +51,21 @@ export default function ExamResultsPage({ params }: { params: { id: string } }) 
       .then((r) => r.json())
       .then(setData);
   }, [params.id, search]);
+
+  async function waiveCooldown(traineeId: string, traineeName: string) {
+    setWaiving(traineeId);
+    const res = await fetch(`/api/exams/${params.id}/cooldown-override`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ traineeId }),
+    });
+    setWaiving(null);
+    if (!res.ok) {
+      showToast("Couldn't waive the cooldown. Please try again.", "error");
+      return;
+    }
+    showToast(`${traineeName} can retake this exam right away.`, "success");
+  }
 
   const cards: [string, number | string][] = data
     ? [
@@ -111,11 +130,12 @@ export default function ExamResultsPage({ params }: { params: { id: string } }) 
                 <th>Status</th>
                 <th>Submitted</th>
                 <th></th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {!data ? (
-                <SkeletonTableRows rows={5} cols={5} />
+                <SkeletonTableRows rows={5} cols={6} />
               ) : (
                 <>
                   {data.attempts.map((a) => (
@@ -148,10 +168,20 @@ export default function ExamResultsPage({ params }: { params: { id: string } }) 
                             </span>
                           )}
                         </td>
+                        <td onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => waiveCooldown(a.traineeId, a.trainee.name)}
+                            disabled={waiving === a.traineeId}
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-brand-teal disabled:opacity-50"
+                            title="Let this trainee retake the exam right away, bypassing the retake cooldown."
+                          >
+                            <Icon icon={Clock} size="sm" /> {waiving === a.traineeId ? "Waiving…" : "Waive cooldown"}
+                          </button>
+                        </td>
                       </tr>
                       {expanded === a.id && a.performanceSummary && (
                         <tr className="border-b border-gray-100 bg-brand-mint/30">
-                          <td colSpan={5} className="px-2 py-3">
+                          <td colSpan={6} className="px-2 py-3">
                             <p className="text-sm text-gray-700">{a.performanceSummary.narrative}</p>
                             {(a.performanceSummary.strengths.length > 0 ||
                               a.performanceSummary.weaknesses.length > 0) && (
@@ -179,7 +209,7 @@ export default function ExamResultsPage({ params }: { params: { id: string } }) 
                   ))}
                   {data.attempts.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="py-6 text-center text-gray-500">
+                      <td colSpan={6} className="py-6 text-center text-gray-500">
                         No submitted attempts yet.
                       </td>
                     </tr>
