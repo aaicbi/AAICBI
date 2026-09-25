@@ -125,6 +125,31 @@ export default async function CertificateVerificationPage({ params }: { params: 
       <SiteHeader nav={nav} />
       <main className="mx-auto max-w-2xl px-6 py-12 print:py-4">
         <div
+          // This card is a fixed, printable, shareable document — it
+          // must look identical regardless of the viewer's site theme,
+          // the same way a printed certificate can't have a "dark
+          // mode." The brand-*/gray-* tokens used inside all resolve
+          // through CSS custom properties that flip under the site-wide
+          // `.dark` class (see globals.css), which made the trainee's
+          // name and the Issued/Certificate Code text nearly invisible
+          // against this card's always-white/gold background for
+          // anyone without an explicit `theme=light` cookie — the
+          // default for every first-time, logged-out visitor, i.e.
+          // exactly who a shared verification link is for. Re-pinning
+          // these custom properties to their light-mode values locally
+          // on this subtree fixes every `text-brand-ink`/`text-gray-*`
+          // class inside without touching any of them individually.
+          style={
+            {
+              "--brand-ink": "22 48 43",
+              "--brand-teal": "1 107 97",
+              "--brand-gold": "217 154 52",
+              "--brand-gold-light": "246 232 204",
+              "--gray-400": "156 163 175",
+              "--gray-500": "107 114 128",
+              "--gray-600": "75 85 99",
+            } as React.CSSProperties
+          }
           className="relative overflow-hidden rounded-2xl border-2 border-brand-gold bg-gradient-to-b from-brand-goldLight/40 via-white to-white p-6 text-center shadow-sm print:border print:shadow-none animate-[modal-in_0.4s_ease-out] sm:p-10"
         >
           {/* The achievement doodle sits behind the content, quiet enough
