@@ -4,6 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { requireOwnedCourse } from "@/lib/courseOwnership";
+import { notifyByEmail, shouldNotifyTrainee } from "@/lib/notifications/log";
+import { courseAccessGrantedEmail } from "@/lib/notifications/templates";
+import { appUrl } from "@/lib/appUrl";
 
 const GrantSchema = z.object({ email: z.string().email() });
 
@@ -47,7 +50,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedCourse(params.id, session.userId);
+    const course = await requireOwnedCourse(params.id, session.userId);
 
     const body = await req.json();
     const parsed = GrantSchema.safeParse(body);
@@ -77,6 +80,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         data: { source: "ADMIN_GRANTED", enrolledById: session.userId, accessRevokedAt: null, unlockedAt: new Date() },
         include: { trainee: { select: { id: true, name: true, email: true } } },
       });
+      await notifyGranted(trainee, course.title, params.id);
       return NextResponse.json(reactivated, { status: 200 });
     }
 
@@ -90,6 +94,39 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       },
       include: { trainee: { select: { id: true, name: true, email: true } } },
     });
+    await notifyGranted(trainee, course.title, params.id);
     return NextResponse.json(enrollment, { status: 201 });
   });
+}
+
+/**
+ * The trainee's only real discovery path for an UNLISTED course — it
+ * has no catalog listing to stumble onto, so this notification (email
+ * + the automatic in-app UserNotification notifyByEmail already
+ * creates) is what actually makes an admin grant usable rather than
+ * theoretical. Sent for every grant, not just UNLISTED ones — a
+ * published course's trainee benefits from the heads-up too, and
+ * there's no reason to special-case it. Never allowed to fail the
+ * grant itself — same "notification failures are logged, never
+ * thrown" discipline this project applies everywhere else.
+ */
+async function notifyGranted(
+  trainee: { id: string; name: string; email: string; notificationsEnabled: boolean },
+  courseTitle: string,
+  courseId: string
+): Promise<void> {
+  if (!shouldNotifyTrainee(trainee)) return;
+  const relativeUrl = `/trainee/courses/${courseId}`;
+  const content = courseAccessGrantedEmail(trainee.name, courseTitle, appUrl(relativeUrl));
+  await notifyByEmail({
+    recipientType: "TRAINEE",
+    recipientId: trainee.id,
+    to: trainee.email,
+    type: "COURSE_ACCESS_GRANTED",
+    relatedId: courseId,
+    url: relativeUrl,
+    subject: content.subject,
+    html: content.html,
+    text: content.text,
+  }).catch((e) => console.error(`Failed to notify trainee ${trainee.id} of granted course access:`, e));
 }

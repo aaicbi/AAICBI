@@ -55,8 +55,12 @@ export async function GET() {
       // here, linking to a course page that now 404s for them (the
       // course GET route already blocks an unpublished course for
       // anyone but its owner). Filtering here means the dashboard
-      // never advertises a link that's guaranteed to fail.
-      where: { id: { in: courseIds }, status: "PUBLISHED" },
+      // never advertises a link that's guaranteed to fail. UNLISTED is
+      // included alongside PUBLISHED — a trainee with real, admin-
+      // granted access to an unlisted course can still fully reach it
+      // (see canTraineeAccessCourse), so their own progress shouldn't
+      // silently disappear just because the course isn't catalog-listed.
+      where: { id: { in: courseIds }, status: { in: ["PUBLISHED", "UNLISTED"] } },
       select: { id: true, title: true, modules: { select: { id: true } } },
     });
 

@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
-import { hasCourseAccess } from "@/lib/courseAccess";
+import { hasCourseAccess, canTraineeAccessCourse } from "@/lib/courseAccess";
 import { getModuleLockStatus } from "@/lib/progress";
 import { resolveDownloadUrl } from "@/lib/materialUrl";
 import { isPubliclyFetchableUrl } from "@/lib/ssrfGuard";
-import { isCoursePubliclyVisible } from "@/lib/courseStatus";
 
 /**
  * M40 — the actual tracking this milestone's content-change
@@ -114,7 +113,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         },
       },
     });
-    if (!material || !isCoursePubliclyVisible(material.lesson.module.course.status)) {
+    if (!material || !(await canTraineeAccessCourse(material.lesson.module.course.status, session.userId, material.lesson.module.courseId))) {
       return NextResponse.json({ error: "Material not found." }, { status: 404 });
     }
 

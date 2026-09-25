@@ -145,11 +145,15 @@ export default async function TraineeDashboardPage() {
       ? []
       : // M12 audit finding — same fix as GET /api/trainee/progress
         // (this page duplicates that route's query on purpose, see the
-        // comment at the top of the file): filter to published courses
-        // only, so an unpublished course a trainee once had activity in
-        // doesn't show up here linking to a page that now 404s for them.
+        // comment at the top of the file): filter to courses this
+        // trainee can actually still reach, so a course that's gone
+        // DRAFT/UNPUBLISHED/ARCHIVED since their last visit doesn't show
+        // up here linking to a page that now 404s for them. UNLISTED is
+        // included deliberately — that's a course this trainee has real
+        // admin-granted access to, unlike the other three excluded
+        // statuses, so it must keep showing up on their own dashboard.
         await prisma.course.findMany({
-          where: { id: { in: courseIds }, status: "PUBLISHED" },
+          where: { id: { in: courseIds }, status: { in: ["PUBLISHED", "UNLISTED"] } },
           select: { id: true, title: true, modules: { select: { id: true } } },
         });
 

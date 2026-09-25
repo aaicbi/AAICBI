@@ -3,10 +3,9 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
-import { hasCourseAccess } from "@/lib/courseAccess";
+import { hasCourseAccess, canTraineeAccessCourse } from "@/lib/courseAccess";
 import { getModuleLockStatus } from "@/lib/progress";
 import { getTraineeCohortForCourse, qaThreadVisibilityFilter } from "@/lib/qaScope";
-import { isCoursePubliclyVisible } from "@/lib/courseStatus";
 
 const CreateThreadSchema = z.object({
   title: z.string().trim().min(3),
@@ -32,7 +31,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         module: { select: { id: true, courseId: true, course: { select: { status: true, qaScope: true } } } },
       },
     });
-    if (!lesson || !isCoursePubliclyVisible(lesson.module.course.status)) {
+    if (!lesson || !(await canTraineeAccessCourse(lesson.module.course.status, session.userId, lesson.module.courseId))) {
       return NextResponse.json({ error: "Lesson not found." }, { status: 404 });
     }
     const courseId = lesson.module.courseId;
@@ -82,7 +81,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         module: { select: { id: true, courseId: true, course: { select: { status: true, qaScope: true } } } },
       },
     });
-    if (!lesson || !isCoursePubliclyVisible(lesson.module.course.status)) {
+    if (!lesson || !(await canTraineeAccessCourse(lesson.module.course.status, session.userId, lesson.module.courseId))) {
       return NextResponse.json({ error: "Lesson not found." }, { status: 404 });
     }
     const courseId = lesson.module.courseId;

@@ -17,12 +17,13 @@ import {
   COURSE_LIFECYCLE_PHASE_LABEL,
   COURSE_LIFECYCLE_PHASE_BADGE_VARIANT,
 } from "@/lib/courseLifecycle";
+import type { CourseStatus } from "@prisma/client";
 
 interface CourseRow {
   id: string;
   title: string;
   description: string | null;
-  status: "DRAFT" | "PUBLISHED" | "UNPUBLISHED" | "ARCHIVED";
+  status: CourseStatus;
   startDate: string | null;
   endDate: string | null;
   registrationDeadline: string | null;

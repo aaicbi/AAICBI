@@ -10,12 +10,13 @@ import { SkeletonList } from "@/components/ui/Skeleton";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 import { LineChart as GaugeIcon, BookOpen, Clock, Users2, GraduationCap } from "lucide-react";
 import PerformanceDashboard from "@/components/admin/PerformanceDashboard";
+import type { CourseStatus } from "@prisma/client";
 
 interface CourseOption {
   id: string;
   title: string;
   description: string | null;
-  status: "DRAFT" | "PUBLISHED" | "UNPUBLISHED" | "ARCHIVED";
+  status: CourseStatus;
   category: string | null;
   level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | null;
   durationDisplay: string | null;

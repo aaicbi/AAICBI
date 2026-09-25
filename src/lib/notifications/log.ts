@@ -49,7 +49,12 @@ export type NotificationType =
   // inbox (see SuperAdminMessage's own schema comment). This is only
   // the notification; the actual message content lives in
   // SuperAdminMessage, read via GET /api/admin/inbox.
-  | "MESSAGE_TO_ADMIN";
+  | "MESSAGE_TO_ADMIN"
+  // A staff member granted a trainee ADMIN_GRANTED access to a course
+  // (POST /api/courses/[id]/enrollments) — the trainee's only real
+  // discovery path for an UNLISTED course, which has no catalog listing
+  // to stumble onto.
+  | "COURSE_ACCESS_GRANTED";
 
 export interface NotifyByEmailInput {
   recipientType: "TRAINEE" | "STAFF" | "EMPLOYER";

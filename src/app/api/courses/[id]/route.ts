@@ -6,7 +6,7 @@ import { withApiErrors } from "@/lib/apiError";
 import { guardCourseDeletable } from "@/lib/deletionGuards";
 import { getModuleLockMap } from "@/lib/progress";
 import { validateCoursePricing } from "@/lib/coursePricing";
-import { hasCourseAccess, expireLapsedEnrollmentsForTrainee } from "@/lib/courseAccess";
+import { hasCourseAccess, expireLapsedEnrollmentsForTrainee, canTraineeAccessCourse } from "@/lib/courseAccess";
 import { isCoursePubliclyVisible } from "@/lib/courseStatus";
 import { requireOwnedCourse } from "@/lib/courseOwnership";
 import { buildMarketingView } from "@/lib/courseMarketing";
@@ -73,7 +73,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // else's course.
     const isOwner = isStaff && (session.role === "SUPER_ADMIN" || course.createdById === session.userId);
 
-    if (!isCoursePubliclyVisible(course.status) && !isOwner) {
+    // canTraineeAccessCourse widens isCoursePubliclyVisible to also let
+    // through a trainee with CURRENTLY-active access to an UNLISTED
+    // course. Deliberately current-access only (not "ever had an
+    // enrollment row") — a revoked trainee gets the same honest 404 as
+    // someone never granted access at all, consistent with this
+    // status's privacy intent, rather than the friendlier "your access
+    // expired" message a public course's expired trainee sees below.
+    const isUnlistedButCurrentlyEnrolled = !isStaff && (await canTraineeAccessCourse(course.status, session.userId, course.id));
+
+    if (!isCoursePubliclyVisible(course.status) && !isOwner && !isUnlistedButCurrentlyEnrolled) {
       // Same 404 whether the course doesn't exist or just isn't visible
       // to this requester — don't confirm a draft course's existence to
       // anyone who shouldn't see it.
@@ -263,7 +272,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 const UpdateCourseSchema = z.object({
   title: z.string().min(3).optional(),
   description: z.string().nullable().optional(),
-  status: z.enum(["DRAFT", "PUBLISHED", "UNPUBLISHED", "ARCHIVED"]).optional(),
+  status: z.enum(["DRAFT", "PUBLISHED", "UNPUBLISHED", "UNLISTED", "ARCHIVED"]).optional(),
   // Post-M15 milestone — see validateCoursePricing's own comment.
   isFree: z.boolean().optional(),
   priceKobo: z.number().int().positive().nullable().optional(),

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
-import { hasCourseAccess } from "@/lib/courseAccess";
+import { hasCourseAccess, canTraineeAccessCourse } from "@/lib/courseAccess";
 import { getModuleLockStatus } from "@/lib/progress";
 import { getTraineeCohortForCourse } from "@/lib/qaScope";
 import { isCoursePubliclyVisible } from "@/lib/courseStatus";
@@ -50,10 +50,18 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
         },
       },
     });
-    if (!post || !isCoursePubliclyVisible(post.thread.lesson.module.course.status)) {
+    if (!post) {
       return NextResponse.json({ error: "Post not found." }, { status: 404 });
     }
     const courseId = post.thread.lesson.module.courseId;
+    const courseStatus = post.thread.lesson.module.course.status;
+
+    // Same role-aware widening as the thread GET/reply routes.
+    const accessible =
+      session.role === "TRAINEE" ? await canTraineeAccessCourse(courseStatus, session.userId, courseId) : isCoursePubliclyVisible(courseStatus);
+    if (!accessible) {
+      return NextResponse.json({ error: "Post not found." }, { status: 404 });
+    }
 
     if (session.role === "TRAINEE") {
       const trainee = await prisma.trainee.findUniqueOrThrow({

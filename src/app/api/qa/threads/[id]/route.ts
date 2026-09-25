@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
-import { hasCourseAccess } from "@/lib/courseAccess";
+import { hasCourseAccess, canTraineeAccessCourse } from "@/lib/courseAccess";
 import { getModuleLockStatus } from "@/lib/progress";
 import { getTraineeCohortForCourse } from "@/lib/qaScope";
 import { isCoursePubliclyVisible } from "@/lib/courseStatus";
@@ -47,10 +47,22 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         },
       },
     });
-    if (!thread || !isCoursePubliclyVisible(thread.lesson.module.course.status)) {
+    if (!thread) {
       return NextResponse.json({ error: "Thread not found." }, { status: 404 });
     }
     const courseId = thread.lesson.module.courseId;
+    const courseStatus = thread.lesson.module.course.status;
+
+    // Staff keep the original PUBLISHED-only gate here (this route has
+    // no course-ownership carve-out for staff, unlike the main course
+    // route — a pre-existing limitation, not something this change
+    // introduces or fixes). Only a trainee gets the wider UNLISTED
+    // carve-out, and only with real, current course access.
+    const accessible =
+      session.role === "TRAINEE" ? await canTraineeAccessCourse(courseStatus, session.userId, courseId) : isCoursePubliclyVisible(courseStatus);
+    if (!accessible) {
+      return NextResponse.json({ error: "Thread not found." }, { status: 404 });
+    }
 
     if (session.role === "TRAINEE") {
       if (!(await hasCourseAccess(session.userId, courseId))) {

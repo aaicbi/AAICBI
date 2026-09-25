@@ -118,6 +118,28 @@ ${courseUrl}`,
   };
 }
 
+/** Sent when a staff member grants a trainee ADMIN_GRANTED access to a
+ * course — the only notification this flow sends today (see
+ * POST /api/courses/[id]/enrollments's own comment). Genuinely
+ * necessary, not just polite, for an UNLISTED course specifically:
+ * with no catalog listing to stumble onto, this email is the trainee's
+ * only path to discovering the course exists at all. */
+export function courseAccessGrantedEmail(traineeName: string, courseTitle: string, courseUrl: string): EmailContent {
+  return {
+    subject: `You've been given access to ${courseTitle}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(traineeName)},</p>
+      <p style="margin:0 0 16px;">You've been granted access to <strong>${escapeHtml(courseTitle)}</strong> on AAICBI. You can start it right away.</p>
+      ${button(courseUrl, "Start the Course")}
+    `),
+    text: `Hi ${traineeName},
+
+You've been granted access to ${courseTitle} on AAICBI. You can start it right away.
+
+${courseUrl}`,
+  };
+}
+
 export interface AssessmentResultEmailInput {
   traineeName: string;
   examTitle: string;

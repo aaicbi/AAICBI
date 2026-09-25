@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
-import { hasCourseAccess } from "@/lib/courseAccess";
+import { hasCourseAccess, canTraineeAccessCourse } from "@/lib/courseAccess";
 import { getModuleLockStatus } from "@/lib/progress";
 import { getTraineeCohortForCourse } from "@/lib/qaScope";
 import { notifyByEmail, shouldNotifyTrainee } from "@/lib/notifications/log";
@@ -51,10 +51,21 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         },
       },
     });
-    if (!thread || !isCoursePubliclyVisible(thread.lesson.module.course.status)) {
+    if (!thread) {
       return NextResponse.json({ error: "Thread not found." }, { status: 404 });
     }
     const courseId = thread.lesson.module.courseId;
+    const courseStatus = thread.lesson.module.course.status;
+
+    // Same role-aware widening as GET /api/qa/threads/[id]: staff keep
+    // the original PUBLISHED-only gate (their ownership check below is
+    // separate and unaffected); a trainee gets the UNLISTED carve-out,
+    // gated on real, current course access.
+    const accessible =
+      session.role === "TRAINEE" ? await canTraineeAccessCourse(courseStatus, session.userId, courseId) : isCoursePubliclyVisible(courseStatus);
+    if (!accessible) {
+      return NextResponse.json({ error: "Thread not found." }, { status: 404 });
+    }
 
     if (session.role === "TRAINEE") {
       const trainee = await prisma.trainee.findUniqueOrThrow({

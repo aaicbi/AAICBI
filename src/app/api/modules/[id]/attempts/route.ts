@@ -4,8 +4,7 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { startAttempt, serveableQuestion, secondsRemaining } from "@/lib/examEngine";
 import { getModuleLockStatus } from "@/lib/progress";
-import { hasCourseAccess } from "@/lib/courseAccess";
-import { isCoursePubliclyVisible } from "@/lib/courseStatus";
+import { hasCourseAccess, canTraineeAccessCourse } from "@/lib/courseAccess";
 
 /**
  * POST /api/modules/[id]/attempts — the M11 replacement for typing an
@@ -44,7 +43,12 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     // was published (nothing in this project prevents that sequence).
     // Same 404 regardless of which condition failed — never confirm
     // which one to an unauthorized caller.
-    if (!exam || !exam.published || !exam.courseModule || !isCoursePubliclyVisible(exam.courseModule.course.status)) {
+    if (
+      !exam ||
+      !exam.published ||
+      !exam.courseModule ||
+      !(await canTraineeAccessCourse(exam.courseModule.course.status, session.userId, exam.courseModule.course.id))
+    ) {
       return NextResponse.json(
         { error: "This assessment is not currently available." },
         { status: 404 }

@@ -477,6 +477,11 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
                 </option>
               ))}
             </select>
+            {course.status === "UNLISTED" && (
+              <p className="mt-1 max-w-[16rem] text-xs text-gray-500">
+                Hidden from the public catalog. Only trainees you grant access to (via Enrollments, below) can reach it.
+              </p>
+            )}
             {publishError && <p className="mt-1 max-w-[16rem] text-xs text-brand-rose">{publishError}</p>}
           </div>
         </div>

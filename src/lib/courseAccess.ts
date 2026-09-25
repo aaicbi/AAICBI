@@ -10,6 +10,8 @@
 import { prisma } from "@/lib/prisma";
 import { notifyByEmail, shouldNotifyTrainee } from "@/lib/notifications/log";
 import { subscriptionEndedEmail } from "@/lib/notifications/templates";
+import { isCoursePubliclyVisible } from "@/lib/courseStatus";
+import type { CourseStatus } from "@prisma/client";
 
 /** True only when a real, unlocked, non-revoked CourseEnrollment row
  * exists for this trainee and course — the exact same condition
@@ -21,6 +23,22 @@ export async function hasCourseAccess(traineeId: string, courseId: string): Prom
     select: { id: true },
   });
   return enrollment !== null;
+}
+
+/** Whether a specific trainee can reach this course's actual content —
+ * wider than isCoursePubliclyVisible (courseStatus.ts), which only
+ * answers "is this in the public catalog." PUBLISHED is reachable by
+ * anyone; UNLISTED is reachable only by a trainee with a real, active
+ * CourseEnrollment (there is no self-enroll path onto an unlisted
+ * course, only an explicit admin grant); every other status stays
+ * unreachable, same as isCoursePubliclyVisible. Every trainee-content
+ * route (lesson progress, material downloads, module attempts, Q&A)
+ * should call this, not isCoursePubliclyVisible directly, once a real
+ * trainee (not an anonymous catalog listing) is asking. */
+export async function canTraineeAccessCourse(status: CourseStatus, traineeId: string, courseId: string): Promise<boolean> {
+  if (isCoursePubliclyVisible(status)) return true;
+  if (status === "UNLISTED") return hasCourseAccess(traineeId, courseId);
+  return false;
 }
 
 /** Throws a 403 if the trainee doesn't have access — deliberately

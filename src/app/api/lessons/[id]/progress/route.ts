@@ -4,8 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { getModuleLockStatus } from "@/lib/progress";
-import { hasCourseAccess } from "@/lib/courseAccess";
-import { isCoursePubliclyVisible } from "@/lib/courseStatus";
+import { hasCourseAccess, canTraineeAccessCourse } from "@/lib/courseAccess";
 
 const BodySchema = z.object({ completed: z.boolean() });
 
@@ -40,7 +39,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     // Same "don't confirm existence" reasoning as the course/module GET
     // routes: an unpublished course's lesson 404s for a trainee exactly
     // like a nonexistent one would.
-    if (!lesson || !isCoursePubliclyVisible(lesson.module.course.status)) {
+    if (!lesson || !(await canTraineeAccessCourse(lesson.module.course.status, session.userId, lesson.module.courseId))) {
       return NextResponse.json({ error: "Lesson not found." }, { status: 404 });
     }
 

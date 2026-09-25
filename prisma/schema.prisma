@@ -71,6 +71,13 @@ enum CourseStatus {
   DRAFT
   PUBLISHED
   UNPUBLISHED
+  // Reachable-but-not-catalog-listed — see isCoursePubliclyVisible's own
+  // comment in src/lib/courseStatus.ts and canTraineeAccessCourse in
+  // src/lib/courseAccess.ts for the full reasoning: excluded from every
+  // public/browse surface, but a trainee with a real, admin-granted
+  // CourseEnrollment can still fully use it. There is no self-enroll
+  // path onto an UNLISTED course — only an explicit admin grant.
+  UNLISTED
   ARCHIVED
 }
 
