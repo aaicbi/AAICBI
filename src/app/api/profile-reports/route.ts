@@ -5,10 +5,14 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 
 const ReportSchema = z.object({
-  reportedType: z.enum(["TRAINEE", "EMPLOYER"]),
+  reportedType: z.enum(["TRAINEE", "EMPLOYER", "STAFF"]),
   reportedId: z.string().min(1),
   reason: z.string().trim().min(3).max(200),
   details: z.string().trim().max(1000).optional().or(z.literal("")),
+  // In-app messaging — set only when this report originates from a
+  // conversation, so admin review can jump straight to it.
+  contextType: z.enum(["CONVERSATION"]).optional(),
+  contextId: z.string().min(1).optional(),
 });
 
 /**
@@ -33,7 +37,9 @@ export async function POST(req: NextRequest) {
     const exists =
       parsed.data.reportedType === "TRAINEE"
         ? await prisma.trainee.findUnique({ where: { id: parsed.data.reportedId }, select: { id: true } })
-        : await prisma.employer.findUnique({ where: { id: parsed.data.reportedId }, select: { id: true } });
+        : parsed.data.reportedType === "EMPLOYER"
+          ? await prisma.employer.findUnique({ where: { id: parsed.data.reportedId }, select: { id: true } })
+          : await prisma.user.findUnique({ where: { id: parsed.data.reportedId }, select: { id: true } });
     if (!exists) {
       return NextResponse.json({ error: "That profile could not be found." }, { status: 404 });
     }
@@ -48,6 +54,8 @@ export async function POST(req: NextRequest) {
         reportedId: parsed.data.reportedId,
         reason: parsed.data.reason,
         details: parsed.data.details || null,
+        contextType: parsed.data.contextType ?? null,
+        contextId: parsed.data.contextId ?? null,
       },
     });
 

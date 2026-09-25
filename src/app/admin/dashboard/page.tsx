@@ -79,6 +79,7 @@ export default async function AdminDashboardPage() {
     { label: "Create Examination", href: "/admin/exams/new" },
     { label: "Courses", href: "/admin/courses" },
     { label: "Performance", href: "/admin/performance" },
+    { label: "Messages", href: "/admin/messages" },
     { label: "My Profile", href: "/admin/profile" },
     // AI Command Center — genuinely SUPER_ADMIN only (unlike the
     // isApprover-gated items below, which ADMIN can also use), server-
@@ -98,6 +99,7 @@ export default async function AdminDashboardPage() {
           { label: "Examinations", href: "/admin/dashboard" },
           { label: "Courses", href: "/admin/courses" },
           { label: "Performance", href: "/admin/performance" },
+          { label: "Messages", href: "/admin/messages" },
           { label: "Payments", href: "/admin/payments" },
           { label: "My Profile", href: "/admin/profile" },
           { label: "Settings", href: "/admin/settings" },

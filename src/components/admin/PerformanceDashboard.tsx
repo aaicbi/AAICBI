@@ -1,14 +1,17 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Icon from "@/components/ui/Icon";
 import EmptyState from "@/components/ui/EmptyState";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
-import { TrendingUp, TrendingDown, Minus, Download, AlertTriangle, X } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Download, AlertTriangle, X, MessageCircle } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer } from "recharts";
+import SuspendReasonModal from "@/components/messaging/SuspendReasonModal";
 
 type Trend = "improving" | "declining" | "flat" | "insufficient-data";
 type CertificationStatus = "ISSUED" | "REVOKED" | "NOT_YET";
@@ -121,6 +124,47 @@ export default function PerformanceDashboard({ courseId }: { courseId: string })
   const [selectedTraineeId, setSelectedTraineeId] = useState<string | null>(null);
   const [detail, setDetail] = useState<TraineePerformanceDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [messaging, setMessaging] = useState(false);
+  const [suspendModalOpen, setSuspendModalOpen] = useState(false);
+  const router = useRouter();
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    fetch("/api/admin/settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setIsSuperAdmin(data?.role === "SUPER_ADMIN"))
+      .catch(() => {});
+  }, []);
+
+  async function messageTrainee(traineeId: string) {
+    setMessaging(true);
+    const res = await fetch("/api/conversations/direct", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ peerType: "TRAINEE", peerId: traineeId }),
+    });
+    setMessaging(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showToast(typeof data.error === "string" ? data.error : "Couldn't start a conversation with this trainee.", "error");
+      return;
+    }
+    const { id } = await res.json();
+    router.push(`/admin/messages/${id}`);
+  }
+
+  async function confirmSuspendTrainee(reason: string) {
+    setSuspendModalOpen(false);
+    if (!selectedTraineeId) return;
+    const res = await fetch(`/api/admin/trainees/${selectedTraineeId}/messaging-suspension`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "SUSPEND", reason }),
+    });
+    if (res.ok) showToast("Messaging access suspended.", "success");
+    else showToast("Couldn't suspend this trainee. Please try again.", "error");
+  }
 
   function query(base: string) {
     const q = new URLSearchParams();
@@ -455,9 +499,19 @@ export default function PerformanceDashboard({ courseId }: { courseId: string })
                     <p className="font-display text-lg font-semibold text-brand-ink">{detail.name}</p>
                     <p className="text-xs text-gray-500">{detail.email}</p>
                   </div>
-                  <button onClick={() => setSelectedTraineeId(null)} aria-label="Close">
-                    <Icon icon={X} size="md" className="text-gray-400 hover:text-brand-ink" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" loading={messaging} iconLeft={<Icon icon={MessageCircle} size="sm" />} onClick={() => messageTrainee(detail.traineeId)}>
+                      Message
+                    </Button>
+                    {isSuperAdmin && (
+                      <Button size="sm" variant="danger" onClick={() => setSuspendModalOpen(true)}>
+                        Suspend
+                      </Button>
+                    )}
+                    <button onClick={() => setSelectedTraineeId(null)} aria-label="Close">
+                      <Icon icon={X} size="md" className="text-gray-400 hover:text-brand-ink" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -519,6 +573,10 @@ export default function PerformanceDashboard({ courseId }: { courseId: string })
             )}
           </div>
         </div>
+      )}
+
+      {detail && (
+        <SuspendReasonModal open={suspendModalOpen} traineeName={detail.name} onCancel={() => setSuspendModalOpen(false)} onConfirm={confirmSuspendTrainee} />
       )}
     </>
   );

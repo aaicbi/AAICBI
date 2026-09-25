@@ -288,6 +288,10 @@ model User {
   // M41 — every Q&A moderation action this staff member has personally
   // issued. Same audit-trail reasoning as the relations above.
   qaModerationActionsIssued QaModerationAction[]
+  // In-app messaging — every messaging suspension/reinstatement this
+  // staff member has personally issued (SUPER_ADMIN only, enforced at
+  // the route level). Same audit-trail reasoning as the relation above.
+  messagingModerationActionsIssued MessagingModerationAction[]
   // M30 — every employer account this staff member has personally
   // approved or rejected, and every job posting they've personally
   // reviewed. Same real audit-trail reasoning as the relations above,
@@ -518,6 +522,19 @@ model Trainee {
   qaSuspendedAt DateTime?
   qaThreads     QaThread[]
   qaModerationActions QaModerationAction[]
+
+  // In-app messaging — mirrors qaSuspendedAt directly above, as its own
+  // parallel field rather than reusing that one, since qaSuspendedAt's
+  // own comment is explicit it's scoped only to the Q&A feature, never
+  // the trainee's account or platform access more broadly. Set
+  // exclusively via a SUPER_ADMIN-issued MessagingModerationAction (or
+  // Loop's propose_messaging_suspension tool, which still requires a
+  // human SUPER_ADMIN's confirm click to actually write this — Loop
+  // never sets it directly). Reading every conversation stays available
+  // while suspended; only sending is blocked, checked at the
+  // send-message route itself.
+  messagingSuspendedAt DateTime?
+  messagingModerationActions MessagingModerationAction[]
 
   // M30/M32 — the one setting that gates both halves of the employer
   // portal at once (employer discovery browsing AND job-board access),
@@ -2311,6 +2328,12 @@ model Cohort {
   // M41 — see QaThread's own comment on why this is a snapshot at
   // thread-creation time, not a live join.
   qaThreads   QaThread[]
+  // In-app messaging — this cohort's group chat, created lazily on
+  // first access (see findOrCreateCohortConversation). Unlike
+  // qaThreads above, membership here is deliberately a LIVE join
+  // (EnrollmentRecord checked at access time), not a snapshot — see
+  // Conversation's own comment for why.
+  conversation Conversation?
 
   @@index([courseId])
 }
@@ -2691,10 +2714,16 @@ model ProfileReport {
   id           String              @id @default(cuid())
   reporterType String // "TRAINEE" | "STAFF" | "EMPLOYER"
   reporterId   String
-  reportedType String // "TRAINEE" | "EMPLOYER"
+  reportedType String // "TRAINEE" | "EMPLOYER" | "STAFF" — STAFF added for in-app chat reports
   reportedId   String
   reason       String
   details      String?
+  // In-app messaging — set only when a report originates from a chat,
+  // so admin review can jump straight to the conversation it concerns.
+  // Nullable because every other ProfileReport source (profile pages)
+  // has no conversation to point at.
+  contextType  String?             // "CONVERSATION" | null
+  contextId    String?             // Conversation.id
   status       ProfileReportStatus @default(PENDING)
   reviewedById String?
   reviewedBy   User?               @relation(fields: [reviewedById], references: [id])
@@ -2703,6 +2732,132 @@ model ProfileReport {
 
   @@index([reportedType, reportedId])
   @@index([status])
+}
+
+// ---------------------------------------------------------------------
+// In-app messaging — WhatsApp-style DMs + cohort group chat.
+//
+// Access-scoping decision, stated once here because it shapes every
+// check that touches these models: SUPER_ADMIN has unscoped, full
+// oversight of every conversation platform-wide (every DM, every
+// cohort chat) — deliberately confirmed as SUPER_ADMIN-only, not
+// extended to ADMIN/INSTRUCTOR. ADMIN/INSTRUCTOR are scoped to their
+// own cohorts, via the same course-ownership (createdById) convention
+// requireOwnedCourse/createdByFilter already use everywhere else in
+// this app — they can only see/participate in a cohort's chat, or DM a
+// trainee, when that trainee is enrolled in a cohort of a course they
+// personally created. This is enforced in src/lib/messaging.ts and the
+// API routes under src/app/api/conversations/, not in this schema.
+enum ConversationType {
+  DIRECT
+  COHORT
+}
+
+model Conversation {
+  id   String           @id @default(cuid())
+  type ConversationType
+
+  // Set only for COHORT conversations — one per Cohort, created lazily
+  // on first access.
+  cohortId String? @unique
+  cohort   Cohort? @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+
+  // Set only for DIRECT conversations — a deterministic, order-
+  // independent key of the two participants (the two "TYPE:id" tokens,
+  // sorted lexicographically, joined with "|") so find-or-create is one
+  // race-safe upsert on this unique column instead of a read-then-
+  // create two simultaneous requests could both pass — the same
+  // upsert-on-a-unique-column pattern tryUpsertInactivityAlert already
+  // uses in src/lib/earlyWarning.ts.
+  pairKey String? @unique
+
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  participants ConversationParticipant[]
+  messages     ConversationMessage[]
+
+  @@index([type])
+  @@index([lastMessageAt])
+}
+
+// Polymorphic participantType/participantId mirrors QaPost.authorType/
+// authorId — a trainee or a staff member can both be a participant, and
+// no single real FK can point at either table at once.
+//
+// For DIRECT conversations this is the authoritative membership list
+// (always exactly 2 rows) AND drives access control. For COHORT
+// conversations this row is created lazily, purely to track lastReadAt
+// per user — it is NEVER the access-control source for a cohort chat.
+// Access to a COHORT conversation is always checked LIVE against real
+// EnrollmentRecord membership (trainees) or course ownership (staff),
+// so a trainee added to or removed from a cohort — or a course
+// changing owners — never needs a sync step here.
+model ConversationParticipant {
+  id              String       @id @default(cuid())
+  conversationId  String
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  participantType String // "TRAINEE" | "STAFF"
+  participantId   String // Trainee.id or User.id, matching participantType
+  lastReadAt      DateTime?
+  createdAt       DateTime     @default(now())
+
+  @@unique([conversationId, participantType, participantId])
+  @@index([participantType, participantId])
+}
+
+// Same authorType/authorId discriminator as QaPost — see that model's
+// own comment for why a real FK can't cleanly express "either table."
+model ConversationMessage {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  authorType     String // "TRAINEE" | "STAFF"
+  authorId       String
+  body           String
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+// Personal, peer-level, DM-only — any user can silence DMs from one
+// specific other person. Never touches cohort group chat membership,
+// and unrelated to the SUPER_ADMIN moderation action below (that's a
+// platform action taken on a trainee; this is a private choice any
+// user makes about one other person). Direction matters — A blocking B
+// does not imply B blocked A — so the unique constraint is on the
+// ordered pair, not a symmetric one.
+model Block {
+  id          String   @id @default(cuid())
+  blockerType String // "TRAINEE" | "STAFF"
+  blockerId   String
+  blockedType String // "TRAINEE" | "STAFF"
+  blockedId   String
+  createdAt   DateTime @default(now())
+
+  @@unique([blockerType, blockerId, blockedType, blockedId])
+  @@index([blockedType, blockedId])
+}
+
+// Mirrors QaModerationAction below almost exactly, as its own parallel
+// model rather than a shared/overloaded one — QaModerationAction's own
+// comment (see Trainee.qaSuspendedAt) is explicit that its suspension
+// is scoped ONLY to the Q&A feature, never the trainee's account or
+// platform access more broadly, so reusing it here would quietly
+// violate that documented invariant. SUPER_ADMIN-issued only — enforced
+// in the API route (src/app/api/admin/trainees/[id]/messaging-
+// suspension/route.ts), not in this schema.
+model MessagingModerationAction {
+  id         String   @id @default(cuid())
+  traineeId  String
+  trainee    Trainee  @relation(fields: [traineeId], references: [id])
+  type       String // "SUSPENSION" | "REINSTATEMENT"
+  reason     String
+  issuedById String
+  issuedBy   User     @relation(fields: [issuedById], references: [id])
+  issuedAt   DateTime @default(now())
+
+  @@index([traineeId])
 }
 
 // ---------------------------------------------------------------------

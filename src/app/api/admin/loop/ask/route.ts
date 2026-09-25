@@ -10,6 +10,7 @@ import { resolveRecipients, type RecipientFilter } from "@/lib/messaging/recipie
 import { resolveModuleByQuery } from "@/lib/loop/moduleLookup";
 import { getModuleMaterialsText } from "@/lib/parsing/moduleMaterialsText";
 import { draftLearningObjectives } from "@/lib/ai/generateLearningObjectives";
+import { getTraineeConversationMessagesForReview } from "@/lib/messaging";
 
 /**
  * POST /api/admin/loop/ask — the AI Command Center's one real endpoint.
@@ -69,7 +70,8 @@ Rules:
 - When asked about a module's learning objectives, or to generate exam questions for a module that doesn't have confirmed objectives yet: call analyze_module_materials first, then propose_learning_objectives exactly once as your final step. This does not save anything — only the admin's own confirmation does. If analyze_module_materials comes back with no module found, ambiguous matches, or no usable materials, ask a plain clarifying question instead of calling propose_learning_objectives. Be honest about materials that couldn't be analyzed (only Word documents are supported right now) rather than guessing at their content.
 - When asked to generate exam questions for a module that already has a confirmed learning objective matching the request, call generate_bank_questions, then summarize the result with present_report. Never claim a generated question has been approved or is live — only that it's been generated and is now awaiting the admin's review. If generate_bank_questions returns an error (no matching objective, ambiguous match), relay that plainly and suggest confirming objectives first if none exist.
 - When asked to run validation on a module's pending questions, call run_bank_validation, then summarize the result with present_report — say how many passed and are now live in the bank versus how many were flagged for the admin's second review. Never claim a flagged question has been approved.
-- Never call any tool after present_report, propose_message, or propose_learning_objectives in the same turn.`;
+- When asked to review a trainee's messages/conversations for abuse, or whether they've been misusing the platform's chat: call get_conversation_messages first. If, after actually reading the content, you believe their messaging access should be suspended, call propose_messaging_suspension exactly once as your final step — this does NOT suspend anyone, it only prepares a proposal for the admin to confirm or cancel. If the messages don't show anything warranting suspension, just say so with present_report — do not propose a suspension you don't genuinely think is warranted. You never post into a conversation yourself — there is no tool for that, on purpose.
+- Never call any tool after present_report, propose_message, propose_learning_objectives, or propose_messaging_suspension in the same turn.`;
 
 const PRESENT_REPORT_TOOL = {
   name: "present_report",
@@ -125,6 +127,25 @@ const PROPOSE_LEARNING_OBJECTIVES_TOOL = {
   },
 };
 
+// Deliberately no traineeId field — see get_conversation_messages's own
+// comment in src/lib/loop/tools.ts for why: the reviewed trainee is
+// remembered server-side by THIS route when get_conversation_messages
+// is called, the same "Claude can't alter/hallucinate the target"
+// discipline propose_message/propose_learning_objectives already rely
+// on for their own routing.
+const PROPOSE_MESSAGING_SUSPENSION_TOOL = {
+  name: "propose_messaging_suspension",
+  description:
+    "Call this exactly once, as your final step, after you've already called get_conversation_messages this conversation and genuinely believe that trainee's messaging access should be suspended for abuse. This does NOT suspend anyone — it only prepares a proposal for the admin to confirm or cancel. Do not call any other tool after this.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      reason: { type: "string", description: "A specific, evidence-grounded reason, citing what you actually saw in their messages." },
+    },
+    required: ["reason"],
+  },
+};
+
 interface ToolCallRecord {
   tool: string;
   input: Record<string, unknown>;
@@ -168,7 +189,7 @@ export async function POST(req: NextRequest) {
     }
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 25_000 });
-    const tools = [...LOOP_TOOL_SCHEMAS, PRESENT_REPORT_TOOL, PROPOSE_MESSAGE_TOOL, PROPOSE_LEARNING_OBJECTIVES_TOOL];
+    const tools = [...LOOP_TOOL_SCHEMAS, PRESENT_REPORT_TOOL, PROPOSE_MESSAGE_TOOL, PROPOSE_LEARNING_OBJECTIVES_TOOL, PROPOSE_MESSAGING_SUSPENSION_TOOL];
     const toolCallLog: ToolCallRecord[] = [];
 
     let messages: Anthropic.MessageParam[] = [{ role: "user", content: parsed.data.question }];
@@ -188,6 +209,11 @@ export async function POST(req: NextRequest) {
       moduleDescription: string;
       objectives: string[];
     } | null = null;
+    let finalSuspensionProposal: {
+      traineeId: string;
+      traineeName: string;
+      reason: string;
+    } | null = null;
     // The route's own memory of the last resolve_recipients call this
     // conversation — never sent to Claude, only ever attached by this
     // route itself when propose_message is called. This is the actual
@@ -199,11 +225,20 @@ export async function POST(req: NextRequest) {
     // propose_learning_objectives's own schema never needs (and never
     // gets) a moduleId field Claude could alter or hallucinate.
     let lastAnalyzedModule: AnalyzedModuleState | null = null;
+    // Same mechanism again, for messaging suspension: which trainee's
+    // conversations were actually reviewed this turn, remembered
+    // server-side so propose_messaging_suspension's own schema never
+    // needs a traineeId field Claude could alter or hallucinate.
+    let lastReviewedTrainee: { traineeId: string; traineeName: string } | null = null;
 
     try {
       for (
         let round = 0;
-        round < MAX_ROUNDS && finalSummary === null && finalMessageProposal === null && finalObjectivesProposal === null;
+        round < MAX_ROUNDS &&
+        finalSummary === null &&
+        finalMessageProposal === null &&
+        finalObjectivesProposal === null &&
+        finalSuspensionProposal === null;
         round++
       ) {
         const response = await client.messages.create({
@@ -287,6 +322,54 @@ export async function POST(req: NextRequest) {
               objectives,
             };
             break; // ignore anything after a terminal tool call in the same turn
+          }
+
+          if (block.name === "propose_messaging_suspension") {
+            if (!lastReviewedTrainee) {
+              // Same structural guard as propose_message/propose_learning_
+              // objectives above: refuse to treat this as terminal until a
+              // real get_conversation_messages call has actually happened
+              // this conversation.
+              toolResults.push({
+                type: "tool_result",
+                tool_use_id: block.id,
+                content: "You must call get_conversation_messages before propose_messaging_suspension, so the suspension is grounded in what their conversations actually show.",
+                is_error: true,
+              });
+              continue;
+            }
+            const input = block.input as { reason?: string };
+            finalSuspensionProposal = {
+              traineeId: lastReviewedTrainee.traineeId,
+              traineeName: lastReviewedTrainee.traineeName,
+              reason: input.reason ?? "",
+            };
+            break; // ignore anything after a terminal tool call in the same turn
+          }
+
+          if (block.name === "get_conversation_messages") {
+            // Intercepted here, before the generic dispatcher — Claude
+            // DOES see the real message content in the tool result below
+            // (reasoning about it is the whole point), but the route
+            // still remembers the real traineeId server-side so
+            // propose_messaging_suspension's schema never needs one
+            // Claude could alter or hallucinate.
+            const input = (block.input ?? {}) as { traineeId?: string };
+            toolCallLog.push({ tool: block.name, input });
+            const traineeId = typeof input.traineeId === "string" ? input.traineeId : "";
+            const trainee = await prisma.trainee.findUnique({ where: { id: traineeId }, select: { id: true, name: true } });
+            if (!trainee) {
+              toolResults.push({ type: "tool_result", tool_use_id: block.id, content: JSON.stringify({ found: false, error: "No trainee found with that id." }) });
+              continue;
+            }
+            const chatMessages = await getTraineeConversationMessagesForReview(trainee.id);
+            lastReviewedTrainee = { traineeId: trainee.id, traineeName: trainee.name };
+            toolResults.push({
+              type: "tool_result",
+              tool_use_id: block.id,
+              content: JSON.stringify({ found: true, trainee: trainee.name, messageCount: chatMessages.length, messages: chatMessages }),
+            });
+            continue;
           }
 
           if (block.name === "analyze_module_materials") {
@@ -387,7 +470,7 @@ export async function POST(req: NextRequest) {
           toolResults.push({ type: "tool_result", tool_use_id: block.id, content: JSON.stringify(result) });
         }
 
-        if (finalSummary !== null || finalMessageProposal !== null || finalObjectivesProposal !== null) break;
+        if (finalSummary !== null || finalMessageProposal !== null || finalObjectivesProposal !== null || finalSuspensionProposal !== null) break;
         messages = [...messages, { role: "user", content: toolResults }];
       }
     } catch (e) {
@@ -395,7 +478,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Loop couldn't reach the AI service just now. Please try again." }, { status: 502 });
     }
 
-    if (finalSummary === null && finalMessageProposal === null && finalObjectivesProposal === null) {
+    if (finalSummary === null && finalMessageProposal === null && finalObjectivesProposal === null && finalSuspensionProposal === null) {
       finalSummary = "That question needed more steps than I'm allowed to take at once — try breaking it into a more specific question.";
     }
 
@@ -408,7 +491,9 @@ export async function POST(req: NextRequest) {
         ? `Proposed a message to ${finalMessageProposal.recipientCount} recipient(s) ("${finalMessageProposal.recipientDescription}"): "${finalMessageProposal.subject}"`
         : finalObjectivesProposal !== null
           ? `Drafted ${finalObjectivesProposal.objectives.length} learning objective(s) for ${finalObjectivesProposal.moduleDescription}`
-          : (finalSummary as string);
+          : finalSuspensionProposal !== null
+            ? `Proposed suspending ${finalSuspensionProposal.traineeName}'s messaging access: "${finalSuspensionProposal.reason}"`
+            : (finalSummary as string);
 
     await prisma.aiCommandLog
       .create({
@@ -426,6 +511,9 @@ export async function POST(req: NextRequest) {
     }
     if (finalObjectivesProposal !== null) {
       return NextResponse.json({ kind: "objectivesProposal", proposal: finalObjectivesProposal });
+    }
+    if (finalSuspensionProposal !== null) {
+      return NextResponse.json({ kind: "suspensionProposal", proposal: finalSuspensionProposal });
     }
     return NextResponse.json({ kind: "answer", answer: finalSummary, keyStats: finalStats });
   });

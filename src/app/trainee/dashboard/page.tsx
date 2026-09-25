@@ -240,6 +240,7 @@ export default async function TraineeDashboardPage() {
           { label: "Introductions", href: "/trainee/introductions" },
           { label: "Job Board", href: "/trainee/job-postings" },
           { label: "Ask Loop", href: "/trainee/buddy" },
+          { label: "Messages", href: "/trainee/messages" },
           { label: "My Profile", href: "/trainee/profile" },
           { label: "Settings", href: "/trainee/settings" },
         ]}

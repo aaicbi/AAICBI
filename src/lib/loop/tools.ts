@@ -399,6 +399,29 @@ export const ANALYZE_MODULE_MATERIALS_TOOL = {
 };
 
 // ---------------------------------------------------------------------
+// get_conversation_messages — in-app messaging oversight. Like
+// resolve_recipients/analyze_module_materials above, src/app/api/admin/
+// loop/ask/route.ts intercepts this tool name before the generic
+// dispatch below ever runs — not to hide data from Claude (it DOES see
+// the real message content here, since reasoning about it is the whole
+// point), but to remember which trainee was actually reviewed
+// server-side, so the terminal propose_messaging_suspension tool's own
+// schema never needs a traineeId field Claude could alter or
+// hallucinate — the same "structurally can't misroute a proposal"
+// discipline resolve_recipients/analyze_module_materials already
+// established for propose_message/propose_learning_objectives.
+export const GET_CONVERSATION_MESSAGES_TOOL = {
+  name: "get_conversation_messages",
+  description:
+    "Read a trainee's real DM and cohort-chat message content, to check for abuse or a platform policy violation when asked to review their conversations. Use search_people first if you don't have their id. Call this before propose_messaging_suspension.",
+  input_schema: {
+    type: "object" as const,
+    properties: { traineeId: { type: "string", description: "The trainee's id, from search_people." } },
+    required: ["traineeId"],
+  },
+};
+
+// ---------------------------------------------------------------------
 // generate_bank_questions — Loop Question Bank's Phase 3. Unlike
 // resolve_recipients/analyze_module_materials above, this is NOT
 // intercepted before the generic dispatcher: the write it performs is
@@ -597,6 +620,7 @@ export const LOOP_TOOL_SCHEMAS = [
   GENERATE_BANK_QUESTIONS_TOOL,
   RUN_BANK_VALIDATION_TOOL,
   GET_MODULE_ASSESSMENT_STATS_TOOL,
+  GET_CONVERSATION_MESSAGES_TOOL,
 ];
 
 export async function runLoopTool(name: string, input: Record<string, unknown>, askedById: string): Promise<unknown> {
@@ -628,6 +652,11 @@ export async function runLoopTool(name: string, input: Record<string, unknown>, 
       // Same reasoning as resolve_recipients directly above — this is
       // intercepted in the ask route before ever reaching here.
       return { error: "analyze_module_materials must be handled by the ask route, not the generic dispatcher." };
+    case "get_conversation_messages":
+      // Same reasoning as resolve_recipients/analyze_module_materials
+      // above — intercepted in the ask route so it can remember the
+      // reviewed traineeId server-side for propose_messaging_suspension.
+      return { error: "get_conversation_messages must be handled by the ask route, not the generic dispatcher." };
     case "generate_bank_questions":
       return generateBankQuestionsTool(input, askedById);
     case "run_bank_validation":

@@ -36,6 +36,13 @@ interface ObjectivesProposal {
   state: "pending" | "sending" | "sent" | "cancelled" | "failed";
   errorMessage?: string;
 }
+interface SuspensionProposal {
+  traineeId: string;
+  traineeName: string;
+  reason: string;
+  state: "pending" | "sending" | "sent" | "cancelled" | "failed";
+  errorMessage?: string;
+}
 interface ChatMessage {
   id: string;
   role: "admin" | "loop";
@@ -43,6 +50,7 @@ interface ChatMessage {
   keyStats?: KeyStat[];
   proposal?: Proposal;
   objectivesProposal?: ObjectivesProposal;
+  suspensionProposal?: SuspensionProposal;
 }
 interface HistoryItem {
   id: string;
@@ -137,6 +145,11 @@ export default function CommandCenterPage() {
       setMessages((prev) => [
         ...prev,
         { id: `l-${Date.now()}`, role: "loop", text: "", objectivesProposal: { ...data.proposal, state: "pending" } },
+      ]);
+    } else if (data.kind === "suspensionProposal") {
+      setMessages((prev) => [
+        ...prev,
+        { id: `l-${Date.now()}`, role: "loop", text: "", suspensionProposal: { ...data.proposal, state: "pending" } },
       ]);
     } else {
       setMessages((prev) => [...prev, { id: `l-${Date.now()}`, role: "loop", text: data.answer, keyStats: data.keyStats }]);
@@ -242,6 +255,52 @@ export default function CommandCenterPage() {
       )
     );
     showToast("Objectives saved.", "success");
+  }
+
+  function cancelSuspension(messageId: string) {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId && m.suspensionProposal ? { ...m, suspensionProposal: { ...m.suspensionProposal, state: "cancelled" } } : m
+      )
+    );
+  }
+
+  async function confirmSuspension(messageId: string) {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId && m.suspensionProposal ? { ...m, suspensionProposal: { ...m.suspensionProposal, state: "sending" } } : m
+      )
+    );
+
+    const target = messages.find((m) => m.id === messageId)?.suspensionProposal;
+    if (!target) return;
+
+    const res = await fetch(`/api/admin/trainees/${target.traineeId}/messaging-suspension`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "SUSPEND", reason: target.reason }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      const message = typeof data.error === "string" ? data.error : "Couldn't suspend this trainee. Please try again.";
+      showToast(message, "error");
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId && m.suspensionProposal
+            ? { ...m, suspensionProposal: { ...m.suspensionProposal, state: "failed", errorMessage: message } }
+            : m
+        )
+      );
+      return;
+    }
+
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId && m.suspensionProposal ? { ...m, suspensionProposal: { ...m.suspensionProposal, state: "sent" } } : m
+      )
+    );
+    showToast("Messaging access suspended.", "success");
   }
 
   const nav = [
@@ -428,6 +487,39 @@ export default function CommandCenterPage() {
                           )}
                           {m.objectivesProposal.state === "failed" && (
                             <p className="text-xs font-semibold text-red-600">{m.objectivesProposal.errorMessage ?? "Save failed."}</p>
+                          )}
+                        </Card>
+                      )}
+
+                      {m.suspensionProposal && (
+                        <Card className="w-full max-w-md space-y-3 border-brand-rose/40 bg-white">
+                          <div className="flex items-center justify-between gap-2">
+                            <Badge variant="danger">Suspend messaging</Badge>
+                          </div>
+                          <p className="text-xs text-gray-500">Trainee: {m.suspensionProposal.traineeName}</p>
+                          <div className="rounded-lg border border-brand-gray bg-brand-sand/40 p-3">
+                            <p className="text-sm text-gray-700">{m.suspensionProposal.reason}</p>
+                          </div>
+
+                          {m.suspensionProposal.state === "pending" && (
+                            <div className="flex justify-end gap-2">
+                              <Button variant="secondary" onClick={() => cancelSuspension(m.id)}>
+                                Cancel
+                              </Button>
+                              <Button variant="danger" onClick={() => confirmSuspension(m.id)}>
+                                Suspend
+                              </Button>
+                            </div>
+                          )}
+                          {m.suspensionProposal.state === "sending" && <p className="text-xs font-semibold text-gray-500">Suspending…</p>}
+                          {m.suspensionProposal.state === "cancelled" && (
+                            <p className="text-xs font-semibold text-gray-500">Cancelled — nothing was changed.</p>
+                          )}
+                          {m.suspensionProposal.state === "sent" && (
+                            <p className="text-xs font-semibold text-brand-rose">Messaging access suspended.</p>
+                          )}
+                          {m.suspensionProposal.state === "failed" && (
+                            <p className="text-xs font-semibold text-red-600">{m.suspensionProposal.errorMessage ?? "Failed."}</p>
                           )}
                         </Card>
                       )}
