@@ -96,6 +96,7 @@ interface ProjectItem {
   title: string;
   description: string | null;
   url: string | null;
+  listedInShowcase: boolean;
 }
 
 /**
@@ -756,8 +757,9 @@ function ProjectsSection({
   onChange: (v: ProjectItem[]) => void;
   showToast: (msg: string, variant?: "success" | "error" | "info") => void;
 }) {
-  const [form, setForm] = useState({ title: "", description: "", url: "" });
+  const [form, setForm] = useState({ title: "", description: "", url: "", listedInShowcase: false });
   const [saving, setSaving] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   async function add() {
     if (!form.title.trim()) return;
@@ -775,7 +777,7 @@ function ProjectsSection({
     }
     const created = await res.json();
     onChange([...(projects ?? []), created]);
-    setForm({ title: "", description: "", url: "" });
+    setForm({ title: "", description: "", url: "", listedInShowcase: false });
   }
 
   async function remove(id: string) {
@@ -784,9 +786,32 @@ function ProjectsSection({
     if (!res.ok) showToast("Could not remove project.", "error");
   }
 
+  async function toggleShowcase(p: ProjectItem) {
+    setTogglingId(p.id);
+    const next = !p.listedInShowcase;
+    const res = await fetch(`/api/trainee/projects/${p.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: p.title, description: p.description ?? "", url: p.url ?? "", listedInShowcase: next }),
+    });
+    setTogglingId(null);
+    if (!res.ok) {
+      showToast("Could not update showcase listing.", "error");
+      return;
+    }
+    const updated = await res.json();
+    onChange((projects ?? []).map((row) => (row.id === p.id ? updated : row)));
+    showToast(next ? "Listed in the Community Showcase." : "Removed from the Community Showcase.", "success");
+  }
+
   return (
     <Card className="mt-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Projects</p>
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Projects</p>
+        <a href="/showcase" target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-brand-teal hover:underline">
+          View Community Showcase
+        </a>
+      </div>
       {projects === null ? (
         <SkeletonList rows={1} />
       ) : projects.length === 0 ? (
@@ -794,22 +819,38 @@ function ProjectsSection({
       ) : (
         <ul className="mt-3 space-y-2">
           {projects.map((p) => (
-            <li key={p.id} className="flex items-start justify-between gap-2 border-b border-brand-gray pb-2 last:border-0">
-              <div>
-                <p className="text-sm font-semibold text-brand-ink">
-                  {p.url ? (
-                    <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-brand-teal hover:underline">
-                      {p.title}
-                    </a>
-                  ) : (
-                    p.title
-                  )}
-                </p>
-                {p.description && <p className="text-xs text-gray-600">{p.description}</p>}
+            <li key={p.id} className="border-b border-brand-gray pb-2 last:border-0">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold text-brand-ink">
+                    {p.url ? (
+                      <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-brand-teal hover:underline">
+                        {p.title}
+                      </a>
+                    ) : (
+                      p.title
+                    )}
+                  </p>
+                  {p.description && <p className="text-xs text-gray-600">{p.description}</p>}
+                </div>
+                <button onClick={() => remove(p.id)} className="text-xs font-semibold text-brand-rose">
+                  Remove
+                </button>
               </div>
-              <button onClick={() => remove(p.id)} className="text-xs font-semibold text-brand-rose">
-                Remove
-              </button>
+              <label className="mt-2 flex items-center gap-2 text-xs text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={p.listedInShowcase}
+                  disabled={togglingId === p.id}
+                  onChange={() => toggleShowcase(p)}
+                  className="h-3.5 w-3.5 rounded border-brand-gray text-brand-teal focus:ring-brand-teal"
+                />
+                {p.listedInShowcase ? (
+                  <span className="font-semibold text-brand-teal">Listed in the Community Showcase</span>
+                ) : (
+                  "List in Community Showcase"
+                )}
+              </label>
             </li>
           ))}
         </ul>
@@ -834,6 +875,15 @@ function ProjectsSection({
           placeholder="Link (optional)"
           className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
         />
+        <label className="flex items-center gap-2 text-xs text-gray-600">
+          <input
+            type="checkbox"
+            checked={form.listedInShowcase}
+            onChange={(e) => setForm((f) => ({ ...f, listedInShowcase: e.target.checked }))}
+            className="h-3.5 w-3.5 rounded border-brand-gray text-brand-teal focus:ring-brand-teal"
+          />
+          List in Community Showcase
+        </label>
         <Button size="sm" onClick={add} loading={saving}>
           Add Project
         </Button>

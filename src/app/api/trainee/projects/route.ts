@@ -9,6 +9,7 @@ const ProjectSchema = z.object({
   title: z.string().trim().min(1).max(160),
   description: z.string().trim().max(2000).optional().or(z.literal("")),
   url: safeUrl.optional().or(z.literal("")),
+  listedInShowcase: z.boolean().optional(),
 });
 
 export async function GET() {
@@ -36,6 +37,7 @@ export async function POST(req: NextRequest) {
         title: parsed.data.title,
         description: parsed.data.description || null,
         url: parsed.data.url || null,
+        listedInShowcase: parsed.data.listedInShowcase ?? false,
       },
     });
     return NextResponse.json(created, { status: 201 });

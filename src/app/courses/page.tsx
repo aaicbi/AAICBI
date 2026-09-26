@@ -53,6 +53,7 @@ export default function PublicCoursesPage() {
     <>
       <SiteHeader
         nav={[
+          { label: "Community Showcase", href: "/showcase" },
           { label: "Trainee Login", href: "/trainee/login" },
           { label: "Employer Login", href: "/employer/login" },
           { label: "Staff Login", href: "/admin/login" },

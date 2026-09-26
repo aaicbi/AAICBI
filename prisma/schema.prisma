@@ -678,6 +678,12 @@ model Project {
   description String?
   url         String?
   order       Int     @default(0)
+  // Pitch & Post, Phase 0 — the trainee's own opt-in to list this
+  // project on the public Community Showcase. Independent of
+  // Trainee.profileVisibility: a trainee can showcase a project without
+  // exposing their full profile (the showcase card still only links
+  // through to the profile page when that page is itself PUBLIC).
+  listedInShowcase Boolean @default(false)
 
   @@index([traineeId])
 }
