@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { upload } from "@vercel/blob/client";
+import { uploadPresigned } from "@vercel/blob/client";
 import {
   MessageSquare,
   MessageCircle,
@@ -1408,7 +1408,7 @@ function LessonCard({
       url = urlOrFile;
     } else {
       try {
-        const blob = await upload(urlOrFile.name, urlOrFile, {
+        const blob = await uploadPresigned(urlOrFile.name, urlOrFile, {
           access: "public",
           handleUploadUrl: `/api/lessons/${lesson.id}/materials/upload-token`,
           clientPayload: JSON.stringify({ type }),
@@ -1435,7 +1435,7 @@ function LessonCard({
       url = urlOrFile;
     } else {
       try {
-        const blob = await upload(urlOrFile.name, urlOrFile, {
+        const blob = await uploadPresigned(urlOrFile.name, urlOrFile, {
           access: "public",
           handleUploadUrl: `/api/materials/${materialId}/upload-token`,
         });
