@@ -336,6 +336,12 @@ model User {
   // pattern as the relations above.
   moduleLearningObjectivesConfirmed ModuleLearningObjective[]
   questionBankEventsActed           QuestionBankEvent[]
+  // Pitch & Post, Phase 1 — every pitch this staff member has personally
+  // reviewed, and every investor account they've personally created.
+  // Same audit-trail reasoning as employersApproved/jobPostingsReviewed
+  // above.
+  pitchesReviewed  PitchSubmission[]
+  investorsCreated Investor[]
 }
 
 // Real, persistent trainee account — the key M9 change. Replaces the old
@@ -603,6 +609,8 @@ model Trainee {
   workExperiences  WorkExperience[]
   projects         Project[]
   availabilityTypes TraineeAvailabilityType[]
+  // Pitch & Post, Phase 1 — every pitch this trainee has submitted.
+  pitchSubmissions PitchSubmission[]
 
   @@index([email])
 }
@@ -686,6 +694,158 @@ model Project {
   listedInShowcase Boolean @default(false)
 
   @@index([traineeId])
+}
+
+// ---------------------------------------------------------------------
+// Pitch & Post, Phase 1 — submission, admin review, and a small,
+// staff-created pool of investors. Deliberately separate from `Cohort`
+// (which is a required, cascading FK to a single Course and can't
+// represent a cross-course batch) and from `Employer` (a genuinely
+// different relationship — capital, not employment — even though the
+// account-creation shape below mirrors admin/staff's "create an
+// account directly" pattern rather than Employer's self-register-then-
+// approve flow). See the Phase 1 plan for the full reasoning.
+// ---------------------------------------------------------------------
+
+enum PitchStatus {
+  DRAFT
+  SUBMITTED
+  NEEDS_REVISION
+  APPROVED
+  REJECTED
+  PUBLISHED
+}
+
+// EQUITY is deliberately absent — added additively in Phase 2 once
+// legal has cleared it, the same way UNLISTED was added to
+// CourseStatus after the fact rather than reserved up front.
+enum PitchFundingType {
+  GRANT
+  DEBT
+}
+
+enum PitchDisclosureStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model PitchCohort {
+  id                 String    @id @default(cuid())
+  name               String
+  submissionDeadline DateTime?
+  // Set once, when an admin fires Demo Day for this cohort — bulk-flips
+  // every APPROVED pitch in it to PUBLISHED. Null until then.
+  publishedAt        DateTime?
+  createdAt          DateTime  @default(now())
+
+  pitches PitchSubmission[]
+}
+
+model PitchSubmission {
+  id        String      @id @default(cuid())
+  traineeId String
+  trainee   Trainee     @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  cohortId  String?
+  cohort    PitchCohort? @relation(fields: [cohortId], references: [id])
+  status    PitchStatus @default(DRAFT)
+
+  startupName     String
+  industry        String?
+  problem         String?
+  solution        String?
+  targetMarket    String?
+  businessModel   String?
+  stage           String?
+  traction        String?
+  teamDescription String?
+
+  pitchVideoUrl String?
+  pitchDeckUrl  String?
+  demoUrl       String?
+  githubUrl     String?
+
+  fundingType           PitchFundingType?
+  fundingAmountKobo     Int?
+  minimumInvestmentKobo Int?
+  fundingPurpose        String?
+
+  // Staff-only, set on review. No separate PitchReview table — one
+  // reviewer's decision is all Phase 1 needs (same reasoning as
+  // Employer/JobPosting's single reviewedById/reviewedAt, not a
+  // separate audit table).
+  technicalScore          Int?
+  businessScore           Int?
+  marketScore             Int?
+  pitchQualityScore       Int?
+  documentationScore      Int?
+  reviewedById            String?
+  reviewedBy              User?     @relation(fields: [reviewedById], references: [id])
+  reviewedAt              DateTime?
+  rejectionReasonCategory String?
+  rejectionNote           String?
+
+  submittedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  disclosures PitchDisclosure[]
+
+  @@index([traineeId])
+  @@index([status])
+  @@index([cohortId])
+}
+
+model Investor {
+  id                  String    @id @default(cuid())
+  name                String
+  email               String    @unique
+  passwordHash        String
+  organization        String
+  phone               String?
+  linkedinUrl         String?
+  // The admin who created this account IS the vetting step for Phase 1
+  // (no self-registration yet) — `active` is the only moderation lever
+  // needed until Phase 2 introduces real approval-state.
+  active              Boolean   @default(true)
+  createdById         String
+  createdBy           User      @relation(fields: [createdById], references: [id])
+  resetToken          String?   @unique
+  resetTokenExpiresAt DateTime?
+  lastLoginAt         DateTime?
+  createdAt           DateTime  @default(now())
+
+  disclosures PitchDisclosure[]
+}
+
+// The two-tier idea-protection gate: an investor sees only a public
+// teaser until the founder explicitly accepts a disclosure request and
+// chooses exactly which materials to release. Express Interest is
+// folded into this same row (interestMessage/interestRangeKobo/
+// interestedAt) rather than a separate table, since it's a strict
+// continuation of one investor/pitch relationship that can only ever
+// happen after ACCEPTED, not an independent event.
+model PitchDisclosure {
+  id                String                @id @default(cuid())
+  pitchSubmissionId String
+  pitch             PitchSubmission       @relation(fields: [pitchSubmissionId], references: [id], onDelete: Cascade)
+  investorId        String
+  investor          Investor              @relation(fields: [investorId], references: [id], onDelete: Cascade)
+  status            PitchDisclosureStatus @default(PENDING)
+  requestMessage    String?
+  shareVideo        Boolean               @default(false)
+  shareDeck         Boolean               @default(false)
+  shareDemo         Boolean               @default(false)
+  shareGithub       Boolean               @default(false)
+  respondedAt       DateTime?
+
+  interestMessage   String?
+  interestRangeKobo Int?
+  interestedAt      DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@unique([pitchSubmissionId, investorId])
 }
 
 // ---------------------------------------------------------------------

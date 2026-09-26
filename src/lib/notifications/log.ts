@@ -54,10 +54,20 @@ export type NotificationType =
   // (POST /api/courses/[id]/enrollments) — the trainee's only real
   // discovery path for an UNLISTED course, which has no catalog listing
   // to stumble onto.
-  | "COURSE_ACCESS_GRANTED";
+  | "COURSE_ACCESS_GRANTED"
+  // Pitch & Post, Phase 1.
+  | "INVESTOR_ACCOUNT_CREATED"
+  | "PITCH_SUBMITTED"
+  | "PITCH_NEEDS_REVISION"
+  | "PITCH_APPROVED"
+  | "PITCH_REJECTED"
+  | "PITCH_PUBLISHED"
+  | "PITCH_DISCLOSURE_REQUESTED"
+  | "PITCH_DISCLOSURE_RESPONSE"
+  | "PITCH_INTEREST_RECEIVED";
 
 export interface NotifyByEmailInput {
-  recipientType: "TRAINEE" | "STAFF" | "EMPLOYER";
+  recipientType: "TRAINEE" | "STAFF" | "EMPLOYER" | "INVESTOR";
   recipientId: string;
   to: string;
   type: NotificationType;

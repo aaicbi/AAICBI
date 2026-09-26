@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { upload } from "@vercel/blob/client";
 import {
   MessageSquare,
   MessageCircle,
@@ -1395,24 +1396,33 @@ function LessonCard({
   const { confirm, modal } = useConfirmModal();
   const { showToast } = useToast();
 
-  // urlOrFile is a string for the "paste a link" path (JSON, unchanged
-  // from before) or a File for the "upload a file" path (multipart,
-  // hitting the new .../materials/upload route instead).
+  // urlOrFile is a string for the "paste a link" path, or a File for
+  // the "upload a file" path. A File now goes straight from this
+  // browser to Vercel Blob (bypassing the 4.5MB request-body limit
+  // every Serverless Function is subject to — see lessonMaterial.ts's
+  // own comment for the full story) before the resulting URL is saved
+  // the exact same way a pasted link is.
   async function addMaterial(type: string, title: string, urlOrFile: string | File): Promise<string | null> {
-    let res: Response;
+    let url: string;
     if (typeof urlOrFile === "string") {
-      res = await fetch(`/api/lessons/${lesson.id}/materials`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, title, url: urlOrFile }),
-      });
+      url = urlOrFile;
     } else {
-      const formData = new FormData();
-      formData.append("type", type);
-      formData.append("title", title);
-      formData.append("file", urlOrFile);
-      res = await fetch(`/api/lessons/${lesson.id}/materials/upload`, { method: "POST", body: formData });
+      try {
+        const blob = await upload(urlOrFile.name, urlOrFile, {
+          access: "public",
+          handleUploadUrl: `/api/lessons/${lesson.id}/materials/upload-token`,
+          clientPayload: JSON.stringify({ type }),
+        });
+        url = blob.url;
+      } catch (e) {
+        return e instanceof Error ? e.message : "Could not upload that file. Try again.";
+      }
     }
+    const res = await fetch(`/api/lessons/${lesson.id}/materials`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, title, url }),
+    });
     if (!res.ok) return readApiError(res, "Could not add the material. Try again.");
     setAddingMaterial(false);
     onChanged();
@@ -1420,19 +1430,25 @@ function LessonCard({
   }
 
   async function updateMaterial(materialId: string, type: string, title: string, urlOrFile: string | File): Promise<string | null> {
-    let res: Response;
+    let url: string | undefined;
     if (typeof urlOrFile === "string") {
-      res = await fetch(`/api/materials/${materialId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, title, url: urlOrFile }),
-      });
+      url = urlOrFile;
     } else {
-      const formData = new FormData();
-      formData.append("title", title);
-      formData.append("file", urlOrFile);
-      res = await fetch(`/api/materials/${materialId}/upload`, { method: "POST", body: formData });
+      try {
+        const blob = await upload(urlOrFile.name, urlOrFile, {
+          access: "public",
+          handleUploadUrl: `/api/materials/${materialId}/upload-token`,
+        });
+        url = blob.url;
+      } catch (e) {
+        return e instanceof Error ? e.message : "Could not upload that file. Try again.";
+      }
     }
+    const res = await fetch(`/api/materials/${materialId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, title, url }),
+    });
     if (!res.ok) return readApiError(res, "Could not save. Try again.");
     setEditingMaterialId(null);
     onChanged();

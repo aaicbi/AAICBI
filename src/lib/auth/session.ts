@@ -61,7 +61,7 @@ function requireStrongSecret(name: string): string {
   return v;
 }
 
-export type Role = "SUPER_ADMIN" | "ADMIN" | "INSTRUCTOR" | "TRAINEE" | "EMPLOYER";
+export type Role = "SUPER_ADMIN" | "ADMIN" | "INSTRUCTOR" | "TRAINEE" | "EMPLOYER" | "INVESTOR";
 
 export interface SessionPayload {
   userId: string;
@@ -95,12 +95,17 @@ export interface SessionPayload {
 // values are only the FALLBACK, used if that row can't be read for any
 // reason, and are deliberately byte-identical to the old constant so a
 // database that's never had this row touched behaves exactly as before.
+// Pitch & Post, Phase 1 — INVESTOR reuses EMPLOYER's default and its
+// configured PlatformSettings value below: same category of infrequent
+// external visitor, no reason yet to give it a separate admin-tunable
+// setting of its own.
 const DEFAULT_SESSION_HOURS: Record<Role, number> = {
   SUPER_ADMIN: 12,
   ADMIN: 12,
   INSTRUCTOR: 12,
   TRAINEE: 7 * 24,
   EMPLOYER: 24,
+  INVESTOR: 24,
 };
 
 /**
@@ -119,6 +124,7 @@ async function getSessionDurationHours(role: Role): Promise<number> {
       case "TRAINEE":
         return settings.traineeSessionDays * 24;
       case "EMPLOYER":
+      case "INVESTOR":
         return settings.employerSessionHours;
       default:
         return settings.staffSessionHours;

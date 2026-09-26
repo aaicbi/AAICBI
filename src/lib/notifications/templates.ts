@@ -741,6 +741,122 @@ export function staffWelcomeEmail(name: string, roleLabel: string, setupUrl: str
 }
 
 /**
+ * Pitch & Post, Phase 1 — the investor-account counterpart to
+ * staffWelcomeEmail above, same setup-link mechanism (reuses the
+ * password-reset token, not a separate "set initial password" flow).
+ */
+export function investorWelcomeEmail(name: string, setupUrl: string): EmailContent {
+  return {
+    subject: "You've been invited to AAICBI Pitch & Post",
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(name)},</p>
+      <p style="margin:0 0 16px;">AAICBI has set up an investor account for you on Pitch & Post, where you can review pitches from trainee founders. Set your password to get started.</p>
+      ${button(setupUrl, "Set Your Password")}
+      <p style="margin:0;font-size:13px;color:#666;">This link expires in 48 hours.</p>
+    `),
+    text: `Hi ${name},\n\nAAICBI has set up an investor account for you on Pitch & Post, where you can review pitches from trainee founders. Set your password to get started.\n\n${setupUrl}\n\nThis link expires in 48 hours.`,
+  };
+}
+
+export function pitchSubmittedEmail(founderName: string, startupName: string, reviewUrl: string): EmailContent {
+  return {
+    subject: `New pitch submitted: ${startupName}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;">${escapeHtml(founderName)} submitted a pitch for <strong>${escapeHtml(startupName)}</strong>.</p>
+      ${button(reviewUrl, "Review Pitch")}
+    `),
+    text: `${founderName} submitted a pitch for ${startupName}.\n\n${reviewUrl}`,
+  };
+}
+
+export function pitchNeedsRevisionEmail(startupName: string, note: string, threadUrl: string): EmailContent {
+  return {
+    subject: `Your pitch needs revision: ${startupName}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;">Your pitch for <strong>${escapeHtml(startupName)}</strong> needs a revision before it can move forward.</p>
+      <p style="margin:0 0 16px;color:#666;">${escapeHtml(note)}</p>
+      ${button(threadUrl, "View Feedback")}
+    `),
+    text: `Your pitch for ${startupName} needs a revision before it can move forward.\n\n${note}\n\n${threadUrl}`,
+  };
+}
+
+export function pitchApprovedEmail(startupName: string, pitchUrl: string): EmailContent {
+  return {
+    subject: `Your pitch was approved: ${startupName}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;">Good news — your pitch for <strong>${escapeHtml(startupName)}</strong> has been approved. It will go live the next time its cohort publishes.</p>
+      ${button(pitchUrl, "View Your Pitch")}
+    `),
+    text: `Good news — your pitch for ${startupName} has been approved. It will go live the next time its cohort publishes.\n\n${pitchUrl}`,
+  };
+}
+
+export function pitchRejectedEmail(startupName: string, reason: string, pitchUrl: string): EmailContent {
+  return {
+    subject: `Your pitch was not approved: ${startupName}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;">Your pitch for <strong>${escapeHtml(startupName)}</strong> was not approved for publication at this time.</p>
+      <p style="margin:0 0 16px;color:#666;">${escapeHtml(reason)}</p>
+      ${button(pitchUrl, "View Your Pitch")}
+    `),
+    text: `Your pitch for ${startupName} was not approved for publication at this time.\n\n${reason}\n\n${pitchUrl}`,
+  };
+}
+
+export function pitchPublishedEmail(startupName: string, pitchUrl: string): EmailContent {
+  return {
+    subject: `Your pitch is live: ${startupName}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;">Your pitch for <strong>${escapeHtml(startupName)}</strong> is now live for investors to see.</p>
+      ${button(pitchUrl, "View Your Pitch")}
+    `),
+    text: `Your pitch for ${startupName} is now live for investors to see.\n\n${pitchUrl}`,
+  };
+}
+
+export function pitchDisclosureRequestedEmail(startupName: string, investorOrg: string, pitchUrl: string): EmailContent {
+  return {
+    subject: `${investorOrg} wants to see your full pitch`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;"><strong>${escapeHtml(investorOrg)}</strong> would like to see the full materials for <strong>${escapeHtml(startupName)}</strong>.</p>
+      ${button(pitchUrl, "Review Request")}
+    `),
+    text: `${investorOrg} would like to see the full materials for ${startupName}.\n\n${pitchUrl}`,
+  };
+}
+
+export function pitchDisclosureResponseEmail(startupName: string, accepted: boolean, pitchUrl: string): EmailContent {
+  return accepted
+    ? {
+        subject: `Full pitch shared: ${startupName}`,
+        html: wrapHtml(`
+          <p style="margin:0 0 16px;">The founder of <strong>${escapeHtml(startupName)}</strong> has shared their full pitch materials with you.</p>
+          ${button(pitchUrl, "View Full Pitch")}
+        `),
+        text: `The founder of ${startupName} has shared their full pitch materials with you.\n\n${pitchUrl}`,
+      }
+    : {
+        subject: `Update on ${startupName}`,
+        html: wrapHtml(`
+          <p style="margin:0;">This founder isn't sharing full materials with you at this time.</p>
+        `),
+        text: `This founder isn't sharing full materials with you at this time.`,
+      };
+}
+
+export function pitchInterestReceivedEmail(startupName: string, investorOrg: string, pitchUrl: string): EmailContent {
+  return {
+    subject: `Investor interest: ${startupName}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;"><strong>${escapeHtml(investorOrg)}</strong> has expressed interest in <strong>${escapeHtml(startupName)}</strong>. The AAICBI team will follow up.</p>
+      ${button(pitchUrl, "View Details")}
+    `),
+    text: `${investorOrg} has expressed interest in ${startupName}. The AAICBI team will follow up.\n\n${pitchUrl}`,
+  };
+}
+
+/**
  * Audit finding, closed here: a genuinely new payment succeeding
  * while the trainee's existing access for the same course still has
  * substantial time remaining is a strong signal of an accidental
