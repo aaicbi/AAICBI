@@ -616,6 +616,83 @@ export function employerRejectedEmail(input: EmployerDecisionEmailInput): EmailC
 }
 
 /**
+ * Pitch & Post, Phase 2 — the investor counterparts to the three
+ * Employer decision/pending templates directly above.
+ */
+export interface InvestorDecisionEmailInput {
+  name: string;
+  loginUrl: string;
+}
+export function investorApprovedEmail(input: InvestorDecisionEmailInput): EmailContent {
+  return {
+    subject: "Your AAICBI investor account is approved",
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(input.name)},</p>
+      <p style="margin:0 0 16px;">Your investor account has been approved. You can now browse published pitches from AAICBI's trainee founders.</p>
+      ${button(input.loginUrl, "Sign In")}
+    `),
+    text: `Hi ${input.name},\n\nYour investor account has been approved. You can now browse published pitches from AAICBI's trainee founders.\n\n${input.loginUrl}`,
+  };
+}
+export function investorRejectedEmail(input: InvestorDecisionEmailInput): EmailContent {
+  return {
+    subject: "Update on your AAICBI investor account",
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(input.name)},</p>
+      <p style="margin:0 0 16px;">Your investor account application wasn't approved at this time. If you believe this is a mistake, please contact support.</p>
+    `),
+    text: `Hi ${input.name},\n\nYour investor account application wasn't approved at this time. If you believe this is a mistake, please contact support.`,
+  };
+}
+
+export interface NewInvestorPendingEmailInput {
+  name: string;
+  organization: string;
+  reviewUrl: string;
+}
+export function newInvestorPendingEmail(input: NewInvestorPendingEmailInput): EmailContent {
+  return {
+    subject: `New investor awaiting review: ${input.name}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;"><strong>${escapeHtml(input.name)}</strong> (${escapeHtml(input.organization)}) has registered as an investor and is awaiting review.</p>
+      ${button(input.reviewUrl, "Review Investors")}
+    `),
+    text: `${input.name} (${input.organization}) has registered as an investor and is awaiting review.\n\n${input.reviewUrl}`,
+  };
+}
+
+/**
+ * Instructor Portal, Phase 1 — the agreement-sent / agreement-accepted
+ * notification pair. Deliberately never includes the agreement's
+ * actual compensation figure in the email body — same reasoning as
+ * every other "go view it on a login-gated page" notification in this
+ * app: a login-gated page enforces exactly who's allowed to see it,
+ * an email body doesn't.
+ */
+export function instructorAgreementSentEmail(instructorName: string, reviewUrl: string): EmailContent {
+  return {
+    subject: "Your AAICBI instructor agreement is ready to review",
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(instructorName)},</p>
+      <p style="margin:0 0 16px;">Your AAICBI instructor agreement is ready for you to review and sign.</p>
+      ${button(reviewUrl, "Review Agreement")}
+    `),
+    text: `Hi ${instructorName},\n\nYour AAICBI instructor agreement is ready for you to review and sign.\n\n${reviewUrl}`,
+  };
+}
+
+export function instructorAgreementAcceptedEmail(instructorName: string, reviewUrl: string): EmailContent {
+  return {
+    subject: `${instructorName} accepted their instructor agreement`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;"><strong>${escapeHtml(instructorName)}</strong> has reviewed and accepted their instructor agreement.</p>
+      ${button(reviewUrl, "View Instructor")}
+    `),
+    text: `${instructorName} has reviewed and accepted their instructor agreement.\n\n${reviewUrl}`,
+  };
+}
+
+/**
  * M34 — the same real gap, closed the same way: an employer posts a
  * vacancy and has no way to know it went live (or didn't) except
  * checking back manually. Same "essential, not optional" treatment.

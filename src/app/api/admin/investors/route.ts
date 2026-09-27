@@ -22,20 +22,31 @@ const CreateInvestorSchema = z.object({
 const SETUP_TOKEN_LIFETIME_MS = 48 * 60 * 60 * 1000;
 
 /**
- * GET/POST /api/admin/investors — Pitch & Post, Phase 1's investor
- * pool. Mirrors POST /api/admin/staff's exact pattern: a genuinely
- * random, never-transmitted initial password, a real setup-token
- * reused from the password-reset mechanism, and a welcome email with
- * the setup link. The admin creating the account IS the vetting step
- * for Phase 1 — no separate approval-state machine like Employer's,
- * since there's no self-registration path to gate here yet.
+ * GET/POST /api/admin/investors — Pitch & Post's investor pool. POST
+ * mirrors /api/admin/staff's exact pattern: a genuinely random,
+ * never-transmitted initial password, a real setup-token reused from
+ * the password-reset mechanism, and a welcome email with the setup
+ * link. The admin creating the account directly IS the vetting step —
+ * approvalState is set to APPROVED immediately (see below), unlike
+ * Phase 2's self-registration path (POST /api/auth/investor-register),
+ * which leaves it PENDING for a real admin decision.
  */
 export async function GET() {
   return withApiErrors(async () => {
     await requireRole("SUPER_ADMIN", "ADMIN");
     const investors = await prisma.investor.findMany({
       orderBy: { createdAt: "desc" },
-      select: { id: true, name: true, email: true, organization: true, active: true, lastLoginAt: true, createdAt: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        organization: true,
+        active: true,
+        approvalState: true,
+        approvedBy: { select: { name: true } },
+        lastLoginAt: true,
+        createdAt: true,
+      },
     });
     return NextResponse.json(investors);
   });
@@ -70,6 +81,9 @@ export async function POST(req: NextRequest) {
         resetToken: setupToken,
         resetTokenExpiresAt: new Date(Date.now() + SETUP_TOKEN_LIFETIME_MS),
         createdById: session.userId,
+        approvalState: "APPROVED",
+        approvedById: session.userId,
+        approvedAt: new Date(),
       },
     });
 

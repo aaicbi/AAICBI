@@ -32,9 +32,11 @@ export async function POST(req: NextRequest) {
   }
 
   const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
-  // Same generic error whether the email doesn't exist or the password is
-  // wrong — don't leak which one it was.
-  if (!user || !(await verifyPassword(parsed.data.password, user.passwordHash))) {
+  // Same generic error whether the email doesn't exist, the password is
+  // wrong, or the account has been deactivated — don't leak which one
+  // it was, or confirm to a deactivated staff member that their
+  // credentials still work.
+  if (!user || !user.active || !(await verifyPassword(parsed.data.password, user.passwordHash))) {
     return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
   }
 

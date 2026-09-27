@@ -6,9 +6,9 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 
 /**
- * Pitch & Post, Phase 1 — no "register" link here, unlike employer's
- * own login page: investor accounts are created directly by AAICBI
- * staff for now (see /admin/investors), not self-service.
+ * Pitch & Post — self-registration (Phase 2) and admin-direct-creation
+ * (Phase 1, see /admin/investors) both land here; either way the
+ * account works the same way once approved.
  */
 export default function InvestorLoginPage() {
   const [email, setEmail] = useState("");
@@ -71,6 +71,13 @@ export default function InvestorLoginPage() {
             </Button>
           </form>
         </Card>
+
+        <p className="mt-4 text-center text-xs text-gray-500">
+          New here?{" "}
+          <a href="/investor/register" className="text-brand-teal hover:underline">
+            Register as an investor
+          </a>
+        </p>
       </main>
     </>
   );

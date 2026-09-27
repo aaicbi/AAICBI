@@ -29,6 +29,9 @@ interface PitchDetail {
   pitchDeckUrl: string | null;
   demoUrl: string | null;
   githubUrl: string | null;
+  teaserVideoUrl: string | null;
+  projectedReturnSummary: string | null;
+  publicImpactStatement: string | null;
   fundingType: string | null;
   fundingAmountKobo: number | null;
   trainee: { name: string; email: string };
@@ -191,6 +194,19 @@ export default function AdminPitchReviewPage({ params }: { params: { id: string 
               {pitch.fundingAmountKobo != null ? `₦${(pitch.fundingAmountKobo / 100).toLocaleString()}` : "—"} {pitch.fundingType ? `· ${pitch.fundingType}` : ""}
             </span>
           </div>
+
+          {(pitch.teaserVideoUrl || pitch.projectedReturnSummary || pitch.publicImpactStatement) && (
+            <div className="rounded-lg border border-brand-gray p-3 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Public Teaser (shown to every investor, unconditionally)</p>
+              {pitch.teaserVideoUrl && (
+                <a href={pitch.teaserVideoUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block font-semibold text-brand-teal hover:underline">
+                  ▶ Watch teaser video
+                </a>
+              )}
+              {pitch.projectedReturnSummary && <p className="mt-1">{pitch.projectedReturnSummary}</p>}
+              {pitch.publicImpactStatement && <p className="mt-1 text-gray-600">{pitch.publicImpactStatement}</p>}
+            </div>
+          )}
         </Card>
 
         <Card className="mt-4">

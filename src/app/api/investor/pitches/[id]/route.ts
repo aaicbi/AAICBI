@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
+import { requireApprovedInvestor } from "@/lib/investorAccess";
+import { getFounderReadiness } from "@/lib/founderReadiness";
 
 /**
  * GET /api/investor/pitches/[id] — teaser shape for everyone, full
@@ -14,10 +16,14 @@ import { withApiErrors } from "@/lib/apiError";
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("INVESTOR");
+    await requireApprovedInvestor(session.userId);
 
     const pitch = await prisma.pitchSubmission.findUnique({
       where: { id: params.id },
-      include: { disclosures: { where: { investorId: session.userId } } },
+      include: {
+        disclosures: { where: { investorId: session.userId } },
+        watchlistedBy: { where: { investorId: session.userId }, select: { id: true } },
+      },
     });
     if (!pitch || pitch.status !== "PUBLISHED") {
       return NextResponse.json({ error: "Pitch not found." }, { status: 404 });
@@ -41,6 +47,12 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       fundingType: pitch.fundingType,
       fundingAmountKobo: pitch.fundingAmountKobo,
       minimumInvestmentKobo: pitch.minimumInvestmentKobo,
+      // Phase 2 public teaser — unconditional, same as the list route.
+      teaserVideoUrl: pitch.teaserVideoUrl,
+      projectedReturnSummary: pitch.projectedReturnSummary,
+      publicImpactStatement: pitch.publicImpactStatement,
+      founderReadiness: await getFounderReadiness(pitch.traineeId),
+      watchlisted: pitch.watchlistedBy.length > 0,
       disclosureStatus: disclosure?.status ?? null,
       interestedAt: disclosure?.interestedAt ?? null,
       solution: unlocked ? pitch.solution : null,

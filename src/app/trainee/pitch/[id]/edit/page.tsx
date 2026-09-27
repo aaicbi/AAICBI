@@ -7,6 +7,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import PitchLoopPanel from "@/components/trainee/PitchLoopPanel";
 
 const NAV = [
   { label: "Dashboard", href: "/trainee/dashboard" },
@@ -27,6 +28,9 @@ interface FormState {
   pitchDeckUrl: string;
   demoUrl: string;
   githubUrl: string;
+  teaserVideoUrl: string;
+  projectedReturnSummary: string;
+  publicImpactStatement: string;
   fundingType: "GRANT" | "DEBT";
   fundingAmount: string;
   minimumInvestment: string;
@@ -64,6 +68,9 @@ export default function EditPitchPage({ params }: { params: { id: string } }) {
           pitchDeckUrl: p.pitchDeckUrl ?? "",
           demoUrl: p.demoUrl ?? "",
           githubUrl: p.githubUrl ?? "",
+          teaserVideoUrl: p.teaserVideoUrl ?? "",
+          projectedReturnSummary: p.projectedReturnSummary ?? "",
+          publicImpactStatement: p.publicImpactStatement ?? "",
           fundingType: p.fundingType ?? "GRANT",
           fundingAmount: p.fundingAmountKobo != null ? String(p.fundingAmountKobo / 100) : "",
           minimumInvestment: p.minimumInvestmentKobo != null ? String(p.minimumInvestmentKobo / 100) : "",
@@ -157,6 +164,16 @@ export default function EditPitchPage({ params }: { params: { id: string } }) {
         </Card>
 
         <Card className="mt-4 space-y-4">
+          <p className={label}>Public Teaser</p>
+          <p className="text-xs text-gray-500">
+            Shown to every investor browsing, before they request your full pitch — keep this high-level, not how your business works.
+          </p>
+          <input className={input} placeholder="Teaser video URL (YouTube or Google-hosted)" value={form.teaserVideoUrl} onChange={(e) => set("teaserVideoUrl", e.target.value)} />
+          <input className={input} placeholder="Projected return, e.g. &quot;Projected ₦150M ARR by Year 3&quot;" value={form.projectedReturnSummary} onChange={(e) => set("projectedReturnSummary", e.target.value)} />
+          <textarea className={input} rows={2} placeholder="Public impact statement — outcomes and scale, not mechanism" value={form.publicImpactStatement} onChange={(e) => set("publicImpactStatement", e.target.value)} />
+        </Card>
+
+        <Card className="mt-4 space-y-4">
           <p className={label}>Funding Ask</p>
           <div className="grid grid-cols-2 gap-3">
             <input className={input} type="number" min="0" placeholder="Amount requested (₦)" value={form.fundingAmount} onChange={(e) => set("fundingAmount", e.target.value)} />
@@ -180,6 +197,23 @@ export default function EditPitchPage({ params }: { params: { id: string } }) {
             </button>
           </div>
         </Card>
+
+        <PitchLoopPanel
+          draft={{
+            startupName: form.startupName,
+            industry: form.industry,
+            problem: form.problem,
+            solution: form.solution,
+            targetMarket: form.targetMarket,
+            businessModel: form.businessModel,
+            stage: form.stage,
+            traction: form.traction,
+            teamDescription: form.teamDescription,
+            fundingType: form.fundingType,
+            fundingAmountKobo: form.fundingAmount ? Math.round(Number(form.fundingAmount) * 100) : undefined,
+            fundingPurpose: form.fundingPurpose,
+          }}
+        />
 
         <div className="mt-6 flex justify-end gap-3">
           <Button variant="secondary" onClick={() => save(false)} loading={saving === "draft"}>

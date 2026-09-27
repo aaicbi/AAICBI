@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
-import LogoutButton from "@/components/admin/LogoutButton";
+import LogoutButton from "@/components/investor/LogoutButton";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -21,6 +21,11 @@ interface PitchDetail {
   fundingType: "GRANT" | "DEBT" | null;
   fundingAmountKobo: number | null;
   minimumInvestmentKobo: number | null;
+  teaserVideoUrl: string | null;
+  projectedReturnSummary: string | null;
+  publicImpactStatement: string | null;
+  founderReadiness: { courseTitle: string; percentage: number | null; topPercent: number | null } | null;
+  watchlisted: boolean;
   disclosureStatus: "PENDING" | "ACCEPTED" | "DECLINED" | null;
   interestedAt: string | null;
   pitchVideoUrl: string | null;
@@ -36,6 +41,7 @@ export default function InvestorPitchDetailPage({ params }: { params: { id: stri
   const [interestMessage, setInterestMessage] = useState("");
   const [investmentRange, setInvestmentRange] = useState("");
   const [busy, setBusy] = useState<"request" | "interest" | null>(null);
+  const [togglingWatchlist, setTogglingWatchlist] = useState(false);
 
   function load() {
     fetch(`/api/investor/pitches/${params.id}`)
@@ -86,6 +92,15 @@ export default function InvestorPitchDetailPage({ params }: { params: { id: stri
     load();
   }
 
+  async function toggleWatchlist() {
+    setTogglingWatchlist(true);
+    const res = await fetch(`/api/investor/pitches/${params.id}/watchlist`, { method: "POST" });
+    setTogglingWatchlist(false);
+    if (!res.ok) return;
+    const data = await res.json();
+    setPitch((prev) => (prev ? { ...prev, watchlisted: data.watchlisted } : prev));
+  }
+
   if (!pitch) {
     return (
       <>
@@ -105,8 +120,26 @@ export default function InvestorPitchDetailPage({ params }: { params: { id: stri
       <main className="mx-auto max-w-2xl px-6 py-10">
         <div className="flex items-center justify-between">
           <h1 className="font-display text-2xl font-semibold text-brand-ink">{pitch.startupName}</h1>
-          {pitch.industry && <Badge variant="success">{pitch.industry}</Badge>}
+          <div className="flex items-center gap-2">
+            {pitch.industry && <Badge variant="success">{pitch.industry}</Badge>}
+            <button
+              type="button"
+              disabled={togglingWatchlist}
+              onClick={toggleWatchlist}
+              aria-label={pitch.watchlisted ? "Remove from watchlist" : "Add to watchlist"}
+              className={`text-xl ${pitch.watchlisted ? "text-brand-gold" : "text-gray-300 hover:text-brand-gold"}`}
+            >
+              {pitch.watchlisted ? "★" : "☆"}
+            </button>
+          </div>
         </div>
+
+        {pitch.founderReadiness && (
+          <p className="mt-3 inline-flex items-center gap-1 rounded-full bg-brand-goldLight px-3 py-1 text-xs font-bold text-brand-goldText">
+            ⭐{pitch.founderReadiness.topPercent != null && ` Top ${pitch.founderReadiness.topPercent}% ·`}
+            {pitch.founderReadiness.percentage != null && ` ${Math.round(pitch.founderReadiness.percentage)}% ·`} Certified: {pitch.founderReadiness.courseTitle}
+          </p>
+        )}
 
         <Card className="mt-4 space-y-2 text-sm text-gray-700">
           {pitch.stage && <p><span className="font-semibold text-brand-ink">Stage:</span> {pitch.stage}</p>}
@@ -116,6 +149,15 @@ export default function InvestorPitchDetailPage({ params }: { params: { id: stri
               <span className="font-semibold text-brand-ink">Funding requested:</span> ₦{(pitch.fundingAmountKobo / 100).toLocaleString()} {pitch.fundingType ? `· ${pitch.fundingType}` : ""}
             </p>
           )}
+          {pitch.teaserVideoUrl && (
+            <a href={pitch.teaserVideoUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold text-brand-teal hover:underline">
+              ▶ Watch teaser
+            </a>
+          )}
+          {pitch.projectedReturnSummary && (
+            <p className="rounded-lg bg-brand-goldLight px-3 py-2 font-semibold text-brand-goldText">{pitch.projectedReturnSummary}</p>
+          )}
+          {pitch.publicImpactStatement && <p>{pitch.publicImpactStatement}</p>}
         </Card>
 
         {unlocked ? (

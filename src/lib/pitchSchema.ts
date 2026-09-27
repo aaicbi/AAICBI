@@ -19,6 +19,13 @@ export const PitchSchema = z.object({
   pitchDeckUrl: safeUrl.optional().or(z.literal("")),
   demoUrl: safeUrl.optional().or(z.literal("")),
   githubUrl: safeUrl.optional().or(z.literal("")),
+  // Phase 2 — the public teaser, shown to every investor unconditionally
+  // (see PitchSubmission's own schema comment). teaserVideoUrl's
+  // YouTube/Google-only rule (isAllowedVideoUrl) is checked in the route
+  // handlers, the same way VIDEO materials validate it outside zod.
+  teaserVideoUrl: safeUrl.optional().or(z.literal("")),
+  projectedReturnSummary: z.string().trim().max(200).optional().or(z.literal("")),
+  publicImpactStatement: z.string().trim().max(300).optional().or(z.literal("")),
   fundingType: z.enum(["GRANT", "DEBT"]).optional(),
   fundingAmountKobo: z.number().int().nonnegative().optional(),
   minimumInvestmentKobo: z.number().int().nonnegative().optional(),

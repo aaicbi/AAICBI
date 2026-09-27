@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { notifyAdminsOfPitchSubmitted } from "@/lib/pitchNotify";
 import { PitchSchema } from "@/lib/pitchSchema";
+import { isAllowedVideoUrl } from "@/lib/materialUrl";
 
 async function findOwned(id: string, traineeId: string) {
   const row = await prisma.pitchSubmission.findUnique({ where: { id } });
@@ -45,6 +46,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
+    if (parsed.data.teaserVideoUrl && !isAllowedVideoUrl(parsed.data.teaserVideoUrl)) {
+      return NextResponse.json(
+        { error: { fieldErrors: { teaserVideoUrl: ["Teaser video must be a YouTube or Google-hosted link."] } } },
+        { status: 400 }
+      );
+    }
 
     const submitting = parsed.data.submit === true;
     const wasNeedsRevision = existing.status === "NEEDS_REVISION";
@@ -65,6 +72,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         pitchDeckUrl: parsed.data.pitchDeckUrl || null,
         demoUrl: parsed.data.demoUrl || null,
         githubUrl: parsed.data.githubUrl || null,
+        teaserVideoUrl: parsed.data.teaserVideoUrl || null,
+        projectedReturnSummary: parsed.data.projectedReturnSummary || null,
+        publicImpactStatement: parsed.data.publicImpactStatement || null,
         fundingType: parsed.data.fundingType,
         fundingAmountKobo: parsed.data.fundingAmountKobo,
         minimumInvestmentKobo: parsed.data.minimumInvestmentKobo,

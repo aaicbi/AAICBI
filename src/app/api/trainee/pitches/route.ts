@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { notifyAdminsOfPitchSubmitted } from "@/lib/pitchNotify";
 import { PitchSchema } from "@/lib/pitchSchema";
+import { isAllowedVideoUrl } from "@/lib/materialUrl";
 
 /**
  * GET/POST /api/trainee/pitches — Pitch & Post, Phase 1's founder-side
@@ -40,6 +41,12 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
+    if (parsed.data.teaserVideoUrl && !isAllowedVideoUrl(parsed.data.teaserVideoUrl)) {
+      return NextResponse.json(
+        { error: { fieldErrors: { teaserVideoUrl: ["Teaser video must be a YouTube or Google-hosted link."] } } },
+        { status: 400 }
+      );
+    }
 
     const submitting = parsed.data.submit === true;
     const created = await prisma.pitchSubmission.create({
@@ -58,6 +65,9 @@ export async function POST(req: NextRequest) {
         pitchDeckUrl: parsed.data.pitchDeckUrl || null,
         demoUrl: parsed.data.demoUrl || null,
         githubUrl: parsed.data.githubUrl || null,
+        teaserVideoUrl: parsed.data.teaserVideoUrl || null,
+        projectedReturnSummary: parsed.data.projectedReturnSummary || null,
+        publicImpactStatement: parsed.data.publicImpactStatement || null,
         fundingType: parsed.data.fundingType,
         fundingAmountKobo: parsed.data.fundingAmountKobo,
         minimumInvestmentKobo: parsed.data.minimumInvestmentKobo,

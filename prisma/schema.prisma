@@ -259,6 +259,14 @@ model User {
   lastLoginAt     DateTime?
   previousLoginAt DateTime?
 
+  // Instructor Portal, Phase 1 — the deactivation lever ("Instructor
+  // removal/deactivation" per the master spec), mirroring
+  // Investor.active exactly. Applies to any staff role, not just
+  // INSTRUCTOR, since there's no reason SUPER_ADMIN/ADMIN accounts
+  // couldn't use the same lever — the login route checks it
+  // regardless of role.
+  active Boolean @default(true)
+
   // Universal profile system, Phase 3 — staff profile fields.
   // "Organization" isn't stored (this is a single-org platform, always
   // AAICBI); "permission level" is the existing `role` field above,
@@ -342,6 +350,23 @@ model User {
   // above.
   pitchesReviewed  PitchSubmission[]
   investorsCreated Investor[]
+  // Phase 2 — every investor self-registration this staff member has
+  // personally approved or rejected. Named relation since User already
+  // has one Investor relation via `createdBy`/`investorsCreated`.
+  investorsApproved Investor[] @relation("InvestorsApproved")
+
+  // Instructor Portal, Phase 1 — every agreement template this staff
+  // member has authored, every agreement they've personally sent to an
+  // instructor (audit-trail reasoning, same as the relations above),
+  // and — when this User IS an instructor — every agreement addressed
+  // to them. Two distinct named relations to InstructorAgreement
+  // since a User can appear on both sides (an ADMIN who is also
+  // teaching, in principle), same disambiguation reasoning as
+  // investorsCreated/investorsApproved above.
+  agreementTemplatesCreated AgreementTemplate[]
+  instructorAgreementsSent  InstructorAgreement[] @relation("AgreementsSent")
+  instructorAgreementsOwned InstructorAgreement[] @relation("InstructorAgreements")
+  coursesPayoutUpdated      Course[]              @relation("CoursePayoutUpdatedBy")
 }
 
 // Real, persistent trainee account — the key M9 change. Replaces the old
@@ -765,6 +790,16 @@ model PitchSubmission {
   demoUrl       String?
   githubUrl     String?
 
+  // Phase 2 — the public teaser. Deliberately separate from
+  // pitchVideoUrl/the narrative fields above, which stay gated behind a
+  // specific investor's accepted PitchDisclosure: these three are shown
+  // to EVERY investor browsing, unconditionally, so a founder can
+  // attract interest with outcomes and numbers without exposing the
+  // mechanism of their idea before choosing to share it with anyone.
+  teaserVideoUrl        String?
+  projectedReturnSummary String?
+  publicImpactStatement  String?
+
   fundingType           PitchFundingType?
   fundingAmountKobo     Int?
   minimumInvestmentKobo Int?
@@ -790,10 +825,17 @@ model PitchSubmission {
   updatedAt   DateTime @updatedAt
 
   disclosures PitchDisclosure[]
+  watchlistedBy PitchWatchlistItem[]
 
   @@index([traineeId])
   @@index([status])
   @@index([cohortId])
+}
+
+enum InvestorApprovalState {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 model Investor {
@@ -804,18 +846,47 @@ model Investor {
   organization        String
   phone               String?
   linkedinUrl         String?
-  // The admin who created this account IS the vetting step for Phase 1
-  // (no self-registration yet) — `active` is the only moderation lever
-  // needed until Phase 2 introduces real approval-state.
+  // Phase 1: an admin creating this account directly IS the vetting
+  // step, so POST /api/admin/investors sets approvalState APPROVED
+  // immediately. Phase 2 added real self-registration
+  // (POST /api/auth/investor-register), which leaves it at its PENDING
+  // default until a SUPER_ADMIN/ADMIN decides — same shape as
+  // EmployerApprovalState. `active` stays a separate, additional lever
+  // (e.g. suspending an already-approved investor later), not folded
+  // into approval state.
   active              Boolean   @default(true)
-  createdById         String
-  createdBy           User      @relation(fields: [createdById], references: [id])
+  approvalState       InvestorApprovalState @default(PENDING)
+  approvedById        String?
+  approvedBy          User?     @relation("InvestorsApproved", fields: [approvedById], references: [id])
+  approvedAt          DateTime?
+  // Nullable — Phase 2's self-registered investors have no creating
+  // admin; only Phase 1's admin-direct-create path (POST
+  // /api/admin/investors) ever sets this.
+  createdById         String?
+  createdBy           User?     @relation(fields: [createdById], references: [id])
   resetToken          String?   @unique
   resetTokenExpiresAt DateTime?
   lastLoginAt         DateTime?
   createdAt           DateTime  @default(now())
 
   disclosures PitchDisclosure[]
+  watchlistItems PitchWatchlistItem[]
+}
+
+// An investor's personal "save for later" list — genuinely independent
+// of PitchDisclosure (an investor can watchlist a pitch they've never
+// requested full materials for, and requesting disclosure doesn't
+// imply watchlisting it), hence its own small join table rather than a
+// field bolted onto PitchDisclosure.
+model PitchWatchlistItem {
+  id                String          @id @default(cuid())
+  investorId        String
+  investor          Investor        @relation(fields: [investorId], references: [id], onDelete: Cascade)
+  pitchSubmissionId String
+  pitch             PitchSubmission @relation(fields: [pitchSubmissionId], references: [id], onDelete: Cascade)
+  createdAt         DateTime        @default(now())
+
+  @@unique([investorId, pitchSubmissionId])
 }
 
 // The two-tier idea-protection gate: an investor sees only a public
@@ -1076,6 +1147,23 @@ model Course {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // Instructor Portal, Phase 1 — the individually-negotiated payout
+  // arrangement for this course's instructor (Course.createdById is
+  // also "the instructor" — one instructor per course, confirmed
+  // during planning). Deliberately admin-configurable per course
+  // rather than a single platform-wide formula: percentage-of-revenue
+  // and flat-per-subscriber are genuinely different agreements, kept
+  // as separate fields (rather than one generic "rate" number) so the
+  // unit is never ambiguous. All nullable — "not configured yet" must
+  // read as exactly that, never a false zero.
+  payoutType         PayoutType?
+  payoutPercentage   Int?      // 0–100, set only when payoutType is PERCENTAGE_OF_REVENUE
+  payoutFlatRateKobo Int?      // set only when payoutType is FLAT_PER_SUBSCRIBER
+  payoutNotes        String?   // free text — what was actually agreed, beyond the two numeric fields
+  payoutUpdatedById  String?
+  payoutUpdatedBy    User?     @relation("CoursePayoutUpdatedBy", fields: [payoutUpdatedById], references: [id])
+  payoutUpdatedAt    DateTime?
+
   modules Module[]
   // M15
   certificates Certificate[]
@@ -1112,6 +1200,87 @@ model Course {
   @@index([published])
   @@index([status])
   @@index([startDate])
+}
+
+enum PayoutType {
+  PERCENTAGE_OF_REVENUE
+  FLAT_PER_SUBSCRIBER
+}
+
+enum AgreementStatus {
+  PENDING
+  ACCEPTED
+}
+
+// Instructor Portal, Phase 1 — a reusable, admin-authored agreement
+// template with {{VARIABLE}} placeholders (instructor name, course
+// name, compensation, etc.). `isActive` rather than delete: a template
+// that's already been used to send a real InstructorAgreement must
+// stay resolvable even after being retired from new use.
+model AgreementTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  content     String
+  version     Int      @default(1)
+  isActive    Boolean  @default(true)
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  agreements InstructorAgreement[]
+}
+
+// One row per agreement actually SENT to an instructor — `content` is
+// a full, immutable snapshot of the resolved template at send time,
+// never a live reference, so a later edit to the template can never
+// silently change something an instructor already signed. Digital
+// signature fields live directly on this row (acceptedName/At/Ip)
+// rather than a separate signature table, since it's genuinely 1:1
+// with one agreement — same minimalism this schema already applies to
+// Employer/JobPosting's single reviewedById/reviewedAt instead of a
+// separate review table.
+model InstructorAgreement {
+  id              String             @id @default(cuid())
+  instructorId    String
+  instructor      User               @relation("InstructorAgreements", fields: [instructorId], references: [id])
+  templateId      String?
+  template        AgreementTemplate? @relation(fields: [templateId], references: [id])
+  templateVersion Int?
+  content         String
+
+  monthlyCompensationKobo Int?
+  paymentFrequency        String?
+  paymentDate             String?
+  noticePeriodDays        Int      @default(30)
+  effectiveDate           DateTime
+  endDate                 DateTime?
+
+  // The remaining fields the real AAICBI Instructor Letter of
+  // Engagement asks for that have no other structured home on this
+  // model or on User (which has no phone/address at all) — captured
+  // per-agreement, the same way an admin would fill in the blanks of
+  // the actual letter, rather than added to User where they'd apply
+  // to every role, not just this one document.
+  instructorAddress   String?
+  instructorPhone     String?
+  position            String?
+  courseDuration      String?
+  liveSessionDay      String?
+  liveSessionTime     String?
+  liveSessionPlatform String?
+
+  status   AgreementStatus @default(PENDING)
+  sentById String
+  sentBy   User            @relation("AgreementsSent", fields: [sentById], references: [id])
+  sentAt   DateTime        @default(now())
+
+  acceptedAt   DateTime?
+  acceptedName String?
+  acceptedIp   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([instructorId])
 }
 
 model Module {

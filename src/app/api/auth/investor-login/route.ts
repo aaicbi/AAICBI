@@ -11,14 +11,16 @@ const LoginSchema = z.object({
 });
 
 /**
- * POST /api/auth/investor-login — Pitch & Post, Phase 1's fourth
- * account type. Same session infrastructure as employer/trainee/staff
- * login, same generic "invalid email or password" (never reveals which
- * one was wrong). Unlike employer login, an inactive investor account
- * (`active: false`) is rejected outright here rather than allowed
- * through to see a status screen — there's no PENDING/REJECTED state
- * to show for Phase 1's admin-created accounts, so "not active" simply
- * means the account shouldn't be usable at all right now.
+ * POST /api/auth/investor-login — Pitch & Post's fourth account type.
+ * Same session infrastructure as employer/trainee/staff login, same
+ * generic "invalid email or password" (never reveals which one was
+ * wrong). No gating on `approvalState` here — same as Employer login,
+ * a PENDING or REJECTED investor can still log in to see their own
+ * status at /investor/status; every real action stays gated behind
+ * requireApprovedInvestor at the routes that actually do those things.
+ * `active` stays a genuinely separate kill-switch (e.g. suspending an
+ * already-approved investor) — an inactive account can't log in at
+ * all, regardless of approvalState.
  */
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
@@ -44,5 +46,10 @@ export async function POST(req: NextRequest) {
   await createSession({ userId: investor.id, email: investor.email, role: "INVESTOR" });
   await prisma.investor.update({ where: { id: investor.id }, data: { lastLoginAt: new Date() } });
 
-  return NextResponse.json({ id: investor.id, name: investor.name, organization: investor.organization });
+  return NextResponse.json({
+    id: investor.id,
+    name: investor.name,
+    organization: investor.organization,
+    approvalState: investor.approvalState,
+  });
 }

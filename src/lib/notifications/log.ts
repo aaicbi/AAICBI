@@ -64,7 +64,14 @@ export type NotificationType =
   | "PITCH_PUBLISHED"
   | "PITCH_DISCLOSURE_REQUESTED"
   | "PITCH_DISCLOSURE_RESPONSE"
-  | "PITCH_INTEREST_RECEIVED";
+  | "PITCH_INTEREST_RECEIVED"
+  // Pitch & Post, Phase 2 — investor self-registration.
+  | "NEW_INVESTOR_PENDING"
+  | "INVESTOR_APPROVED"
+  | "INVESTOR_REJECTED"
+  // Instructor Portal, Phase 1.
+  | "INSTRUCTOR_AGREEMENT_SENT"
+  | "INSTRUCTOR_AGREEMENT_ACCEPTED";
 
 export interface NotifyByEmailInput {
   recipientType: "TRAINEE" | "STAFF" | "EMPLOYER" | "INVESTOR";

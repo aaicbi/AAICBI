@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
+import { requireApprovedInvestor } from "@/lib/investorAccess";
 import { notifyFounderOfDisclosureRequest } from "@/lib/pitchNotify";
 
 const RequestSchema = z.object({
@@ -18,6 +19,7 @@ const RequestSchema = z.object({
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("INVESTOR");
+    await requireApprovedInvestor(session.userId);
 
     const pitch = await prisma.pitchSubmission.findUnique({ where: { id: params.id } });
     if (!pitch || pitch.status !== "PUBLISHED") {

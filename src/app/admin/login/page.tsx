@@ -36,10 +36,17 @@ function AdminLoginForm() {
       setError(data.error ?? "Invalid email or password.");
       return;
     }
+    const data = await res.json();
+    // Instructor Portal, Phase 1 — an INSTRUCTOR never lands on the
+    // admin dashboard (the master spec's own core rule). Its own page
+    // checks agreement status and redirects to /instructor/agreement
+    // first if nothing's been accepted yet, the same self-check
+    // pattern /investor/dashboard already uses for approval state.
+    const defaultTarget = data.role === "INSTRUCTOR" ? "/instructor/dashboard" : "/admin/dashboard";
     // Same ?next= handling as the trainee login page — see the comment
     // there for the open-redirect guard's reasoning.
     const next = searchParams.get("next");
-    const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : "/admin/dashboard";
+    const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : defaultTarget;
     // Bug fix — see trainee/login/page.tsx's own comment for the full
     // reasoning: a soft router.push() here is the classic App Router
     // "works after a manual refresh but not right after login" gotcha,
