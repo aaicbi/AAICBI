@@ -61,6 +61,7 @@ export default function AdminInstructorsPage() {
           { label: "Courses", href: "/admin/courses" },
           { label: "Instructors", href: "/admin/instructors" },
           { label: "Agreement Templates", href: "/admin/agreement-templates" },
+          { label: "Staff", href: "/admin/staff" },
           { label: "Settings", href: "/admin/settings" },
         ]}
         right={<LogoutButton />}

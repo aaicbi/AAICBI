@@ -163,6 +163,28 @@ ${examUrl}`,
   };
 }
 
+/**
+ * Instructor Portal, Phase 1 follow-up — the only real discovery path
+ * for a course assignment: Course.createdById changing has no other
+ * user-visible signal, so without this an instructor would only find
+ * out by happening to check /instructor/courses.
+ */
+export function courseInstructorAssignedEmail(instructorName: string, courseTitle: string, portalUrl: string): EmailContent {
+  return {
+    subject: `You've been assigned to teach: ${courseTitle}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(instructorName)},</p>
+      <p style="margin:0 0 16px;">You've been assigned as the instructor for <strong>${escapeHtml(courseTitle)}</strong> on AAICBI. It now appears in your Instructor Portal.</p>
+      ${button(portalUrl, "View My Courses")}
+    `),
+    text: `Hi ${instructorName},
+
+You've been assigned as the instructor for ${courseTitle} on AAICBI. It now appears in your Instructor Portal.
+
+${portalUrl}`,
+  };
+}
+
 export interface AssessmentResultEmailInput {
   traineeName: string;
   examTitle: string;

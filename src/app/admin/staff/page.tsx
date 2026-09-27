@@ -98,6 +98,7 @@ export default function AdminStaffPage() {
         nav={[
           { label: "Examinations", href: "/admin/dashboard" },
           { label: "Courses", href: "/admin/courses" },
+          { label: "Instructors", href: "/admin/instructors" },
           { label: "My Profile", href: "/admin/profile" },
           { label: "Settings", href: "/admin/settings" },
         ]}
@@ -164,7 +165,13 @@ export default function AdminStaffPage() {
             staff.map((s) => (
               <Card key={s.id} className="flex items-center justify-between">
                 <div>
-                  <p className="font-display font-semibold text-brand-ink">{s.name}</p>
+                  {s.role === "INSTRUCTOR" ? (
+                    <a href={`/admin/instructors/${s.id}`} className="font-display font-semibold text-brand-ink hover:text-brand-teal hover:underline">
+                      {s.name}
+                    </a>
+                  ) : (
+                    <p className="font-display font-semibold text-brand-ink">{s.name}</p>
+                  )}
                   <p className="text-xs text-gray-500">{s.email}</p>
                 </div>
                 {s.role === "SUPER_ADMIN" ? (

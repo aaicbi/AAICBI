@@ -74,7 +74,10 @@ export type NotificationType =
   | "INSTRUCTOR_AGREEMENT_ACCEPTED"
   // Standalone-exam access control — a Super Admin has granted a
   // trainee access to an exam that isn't part of any course.
-  | "EXAM_ACCESS_GRANTED";
+  | "EXAM_ACCESS_GRANTED"
+  // Instructor Portal, Phase 1 follow-up — an instructor has been
+  // assigned as the instructor of record for a course (Course.createdById).
+  | "COURSE_INSTRUCTOR_ASSIGNED";
 
 export interface NotifyByEmailInput {
   recipientType: "TRAINEE" | "STAFF" | "EMPLOYER" | "INVESTOR";

@@ -9,6 +9,7 @@ import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import EmptyState from "@/components/ui/EmptyState";
+import { useConfirmModal } from "@/components/ui/useConfirmModal";
 
 interface AgreementDto {
   id: string;
@@ -45,12 +46,17 @@ interface TemplateOption {
   name: string;
   isActive: boolean;
 }
+interface CourseOption {
+  id: string;
+  title: string;
+}
 
 const NAV = [
   { label: "Examinations", href: "/admin/dashboard" },
   { label: "Courses", href: "/admin/courses" },
   { label: "Instructors", href: "/admin/instructors" },
   { label: "Agreement Templates", href: "/admin/agreement-templates" },
+  { label: "Staff", href: "/admin/staff" },
   { label: "Settings", href: "/admin/settings" },
 ];
 
@@ -62,12 +68,16 @@ const NAV = [
  */
 export default function InstructorDetailPage({ params }: { params: { id: string } }) {
   const { showToast } = useToast();
+  const { confirm, modal } = useConfirmModal();
   const [instructor, setInstructor] = useState<InstructorDetail | null | undefined>(undefined);
   const [templates, setTemplates] = useState<TemplateOption[]>([]);
+  const [allCourses, setAllCourses] = useState<CourseOption[]>([]);
   const [expandedAgreementId, setExpandedAgreementId] = useState<string | null>(null);
   const [showSendForm, setShowSendForm] = useState(false);
   const [sending, setSending] = useState(false);
   const [payoutBusyId, setPayoutBusyId] = useState<string | null>(null);
+  const [courseToAssign, setCourseToAssign] = useState("");
+  const [assigning, setAssigning] = useState(false);
 
   const [form, setForm] = useState({
     templateId: "",
@@ -111,6 +121,10 @@ export default function InstructorDetailPage({ params }: { params: { id: string 
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((data: TemplateOption[]) => setTemplates(data.filter((t) => t.isActive)))
       .catch(() => setTemplates([]));
+    fetch("/api/courses")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data: CourseOption[]) => setAllCourses(data))
+      .catch(() => setAllCourses([]));
   }
 
   useEffect(() => {
@@ -187,6 +201,31 @@ export default function InstructorDetailPage({ params }: { params: { id: string 
     load();
   }
 
+  async function assignCourse() {
+    if (!instructor || !courseToAssign) return;
+    const ok = await confirm({
+      title: "Assign this course?",
+      description: "This replaces the current instructor of record for this course, if it has one — that instructor will stop seeing it in their portal.",
+      confirmLabel: "Assign",
+    });
+    if (!ok) return;
+    setAssigning(true);
+    const res = await fetch(`/api/admin/instructors/${instructor.id}/courses`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ courseId: courseToAssign }),
+    });
+    setAssigning(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showToast(typeof data.error === "string" ? data.error : "Could not assign that course.", "error");
+      return;
+    }
+    setCourseToAssign("");
+    showToast("Course assigned — the instructor has been emailed.");
+    load();
+  }
+
   if (instructor === undefined) {
     return (
       <>
@@ -208,9 +247,12 @@ export default function InstructorDetailPage({ params }: { params: { id: string 
     );
   }
 
+  const unassignedCourses = allCourses.filter((c) => !instructor.courses.some((ic) => ic.id === c.id));
+
   return (
     <>
       <SiteHeader nav={NAV} right={<LogoutButton />} />
+      {modal}
       <main className="mx-auto max-w-3xl px-6 py-10">
         <BackLink href="/admin/instructors" className="text-sm text-brand-teal hover:underline">
           Back to Instructors
@@ -337,9 +379,37 @@ export default function InstructorDetailPage({ params }: { params: { id: string 
           </div>
         </section>
 
-        {/* Payout configuration */}
+        {/* Course assignment + payout configuration */}
         <section className="mt-8">
-          <h2 className="font-display text-lg font-semibold text-brand-ink">Course Payout Configuration</h2>
+          <h2 className="font-display text-lg font-semibold text-brand-ink">Courses</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Assigning a course here sets this instructor as its instructor of record — that's what makes the course's materials,
+            students, and payout appear in their Instructor Portal.
+          </p>
+
+          <Card className="mt-3">
+            <div className="flex gap-2">
+              <select
+                value={courseToAssign}
+                onChange={(e) => setCourseToAssign(e.target.value)}
+                className="flex-1 rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
+              >
+                <option value="">Select a course to assign…</option>
+                {unassignedCourses.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                  </option>
+                ))}
+              </select>
+              <Button size="sm" onClick={assignCourse} loading={assigning} disabled={!courseToAssign}>
+                Assign
+              </Button>
+            </div>
+            {unassignedCourses.length === 0 && allCourses.length > 0 && (
+              <p className="mt-2 text-xs text-gray-500">Every course you can manage is already assigned to this instructor.</p>
+            )}
+          </Card>
+
           <div className="mt-3 space-y-3">
             {instructor.courses.length === 0 && <p className="text-sm text-gray-500">No courses assigned yet.</p>}
             {instructor.courses.map((c) => {
