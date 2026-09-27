@@ -21,6 +21,8 @@ export const ADMIN_AREAS = [
   { href: "/admin/job-postings", label: "Job posting review", desc: "Approve or reject submitted job postings" },
   { href: "/admin/testimonials", label: "Testimonials", desc: "Curate trainee reviews shown publicly" },
   { href: "/admin/staff", label: "Staff accounts", desc: "Create and manage staff members" },
+  { href: "/admin/instructors", label: "Instructors", desc: "Agreement status, course assignment, and payout for each instructor" },
+  { href: "/admin/agreement-templates", label: "Agreement templates", desc: "Manage the letter of engagement templates sent to instructors" },
   { href: "/admin/trainees", label: "Trainees", desc: "Search and review trainee accounts and profiles" },
   { href: "/admin/reports", label: "Reported profiles", desc: "Review profiles flagged by trainees, staff, or employers" },
 ];
