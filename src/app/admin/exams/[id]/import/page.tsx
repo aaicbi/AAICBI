@@ -28,7 +28,16 @@ interface ExamDto {
   title: string;
   code: string;
   published: boolean;
+  courseId: string | null;
+  moduleId: string | null;
   questions: QuestionDto[];
+}
+interface AccessGrantDto {
+  id: string;
+  trainee: { id: string; name: string; email: string };
+  grantedBy: { name: string };
+  grantedAt: string;
+  revokedAt: string | null;
 }
 
 export default function ImportReviewPage({ params }: { params: { id: string } }) {
@@ -43,6 +52,13 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
   const { confirm, modal } = useConfirmModal();
   const { showToast } = useToast();
 
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [accessGrants, setAccessGrants] = useState<AccessGrantDto[] | null>(null);
+  const [grantEmail, setGrantEmail] = useState("");
+  const [granting, setGranting] = useState(false);
+  const [grantError, setGrantError] = useState<string | null>(null);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
+
   async function loadExam() {
     const res = await fetch(`/api/exams/${params.id}`);
     if (res.ok) setExam(await res.json());
@@ -50,8 +66,56 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
 
   useEffect(() => {
     loadExam();
+    // Same isSuperAdmin check PerformanceDashboard already uses — the
+    // access-grant section below is Super-Admin-only, both here
+    // (client-side, for a clean view) and server-side (the real
+    // boundary, in /api/exams/[id]/access).
+    fetch("/api/admin/settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setIsSuperAdmin(data?.role === "SUPER_ADMIN"))
+      .catch(() => setIsSuperAdmin(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
+
+  const isStandalone = !!exam && !exam.courseId && !exam.moduleId;
+
+  useEffect(() => {
+    if (!isStandalone || !isSuperAdmin) return;
+    fetch(`/api/exams/${params.id}/access`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setAccessGrants)
+      .catch(() => setAccessGrants([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isStandalone, isSuperAdmin, params.id]);
+
+  async function grantAccess(e: React.FormEvent) {
+    e.preventDefault();
+    setGranting(true);
+    setGrantError(null);
+    const res = await fetch(`/api/exams/${params.id}/access`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: grantEmail }),
+    });
+    setGranting(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setGrantError(typeof data.error === "string" ? data.error : "Could not grant access. Check the email and try again.");
+      return;
+    }
+    setGrantEmail("");
+    showToast("Access granted — the trainee has been emailed.", "success");
+    const refreshed = await fetch(`/api/exams/${params.id}/access`);
+    if (refreshed.ok) setAccessGrants(await refreshed.json());
+  }
+
+  async function revokeAccess(grantId: string) {
+    setRevokingId(grantId);
+    await fetch(`/api/exams/${params.id}/access/${grantId}`, { method: "PATCH" });
+    setRevokingId(null);
+    const refreshed = await fetch(`/api/exams/${params.id}/access`);
+    if (refreshed.ok) setAccessGrants(await refreshed.json());
+  }
 
   async function handleUpload(file: File) {
     setUploading(true);
@@ -287,7 +351,9 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
           <div>
             <p className="font-semibold text-brand-teal">This examination is published.</p>
             <p className="mt-1 text-sm text-gray-600">
-              Share this link or code with students:{" "}
+              {isStandalone
+                ? "Only trainees granted access below can see or start it — the code alone isn't enough:"
+                : "Share this link or code with students:"}{" "}
               <code className="rounded bg-brand-mint px-1.5 py-0.5">{examUrl}</code>
             </p>
           </div>
@@ -309,6 +375,65 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
           </div>
         )}
       </div>
+
+      {/* Access control — standalone exams only (see ExamAccessGrant's
+          own comment): not tied to a course, so nothing else gates who
+          can even see this exam. Super Admin only, both here and
+          server-side. */}
+      {isStandalone && isSuperAdmin && (
+        <div className="mt-8 rounded-lg border border-brand-gray p-5">
+          <h2 className="font-semibold text-gray-900">Access</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Only trainees you grant access to below can see or start this examination — useful for a knowledge test aimed at a
+            specific group (e.g. screening applicants for a role) rather than every trainee on the platform.
+          </p>
+
+          <form onSubmit={grantAccess} className="mt-4 flex gap-2">
+            <input
+              type="email"
+              required
+              value={grantEmail}
+              onChange={(e) => setGrantEmail(e.target.value)}
+              placeholder="Trainee's registered email"
+              className="flex-1 rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
+            />
+            <button
+              type="submit"
+              disabled={granting}
+              className="rounded-lg bg-brand-teal px-4 py-2 text-sm font-semibold text-white hover:bg-brand-tealDeep disabled:opacity-60"
+            >
+              {granting ? "Granting..." : "Grant Access"}
+            </button>
+          </form>
+          {grantError && <p className="mt-2 text-sm text-brand-rose">{grantError}</p>}
+
+          <div className="mt-4 space-y-2">
+            {accessGrants === null && <p className="text-sm text-gray-400">Loading…</p>}
+            {accessGrants?.length === 0 && <p className="text-sm text-gray-400">No one has been granted access yet.</p>}
+            {accessGrants?.map((g) => (
+              <div key={g.id} className="flex items-center justify-between rounded-lg border border-brand-gray px-3 py-2 text-sm">
+                <div>
+                  <p className="font-semibold text-gray-900">{g.trainee.name}</p>
+                  <p className="text-xs text-gray-500">
+                    {g.trainee.email} · granted by {g.grantedBy.name} on {new Date(g.grantedAt).toLocaleDateString()}
+                  </p>
+                </div>
+                {g.revokedAt ? (
+                  <span className="text-xs font-semibold text-gray-400">Revoked</span>
+                ) : (
+                  <button
+                    onClick={() => revokeAccess(g.id)}
+                    disabled={revokingId === g.id}
+                    className="text-xs font-semibold text-brand-rose hover:underline disabled:opacity-60"
+                  >
+                    Revoke
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </main>
     </>
   );

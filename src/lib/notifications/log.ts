@@ -71,7 +71,10 @@ export type NotificationType =
   | "INVESTOR_REJECTED"
   // Instructor Portal, Phase 1.
   | "INSTRUCTOR_AGREEMENT_SENT"
-  | "INSTRUCTOR_AGREEMENT_ACCEPTED";
+  | "INSTRUCTOR_AGREEMENT_ACCEPTED"
+  // Standalone-exam access control — a Super Admin has granted a
+  // trainee access to an exam that isn't part of any course.
+  | "EXAM_ACCESS_GRANTED";
 
 export interface NotifyByEmailInput {
   recipientType: "TRAINEE" | "STAFF" | "EMPLOYER" | "INVESTOR";

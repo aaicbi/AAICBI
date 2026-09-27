@@ -367,6 +367,10 @@ model User {
   instructorAgreementsSent  InstructorAgreement[] @relation("AgreementsSent")
   instructorAgreementsOwned InstructorAgreement[] @relation("InstructorAgreements")
   coursesPayoutUpdated      Course[]              @relation("CoursePayoutUpdatedBy")
+  // Standalone-exam access control — every grant this Super Admin has
+  // personally issued (see ExamAccessGrant's own comment for why this
+  // is Super-Admin-only, unlike most other exam actions).
+  examAccessGrantsGiven ExamAccessGrant[]
 }
 
 // Real, persistent trainee account — the key M9 change. Replaces the old
@@ -611,6 +615,10 @@ model Trainee {
   // Course enrollment/subscription system — every payment attempt this
   // trainee has ever made, across every course.
   payments             Payment[]
+  // Standalone-exam access control — every grant giving this trainee
+  // access to an exam that isn't part of any course. See
+  // ExamAccessGrant's own comment.
+  examAccessGrants     ExamAccessGrant[]
 
   // Universal profile system, Phase 1 — the richer, authenticated-only
   // profile surface (distinct from publicProfileCode's anonymous share
@@ -1562,7 +1570,42 @@ model Exam {
   // assessments in the same course.
   failedAttemptsAlerts FailedAttemptsAlert[]
 
+  // Standalone-exam access control — an Exam with no courseId and no
+  // moduleId (a knowledge test created outside any course, e.g. to
+  // screen applicants for a particular skill area) is otherwise
+  // reachable by ANY trainee who has the code, once published — there
+  // was no per-trainee gate at all, unlike a course, where an UNLISTED
+  // one requires a real CourseEnrollment. This is that same idea for a
+  // standalone exam: only a trainee with a non-revoked grant here can
+  // even see or start it. See ExamAccessGrant's own comment.
+  accessGrants ExamAccessGrant[]
+
   @@index([code])
+}
+
+// Only meaningful for a standalone Exam (courseId and moduleId both
+// null) — a module assessment or course examination is already gated
+// by course enrollment, so this table is never consulted for those.
+// Soft-revoke (`revokedAt`), not a hard delete, matching
+// CourseEnrollment.accessRevokedAt's own "never destroy real access
+// history" reasoning one model up. SUPER_ADMIN-only to grant/revoke
+// (see POST/PATCH .../access — a deliberate, narrower boundary than
+// requireOwnedExam's usual SUPER_ADMIN/ADMIN/INSTRUCTOR set, since
+// deciding who gets to attempt an applicant-screening exam was
+// explicitly scoped to Super Admin alone, not every exam's owner).
+model ExamAccessGrant {
+  id          String    @id @default(cuid())
+  examId      String
+  exam        Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  traineeId   String
+  trainee     Trainee   @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  grantedById String
+  grantedBy   User      @relation(fields: [grantedById], references: [id])
+  grantedAt   DateTime  @default(now())
+  revokedAt   DateTime?
+
+  @@unique([examId, traineeId])
+  @@index([traineeId])
 }
 
 model Question {

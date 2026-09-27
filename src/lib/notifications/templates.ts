@@ -140,6 +140,29 @@ ${courseUrl}`,
   };
 }
 
+/**
+ * Standalone-exam access control — the trainee's only real discovery
+ * path for a grant, same reasoning as courseAccessGrantedEmail just
+ * above: an exam with no course has no catalog listing to stumble
+ * onto, so without this email a Super Admin's grant would be
+ * invisible until the trainee happened to ask.
+ */
+export function examAccessGrantedEmail(traineeName: string, examTitle: string, examUrl: string): EmailContent {
+  return {
+    subject: `You've been given access to an examination: ${examTitle}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(traineeName)},</p>
+      <p style="margin:0 0 16px;">You've been granted access to <strong>${escapeHtml(examTitle)}</strong> on AAICBI. You can start it right away.</p>
+      ${button(examUrl, "Start the Examination")}
+    `),
+    text: `Hi ${traineeName},
+
+You've been granted access to ${examTitle} on AAICBI. You can start it right away.
+
+${examUrl}`,
+  };
+}
+
 export interface AssessmentResultEmailInput {
   traineeName: string;
   examTitle: string;

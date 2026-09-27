@@ -18,10 +18,16 @@ import { startAttempt, serveableQuestion, secondsRemaining } from "@/lib/examEng
 // start route instead, POST /api/modules/[id]/attempts, reached from
 // inside a course rather than by typing a code — see that route's
 // comment for why it's a separate file rather than a branch in this
-// one. If a trainee ever needs to be blocked from starting a by-code
-// attempt against an exam that IS module-scoped (there's currently no
-// reason a staff member would publish one that way, but nothing here
-// prevents it), that's the one gap worth adding a guard for later.
+// one.
+//
+// Standalone-exam access control: the gap this comment used to flag
+// ("a trainee ever needs to be blocked from starting a by-code attempt
+// against an exam that IS module-scoped... nothing here prevents it")
+// is closed below, at the same time as the real feature request that
+// prompted closing it — a standalone exam is only startable by a
+// trainee with a non-revoked ExamAccessGrant (see GET
+// /api/exams/by-code/[code]'s own comment for the parallel check on
+// the metadata screen this attempt follows).
 const StartAttemptSchema = z.object({
   examCode: z.string().min(1),
 });
@@ -40,7 +46,15 @@ export async function POST(req: NextRequest) {
       where: { code: parsed.data.examCode },
       include: { questions: { include: { options: true } } },
     });
-    if (!exam) {
+    if (!exam || exam.courseId || exam.moduleId) {
+      return NextResponse.json({ error: "Examination not found. Check your code and try again." }, { status: 404 });
+    }
+
+    const grant = await prisma.examAccessGrant.findUnique({
+      where: { examId_traineeId: { examId: exam.id, traineeId: session.userId } },
+      select: { revokedAt: true },
+    });
+    if (!grant || grant.revokedAt) {
       return NextResponse.json({ error: "Examination not found. Check your code and try again." }, { status: 404 });
     }
 
