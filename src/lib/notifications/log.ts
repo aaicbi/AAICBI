@@ -117,6 +117,9 @@ export interface NotifyByEmailInput {
   // existing call site — every other notification type stays exactly
   // "from the system," unchanged.
   senderLabel?: string;
+  // Instructor Portal — passed straight through to sendEmail. See that
+  // function's own comment; undefined for every other call site.
+  attachments?: { filename: string; content: Buffer }[];
 }
 
 // The deliberate exclusions from the in-app feed — everything else
@@ -154,6 +157,7 @@ export async function notifyByEmail(input: NotifyByEmailInput): Promise<void> {
     html: input.html,
     text: input.text,
     fromName: input.senderLabel,
+    attachments: input.attachments,
   });
 
   try {

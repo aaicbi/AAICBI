@@ -6,6 +6,7 @@ import { withApiErrors } from "@/lib/apiError";
 import { notifyByEmail } from "@/lib/notifications/log";
 import { instructorAgreementSentEmail } from "@/lib/notifications/templates";
 import { appUrl } from "@/lib/appUrl";
+import { renderInstructorAgreementPdf } from "@/lib/instructorAgreementPdf";
 
 const SendAgreementSchema = z.object({
   templateId: z.string().min(1),
@@ -119,6 +120,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       },
     });
 
+    // A branded PDF copy of the exact resolved letter, signed by the
+    // CEO — see instructorAgreementPdf.tsx's own comment. Rendered in
+    // its own try/catch so a PDF-generation failure degrades to "the
+    // email still goes out, just without the attachment," never to "no
+    // email at all" — the in-app archive already has the full text
+    // regardless (see /admin/instructors/[id]'s agreement history).
+    let pdfAttachment: { filename: string; content: Buffer }[] | undefined;
+    try {
+      const pdf = await renderInstructorAgreementPdf({ instructorName: instructor.name, content, sentAt: letterDate });
+      pdfAttachment = [{ filename: `AAICBI-Letter-of-Engagement-${instructor.name.replace(/\s+/g, "-")}.pdf`, content: pdf }];
+    } catch (e) {
+      console.error(`Agreement PDF generation failed for agreement (instructor ${instructor.id}):`, e);
+    }
+
     try {
       const emailContent = instructorAgreementSentEmail(instructor.name, appUrl("/instructor/agreement"));
       await notifyByEmail({
@@ -131,6 +146,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         subject: emailContent.subject,
         html: emailContent.html,
         text: emailContent.text,
+        attachments: pdfAttachment,
       });
     } catch (e) {
       console.error(`Instructor agreement notification failed for agreement ${agreement.id}:`, e);

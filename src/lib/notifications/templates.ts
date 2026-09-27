@@ -719,10 +719,10 @@ export function instructorAgreementSentEmail(instructorName: string, reviewUrl: 
     subject: "Your AAICBI instructor agreement is ready to review",
     html: wrapHtml(`
       <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(instructorName)},</p>
-      <p style="margin:0 0 16px;">Your AAICBI instructor agreement is ready for you to review and sign.</p>
+      <p style="margin:0 0 16px;">Your AAICBI instructor agreement is ready for you to review and sign. A signed PDF copy of the letter of engagement is attached to this email for your records.</p>
       ${button(reviewUrl, "Review Agreement")}
     `),
-    text: `Hi ${instructorName},\n\nYour AAICBI instructor agreement is ready for you to review and sign.\n\n${reviewUrl}`,
+    text: `Hi ${instructorName},\n\nYour AAICBI instructor agreement is ready for you to review and sign. A signed PDF copy of the letter of engagement is attached to this email for your records.\n\n${reviewUrl}`,
   };
 }
 

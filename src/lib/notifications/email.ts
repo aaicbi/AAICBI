@@ -77,6 +77,11 @@ export interface SendEmailInput {
   // EMAIL_FROM address. See buildFromHeader's own comment for exactly
   // how the two are combined. Undefined for every existing call site.
   fromName?: string;
+  // Instructor Portal — the agreement PDF (instructorAgreementPdf.tsx)
+  // is the first real use of this; a plain pass-through to Resend's own
+  // `attachments` field (it accepts a Buffer directly, no base64
+  // encoding needed). Undefined for every other existing call site.
+  attachments?: { filename: string; content: Buffer }[];
 }
 
 export interface SendEmailResult {
@@ -110,7 +115,14 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
 
   try {
     const result = await withTimeout(
-      resend.emails.send({ from, to: input.to, subject: input.subject, html: input.html, text: input.text }),
+      resend.emails.send({
+        from,
+        to: input.to,
+        subject: input.subject,
+        html: input.html,
+        text: input.text,
+        attachments: input.attachments,
+      }),
       EMAIL_SEND_TIMEOUT_MS
     );
     if (result.error) {
