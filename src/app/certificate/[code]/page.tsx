@@ -69,6 +69,12 @@ export default async function CertificateVerificationPage({ params }: { params: 
       revokedAt: true,
       trainee: { select: { name: true } },
       course: { select: { title: true, description: true } },
+      // The name the trainee confirmed when they started the course
+      // examination — see Attempt.certificateName's own schema
+      // comment. Null for a certificate issued before this field
+      // existed, or a genuinely old attempt row; trainee.name is the
+      // honest fallback for those, not a hard requirement.
+      courseExamAttempt: { select: { certificateName: true } },
     },
   });
 
@@ -89,6 +95,7 @@ export default async function CertificateVerificationPage({ params }: { params: 
           revokedAt: true,
           trainee: { select: { name: true } },
           exam: { select: { title: true } },
+          examAttempt: { select: { certificateName: true } },
         },
       });
 
@@ -97,7 +104,7 @@ export default async function CertificateVerificationPage({ params }: { params: 
         code: courseCertificate.code,
         issuedAt: courseCertificate.issuedAt,
         revokedAt: courseCertificate.revokedAt,
-        traineeName: courseCertificate.trainee.name,
+        traineeName: courseCertificate.courseExamAttempt?.certificateName || courseCertificate.trainee.name,
         credentialTitle: courseCertificate.course.title,
         verb: "has successfully completed",
       }
@@ -106,7 +113,7 @@ export default async function CertificateVerificationPage({ params }: { params: 
           code: examCertificateRow.code,
           issuedAt: examCertificateRow.issuedAt,
           revokedAt: examCertificateRow.revokedAt,
-          traineeName: examCertificateRow.trainee.name,
+          traineeName: examCertificateRow.examAttempt?.certificateName || examCertificateRow.trainee.name,
           credentialTitle: examCertificateRow.exam.title,
           verb: "has successfully passed",
         }

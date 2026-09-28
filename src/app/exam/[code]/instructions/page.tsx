@@ -10,11 +10,13 @@ interface ExamMeta {
   instructions: string | null;
   durationMinutes: number;
   totalQuestions: number;
+  certificateEnabled: boolean;
 }
 
 export default function InstructionsPage({ params }: { params: { code: string } }) {
   const [exam, setExam] = useState<ExamMeta | null>(null);
   const [confirmed, setConfirmed] = useState(false);
+  const [certificateName, setCertificateName] = useState("");
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -28,6 +30,14 @@ export default function InstructionsPage({ params }: { params: { code: string } 
     fetch(`/api/exams/by-code/${params.code}`)
       .then((r) => r.json())
       .then(setExam);
+    // Pre-fills the certificate-name field with the trainee's account
+    // name, editable before they confirm it — they might want a
+    // different form of their name printed than what's on their
+    // account.
+    fetch("/api/trainee/profile")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => data?.name && setCertificateName(data.name))
+      .catch(() => {});
   }, [params.code, router]);
 
   async function handleStart() {
@@ -57,7 +67,7 @@ export default function InstructionsPage({ params }: { params: { code: string } 
     const res = await fetch("/api/attempts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ examCode: params.code }),
+      body: JSON.stringify({ examCode: params.code, certificateName: exam?.certificateEnabled ? certificateName.trim() : undefined }),
     });
     setStarting(false);
     if (!res.ok) {
@@ -98,6 +108,20 @@ Do not refresh or close the browser during the examination.
 Your score will be calculated automatically.`}
         </Card>
 
+        {exam.certificateEnabled && (
+          <div className="mt-5">
+            <label className="text-sm font-semibold text-brand-ink">Name on your certificate</label>
+            <input
+              type="text"
+              value={certificateName}
+              onChange={(e) => setCertificateName(e.target.value)}
+              placeholder="Full name as you'd like it printed"
+              className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
+            />
+            <p className="mt-1 text-xs text-gray-500">Passing this exam earns a certificate — this is the name that will appear on it.</p>
+          </div>
+        )}
+
         <label className="mt-5 flex items-center gap-2 text-sm text-brand-ink">
           <input
             type="checkbox"
@@ -110,7 +134,13 @@ Your score will be calculated automatically.`}
 
         {error && <p className="mt-3 text-sm text-brand-rose">{error}</p>}
 
-        <Button onClick={handleStart} disabled={!confirmed} loading={starting} size="lg" className="mt-5 w-full">
+        <Button
+          onClick={handleStart}
+          disabled={!confirmed || (exam.certificateEnabled && !certificateName.trim())}
+          loading={starting}
+          size="lg"
+          className="mt-5 w-full"
+        >
           {starting ? "Starting..." : "Start Test"}
         </Button>
       </main>

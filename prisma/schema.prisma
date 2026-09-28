@@ -1883,6 +1883,20 @@ model Attempt {
   // back to the exam's current value only for those old rows.
   passMarkPercent Int?
 
+  // The name the trainee asked to have printed on their certificate,
+  // captured at the moment they started THIS attempt — required (in
+  // the two start routes that ask for it, not here) for a course
+  // examination and for a standalone exam with certificateEnabled on,
+  // since both are the actual certificate-issuance trigger. A snapshot
+  // on purpose, same "don't re-derive, capture at the meaningful
+  // moment" convention as passMarkPercent/expiresAt just above — a
+  // later change to the trainee's account name must never silently
+  // alter a certificate already earned under a name they explicitly
+  // confirmed. Null for every attempt type that was never asked
+  // (module assessments, a non-certificate standalone exam) and for
+  // any attempt predating this field.
+  certificateName String?
+
   questionOrder Json?
 
   answers           Answer[]

@@ -82,7 +82,11 @@ export function isExpired(attempt: Attempt): boolean {
  * fallback below, for the narrow window between the check and the
  * create.
  */
-export async function startAttempt(exam: Exam & { questions: (Question & { options: Option[] })[] }, traineeId: string) {
+export async function startAttempt(
+  exam: Exam & { questions: (Question & { options: Option[] })[] },
+  traineeId: string,
+  certificateName?: string
+) {
   if (!exam.published) {
     throw httpError(403, "This examination is not currently open.");
   }
@@ -148,6 +152,7 @@ export async function startAttempt(exam: Exam & { questions: (Question & { optio
         // submit time can't be affected by a pass-mark change an
         // instructor makes while this attempt is still in progress.
         passMarkPercent: exam.passMarkPercent,
+        certificateName: certificateName || undefined,
       },
     });
     return { attempt, orderedQuestions: pool };

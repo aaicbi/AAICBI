@@ -30,6 +30,10 @@ import { startAttempt, serveableQuestion, secondsRemaining } from "@/lib/examEng
 // the metadata screen this attempt follows).
 const StartAttemptSchema = z.object({
   examCode: z.string().min(1),
+  // Required only when the exam has certificateEnabled on (checked
+  // below, not in this schema — the schema can't see the exam yet).
+  // See Attempt.certificateName's own schema comment.
+  certificateName: z.string().trim().max(200).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -58,7 +62,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Examination not found. Check your code and try again." }, { status: 404 });
     }
 
-    const { attempt, orderedQuestions } = await startAttempt(exam, session.userId);
+    if (exam.certificateEnabled && !parsed.data.certificateName) {
+      return NextResponse.json({ error: "Please enter the name you'd like printed on your certificate." }, { status: 400 });
+    }
+
+    const { attempt, orderedQuestions } = await startAttempt(exam, session.userId, parsed.data.certificateName);
 
     return NextResponse.json({
       attemptId: attempt.id,

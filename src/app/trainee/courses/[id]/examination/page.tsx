@@ -34,6 +34,7 @@ export default function CourseExaminationIntroPage({ params }: { params: { id: s
   const [meta, setMeta] = useState<ExamMeta | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [certificateName, setCertificateName] = useState("");
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -43,12 +44,23 @@ export default function CourseExaminationIntroPage({ params }: { params: { id: s
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then(setMeta)
       .catch(() => setNotFound(true));
+    // Pre-fills with the trainee's account name — editable, since a
+    // course examination always issues a certificate on pass and they
+    // might want a different form of their name printed.
+    fetch("/api/trainee/profile")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => data?.name && setCertificateName(data.name))
+      .catch(() => {});
   }, [params.id]);
 
   async function handleStart() {
     setStarting(true);
     setError(null);
-    const res = await fetch(`/api/courses/${params.id}/examination/attempts`, { method: "POST" });
+    const res = await fetch(`/api/courses/${params.id}/examination/attempts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ certificateName: certificateName.trim() }),
+    });
     setStarting(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -144,6 +156,18 @@ Do not refresh or close the browser during the examination.`}
           </div>
         ) : (
           <>
+            <div className="mt-5">
+              <label className="text-sm font-semibold text-brand-ink">Name on your certificate</label>
+              <input
+                type="text"
+                value={certificateName}
+                onChange={(e) => setCertificateName(e.target.value)}
+                placeholder="Full name as you'd like it printed"
+                className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
+              />
+              <p className="mt-1 text-xs text-gray-500">Passing this examination earns a certificate — this is the name that will appear on it.</p>
+            </div>
+
             <label className="mt-5 flex items-center gap-2 text-sm text-brand-ink">
               <input
                 type="checkbox"
@@ -156,7 +180,13 @@ Do not refresh or close the browser during the examination.`}
 
             {error && <p className="mt-3 text-sm text-brand-rose">{error}</p>}
 
-            <Button onClick={handleStart} disabled={!confirmed || blocked} loading={starting} size="lg" className="mt-5 w-full">
+            <Button
+              onClick={handleStart}
+              disabled={!confirmed || blocked || !certificateName.trim()}
+              loading={starting}
+              size="lg"
+              className="mt-5 w-full"
+            >
               {starting ? "Starting..." : "Start Examination"}
             </Button>
           </>

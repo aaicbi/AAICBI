@@ -47,6 +47,7 @@ export async function GET(_req: NextRequest, { params }: { params: { code: strin
         numQuestions: true,
         published: true,
         monitoringEnabled: true,
+        certificateEnabled: true,
         courseId: true,
         moduleId: true,
         _count: { select: { questions: true } },
@@ -79,6 +80,7 @@ export async function GET(_req: NextRequest, { params }: { params: { code: strin
       durationMinutes: exam.durationMinutes,
       totalQuestions: exam.numQuestions ?? exam._count.questions,
       monitoringEnabled: exam.monitoringEnabled,
+      certificateEnabled: exam.certificateEnabled,
     });
   });
 }

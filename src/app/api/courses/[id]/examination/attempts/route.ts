@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
@@ -6,6 +7,14 @@ import { hasCourseAccess } from "@/lib/courseAccess";
 import { getModuleLockMap } from "@/lib/progress";
 import { nextAttemptAllowedAt } from "@/lib/cooldownCore";
 import { startAttempt, serveableQuestion, secondsRemaining } from "@/lib/examEngine";
+
+// Every course examination is a certificate-issuance trigger (M23) —
+// unlike the standalone-exam start route, there's no toggle to check
+// here, so this is required unconditionally. See Attempt.certificateName's
+// own schema comment.
+const StartCourseExamSchema = z.object({
+  certificateName: z.string().trim().min(1),
+});
 
 /**
  * POST /api/courses/[id]/examination/attempts — the course-scoped
@@ -29,9 +38,18 @@ import { startAttempt, serveableQuestion, secondsRemaining } from "@/lib/examEng
  * `completed` signal, not a second implementation that could drift
  * from it.
  */
-export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("TRAINEE");
+
+    const body = await req.json().catch(() => ({}));
+    const parsed = StartCourseExamSchema.safeParse(body);
+    if (!parsed.success) {
+      // Ignores Zod's own message — a missing field reports "Required",
+      // not the friendlier one the schema's own .min() message gives an
+      // empty string, and this schema only has the one field anyway.
+      return NextResponse.json({ error: "Please enter the name you'd like printed on your certificate." }, { status: 400 });
+    }
 
     // M18 — same enrollment gate as every other trainee-facing course
     // route this project already has.
@@ -86,7 +104,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
       );
     }
 
-    const { attempt, orderedQuestions } = await startAttempt(exam, session.userId);
+    const { attempt, orderedQuestions } = await startAttempt(exam, session.userId, parsed.data.certificateName);
 
     return NextResponse.json({
       attemptId: attempt.id,
