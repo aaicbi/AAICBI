@@ -185,6 +185,41 @@ ${portalUrl}`,
   };
 }
 
+export interface ExamCertificateIssuedEmailInput {
+  traineeName: string;
+  examTitle: string;
+  certificateCode: string;
+  verificationUrl: string;
+}
+
+/**
+ * The standalone-exam counterpart to certificateIssuedEmail — see
+ * ExamCertificate's own schema comment. "Passed" rather than
+ * "completed every module," since a standalone exam has no modules to
+ * complete.
+ */
+export function examCertificateIssuedEmail(input: ExamCertificateIssuedEmailInput): EmailContent {
+  return {
+    subject: `Your certificate for ${input.examTitle}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Congratulations, ${escapeHtml(input.traineeName)}!</p>
+      <p style="margin:0 0 16px;">You&apos;ve passed <strong>${escapeHtml(input.examTitle)}</strong> — your certificate is ready.</p>
+      <p style="margin:0 0 16px;font-size:13px;color:#666;">Certificate code: <strong style="color:#1a1a1a;">${escapeHtml(input.certificateCode)}</strong></p>
+      ${button(input.verificationUrl, "View & Share Your Certificate")}
+      <p style="margin:0;font-size:13px;color:#666;">Anyone can verify this certificate at the link above — no login required.</p>
+    `),
+    text: `Congratulations, ${input.traineeName}!
+
+You've passed ${input.examTitle} — your certificate is ready.
+
+Certificate code: ${input.certificateCode}
+
+${input.verificationUrl}
+
+Anyone can verify this certificate at that link — no login required.`,
+  };
+}
+
 export interface AssessmentResultEmailInput {
   traineeName: string;
   examTitle: string;

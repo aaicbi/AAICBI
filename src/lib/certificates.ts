@@ -6,7 +6,7 @@
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { notifyByEmail, shouldNotifyTrainee } from "@/lib/notifications/log";
-import { certificateIssuedEmail } from "@/lib/notifications/templates";
+import { certificateIssuedEmail, examCertificateIssuedEmail } from "@/lib/notifications/templates";
 import { appUrl } from "@/lib/appUrl";
 
 // Alphabet excludes 0/O and 1/I/L — characters people reliably
@@ -151,5 +151,86 @@ export async function issueCertificateForPassedExam(attemptId: string, courseId:
     });
   } catch (e) {
     console.error(`Certificate issuance failed for trainee ${traineeId}, course ${courseId}, attempt ${attemptId}:`, e);
+  }
+}
+
+/**
+ * The standalone-exam counterpart to issueCertificateForPassedExam —
+ * see ExamCertificate's own schema comment for why this is a separate
+ * model/function rather than a generalization of the course one.
+ * Deliberately simpler: no course enrollment to mark complete, no
+ * course title to look up. Same race-safety shape (an individual
+ * create(), P2002 caught and treated as "someone else just issued it")
+ * since `@@unique([traineeId, examId])` is doing the real guarantee —
+ * there's no legacy pre-existing-row case here the way the course
+ * version has (this model has no history predating this feature), so
+ * the update-existing-row branch that function needs doesn't apply.
+ * Never throws — same reasoning as every other notification hook.
+ */
+export async function issueCertificateForPassedStandaloneExam(attemptId: string, examId: string, traineeId: string): Promise<void> {
+  try {
+    const existing = await prisma.examCertificate.findUnique({
+      where: { traineeId_examId: { traineeId, examId } },
+      select: { id: true },
+    });
+    if (existing) return;
+
+    let certificate;
+    try {
+      certificate = await prisma.examCertificate.create({
+        data: { code: generateCertificateCode(), traineeId, examId, examAttemptId: attemptId },
+      });
+    } catch (e) {
+      const code = (e as { code?: string })?.code;
+      if (code === "P2002") return; // lost the race — someone else just issued it
+      throw e;
+    }
+
+    const trainee = await prisma.trainee.findUnique({ where: { id: traineeId } });
+    if (!trainee || !shouldNotifyTrainee(trainee)) return;
+
+    const exam = await prisma.exam.findUnique({ where: { id: examId }, select: { title: true } });
+    if (!exam) return;
+
+    const relativeUrl = `/certificate/${certificate.code}`;
+    const email = examCertificateIssuedEmail({
+      traineeName: trainee.name,
+      examTitle: exam.title,
+      certificateCode: certificate.code,
+      verificationUrl: appUrl(relativeUrl),
+    });
+    await notifyByEmail({
+      recipientType: "TRAINEE",
+      recipientId: traineeId,
+      to: trainee.email,
+      type: "EXAM_CERTIFICATE_ISSUED",
+      relatedId: certificate.id,
+      url: relativeUrl,
+      subject: email.subject,
+      html: email.html,
+      text: email.text,
+    });
+  } catch (e) {
+    console.error(`Exam certificate issuance failed for trainee ${traineeId}, exam ${examId}, attempt ${attemptId}:`, e);
+  }
+}
+
+/**
+ * Called when an admin flips certificateEnabled false->true on a
+ * standalone exam (PUT /api/exams/[id]) — retroactively issues
+ * certificates for every trainee who already passed before the toggle
+ * existed, so "turn on certificates" doesn't silently exclude everyone
+ * who already earned one. Reuses the exact same issuance function (and
+ * its own idempotency/race-safety) per matching attempt, one at a time
+ * — this exam's total attempt count is never large enough to need
+ * batching.
+ */
+export async function issueRetroactiveExamCertificates(examId: string): Promise<void> {
+  const passingAttempts = await prisma.attempt.findMany({
+    where: { examId, status: "SUBMITTED", passed: true },
+    select: { id: true, traineeId: true },
+  });
+  for (const attempt of passingAttempts) {
+    await issueCertificateForPassedStandaloneExam(attempt.id, examId, attempt.traineeId);
   }
 }

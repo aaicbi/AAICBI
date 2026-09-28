@@ -77,7 +77,10 @@ export type NotificationType =
   | "EXAM_ACCESS_GRANTED"
   // Instructor Portal, Phase 1 follow-up — an instructor has been
   // assigned as the instructor of record for a course (Course.createdById).
-  | "COURSE_INSTRUCTOR_ASSIGNED";
+  | "COURSE_INSTRUCTOR_ASSIGNED"
+  // Standalone-exam certificates — see ExamCertificate's own schema
+  // comment.
+  | "EXAM_CERTIFICATE_ISSUED";
 
 export interface NotifyByEmailInput {
   recipientType: "TRAINEE" | "STAFF" | "EMPLOYER" | "INVESTOR";

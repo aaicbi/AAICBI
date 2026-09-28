@@ -27,7 +27,7 @@ import { assessmentResultEmail } from "@/lib/notifications/templates";
 import { appUrl } from "@/lib/appUrl";
 import { getModuleLockMap } from "@/lib/progress";
 import { checkFailedAttemptsThreshold } from "@/lib/earlyWarning";
-import { issueCertificateForPassedExam } from "@/lib/certificates";
+import { issueCertificateForPassedExam, issueCertificateForPassedStandaloneExam } from "@/lib/certificates";
 
 export interface ServeableOption {
   key: string;
@@ -481,6 +481,19 @@ export async function submitAttempt(attemptId: string) {
       await issueCertificateForPassedExam(attemptId, exam.courseId, attempt.traineeId);
     } catch (e) {
       console.error(`Certificate issuance failed for attempt ${attemptId}:`, e);
+    }
+  }
+
+  // Standalone-exam certificates — the same real-time trigger as the
+  // course-examination branch above, for an exam with neither a
+  // courseId nor a courseModule (a knowledge test created outside any
+  // course) that its own admin has opted into issuing certificates
+  // for. See ExamCertificate's own schema comment.
+  if (!exam.courseId && !exam.courseModule && exam.certificateEnabled && graded.passed) {
+    try {
+      await issueCertificateForPassedStandaloneExam(attemptId, exam.id, attempt.traineeId);
+    } catch (e) {
+      console.error(`Exam certificate issuance failed for attempt ${attemptId}:`, e);
     }
   }
 

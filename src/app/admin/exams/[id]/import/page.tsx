@@ -28,6 +28,7 @@ interface ExamDto {
   title: string;
   code: string;
   published: boolean;
+  certificateEnabled: boolean;
   courseId: string | null;
   moduleId: string | null;
   questions: QuestionDto[];
@@ -58,6 +59,7 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
   const [granting, setGranting] = useState(false);
   const [grantError, setGrantError] = useState<string | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [togglingCertificate, setTogglingCertificate] = useState(false);
 
   async function loadExam() {
     const res = await fetch(`/api/exams/${params.id}`);
@@ -225,6 +227,18 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
     await loadExam();
   }
 
+  async function toggleCertificate(enabled: boolean) {
+    setTogglingCertificate(true);
+    await fetch(`/api/exams/${params.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ certificateEnabled: enabled }),
+    });
+    setTogglingCertificate(false);
+    showToast(enabled ? "Certificates enabled — anyone who already passed just got theirs." : "Certificates disabled for new passes.", "success");
+    await loadExam();
+  }
+
   if (!exam) {
     return (
       <>
@@ -375,6 +389,40 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
           </div>
         )}
       </div>
+
+      {/* Certificate — standalone exams only (see ExamCertificate's own
+          comment): a course examination already has its own
+          certificate path tied to course completion, unrelated to this
+          toggle. */}
+      {isStandalone && (
+        <div className="mt-8 rounded-lg border border-brand-gray p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-semibold text-gray-900">Certificate</h2>
+              <p className="mt-1 text-sm text-gray-500">
+                {exam.certificateEnabled
+                  ? "A trainee who passes this exam automatically earns a verifiable certificate."
+                  : "Turn this on to automatically issue a certificate to anyone who passes."}
+              </p>
+            </div>
+            <button
+              onClick={() => toggleCertificate(!exam.certificateEnabled)}
+              disabled={togglingCertificate}
+              role="switch"
+              aria-checked={exam.certificateEnabled}
+              className={`relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-60 ${
+                exam.certificateEnabled ? "bg-brand-teal" : "bg-brand-gray"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                  exam.certificateEnabled ? "translate-x-5" : "translate-x-0.5"
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Access control — standalone exams only (see ExamAccessGrant's
           own comment): not tied to a course, so nothing else gates who

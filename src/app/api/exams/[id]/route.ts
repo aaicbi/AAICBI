@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { requireOwnedExam } from "@/lib/courseOwnership";
 import { guardExamDeletable } from "@/lib/deletionGuards";
+import { issueRetroactiveExamCertificates } from "@/lib/certificates";
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
@@ -54,13 +55,18 @@ const UpdateExamSchema = z
     showCorrectAnswers: z.boolean(),
     allowReview: z.boolean(),
     monitoringEnabled: z.boolean(),
+    // Standalone-exam certificates — only meaningful for an exam with
+    // no courseId/moduleId (see ExamCertificate's own schema comment);
+    // harmless no-op otherwise, since examEngine.ts only reads it on
+    // that branch.
+    certificateEnabled: z.boolean(),
   })
   .partial();
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedExam(params.id, session.userId);
+    const before = await requireOwnedExam(params.id, session.userId);
 
     const body = await req.json();
     const parsed = UpdateExamSchema.safeParse(body);
@@ -69,6 +75,18 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
 
     const exam = await prisma.exam.update({ where: { id: params.id }, data: parsed.data });
+
+    // Turning certificates on shouldn't silently exclude everyone who
+    // already passed before the toggle existed — see
+    // issueRetroactiveExamCertificates's own comment. Never blocks the
+    // response; a slow or failed backfill is not a reason to fail the
+    // settings save itself.
+    if (parsed.data.certificateEnabled && !before.certificateEnabled) {
+      issueRetroactiveExamCertificates(exam.id).catch((e) =>
+        console.error(`Retroactive exam certificate issuance failed for exam ${exam.id}:`, e)
+      );
+    }
+
     return NextResponse.json(exam);
   });
 }

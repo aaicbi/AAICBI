@@ -61,7 +61,7 @@ export default async function CertificateVerificationPage({ params }: { params: 
     );
   }
 
-  const certificate = await prisma.certificate.findUnique({
+  const courseCertificate = await prisma.certificate.findUnique({
     where: { code: params.code.toUpperCase() },
     select: {
       code: true,
@@ -71,6 +71,46 @@ export default async function CertificateVerificationPage({ params }: { params: 
       course: { select: { title: true, description: true } },
     },
   });
+
+  // Standalone-exam certificates share the exact same code format/
+  // alphabet (generateCertificateCode) and the same public-verification
+  // idea, so this one page serves both — see ExamCertificate's own
+  // schema comment for why it's a separate table rather than a
+  // generalized Certificate. Normalized into the same shape the render
+  // below already expects, with "passed" instead of "completed" (a
+  // standalone exam has no modules to complete, just a pass/fail).
+  const examCertificateRow = courseCertificate
+    ? null
+    : await prisma.examCertificate.findUnique({
+        where: { code: params.code.toUpperCase() },
+        select: {
+          code: true,
+          issuedAt: true,
+          revokedAt: true,
+          trainee: { select: { name: true } },
+          exam: { select: { title: true } },
+        },
+      });
+
+  const certificate = courseCertificate
+    ? {
+        code: courseCertificate.code,
+        issuedAt: courseCertificate.issuedAt,
+        revokedAt: courseCertificate.revokedAt,
+        traineeName: courseCertificate.trainee.name,
+        credentialTitle: courseCertificate.course.title,
+        verb: "has successfully completed",
+      }
+    : examCertificateRow
+      ? {
+          code: examCertificateRow.code,
+          issuedAt: examCertificateRow.issuedAt,
+          revokedAt: examCertificateRow.revokedAt,
+          traineeName: examCertificateRow.trainee.name,
+          credentialTitle: examCertificateRow.exam.title,
+          verb: "has successfully passed",
+        }
+      : null;
 
   if (!certificate) {
     return (
@@ -171,11 +211,11 @@ export default async function CertificateVerificationPage({ params }: { params: 
             </p>
             <p className="mt-6 text-sm text-gray-500">This certifies that</p>
             <p className="mt-2 font-display text-2xl font-semibold italic text-brand-ink sm:text-4xl">
-              {certificate.trainee.name}
+              {certificate.traineeName}
             </p>
-            <p className="mt-4 text-sm text-gray-500">has successfully completed</p>
+            <p className="mt-4 text-sm text-gray-500">{certificate.verb}</p>
             <p className="mt-2 font-display text-lg font-semibold text-brand-teal sm:text-xl">
-              {certificate.course.title}
+              {certificate.credentialTitle}
             </p>
 
             {/* Responsiveness fix: this used to be a fixed

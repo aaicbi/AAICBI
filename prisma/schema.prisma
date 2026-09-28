@@ -526,6 +526,10 @@ model Trainee {
   moduleCompletions ModuleCompletion[]
   // M15
   certificates Certificate[]
+  // Standalone-exam certificates — see ExamCertificate's own comment
+  // for why this is a separate model from Certificate rather than a
+  // generalized one.
+  examCertificates ExamCertificate[]
   // Whole-project audit recommendation: cohorts — reporting only, never
   // an access gate (see that model's own comment).
   enrollments EnrollmentRecord[]
@@ -1510,6 +1514,15 @@ model Exam {
   allowReview        Boolean  @default(true)
   monitoringEnabled  Boolean  @default(false)
   published          Boolean  @default(false)
+  // Only meaningful for a standalone exam (no courseId, no moduleId —
+  // see ExamCertificate's own comment). A module assessment or course
+  // examination never reads this: their certificate path is
+  // Certificate/issueCertificateForPassedExam, unchanged. Admin-toggled
+  // on the exam's own settings; when a PUT flips this false->true,
+  // the route also retroactively issues certificates for anyone who
+  // already passed before the toggle was on — see that route's own
+  // comment.
+  certificateEnabled Boolean @default(false)
 
   createdById String
   createdBy   User   @relation(fields: [createdById], references: [id])
@@ -1586,8 +1599,41 @@ model Exam {
   // standalone exam: only a trainee with a non-revoked grant here can
   // even see or start it. See ExamAccessGrant's own comment.
   accessGrants ExamAccessGrant[]
+  // Standalone-exam certificates — see ExamCertificate's own comment.
+  certificates ExamCertificate[]
 
   @@index([code])
+}
+
+// A certificate earned by passing a STANDALONE exam (no course, no
+// module — an admin-created knowledge test, e.g. to screen applicants
+// for a skill area) when that exam's own certificateEnabled toggle is
+// on. Deliberately a separate model from Certificate, not a
+// generalization of it: Certificate's whole shape — required courseId,
+// course-enrollment completion, employer-disclosure relations — is
+// genuinely about "finished this course," which a standalone exam
+// pass isn't. Forcing the two into one model would mean making
+// Certificate.courseId nullable and bending its heavily
+// race-condition-audited issuance logic (see issueCertificateForPassedExam's
+// own comment) to also handle a case it was never designed for. This
+// mirrors Certificate's own shape (same code alphabet/format via
+// generateCertificateCode, same public-verification idea) without
+// touching that existing, working system at all.
+model ExamCertificate {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  traineeId String
+  trainee   Trainee   @relation(fields: [traineeId], references: [id])
+  examId    String
+  exam      Exam      @relation(fields: [examId], references: [id], onDelete: Restrict)
+  issuedAt  DateTime  @default(now())
+  revokedAt DateTime?
+
+  examAttemptId String  @unique
+  examAttempt   Attempt @relation(fields: [examAttemptId], references: [id])
+
+  @@unique([traineeId, examId])
+  @@index([traineeId])
 }
 
 // Only meaningful for a standalone Exam (courseId and moduleId both
@@ -1851,6 +1897,9 @@ model Attempt {
   // attempts, including every module assessment attempt ever, will
   // never have one.
   earnedCertificate Certificate?
+  // Same idea, for a standalone exam's own certificate instead of a
+  // course examination's — see ExamCertificate's own comment.
+  earnedExamCertificate ExamCertificate?
 
   @@unique([examId, traineeId, attemptNumber])
   @@index([examId])
