@@ -113,6 +113,18 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
 
   const from = buildFromHeader(process.env.EMAIL_FROM || "AAICBI <onboarding@resend.dev>", input.fromName);
 
+  // Real bug, found by an actual failed send, not by reading the SDK's
+  // types: Resend's own `post()` sends every request body through a
+  // plain `JSON.stringify(entity)` (confirmed directly in its compiled
+  // source — it does no special-casing for a Buffer field anywhere).
+  // `JSON.stringify` turns a Node Buffer into `{"type":"Buffer","data":
+  // [...]}`, not the base64 STRING Resend's API actually expects for
+  // `content` — so a Buffer attachment silently produces no usable
+  // attachment at all, while the email itself still sends successfully
+  // with no error anywhere. Converting to base64 ourselves, here, is
+  // the fix — never pass a raw Buffer to this SDK.
+  const attachments = input.attachments?.map((a) => ({ filename: a.filename, content: a.content.toString("base64") }));
+
   try {
     const result = await withTimeout(
       resend.emails.send({
@@ -121,7 +133,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
         subject: input.subject,
         html: input.html,
         text: input.text,
-        attachments: input.attachments,
+        attachments,
       }),
       EMAIL_SEND_TIMEOUT_MS
     );
