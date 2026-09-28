@@ -6,7 +6,7 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { SkeletonTableRows } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
-import { ChevronDown, ChevronRight, Clock } from "lucide-react";
+import { ChevronDown, ChevronRight, Clock, Award } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 
 interface PerformanceSummaryDto {
@@ -25,6 +25,10 @@ interface AttemptRow {
   traineeId: string;
   trainee: { name: string; email: string };
   performanceSummary: PerformanceSummaryDto | null;
+  // Standalone-exam certificates only (see ExamCertificate's own
+  // schema comment) — null for every course-examination/module-
+  // assessment attempt.
+  earnedExamCertificate: { code: string; revokedAt: string | null } | null;
 }
 interface ResultsResponse {
   summary: {
@@ -131,11 +135,12 @@ export default function ExamResultsPage({ params }: { params: { id: string } }) 
                 <th>Submitted</th>
                 <th></th>
                 <th></th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {!data ? (
-                <SkeletonTableRows rows={5} cols={6} />
+                <SkeletonTableRows rows={5} cols={7} />
               ) : (
                 <>
                   {data.attempts.map((a) => (
@@ -178,10 +183,22 @@ export default function ExamResultsPage({ params }: { params: { id: string } }) 
                             <Icon icon={Clock} size="sm" /> {waiving === a.traineeId ? "Waiving…" : "Waive cooldown"}
                           </button>
                         </td>
+                        <td onClick={(e) => e.stopPropagation()}>
+                          {a.earnedExamCertificate && !a.earnedExamCertificate.revokedAt && (
+                            <a
+                              href={`/certificate/${a.earnedExamCertificate.code}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-brand-gold hover:underline"
+                            >
+                              <Icon icon={Award} size="sm" /> Certificate Issued
+                            </a>
+                          )}
+                        </td>
                       </tr>
                       {expanded === a.id && a.performanceSummary && (
                         <tr className="border-b border-gray-100 bg-brand-mint/30">
-                          <td colSpan={6} className="px-2 py-3">
+                          <td colSpan={7} className="px-2 py-3">
                             <p className="text-sm text-gray-700">{a.performanceSummary.narrative}</p>
                             {(a.performanceSummary.strengths.length > 0 ||
                               a.performanceSummary.weaknesses.length > 0) && (
@@ -209,7 +226,7 @@ export default function ExamResultsPage({ params }: { params: { id: string } }) 
                   ))}
                   {data.attempts.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="py-6 text-center text-gray-500">
+                      <td colSpan={7} className="py-6 text-center text-gray-500">
                         No submitted attempts yet.
                       </td>
                     </tr>

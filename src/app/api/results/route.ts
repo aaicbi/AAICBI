@@ -74,9 +74,19 @@ export async function GET(req: NextRequest) {
           : undefined,
       },
       include: {
-        trainee: true,
+        // Security fix, found while touching this exact block: `true`
+        // returns every Trainee scalar field, including passwordHash —
+        // sent straight to the browser on this admin results page. The
+        // UI only ever reads name/email.
+        trainee: { select: { name: true, email: true } },
         exam: { select: { title: true, code: true } },
         performanceSummary: { select: { strengths: true, weaknesses: true, narrative: true } },
+        // Standalone-exam certificates (see ExamCertificate's own
+        // schema comment) — null for every course-examination/module-
+        // assessment attempt, since that issuance path never creates
+        // one of these rows. Only the fields the results table needs
+        // to show a "Certificate Issued" link.
+        earnedExamCertificate: { select: { code: true, revokedAt: true } },
       },
       orderBy: { submittedAt: "desc" },
     });
