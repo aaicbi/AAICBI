@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/Toast";
 import { AlertTriangle, ArrowRight } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import CorrectnessMark from "@/components/ui/CorrectnessMark";
+import Toggle from "@/components/ui/Toggle";
 
 interface OptionDto {
   id: string;
@@ -405,21 +406,7 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
                   : "Turn this on to automatically issue a certificate to anyone who passes."}
               </p>
             </div>
-            <button
-              onClick={() => toggleCertificate(!exam.certificateEnabled)}
-              disabled={togglingCertificate}
-              role="switch"
-              aria-checked={exam.certificateEnabled}
-              className={`relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-60 ${
-                exam.certificateEnabled ? "bg-brand-teal" : "bg-brand-gray"
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                  exam.certificateEnabled ? "translate-x-5" : "translate-x-0.5"
-                }`}
-              />
-            </button>
+            <Toggle checked={exam.certificateEnabled} onChange={toggleCertificate} disabled={togglingCertificate} label="Issue certificate on pass" />
           </div>
         </div>
       )}
