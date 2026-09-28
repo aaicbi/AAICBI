@@ -126,13 +126,23 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     // email still goes out, just without the attachment," never to "no
     // email at all" — the in-app archive already has the full text
     // regardless (see /admin/instructors/[id]'s agreement history).
+    //
+    // pdfAttachmentError is diagnostic-only (see its own schema
+    // comment): a deployed environment's console output isn't
+    // reachable after the fact, so both the failure AND the success
+    // case are recorded directly onto the row, readable straight from
+    // the database instead of guessed at.
     let pdfAttachment: { filename: string; content: Buffer }[] | undefined;
+    let pdfDiagnostic: string;
     try {
       const pdf = await renderInstructorAgreementPdf({ instructorName: instructor.name, content, sentAt: letterDate });
       pdfAttachment = [{ filename: `AAICBI-Letter-of-Engagement-${instructor.name.replace(/\s+/g, "-")}.pdf`, content: pdf }];
+      pdfDiagnostic = `OK: generated ${pdf.length} bytes`;
     } catch (e) {
+      pdfDiagnostic = `FAILED: ${e instanceof Error ? e.stack || e.message : String(e)}`;
       console.error(`Agreement PDF generation failed for agreement (instructor ${instructor.id}):`, e);
     }
+    await prisma.instructorAgreement.update({ where: { id: agreement.id }, data: { pdfAttachmentError: pdfDiagnostic } }).catch(() => {});
 
     try {
       const emailContent = instructorAgreementSentEmail(instructor.name, appUrl("/instructor/agreement"));

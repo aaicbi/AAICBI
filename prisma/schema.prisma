@@ -1286,6 +1286,13 @@ model InstructorAgreement {
   acceptedName String?
   acceptedIp   String?
 
+  // Diagnostic-only — set when the PDF attachment could not be
+  // generated or attached for this specific send. Not shown anywhere
+  // in the UI; exists purely so a real failure in a deployed
+  // environment (where console output isn't reachable) can still be
+  // read back directly from the database instead of guessed at.
+  pdfAttachmentError String?
+
   createdAt DateTime @default(now())
 
   @@index([instructorId])
