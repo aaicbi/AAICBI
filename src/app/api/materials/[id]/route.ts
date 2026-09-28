@@ -18,7 +18,7 @@ const UpdateMaterialSchema = z.object({
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    const existing = await requireOwnedMaterial(params.id, session.userId);
+    const existing = await requireOwnedMaterial(params.id, session.userId, session.role);
 
     const body = await req.json();
     const parsed = UpdateMaterialSchema.safeParse(body);
@@ -67,7 +67,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    const existing = await requireOwnedMaterial(params.id, session.userId);
+    const existing = await requireOwnedMaterial(params.id, session.userId, session.role);
     await prisma.material.delete({ where: { id: params.id } });
     await deleteLessonMaterialBestEffort(existing.url);
     return NextResponse.json({ ok: true });

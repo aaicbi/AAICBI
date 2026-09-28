@@ -48,7 +48,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     const isStaff = session.role === "SUPER_ADMIN" || session.role === "ADMIN" || session.role === "INSTRUCTOR";
 
     if (isStaff) {
-      await requireOwnedCourse(params.id, session.userId);
+      await requireOwnedCourse(params.id, session.userId, session.role);
       const exam = await prisma.exam.findUnique({
         where: { courseId: params.id },
         include: {
@@ -134,7 +134,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedCourse(params.id, session.userId);
+    await requireOwnedCourse(params.id, session.userId, session.role);
 
     const existing = await prisma.exam.findUnique({ where: { courseId: params.id } });
     if (!existing) {

@@ -15,7 +15,7 @@ import { validateCurriculumFile, uploadCurriculum, deleteCurriculumBestEffort } 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    const course = await requireOwnedCourse(params.id, session.userId);
+    const course = await requireOwnedCourse(params.id, session.userId, session.role);
 
     const formData = await req.formData();
     const file = formData.get("file");
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    const course = await requireOwnedCourse(params.id, session.userId);
+    const course = await requireOwnedCourse(params.id, session.userId, session.role);
 
     const updated = await prisma.course.update({
       where: { id: course.id },

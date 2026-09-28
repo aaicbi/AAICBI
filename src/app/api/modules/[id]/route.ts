@@ -15,7 +15,7 @@ const UpdateModuleSchema = z.object({
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedModule(params.id, session.userId);
+    await requireOwnedModule(params.id, session.userId, session.role);
 
     const body = await req.json();
     const parsed = UpdateModuleSchema.safeParse(body);
@@ -35,7 +35,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedModule(params.id, session.userId);
+    await requireOwnedModule(params.id, session.userId, session.role);
     await guardModuleDeletable(params.id); // M11 audit finding — see deletionGuards.ts
     await prisma.module.delete({ where: { id: params.id } }); // cascades to lessons/materials (and its assessment, if any and unattempted)
     return NextResponse.json({ ok: true });

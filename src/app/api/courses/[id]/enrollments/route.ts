@@ -26,7 +26,7 @@ const GrantSchema = z.object({ email: z.string().email() });
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedCourse(params.id, session.userId);
+    await requireOwnedCourse(params.id, session.userId, session.role);
 
     const enrollments = await prisma.courseEnrollment.findMany({
       where: { courseId: params.id },
@@ -50,7 +50,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    const course = await requireOwnedCourse(params.id, session.userId);
+    const course = await requireOwnedCourse(params.id, session.userId, session.role);
 
     const body = await req.json();
     const parsed = GrantSchema.safeParse(body);

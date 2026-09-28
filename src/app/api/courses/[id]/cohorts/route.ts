@@ -20,7 +20,7 @@ const CreateCohortSchema = z.object({
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedCourse(params.id, session.userId);
+    await requireOwnedCourse(params.id, session.userId, session.role);
 
     const cohorts = await prisma.cohort.findMany({
       where: { courseId: params.id },
@@ -34,7 +34,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedCourse(params.id, session.userId);
+    await requireOwnedCourse(params.id, session.userId, session.role);
 
     const body = await req.json();
     const parsed = CreateCohortSchema.safeParse(body);

@@ -26,7 +26,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
       request,
       getSignedToken: async (pathname) => {
         const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-        const existing = await requireOwnedMaterial(params.id, session.userId);
+        const existing = await requireOwnedMaterial(params.id, session.userId, session.role);
 
         if (existing.type === "VIDEO") {
           throw new Error("Video materials are link-only — there's no file to upload.");

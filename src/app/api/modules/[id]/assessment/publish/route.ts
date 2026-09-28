@@ -16,7 +16,7 @@ import { requireOwnedModule } from "@/lib/courseOwnership";
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedModule(params.id, session.userId);
+    await requireOwnedModule(params.id, session.userId, session.role);
 
     const exam = await prisma.exam.findUnique({
       where: { moduleId: params.id },

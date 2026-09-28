@@ -21,7 +21,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (!cohort) {
       return NextResponse.json({ error: "Cohort not found." }, { status: 404 });
     }
-    await requireOwnedCourse(cohort.courseId, session.userId);
+    await requireOwnedCourse(cohort.courseId, session.userId, session.role);
 
     const body = await req.json();
     const parsed = EnrollSchema.safeParse(body);

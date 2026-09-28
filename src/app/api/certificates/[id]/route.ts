@@ -29,7 +29,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (!certificate) {
       return NextResponse.json({ error: "Certificate not found." }, { status: 404 });
     }
-    await requireOwnedCourse(certificate.courseId, session.userId);
+    await requireOwnedCourse(certificate.courseId, session.userId, session.role);
 
     const body = await req.json();
     const parsed = PatchSchema.safeParse(body);

@@ -17,36 +17,55 @@ function notFound(message: string) {
   return err;
 }
 
-export async function requireOwnedCourse(courseId: string, userId: string) {
+// Instructor Portal follow-up — a real gap exposed by course
+// reassignment (POST /api/admin/instructors/[id]/courses), which
+// didn't exist when "no SUPER_ADMIN bypass" was first decided here:
+// once a course's createdById moves to an instructor, the Super Admin
+// who just handed it off — or who built it in the first place — could
+// no longer edit or delete its own modules/lessons/materials at all,
+// with no way back short of reassigning it to themselves first. That
+// wasn't a real scenario before reassignment existed (createdById was
+// effectively permanent), so it was never actually exercised.
+//
+// A `role` param, optional and appended last, keeps every existing
+// call site source-compatible until it's updated to pass one — but
+// every real call site in this project has been updated to pass
+// `session.role` (grep confirms it), so in practice the bypass is
+// live everywhere these helpers are used. Deliberately still narrower
+// than createdByFilter's own SUPER_ADMIN-sees-everything pattern:
+// this is a mutation boundary, so only SUPER_ADMIN gets it — ADMIN
+// and INSTRUCTOR remain strictly scoped to courses they created,
+// completely unchanged.
+export async function requireOwnedCourse(courseId: string, userId: string, role?: string) {
   const course = await prisma.course.findUnique({ where: { id: courseId } });
-  if (!course || course.createdById !== userId) throw notFound("Course not found.");
+  if (!course || (role !== "SUPER_ADMIN" && course.createdById !== userId)) throw notFound("Course not found.");
   return course;
 }
 
-export async function requireOwnedModule(moduleId: string, userId: string) {
+export async function requireOwnedModule(moduleId: string, userId: string, role?: string) {
   const mod = await prisma.module.findUnique({
     where: { id: moduleId },
     include: { course: true },
   });
-  if (!mod || mod.course.createdById !== userId) throw notFound("Module not found.");
+  if (!mod || (role !== "SUPER_ADMIN" && mod.course.createdById !== userId)) throw notFound("Module not found.");
   return mod;
 }
 
-export async function requireOwnedLesson(lessonId: string, userId: string) {
+export async function requireOwnedLesson(lessonId: string, userId: string, role?: string) {
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },
     include: { module: { include: { course: true } } },
   });
-  if (!lesson || lesson.module.course.createdById !== userId) throw notFound("Lesson not found.");
+  if (!lesson || (role !== "SUPER_ADMIN" && lesson.module.course.createdById !== userId)) throw notFound("Lesson not found.");
   return lesson;
 }
 
-export async function requireOwnedMaterial(materialId: string, userId: string) {
+export async function requireOwnedMaterial(materialId: string, userId: string, role?: string) {
   const material = await prisma.material.findUnique({
     where: { id: materialId },
     include: { lesson: { include: { module: { include: { course: true } } } } },
   });
-  if (!material || material.lesson.module.course.createdById !== userId) throw notFound("Material not found.");
+  if (!material || (role !== "SUPER_ADMIN" && material.lesson.module.course.createdById !== userId)) throw notFound("Material not found.");
   return material;
 }
 

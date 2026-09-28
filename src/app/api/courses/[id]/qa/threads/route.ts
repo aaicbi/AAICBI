@@ -13,7 +13,7 @@ import { requireOwnedCourse } from "@/lib/courseOwnership";
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedCourse(params.id, session.userId);
+    await requireOwnedCourse(params.id, session.userId, session.role);
 
     const threads = await prisma.qaThread.findMany({
       where: { lesson: { module: { courseId: params.id } } },

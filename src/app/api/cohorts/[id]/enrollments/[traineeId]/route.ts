@@ -20,7 +20,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     if (!cohort) {
       return NextResponse.json({ error: "Cohort not found." }, { status: 404 });
     }
-    await requireOwnedCourse(cohort.courseId, session.userId);
+    await requireOwnedCourse(cohort.courseId, session.userId, session.role);
 
     await prisma.enrollmentRecord
       .delete({ where: { cohortId_traineeId: { cohortId: params.id, traineeId: params.traineeId } } })

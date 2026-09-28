@@ -367,7 +367,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     // helper (courseOwnership.ts) instead of the inline check this route
     // used to hand-roll; same "not found" wording either way, so no
     // observable behavior change, just one fewer duplicated check.
-    const course = await requireOwnedCourse(params.id, session.userId);
+    const course = await requireOwnedCourse(params.id, session.userId, session.role);
 
     const body = await req.json();
     const parsed = UpdateCourseSchema.safeParse(body);
@@ -442,7 +442,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedCourse(params.id, session.userId);
+    await requireOwnedCourse(params.id, session.userId, session.role);
     // M11 audit finding — a Course delete cascades through every one
     // of its modules' assessments too; see deletionGuards.ts.
     await guardCourseDeletable(params.id);

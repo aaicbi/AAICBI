@@ -91,7 +91,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     const isStaff = session.role === "SUPER_ADMIN" || session.role === "ADMIN" || session.role === "INSTRUCTOR";
 
     if (isStaff) {
-      const mod = await requireOwnedModule(params.id, session.userId);
+      const mod = await requireOwnedModule(params.id, session.userId, session.role);
       const exam = await prisma.exam.findUnique({
         where: { moduleId: params.id },
         include: { questions: { include: { options: true }, orderBy: { order: "asc" } } },
@@ -177,7 +177,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    const mod = await requireOwnedModule(params.id, session.userId);
+    const mod = await requireOwnedModule(params.id, session.userId, session.role);
 
     const existing = await prisma.exam.findUnique({ where: { moduleId: params.id } });
     if (existing) {
@@ -231,7 +231,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedModule(params.id, session.userId);
+    await requireOwnedModule(params.id, session.userId, session.role);
 
     const existing = await prisma.exam.findUnique({ where: { moduleId: params.id } });
     if (!existing) {

@@ -19,7 +19,7 @@ import { generateCourseExamination } from "@/lib/ai/generateCourseExam";
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedCourse(params.id, session.userId);
+    await requireOwnedCourse(params.id, session.userId, session.role);
 
     const result = await generateCourseExamination(params.id, session.userId);
     return NextResponse.json(result);

@@ -37,7 +37,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
       request,
       getSignedToken: async (pathname, clientPayload) => {
         const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-        await requireOwnedLesson(params.id, session.userId);
+        await requireOwnedLesson(params.id, session.userId, session.role);
 
         const parsed = clientPayload ? JSON.parse(clientPayload) : {};
         const type = parsed.type as "PDF" | "DOCX" | "PPTX" | undefined;

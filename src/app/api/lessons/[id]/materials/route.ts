@@ -21,7 +21,7 @@ const CreateMaterialSchema = z
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedLesson(params.id, session.userId);
+    await requireOwnedLesson(params.id, session.userId, session.role);
 
     const body = await req.json();
     const parsed = CreateMaterialSchema.safeParse(body);

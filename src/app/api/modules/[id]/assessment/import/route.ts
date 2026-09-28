@@ -54,7 +54,7 @@ const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_BYTES ?? 10 * 1024 * 1024
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    const mod = await requireOwnedModule(params.id, session.userId);
+    const mod = await requireOwnedModule(params.id, session.userId, session.role);
 
     let exam = await prisma.exam.findUnique({ where: { moduleId: params.id } });
     if (!exam) {

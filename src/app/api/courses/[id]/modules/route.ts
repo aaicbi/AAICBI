@@ -14,7 +14,7 @@ const CreateModuleSchema = z.object({
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedCourse(params.id, session.userId);
+    await requireOwnedCourse(params.id, session.userId, session.role);
 
     const body = await req.json();
     const parsed = CreateModuleSchema.safeParse(body);

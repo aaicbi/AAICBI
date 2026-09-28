@@ -30,7 +30,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     if (!cohort) {
       return NextResponse.json({ error: "Cohort not found." }, { status: 404 });
     }
-    await requireOwnedCourse(cohort.course.id, session.userId);
+    await requireOwnedCourse(cohort.course.id, session.userId, session.role);
 
     const totalModules = await prisma.module.count({ where: { courseId: cohort.course.id } });
 

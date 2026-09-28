@@ -20,7 +20,7 @@ import { requireOwnedCourse } from "@/lib/courseOwnership";
 export async function PATCH(_req: NextRequest, { params }: { params: { id: string; enrollmentId: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedCourse(params.id, session.userId);
+    await requireOwnedCourse(params.id, session.userId, session.role);
 
     const enrollment = await prisma.courseEnrollment.findUnique({ where: { id: params.enrollmentId } });
     if (!enrollment || enrollment.courseId !== params.id) {
