@@ -13,13 +13,11 @@
  * PDF is the durable copy; the in-app archive already keeps the exact
  * text (see /admin/instructors/[id]'s "View full agreement").
  */
-import fs from "fs";
-import path from "path";
 import { Document, Page, Text, View, StyleSheet, Image, renderToBuffer } from "@react-pdf/renderer";
+import { CEO_SIGNATURE_BASE64 } from "@/lib/ceoSignatureBase64";
 
 const CEO_NAME = "Kufreh Johnson";
 const CEO_TITLE = "Chief Executive Officer, AAICBI";
-const SIGNATURE_IMAGE_PATH = path.join(process.cwd(), "public", "signatures", "kufreh-johnson-ceo-signature.png");
 // The real image is 1954x1137 (~1.72:1) — fixed height/width here rather
 // than letting react-pdf guess, so the signature never stretches.
 const SIGNATURE_WIDTH = 150;
@@ -76,13 +74,13 @@ function AgreementDocument({ instructorName, content, sentAtLabel }: { instructo
 
   let signature: Buffer | null = null;
   try {
-    signature = fs.readFileSync(SIGNATURE_IMAGE_PATH);
+    signature = Buffer.from(CEO_SIGNATURE_BASE64, "base64");
   } catch (e) {
-    // A missing signature asset must never break sending the agreement
+    // A broken signature asset must never break sending the agreement
     // itself — same graceful-degradation discipline as every optional
     // integration in this app. The letter still goes out; it just
     // renders without the image, name/title still print below.
-    console.error("Could not read CEO signature image for the agreement PDF:", e);
+    console.error("Could not decode CEO signature image for the agreement PDF:", e);
   }
 
   return (
