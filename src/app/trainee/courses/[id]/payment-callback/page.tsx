@@ -13,11 +13,11 @@ import Button from "@/components/ui/Button";
  * proves nothing about whether the payment actually succeeded,
  * confirmed directly in Paystack's own documentation. The webhook
  * (verified server-to-server, confirmed against Paystack's own verify
- * endpoint) is the only source of truth for that — and even once it
- * confirms, access doesn't appear automatically. See the schema
- * comment on CourseEnrollment.otpCode: a confirmed payment triggers a
- * short, emailed unlock code (M28), one more real step before access
- * actually opens up.
+ * endpoint) is the only source of truth for that. Once the webhook
+ * confirms, access unlocks immediately — no OTP step anymore (see
+ * processConfirmedCharge's own comment on why that was removed) — so
+ * this page just needs to bridge the short gap between "checkout
+ * finished" and "the webhook actually landed."
  *
  * M29 — the real recourse this page now offers, not just a "wait and
  * check your email" message: Paystack appends `?reference=` (and
@@ -70,16 +70,15 @@ export default function PaymentCallbackPage({ params }: { params: { id: string }
         <Card>
           <h1 className="font-display text-xl font-semibold text-brand-ink">Confirming your payment</h1>
           <p className="mt-2 text-sm text-gray-600">
-            If your payment went through, check your email for a short unlock code — enter it to finish setting up
-            your access.
+            If your payment went through, your access unlocks automatically — usually within a few seconds.
           </p>
-          <Button href={`/trainee/courses/${params.id}/unlock`} className="mt-5">
-            Enter Unlock Code
+          <Button href={`/trainee/courses/${params.id}`} className="mt-5">
+            Go to the Course
           </Button>
 
           {reference && (
             <div className="mt-6 border-t border-brand-gray pt-5">
-              <p className="text-xs text-gray-500">No email after a few minutes?</p>
+              <p className="text-xs text-gray-500">Still no access after a minute or two?</p>
               <button
                 onClick={recheck}
                 disabled={checking}

@@ -104,7 +104,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           { error: "That payment doesn't appear to have succeeded. If you believe this is wrong, please contact support." },
           { status: 400 }
         );
-      case "otp_issued":
       case "granted":
         if (result.traineeId !== session.userId || result.courseId !== params.id) {
           // The activation already correctly went to whoever the
@@ -118,10 +117,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         }
         return NextResponse.json({
           status: result.status,
-          message:
-            result.status === "otp_issued"
-              ? "Payment confirmed — check your email for an unlock code."
-              : "Payment confirmed — your access has been restored.",
+          message: "Payment confirmed — you now have access.",
         });
     }
   });

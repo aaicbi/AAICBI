@@ -18,8 +18,7 @@
  * to show for a real payment and no recourse but contacting support.
  *
  * Course enrollment/subscription system — extended with two additive
- * pieces, neither of which changes the `needsOtp` branching above:
- * (1) `course.accessModel` now decides which of two pure functions
+ * pieces: (1) `course.accessModel` now decides which of two pure functions
  * computes `currentPeriodEnd` (see billingPeriod.ts's own comment on
  * why these are two separate functions, not one overloaded one);
  * (2) every call now keeps the structured `Payment` ledger in sync
@@ -30,15 +29,13 @@
 import { prisma } from "@/lib/prisma";
 import { verifyPaystackTransaction, isGenuinePaymentSuccess } from "@/lib/paystack/client";
 import { computePeriodEnd, computeFixedAccessEnd } from "@/lib/paystack/billingPeriod";
-import { generateOtpCode, OTP_EXPIRY_MINUTES } from "@/lib/paystack/otp";
 import { notifyByEmail } from "@/lib/notifications/log";
 import { notifyAllAdminStaff } from "@/lib/notifications/notifyAllAdminStaff";
-import { paymentOtpEmail, likelyDuplicatePaymentEmail, paymentReceiptEmail } from "@/lib/notifications/templates";
+import { likelyDuplicatePaymentEmail, paymentReceiptEmail } from "@/lib/notifications/templates";
 import { grantAiCreditsForPayment } from "@/lib/paystack/aiCredits";
 
 export type ProcessChargeResult =
   | { status: "granted"; traineeId: string; courseId: string }
-  | { status: "otp_issued"; traineeId: string; courseId: string }
   | { status: "no_metadata" }
   | { status: "invalid_course"; courseId: string }
   | { status: "not_genuine"; detail: string; traineeId: string; courseId: string };
@@ -82,10 +79,11 @@ function approximateCycleDays(course: PaidCourse): number | null {
 /**
  * Course enrollment/subscription system — the actual payment receipt
  * (task Section 12), sent on every genuine successful charge, first
- * purchase and renewal alike; see paymentReceiptEmail's own comment for
- * why this didn't exist before and why it's a separate email from the
- * OTP unlock code. Shared here so the two call sites below (needsOtp
- * and renewal) can't drift on what a receipt actually contains.
+ * purchase and renewal alike — now the sole "you now have access"
+ * communication for a paid course, since the separate OTP-unlock email
+ * this once complemented no longer exists (see processConfirmedCharge's
+ * own comment). It already links straight to the course, so nothing
+ * else was needed once OTP was removed.
  *
  * `currentPeriodEnd` doubles as both "when does this one-time payment's
  * access end" (FIXED_DURATION) and "when will the next automatic charge
@@ -198,144 +196,73 @@ export async function processConfirmedCharge(reference: string): Promise<Process
   const existing = await prisma.courseEnrollment.findUnique({
     where: { traineeId_courseId: { traineeId, courseId } },
   });
-  const needsOtp = !existing || !existing.unlockedAt;
+  // Instant-unlock policy: a confirmed payment grants access the same
+  // moment FREE and ADMIN_GRANTED already do (see CourseEnrollment.
+  // unlockedAt's own schema comment) — no OTP step in between anymore.
+  // Removed by direct request after a real payment left a trainee
+  // stuck with nothing to show for it: the OTP's own justification
+  // ("access isn't real until confirmed, not merely because Paystack
+  // said so") added a genuine point of failure — an email that's slow,
+  // filtered to spam, or never opened — for a trainee whose money has
+  // already cleared, with no real security benefit (the payer is
+  // already the authenticated, logged-in trainee; the OTP never
+  // verified anything requireRole("TRAINEE") on POST /api/courses/[id]/pay
+  // hadn't already). `existing.unlockedAt ?? now` preserves the real
+  // first-unlock date on a renewal — never re-derived, same "historical
+  // fact, not recomputed" treatment this schema already gives
+  // Certificate.issuedAt and Attempt.passed.
+  const previousPeriodEnd = existing?.currentPeriodEnd ?? null;
+  const isRenewal = !!existing?.unlockedAt;
 
-  if (needsOtp) {
-    const otpCode = generateOtpCode();
-    const otpExpiresAt = new Date(now.getTime() + OTP_EXPIRY_MINUTES * 60 * 1000);
-
-    const enrollment = existing
-      ? await prisma.courseEnrollment.update({
-          where: { id: existing.id },
-          data: {
-            source: "PAID",
-            accessRevokedAt: null,
-            paystackCustomerCode: customerCode,
-            paystackSubscriptionCode: null,
-            currentPeriodEnd,
-            otpCode,
-            otpExpiresAt,
-          },
-        })
-      : await prisma.courseEnrollment.create({
-          data: {
-            traineeId,
-            courseId,
-            source: "PAID",
-            paystackCustomerCode: customerCode,
-            currentPeriodEnd,
-            otpCode,
-            otpExpiresAt,
-          },
-        });
-
-    await prisma.payment
-      .update({ where: { reference }, data: { status: "SUCCESS", confirmedAt: now, method, enrollmentId: enrollment.id } })
-      .catch((e) => console.error(`Failed to mark Payment SUCCESS for reference ${reference}:`, e));
-
-    const trainee = await prisma.trainee.findUnique({ where: { id: traineeId } });
-    if (trainee) {
-      const appUrl = process.env.APP_URL ?? "http://localhost:3000";
-      const content = paymentOtpEmail({
-        traineeName: trainee.name,
-        courseTitle: course.title ?? "your course",
-        otpCode,
-        verifyUrl: `${appUrl}/trainee/courses/${courseId}/unlock?code=${otpCode}`,
-        expiryMinutes: OTP_EXPIRY_MINUTES,
-      });
-      await notifyByEmail({
-        recipientType: "TRAINEE",
-        recipientId: traineeId,
-        to: trainee.email,
-        type: "PAYMENT_OTP",
-        relatedId: enrollment.id,
-        subject: content.subject,
-        html: content.html,
-        text: content.text,
-        // M43 — arguably the single most valuable of the five named
-        // events to actually reach WhatsApp: a trainee who just paid
-        // real money wants this code the moment it's available, and a
-        // second delivery path matters more here than anywhere else.
-        // The code is sent in plain text, matching what the email
-        // itself already does — see paymentOtpEmail's own design; this
-        // isn't a new trust boundary, just a second channel for the
-        // same already-established one.
-        whatsapp: { templateName: "payment_otp", variables: { name: trainee.name, code: otpCode } },
-      }).catch((e) => console.error(`Failed to send OTP email for trainee ${traineeId}, course ${courseId}:`, e));
-
-      await sendPaymentReceipt({
-        trainee,
-        course,
-        courseId,
-        reference,
-        amountKobo: expectedAmountKobo,
-        method,
-        paidAt: now,
-        currentPeriodEnd,
-        relatedId: enrollment.id,
+  const enrollment = existing
+    ? await prisma.courseEnrollment.update({
+        where: { id: existing.id },
+        data: {
+          source: "PAID",
+          accessRevokedAt: null,
+          unlockedAt: existing.unlockedAt ?? now,
+          paystackCustomerCode: customerCode,
+          paystackSubscriptionCode: null,
+          currentPeriodEnd,
+        },
+      })
+    : await prisma.courseEnrollment.create({
+        data: {
+          traineeId,
+          courseId,
+          source: "PAID",
+          unlockedAt: now,
+          paystackCustomerCode: customerCode,
+          currentPeriodEnd,
+        },
       });
 
-      const adminContent = {
-        subject: `New Payment Received: ${course.title}`,
-        html: `<p>Trainee <strong>${trainee.name}</strong> (${trainee.email}) paid ₦${(expectedAmountKobo / 100).toLocaleString()} for <strong>${course.title}</strong> (Ref: ${reference}).</p>`,
-        text: `Trainee ${trainee.name} (${trainee.email}) paid ₦${(expectedAmountKobo / 100).toLocaleString()} for ${course.title} (Ref: ${reference}).`,
-      };
-      await notifyAllAdminStaff("PAYMENT_RECEIPT", enrollment.id, adminContent, "/admin/payments").catch(
-        (e) => console.error(`Failed to send admin payment notification for reference ${reference}:`, e)
-      );
-    }
-    console.log(`OTP issued for trainee ${traineeId}, course ${courseId}, reference ${reference} — awaiting verification before unlocking.`);
-    // M45 — every successful paid charge grants a fresh batch of AI
-    // credits, both the first payment and every renewal, matching the
-    // word "subscription" in this milestone's own scope: credits
-    // refresh each billing cycle, same as the subscription itself.
-    // Wrapped internally so a failure here never affects the payment
-    // activation above — see that function's own comment.
-    await grantAiCreditsForPayment(traineeId, courseId);
-    return { status: "otp_issued", traineeId, courseId };
-  } else {
-    // Captured before it's overwritten below — the whole basis of the
-    // duplicate-payment check just after.
-    const previousPeriodEnd = existing!.currentPeriodEnd;
+  await prisma.payment
+    .update({ where: { reference }, data: { status: "SUCCESS", confirmedAt: now, method, enrollmentId: enrollment.id } })
+    .catch((e) => console.error(`Failed to mark Payment SUCCESS for reference ${reference}:`, e));
 
-    const enrollment = await prisma.courseEnrollment.update({
-      where: { id: existing!.id },
-      data: {
-        source: "PAID",
-        accessRevokedAt: null,
-        paystackCustomerCode: customerCode,
-        paystackSubscriptionCode: null,
-        currentPeriodEnd,
-      },
+  const trainee = await prisma.trainee.findUnique({ where: { id: traineeId } });
+  if (trainee) {
+    await sendPaymentReceipt({
+      trainee,
+      course,
+      courseId,
+      reference,
+      amountKobo: expectedAmountKobo,
+      method,
+      paidAt: now,
+      currentPeriodEnd,
+      relatedId: enrollment.id,
     });
 
-    await prisma.payment
-      .update({ where: { reference }, data: { status: "SUCCESS", confirmedAt: now, method, enrollmentId: enrollment.id } })
-      .catch((e) => console.error(`Failed to mark Payment SUCCESS for reference ${reference}:`, e));
-
-    const trainee = await prisma.trainee.findUnique({ where: { id: traineeId } });
-    if (trainee) {
-      await sendPaymentReceipt({
-        trainee,
-        course,
-        courseId,
-        reference,
-        amountKobo: expectedAmountKobo,
-        method,
-        paidAt: now,
-        currentPeriodEnd,
-        relatedId: enrollment.id,
-      });
-
-      const adminContent = {
-        subject: `Payment / Renewal Received: ${course.title}`,
-        html: `<p>Trainee <strong>${trainee.name}</strong> (${trainee.email}) paid ₦${(expectedAmountKobo / 100).toLocaleString()} for <strong>${course.title}</strong> (Ref: ${reference}).</p>`,
-        text: `Trainee ${trainee.name} (${trainee.email}) paid ₦${(expectedAmountKobo / 100).toLocaleString()} for ${course.title} (Ref: ${reference}).`,
-      };
-      await notifyAllAdminStaff("PAYMENT_RECEIPT", enrollment.id, adminContent, "/admin/payments").catch(
-        (e) => console.error(`Failed to send admin payment notification for reference ${reference}:`, e)
-      );
-    }
+    const adminContent = {
+      subject: `${isRenewal ? "Payment / Renewal" : "New Payment"} Received: ${course.title}`,
+      html: `<p>Trainee <strong>${trainee.name}</strong> (${trainee.email}) paid ₦${(expectedAmountKobo / 100).toLocaleString()} for <strong>${course.title}</strong> (Ref: ${reference}).</p>`,
+      text: `Trainee ${trainee.name} (${trainee.email}) paid ₦${(expectedAmountKobo / 100).toLocaleString()} for ${course.title} (Ref: ${reference}).`,
+    };
+    await notifyAllAdminStaff("PAYMENT_RECEIPT", enrollment.id, adminContent, "/admin/payments").catch(
+      (e) => console.error(`Failed to send admin payment notification for reference ${reference}:`, e)
+    );
 
     // Course enrollment/subscription system — a renewal landing with
     // MORE than a quarter of its own cycle still remaining on the
@@ -347,7 +274,7 @@ export async function processConfirmedCharge(reference: string): Promise<Process
     // unremarkable for an ANNUALLY course, suspicious for a MONTHLY
     // one. Never fires for LIFETIME access (no cycle, no
     // previousPeriodEnd to compare).
-    if (previousPeriodEnd && trainee) {
+    if (previousPeriodEnd) {
       const cycleDays = approximateCycleDays(course);
       if (cycleDays) {
         const daysRemaining = (previousPeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
@@ -365,9 +292,15 @@ export async function processConfirmedCharge(reference: string): Promise<Process
         }
       }
     }
-
-    console.log(`Course access extended (already unlocked): trainee ${traineeId}, course ${courseId}, reference ${reference}.`);
-    await grantAiCreditsForPayment(traineeId, courseId);
-    return { status: "granted", traineeId, courseId };
   }
+
+  console.log(`Course access unlocked immediately: trainee ${traineeId}, course ${courseId}, reference ${reference}.`);
+  // M45 — every successful paid charge grants a fresh batch of AI
+  // credits, both the first payment and every renewal, matching the
+  // word "subscription" in this milestone's own scope: credits
+  // refresh each billing cycle, same as the subscription itself.
+  // Wrapped internally so a failure here never affects the payment
+  // activation above — see that function's own comment.
+  await grantAiCreditsForPayment(traineeId, courseId);
+  return { status: "granted", traineeId, courseId };
 }
