@@ -3,6 +3,7 @@ import { useState, type ReactNode } from "react";
 import Badge from "@/components/ui/Badge";
 import CourseOutlineAccordion from "@/components/courses/CourseOutlineAccordion";
 import CourseFlyerLightbox from "@/components/courses/CourseFlyerLightbox";
+import PriceTag from "@/components/courses/PriceTag";
 import type { MarketingView } from "@/lib/courseMarketing";
 import { COURSE_LIFECYCLE_PHASE_LABEL, COURSE_LIFECYCLE_PHASE_BADGE_VARIANT } from "@/lib/courseLifecycle";
 import Icon from "@/components/ui/Icon";
@@ -19,13 +20,6 @@ const LOCATION_LABEL: Record<string, string> = { PHYSICAL: "Physical", ONLINE: "
 function formatDate(value: Date | string | null): string | null {
   if (!value) return null;
   return new Date(value).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" });
-}
-
-function formatPrice(priceKobo: number | null, billingInterval: string | null): string {
-  if (priceKobo == null) return "";
-  const naira = (priceKobo / 100).toLocaleString("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 });
-  const interval = billingInterval === "MONTHLY" ? "/month" : billingInterval === "QUARTERLY" ? "/quarter" : billingInterval === "ANNUALLY" ? "/year" : "";
-  return `${naira}${interval}`;
 }
 
 /**
@@ -94,7 +88,14 @@ export default function CourseMarketingView({ data, actions }: { data: Marketing
             {!data.isFree && data.priceKobo != null && (
               <div>
                 <dt className="text-xs text-gray-500">Price</dt>
-                <dd className="font-semibold text-brand-ink">{formatPrice(data.priceKobo, data.billingInterval)}</dd>
+                <dd>
+                  <PriceTag
+                    priceKobo={data.priceKobo}
+                    discountPercent={data.discountPercent}
+                    effectivePriceKobo={data.effectivePriceKobo}
+                    billingInterval={data.billingInterval}
+                  />
+                </dd>
               </div>
             )}
             {data.startDate && (

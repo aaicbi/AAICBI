@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiErrors } from "@/lib/apiError";
 import { getCourseLifecyclePhase } from "@/lib/courseLifecycle";
+import { getEffectivePriceKobo } from "@/lib/coursePricing";
 
 /**
  * GET /api/courses/public — genuinely anonymous, no session required.
@@ -39,6 +40,7 @@ export async function GET() {
         trainingFormat: true,
         isFree: true,
         priceKobo: true,
+        discountPercent: true,
         billingInterval: true,
         showFlyer: true,
         flyerUrl: true,
@@ -67,6 +69,8 @@ export async function GET() {
       trainingFormat: c.trainingFormat,
       isFree: c.isFree,
       priceKobo: c.priceKobo,
+      discountPercent: c.discountPercent,
+      effectivePriceKobo: getEffectivePriceKobo(c),
       billingInterval: c.billingInterval,
       flyerUrl: c.showFlyer ? c.flyerUrl : null,
       moduleCount: c._count.modules,

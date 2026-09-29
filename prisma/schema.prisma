@@ -1080,6 +1080,19 @@ model Course {
   // for keeping the two consistent — see courses.ts for that guard.
   isFree    Boolean @default(true)
   priceKobo Int?
+  // Course discounts — null means no discount, the honest default for
+  // every existing course. 1-99 (validated in coursePricing.ts, not
+  // here): 100 would mean "free" through a side door that bypasses
+  // isFree/priceKobo's own required-together invariant, and 0 is just
+  // "no discount" spelled the confusing way. Always a percentage off
+  // priceKobo, never a second absolute price to keep in sync — see
+  // getEffectivePriceKobo in coursePricing.ts, the one function that
+  // computes the actual charged/displayed amount from this and
+  // priceKobo together, used everywhere real money or a displayed
+  // price is involved so the two can never drift apart. Null whenever
+  // isFree is true, same reasoning as priceKobo — a free course has
+  // nothing to discount.
+  discountPercent Int?
   // M26 — both null whenever isFree is true, same reasoning as
   // priceKobo above. `billingInterval` is a real, deliberate per-course
   // choice, not a single platform-wide setting — confirmed directly

@@ -5,6 +5,7 @@ import { withApiErrors } from "@/lib/apiError";
 import { initializeCoursePayment } from "@/lib/paystack/subscription";
 import { isCoursePubliclyVisible } from "@/lib/courseStatus";
 import { isRegistrationOpen } from "@/lib/courseLifecycle";
+import { getEffectivePriceKobo } from "@/lib/coursePricing";
 
 /**
  * POST /api/courses/[id]/pay — the paid counterpart to
@@ -34,6 +35,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
         status: true,
         isFree: true,
         priceKobo: true,
+        discountPercent: true,
         billingInterval: true,
         paystackPlanCode: true,
         accessModel: true,
@@ -75,6 +77,13 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
     const { authorizationUrl, accessCode, reference } = await initializeCoursePayment(trainee, course);
 
+    // Course discounts — the same getEffectivePriceKobo call
+    // initializeCoursePayment makes internally to build the actual
+    // Paystack transaction/plan amount; recomputed here rather than
+    // threaded back out of that function, so this ledger row is always
+    // the real charged amount, discount included.
+    const effectivePriceKobo = getEffectivePriceKobo(course)!;
+
     // Course enrollment/subscription system — the initiating half of the
     // Payment ledger; processConfirmedCharge upserts this same row by
     // `reference` on confirmation, so a missed write here is tolerated,
@@ -82,10 +91,10 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     // to checkout even if this insert fails for some reason.
     await prisma.payment
       .create({
-        data: { traineeId: trainee.id, courseId: course.id, reference, amountKobo: course.priceKobo! },
+        data: { traineeId: trainee.id, courseId: course.id, reference, amountKobo: effectivePriceKobo },
       })
       .catch((e) => console.error(`Failed to create pending Payment record for reference ${reference}:`, e));
 
-    return NextResponse.json({ authorizationUrl, accessCode, reference, email: trainee.email, amountKobo: course.priceKobo });
+    return NextResponse.json({ authorizationUrl, accessCode, reference, email: trainee.email, amountKobo: effectivePriceKobo });
   });
 }

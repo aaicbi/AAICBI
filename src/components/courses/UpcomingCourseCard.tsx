@@ -2,6 +2,7 @@ import Badge from "@/components/ui/Badge";
 import Icon from "@/components/ui/Icon";
 import { CalendarDays, Clock, Tag, MapPin, BookOpen } from "lucide-react";
 import { COURSE_LIFECYCLE_PHASE_LABEL, COURSE_LIFECYCLE_PHASE_BADGE_VARIANT } from "@/lib/courseLifecycle";
+import PriceTag from "@/components/courses/PriceTag";
 
 export interface UpcomingCourseRow {
   id: string;
@@ -11,6 +12,8 @@ export interface UpcomingCourseRow {
   durationDisplay: string | null;
   isFree: boolean;
   priceKobo: number | null;
+  discountPercent: number | null;
+  effectivePriceKobo: number | null;
   billingInterval: "MONTHLY" | "QUARTERLY" | "ANNUALLY" | null;
   flyerUrl: string | null;
   startDate: string | null;
@@ -24,13 +27,6 @@ const LOCATION_LABEL: Record<string, string> = { PHYSICAL: "Physical", ONLINE: "
 function formatDate(value: string | null): string | null {
   if (!value) return null;
   return new Date(value).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
-}
-
-function formatPrice(priceKobo: number | null, billingInterval: string | null): string {
-  if (priceKobo == null) return "";
-  const naira = (priceKobo / 100).toLocaleString("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 });
-  const interval = billingInterval === "MONTHLY" ? "/month" : billingInterval === "QUARTERLY" ? "/quarter" : billingInterval === "ANNUALLY" ? "/year" : "";
-  return `${naira}${interval}`;
 }
 
 /**
@@ -93,8 +89,19 @@ export default function UpcomingCourseCard({ course }: { course: UpcomingCourseR
           )}
         </div>
 
-        <div className="mt-1 font-display text-base font-semibold text-brand-ink">
-          {course.isFree ? "Free" : formatPrice(course.priceKobo, course.billingInterval)}
+        <div className="mt-1">
+          {course.isFree ? (
+            <span className="font-display text-base font-semibold text-brand-ink">Free</span>
+          ) : (
+            course.priceKobo != null && (
+              <PriceTag
+                priceKobo={course.priceKobo}
+                discountPercent={course.discountPercent}
+                effectivePriceKobo={course.effectivePriceKobo}
+                billingInterval={course.billingInterval}
+              />
+            )
+          )}
         </div>
 
         <div className="mt-2 flex gap-2">

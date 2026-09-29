@@ -15,6 +15,8 @@ const CreateCourseSchema = z.object({
   // database level.
   isFree: z.boolean().optional(),
   priceKobo: z.number().int().positive().nullable().optional(),
+  // Course discounts — see Course.discountPercent's own schema comment.
+  discountPercent: z.number().int().min(1).max(99).nullable().optional(),
   // M26 — same reasoning as priceKobo above.
   billingInterval: z.enum(["MONTHLY", "QUARTERLY", "ANNUALLY"]).nullable().optional(),
   // Course enrollment/subscription system — same "defaults preserved
@@ -60,12 +62,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
-    const pricingError = validateCoursePricing(parsed.data.isFree ?? true, parsed.data.priceKobo, parsed.data.billingInterval, {
-      accessModel: parsed.data.accessModel,
-      accessDurationValue: parsed.data.accessDurationValue,
-      accessDurationUnit: parsed.data.accessDurationUnit,
-      reminderEnabled: parsed.data.reminderEnabled,
-    });
+    const pricingError = validateCoursePricing(
+      parsed.data.isFree ?? true,
+      parsed.data.priceKobo,
+      parsed.data.billingInterval,
+      {
+        accessModel: parsed.data.accessModel,
+        accessDurationValue: parsed.data.accessDurationValue,
+        accessDurationUnit: parsed.data.accessDurationUnit,
+        reminderEnabled: parsed.data.reminderEnabled,
+      },
+      parsed.data.discountPercent
+    );
     if (pricingError) {
       return NextResponse.json({ error: pricingError }, { status: 400 });
     }

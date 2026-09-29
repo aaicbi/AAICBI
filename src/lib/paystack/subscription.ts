@@ -18,6 +18,7 @@
  */
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { getEffectivePriceKobo } from "@/lib/coursePricing";
 
 const INTERVAL_MAP: Record<string, string> = {
   MONTHLY: "monthly",
@@ -57,6 +58,7 @@ export async function getOrCreatePlanForCourse(course: {
   id: string;
   title: string;
   priceKobo: number | null;
+  discountPercent?: number | null;
   billingInterval: string | null;
   paystackPlanCode: string | null;
 }): Promise<string> {
@@ -64,13 +66,19 @@ export async function getOrCreatePlanForCourse(course: {
   if (!course.priceKobo || !course.billingInterval) {
     throw new Error(`Course ${course.id} is missing price or billing interval — cannot create a Paystack plan for it.`);
   }
+  // Course discounts — the Plan itself is created at the current,
+  // discounted price. The update route resets paystackPlanCode
+  // whenever discountPercent changes (see its own comment), so a
+  // later discount change always produces a fresh Plan rather than
+  // reusing one priced under the old discount.
+  const amountKobo = getEffectivePriceKobo(course)!;
 
   const res = await fetch("https://api.paystack.co/plan", {
     method: "POST",
     headers: { Authorization: `Bearer ${getSecretKey()}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       name: course.title,
-      amount: course.priceKobo,
+      amount: amountKobo,
       interval: INTERVAL_MAP[course.billingInterval],
       // Explicit, not left to the account's default — see this file's
       // own comment on `initializeCoursePayment` below for the real
@@ -105,6 +113,7 @@ export async function initializeCoursePayment(
     id: string;
     title: string;
     priceKobo: number | null;
+    discountPercent?: number | null;
     billingInterval: string | null;
     paystackPlanCode: string | null;
     // Course enrollment/subscription system — optional and defaulting
@@ -124,13 +133,18 @@ export async function initializeCoursePayment(
     (course.accessModel ?? "RECURRING_SUBSCRIPTION") === "RECURRING_SUBSCRIPTION"
       ? await getOrCreatePlanForCourse(course)
       : null;
+  // Course discounts — the actual amount charged, both for the
+  // transaction itself and the metadata the webhook verifies against
+  // (see that field's own comment just below for why it's the
+  // initiation-time amount, never the course's live price).
+  const amountKobo = getEffectivePriceKobo(course)!;
 
   const res = await fetch("https://api.paystack.co/transaction/initialize", {
     method: "POST",
     headers: { Authorization: `Bearer ${getSecretKey()}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       email: trainee.email,
-      amount: course.priceKobo,
+      amount: amountKobo,
       // Audit finding, fixed here: confirmed directly against a
       // dedicated guide on this exact Paystack integration risk, not
       // assumed — omitting `currency` means Paystack falls back to the
@@ -170,7 +184,7 @@ export async function initializeCoursePayment(
       // at initiation time, and verifying against that fixed value
       // instead of the course's live price, is what makes this
       // correct regardless of when a price change happens to land.
-      metadata: { traineeId: trainee.id, courseId: course.id, amountKobo: course.priceKobo },
+      metadata: { traineeId: trainee.id, courseId: course.id, amountKobo },
     }),
   });
   if (!res.ok) {

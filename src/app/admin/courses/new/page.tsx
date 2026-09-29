@@ -16,6 +16,7 @@ export default function NewCoursePage() {
   // exactly as it always has.
   const [isFree, setIsFree] = useState(true);
   const [priceNaira, setPriceNaira] = useState("");
+  const [discountPercent, setDiscountPercent] = useState("");
   const [accessModel, setAccessModel] = useState<"RECURRING_SUBSCRIPTION" | "FIXED_DURATION">("RECURRING_SUBSCRIPTION");
   const [billingInterval, setBillingInterval] = useState<"MONTHLY" | "QUARTERLY" | "ANNUALLY">("MONTHLY");
   const [durationValue, setDurationValue] = useState("");
@@ -48,6 +49,7 @@ export default function NewCoursePage() {
     setError(null);
 
     const priceKobo = isFree || priceNaira.trim() === "" ? null : Math.round(Number(priceNaira) * 100);
+    const discountPercentValue = isFree || discountPercent.trim() === "" ? null : Number(discountPercent);
     const parsedReminderDays = reminderDays
       .split(",")
       .map((d) => d.trim())
@@ -62,6 +64,7 @@ export default function NewCoursePage() {
         description,
         isFree,
         priceKobo,
+        discountPercent: discountPercentValue,
         accessModel: isFree ? "RECURRING_SUBSCRIPTION" : accessModel,
         billingInterval: !isFree && accessModel === "RECURRING_SUBSCRIPTION" ? billingInterval : null,
         accessDurationValue:
@@ -133,17 +136,41 @@ export default function NewCoursePage() {
 
               {!isFree && (
                 <div className="mt-3 space-y-3">
-                  <label className="block text-sm text-brand-ink">
-                    Price (₦)
-                    <input
-                      type="number"
-                      min={1}
-                      value={priceNaira}
-                      onChange={(e) => setPriceNaira(e.target.value)}
-                      placeholder="e.g. 50000"
-                      className="mt-1 w-full max-w-[10rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-                    />
-                  </label>
+                  <div className="flex flex-wrap gap-3">
+                    <label className="block text-sm text-brand-ink">
+                      Price (₦)
+                      <input
+                        type="number"
+                        min={1}
+                        value={priceNaira}
+                        onChange={(e) => setPriceNaira(e.target.value)}
+                        placeholder="e.g. 50000"
+                        className="mt-1 w-full max-w-[10rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
+                      />
+                    </label>
+                    <label className="block text-sm text-brand-ink">
+                      Discount (%, optional)
+                      <input
+                        type="number"
+                        min={1}
+                        max={99}
+                        value={discountPercent}
+                        onChange={(e) => setDiscountPercent(e.target.value)}
+                        placeholder="e.g. 20"
+                        className="mt-1 w-full max-w-[8rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
+                      />
+                    </label>
+                  </div>
+                  {priceNaira.trim() !== "" && discountPercent.trim() !== "" && Number(discountPercent) > 0 && (
+                    <p className="text-xs text-gray-500">
+                      Trainees will see{" "}
+                      <span className="font-semibold text-brand-tealDeep">
+                        ₦{Math.round(Number(priceNaira) * (1 - Number(discountPercent) / 100)).toLocaleString()}
+                      </span>{" "}
+                      <span className="line-through">₦{Number(priceNaira).toLocaleString()}</span> — a{" "}
+                      <span className="font-semibold">-{discountPercent}% OFF</span> badge.
+                    </p>
+                  )}
 
                   <div className="flex gap-4 text-sm text-brand-ink">
                     <label className="flex items-center gap-1.5">

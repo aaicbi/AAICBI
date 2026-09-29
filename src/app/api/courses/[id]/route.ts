@@ -276,6 +276,8 @@ const UpdateCourseSchema = z.object({
   // Post-M15 milestone — see validateCoursePricing's own comment.
   isFree: z.boolean().optional(),
   priceKobo: z.number().int().positive().nullable().optional(),
+  // Course discounts — see Course.discountPercent's own schema comment.
+  discountPercent: z.number().int().min(1).max(99).nullable().optional(),
   // M26 — same reasoning as priceKobo above.
   billingInterval: z.enum(["MONTHLY", "QUARTERLY", "ANNUALLY"]).nullable().optional(),
   // Course enrollment/subscription system — same reasoning as
@@ -383,6 +385,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     // also marking it paid in the same request — still gets caught.
     const resultingIsFree = parsed.data.isFree ?? course.isFree;
     const resultingPriceKobo = parsed.data.priceKobo !== undefined ? parsed.data.priceKobo : course.priceKobo;
+    const resultingDiscountPercent =
+      parsed.data.discountPercent !== undefined ? parsed.data.discountPercent : course.discountPercent;
     const resultingBillingInterval =
       parsed.data.billingInterval !== undefined ? parsed.data.billingInterval : course.billingInterval;
     const resultingAccessModel = parsed.data.accessModel ?? course.accessModel;
@@ -391,12 +395,18 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const resultingAccessDurationUnit =
       parsed.data.accessDurationUnit !== undefined ? parsed.data.accessDurationUnit : course.accessDurationUnit;
     const resultingReminderEnabled = parsed.data.reminderEnabled ?? course.reminderEnabled;
-    const pricingError = validateCoursePricing(resultingIsFree, resultingPriceKobo, resultingBillingInterval, {
-      accessModel: resultingAccessModel,
-      accessDurationValue: resultingAccessDurationValue,
-      accessDurationUnit: resultingAccessDurationUnit,
-      reminderEnabled: resultingReminderEnabled,
-    });
+    const pricingError = validateCoursePricing(
+      resultingIsFree,
+      resultingPriceKobo,
+      resultingBillingInterval,
+      {
+        accessModel: resultingAccessModel,
+        accessDurationValue: resultingAccessDurationValue,
+        accessDurationUnit: resultingAccessDurationUnit,
+        reminderEnabled: resultingReminderEnabled,
+      },
+      resultingDiscountPercent
+    );
     if (pricingError) {
       return NextResponse.json({ error: pricingError }, { status: 400 });
     }
@@ -426,6 +436,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     // recurring billing entirely is just as wrong to carry forward.
     const pricingChanged =
       resultingPriceKobo !== course.priceKobo ||
+      resultingDiscountPercent !== course.discountPercent ||
       resultingBillingInterval !== course.billingInterval ||
       resultingAccessModel !== course.accessModel;
     const dataToSave = pricingChanged ? { ...parsed.data, paystackPlanCode: null } : parsed.data;

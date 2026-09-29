@@ -38,8 +38,17 @@ export function validateCoursePricing(
     accessDurationValue?: number | null;
     accessDurationUnit?: string | null;
     reminderEnabled?: boolean | null;
-  }
+  },
+  discountPercent?: number | null
 ): string | null {
+  if (discountPercent != null) {
+    if (isFree) {
+      return "A free course can't have a discount — there's nothing to discount off zero.";
+    }
+    if (!Number.isInteger(discountPercent) || discountPercent < 1 || discountPercent > 99) {
+      return "Discount must be a whole number between 1 and 99.";
+    }
+  }
   const accessModel = accessConfig?.accessModel ?? "RECURRING_SUBSCRIPTION";
   const accessDurationValue = accessConfig?.accessDurationValue;
   const accessDurationUnit = accessConfig?.accessDurationUnit;
@@ -94,4 +103,20 @@ export function validateCoursePricing(
     return "A fixed-duration course needs a positive access duration value.";
   }
   return null;
+}
+
+/**
+ * The ONE function that turns priceKobo + discountPercent into what a
+ * trainee actually pays or sees — called everywhere real money changes
+ * hands (POST /api/courses/[id]/pay, the Paystack Plan/subscription
+ * amount) and everywhere a price is displayed (course cards, the
+ * marketing view, the course detail page), so the charged amount and
+ * the displayed amount can never drift apart the way two separately-
+ * computed copies of "apply the discount" eventually would. Returns
+ * priceKobo unchanged whenever there's no discount — the common case,
+ * and the only possible outcome for a free course (null in, null out).
+ */
+export function getEffectivePriceKobo(course: { priceKobo: number | null; discountPercent?: number | null }): number | null {
+  if (course.priceKobo == null || !course.discountPercent) return course.priceKobo;
+  return Math.round((course.priceKobo * (100 - course.discountPercent)) / 100);
 }

@@ -65,6 +65,7 @@ interface CourseDto {
   qaScope: "OPEN" | "COHORT_SCOPED";
   // Course enrollment/subscription system
   priceKobo: number | null;
+  discountPercent: number | null;
   billingInterval: "MONTHLY" | "QUARTERLY" | "ANNUALLY" | null;
   accessModel: "RECURRING_SUBSCRIPTION" | "FIXED_DURATION";
   accessDurationValue: number | null;
@@ -244,6 +245,7 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
   async function updatePricing(data: {
     isFree: boolean;
     priceKobo: number | null;
+    discountPercent: number | null;
     accessModel: "RECURRING_SUBSCRIPTION" | "FIXED_DURATION";
     billingInterval: "MONTHLY" | "QUARTERLY" | "ANNUALLY" | null;
     accessDurationValue: number | null;
@@ -675,6 +677,7 @@ function PricingSettings({
   onSave: (data: {
     isFree: boolean;
     priceKobo: number | null;
+    discountPercent: number | null;
     accessModel: "RECURRING_SUBSCRIPTION" | "FIXED_DURATION";
     billingInterval: "MONTHLY" | "QUARTERLY" | "ANNUALLY" | null;
     accessDurationValue: number | null;
@@ -688,6 +691,7 @@ function PricingSettings({
   // trainee-facing course page (`₦${(priceKobo/100).toLocaleString()}`);
   // converted back to kobo only at save time.
   const [priceNaira, setPriceNaira] = useState(course.priceKobo != null ? String(course.priceKobo / 100) : "");
+  const [discountPercent, setDiscountPercent] = useState(course.discountPercent != null ? String(course.discountPercent) : "");
   const [accessModel, setAccessModel] = useState<"RECURRING_SUBSCRIPTION" | "FIXED_DURATION">(course.accessModel);
   const [billingInterval, setBillingInterval] = useState<"MONTHLY" | "QUARTERLY" | "ANNUALLY">(
     course.billingInterval ?? "MONTHLY"
@@ -700,6 +704,7 @@ function PricingSettings({
   function startEditing() {
     setIsFree(course.isFree);
     setPriceNaira(course.priceKobo != null ? String(course.priceKobo / 100) : "");
+    setDiscountPercent(course.discountPercent != null ? String(course.discountPercent) : "");
     setAccessModel(course.accessModel);
     setBillingInterval(course.billingInterval ?? "MONTHLY");
     setDurationValue(course.accessDurationValue?.toString() ?? "");
@@ -712,9 +717,11 @@ function PricingSettings({
     setSaving(true);
     setError(null);
     const priceKobo = isFree || priceNaira.trim() === "" ? null : Math.round(Number(priceNaira) * 100);
+    const discountPercentValue = isFree || discountPercent.trim() === "" ? null : Number(discountPercent);
     const err = await onSave({
       isFree,
       priceKobo,
+      discountPercent: discountPercentValue,
       accessModel: isFree ? "RECURRING_SUBSCRIPTION" : accessModel,
       billingInterval: !isFree && accessModel === "RECURRING_SUBSCRIPTION" ? billingInterval : null,
       accessDurationValue:
@@ -732,11 +739,19 @@ function PricingSettings({
     showToast("Pricing settings saved.");
   }
 
+  const discountedKobo =
+    course.discountPercent != null && course.priceKobo != null
+      ? Math.round((course.priceKobo * (100 - course.discountPercent)) / 100)
+      : null;
+  const priceLabel =
+    discountedKobo != null
+      ? `₦${(discountedKobo / 100).toLocaleString()} (was ₦${((course.priceKobo ?? 0) / 100).toLocaleString()}, -${course.discountPercent}%)`
+      : `₦${((course.priceKobo ?? 0) / 100).toLocaleString()}`;
   const summary = course.isFree
     ? "Free — Lifetime access"
     : course.accessModel === "RECURRING_SUBSCRIPTION"
-      ? `₦${((course.priceKobo ?? 0) / 100).toLocaleString()} / ${course.billingInterval?.toLowerCase() ?? "month"} (auto-renewing)`
-      : `₦${((course.priceKobo ?? 0) / 100).toLocaleString()} — Access: ${
+      ? `${priceLabel} / ${course.billingInterval?.toLowerCase() ?? "month"} (auto-renewing)`
+      : `${priceLabel} — Access: ${
           course.accessDurationUnit === "LIFETIME" ? "Lifetime" : `${course.accessDurationValue} ${course.accessDurationUnit?.toLowerCase()}`
         }`;
 
@@ -765,17 +780,41 @@ function PricingSettings({
 
           {!isFree && (
             <>
-              <label className="block text-xs text-gray-700">
-                Price (₦)
-                <input
-                  type="number"
-                  min={1}
-                  value={priceNaira}
-                  onChange={(e) => setPriceNaira(e.target.value)}
-                  placeholder="e.g. 50000"
-                  className="mt-1 w-full max-w-[10rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-                />
-              </label>
+              <div className="flex flex-wrap gap-3">
+                <label className="block text-xs text-gray-700">
+                  Price (₦)
+                  <input
+                    type="number"
+                    min={1}
+                    value={priceNaira}
+                    onChange={(e) => setPriceNaira(e.target.value)}
+                    placeholder="e.g. 50000"
+                    className="mt-1 w-full max-w-[10rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
+                  />
+                </label>
+                <label className="block text-xs text-gray-700">
+                  Discount (%, optional)
+                  <input
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={discountPercent}
+                    onChange={(e) => setDiscountPercent(e.target.value)}
+                    placeholder="e.g. 20"
+                    className="mt-1 w-full max-w-[8rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
+                  />
+                </label>
+              </div>
+              {priceNaira.trim() !== "" && discountPercent.trim() !== "" && Number(discountPercent) > 0 && (
+                <p className="text-xs text-gray-500">
+                  Trainees will see{" "}
+                  <span className="font-semibold text-brand-tealDeep">
+                    ₦{Math.round(Number(priceNaira) * (1 - Number(discountPercent) / 100)).toLocaleString()}
+                  </span>{" "}
+                  <span className="line-through">₦{Number(priceNaira).toLocaleString()}</span> — a{" "}
+                  <span className="font-semibold">-{discountPercent}% OFF</span> badge.
+                </p>
+              )}
 
               <div className="flex gap-4 text-xs text-gray-700">
                 <label className="flex items-center gap-1.5">

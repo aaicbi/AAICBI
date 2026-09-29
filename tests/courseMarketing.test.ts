@@ -8,6 +8,7 @@ function baseCourse(overrides: Partial<MarketingSourceCourse> = {}): MarketingSo
     description: "Learn data analytics.",
     isFree: false,
     priceKobo: 10000,
+    discountPercent: null,
     billingInterval: "MONTHLY",
     category: "Analytics",
     level: "BEGINNER",

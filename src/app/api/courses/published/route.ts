@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
+import { getEffectivePriceKobo } from "@/lib/coursePricing";
 
 /**
  * GET /api/courses/published — every published course, for a logged-in
@@ -36,6 +37,8 @@ export async function GET() {
         description: c.description,
         isFree: c.isFree,
         priceKobo: c.priceKobo,
+        discountPercent: c.discountPercent,
+        effectivePriceKobo: getEffectivePriceKobo(c),
         billingInterval: c.billingInterval,
         // Course catalogue upgrade — a few new display fields for the
         // browse-list cards, matching what the public catalogue list

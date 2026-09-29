@@ -10,6 +10,7 @@ import { SkeletonList } from "@/components/ui/Skeleton";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 import CorrectnessMark from "@/components/ui/CorrectnessMark";
 import Icon from "@/components/ui/Icon";
+import PriceTag from "@/components/courses/PriceTag";
 import { ArrowRight } from "lucide-react";
 
 interface CourseRow {
@@ -20,6 +21,10 @@ interface CourseRow {
   isPaid: boolean;
   isEnrolled: boolean;
   isExpired: boolean;
+  priceKobo: number | null;
+  discountPercent: number | null;
+  effectivePriceKobo: number | null;
+  billingInterval: string | null;
   // Course catalogue upgrade
   category: string | null;
   level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | null;
@@ -120,6 +125,17 @@ export default function TraineeCoursesPage() {
                     )}
                   </div>
                   {course.description && <div className="mt-0.5 text-sm text-gray-600">{course.description}</div>}
+                  {!course.isFree && !course.isEnrolled && course.priceKobo != null && (
+                    <div className="mt-1.5">
+                      <PriceTag
+                        priceKobo={course.priceKobo}
+                        discountPercent={course.discountPercent}
+                        effectivePriceKobo={course.effectivePriceKobo}
+                        billingInterval={course.billingInterval}
+                        size="sm"
+                      />
+                    </div>
+                  )}
                   <div className="mt-1.5 text-xs text-gray-500">
                     {course.category && `${course.category} · `}
                     {course._count.modules} module{course._count.modules === 1 ? "" : "s"}

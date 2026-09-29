@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateCoursePricing } from "../src/lib/coursePricing";
+import { validateCoursePricing, getEffectivePriceKobo } from "../src/lib/coursePricing";
 
 describe("validateCoursePricing", () => {
   it("accepts a free course with no price and no billing interval", () => {
@@ -84,5 +84,49 @@ describe("validateCoursePricing", () => {
         validateCoursePricing(false, 5000000, "MONTHLY", { accessModel: "FIXED_DURATION", accessDurationUnit: "LIFETIME" })
       ).not.toBeNull();
     });
+  });
+
+  describe("discountPercent (course discounts)", () => {
+    it("accepts a paid course with a valid 1-99 discount", () => {
+      expect(validateCoursePricing(false, 500000, "MONTHLY", undefined, 20)).toBeNull();
+      expect(validateCoursePricing(false, 500000, "MONTHLY", undefined, 1)).toBeNull();
+      expect(validateCoursePricing(false, 500000, "MONTHLY", undefined, 99)).toBeNull();
+    });
+
+    it("accepts a paid course with no discount at all", () => {
+      expect(validateCoursePricing(false, 500000, "MONTHLY", undefined, null)).toBeNull();
+      expect(validateCoursePricing(false, 500000, "MONTHLY", undefined, undefined)).toBeNull();
+    });
+
+    it("rejects a free course with a discount set — nothing to discount off zero", () => {
+      expect(validateCoursePricing(true, null, null, undefined, 20)).not.toBeNull();
+    });
+
+    it("rejects an out-of-range or non-integer discount", () => {
+      expect(validateCoursePricing(false, 500000, "MONTHLY", undefined, 0)).not.toBeNull();
+      expect(validateCoursePricing(false, 500000, "MONTHLY", undefined, 100)).not.toBeNull();
+      expect(validateCoursePricing(false, 500000, "MONTHLY", undefined, -10)).not.toBeNull();
+      expect(validateCoursePricing(false, 500000, "MONTHLY", undefined, 12.5)).not.toBeNull();
+    });
+  });
+});
+
+describe("getEffectivePriceKobo", () => {
+  it("returns priceKobo unchanged when there's no discount", () => {
+    expect(getEffectivePriceKobo({ priceKobo: 500000, discountPercent: null })).toBe(500000);
+    expect(getEffectivePriceKobo({ priceKobo: 500000 })).toBe(500000);
+  });
+
+  it("returns null unchanged for a free course, regardless of discountPercent", () => {
+    expect(getEffectivePriceKobo({ priceKobo: null, discountPercent: 20 })).toBeNull();
+  });
+
+  it("applies the discount percentage correctly", () => {
+    expect(getEffectivePriceKobo({ priceKobo: 500000, discountPercent: 20 })).toBe(400000);
+    expect(getEffectivePriceKobo({ priceKobo: 100000, discountPercent: 50 })).toBe(50000);
+  });
+
+  it("rounds to the nearest kobo for a discount that doesn't divide evenly", () => {
+    expect(getEffectivePriceKobo({ priceKobo: 99999, discountPercent: 33 })).toBe(Math.round((99999 * 67) / 100));
   });
 });

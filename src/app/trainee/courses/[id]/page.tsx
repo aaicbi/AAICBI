@@ -699,7 +699,7 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
               </Button>
             ) : (
               <Button className="mt-4" onClick={pay} loading={enrolling}>
-                Renew Access (₦{((expiredInfo.course.priceKobo ?? 0) / 100).toLocaleString()})
+                Renew Access (₦{((expiredInfo.course.effectivePriceKobo ?? expiredInfo.course.priceKobo ?? 0) / 100).toLocaleString()})
               </Button>
             )}
           </Card>
@@ -719,7 +719,7 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
                 You&apos;re not enrolled in this course yet.
                 {notEnrolled.isFree
                   ? " It's free — enroll below to get started."
-                  : ` ₦${((notEnrolled.priceKobo ?? 0) / 100).toLocaleString()} / ${
+                  : ` ₦${((notEnrolled.effectivePriceKobo ?? notEnrolled.priceKobo ?? 0) / 100).toLocaleString()} / ${
                       notEnrolled.billingInterval?.toLowerCase() ?? "month"
                     } — you'll pay securely via Paystack.`}
               </p>

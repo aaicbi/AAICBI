@@ -16,6 +16,7 @@
  * stale the moment the curriculum changes and nobody re-uploads it).
  */
 import { Document, Page, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
+import { getEffectivePriceKobo } from "@/lib/coursePricing";
 
 export interface CurriculumPdfLesson {
   title: string;
@@ -41,6 +42,7 @@ export interface CurriculumPdfCourse {
   venue: string | null;
   isFree: boolean;
   priceKobo: number | null;
+  discountPercent: number | null;
   modules: CurriculumPdfModule[];
 }
 
@@ -144,7 +146,17 @@ function CurriculumDocument({ course }: { course: CurriculumPdfCourse }) {
               {course.isFree
                 ? "Free"
                 : course.priceKobo != null
-                  ? (course.priceKobo / 100).toLocaleString("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 })
+                  ? course.discountPercent
+                    ? `${(getEffectivePriceKobo(course)! / 100).toLocaleString("en-NG", {
+                        style: "currency",
+                        currency: "NGN",
+                        maximumFractionDigits: 0,
+                      })} (was ${(course.priceKobo / 100).toLocaleString("en-NG", {
+                        style: "currency",
+                        currency: "NGN",
+                        maximumFractionDigits: 0,
+                      })}, -${course.discountPercent}%)`
+                    : (course.priceKobo / 100).toLocaleString("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 })
                   : "Contact us"}
             </Text>
           </View>

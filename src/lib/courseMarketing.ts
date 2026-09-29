@@ -26,6 +26,7 @@
  * recomputing it themselves.
  */
 import { getCourseLifecyclePhase } from "@/lib/courseLifecycle";
+import { getEffectivePriceKobo } from "@/lib/coursePricing";
 import type { CourseLifecyclePhase, CourseLocationType } from "@prisma/client";
 
 export interface MarketingSourceCourse {
@@ -34,6 +35,7 @@ export interface MarketingSourceCourse {
   description: string | null;
   isFree: boolean;
   priceKobo: number | null;
+  discountPercent: number | null;
   billingInterval: string | null;
   category: string | null;
   level: string | null;
@@ -73,6 +75,8 @@ export interface MarketingView {
   description: string | null;
   isFree: boolean;
   priceKobo: number | null;
+  discountPercent: number | null;
+  effectivePriceKobo: number | null;
   billingInterval: string | null;
   category: string | null;
   level: string | null;
@@ -106,6 +110,8 @@ export function buildMarketingView(course: MarketingSourceCourse): MarketingView
     description: course.description,
     isFree: course.isFree,
     priceKobo: course.priceKobo,
+    discountPercent: course.discountPercent,
+    effectivePriceKobo: getEffectivePriceKobo(course),
     billingInterval: course.billingInterval,
     category: course.category,
     level: course.level,

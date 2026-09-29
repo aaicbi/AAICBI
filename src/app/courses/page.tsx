@@ -7,6 +7,7 @@ import Icon from "@/components/ui/Icon";
 import EmptyState from "@/components/ui/EmptyState";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import UpcomingCourseCard, { type UpcomingCourseRow } from "@/components/courses/UpcomingCourseCard";
+import PriceTag from "@/components/courses/PriceTag";
 import { CalendarClock, ArrowRight } from "lucide-react";
 
 interface PublicCourseRow extends UpcomingCourseRow {
@@ -88,6 +89,17 @@ export default function PublicCoursesPage() {
                     {course.level && <Badge variant="neutral">{LEVEL_LABEL[course.level]}</Badge>}
                   </div>
                   {course.description && <p className="mt-1 line-clamp-2 text-sm text-gray-600">{course.description}</p>}
+                  {!course.isFree && course.priceKobo != null && (
+                    <div className="mt-1.5">
+                      <PriceTag
+                        priceKobo={course.priceKobo}
+                        discountPercent={course.discountPercent}
+                        effectivePriceKobo={course.effectivePriceKobo}
+                        billingInterval={course.billingInterval}
+                        size="sm"
+                      />
+                    </div>
+                  )}
                   <p className="mt-1 text-xs text-gray-500">
                     {course.category && `${course.category} · `}
                     {course.moduleCount} module{course.moduleCount === 1 ? "" : "s"}
