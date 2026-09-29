@@ -27,12 +27,13 @@
  * previously-unwired `likelyDuplicatePaymentEmail`.
  */
 import { prisma } from "@/lib/prisma";
-import { verifyPaystackTransaction, isGenuinePaymentSuccess } from "@/lib/paystack/client";
+import { verifyPaystackTransaction, isGenuinePaymentSuccess, PaystackVerifyResult } from "@/lib/paystack/client";
 import { computePeriodEnd, computeFixedAccessEnd } from "@/lib/paystack/billingPeriod";
 import { notifyByEmail } from "@/lib/notifications/log";
 import { notifyAllAdminStaff } from "@/lib/notifications/notifyAllAdminStaff";
 import { likelyDuplicatePaymentEmail, paymentReceiptEmail } from "@/lib/notifications/templates";
 import { grantAiCreditsForPayment } from "@/lib/paystack/aiCredits";
+import { getEffectivePriceKobo } from "@/lib/coursePricing";
 
 export type ProcessChargeResult =
   | { status: "granted"; traineeId: string; courseId: string }
@@ -130,18 +131,71 @@ async function sendPaymentReceipt(params: {
   }).catch((e) => console.error(`Failed to send payment receipt for trainee ${params.trainee.id}, course ${params.courseId}:`, e));
 }
 
+/**
+ * Real incident, not a hypothetical: a trainee who abandons the "Card"
+ * option on Paystack's hosted checkout and pays via Bank Transfer
+ * instead ends up on a genuinely separate Paystack charge object, one
+ * that doesn't inherit the custom `metadata` (traineeId, courseId,
+ * amountKobo) initializeCoursePayment set on the original transaction —
+ * confirmed directly against two real production webhook payloads,
+ * both `charge.success`, both `channel: "bank_transfer"`, both carrying
+ * only `metadata: { referrer: "<course page URL>" }`. Paystack still
+ * reliably attaches two other things to every charge, though: the
+ * verified customer's email, and — via `callback_url` — the same course
+ * page URL as `referrer`. That's enough to re-derive both IDs without
+ * trusting anything client-supplied, and the amount is computed fresh
+ * from the course's own current price rather than read back from
+ * metadata at all, which is strictly safer than what the primary path
+ * above does.
+ *
+ * Returns null when even this can't resolve anything (no referrer, no
+ * matching trainee, no matching course) — callers fall through to the
+ * existing `no_metadata` outcome exactly as before.
+ */
+async function resolveFromVerifiedCharge(
+  verified: PaystackVerifyResult
+): Promise<{ traineeId: string; courseId: string; expectedAmountKobo: number } | null> {
+  const metadata = verified.data.metadata;
+  const referrer = metadata && typeof metadata.referrer === "string" ? metadata.referrer : null;
+  const courseIdMatch = referrer?.match(/\/courses\/([a-zA-Z0-9]+)/);
+  const courseId = courseIdMatch ? courseIdMatch[1] : null;
+  const customerEmail = verified.data.customer?.email ?? null;
+  if (!courseId || !customerEmail) return null;
+
+  const trainee = await prisma.trainee.findUnique({ where: { email: customerEmail }, select: { id: true } });
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { priceKobo: true, discountPercent: true },
+  });
+  if (!trainee || !course) return null;
+
+  const expectedAmountKobo = getEffectivePriceKobo(course);
+  if (expectedAmountKobo === null) return null;
+
+  console.log(
+    `Reference ${verified.data.reference}: Paystack's own metadata was incomplete (likely a Bank Transfer sub-charge) — resolved trainee ${trainee.id} and course ${courseId} via customer email + referrer instead.`
+  );
+  return { traineeId: trainee.id, courseId, expectedAmountKobo };
+}
+
 export async function processConfirmedCharge(reference: string): Promise<ProcessChargeResult> {
   const verified = await verifyPaystackTransaction(reference);
 
   const metadata = verified.data.metadata;
-  const traineeId = metadata && typeof metadata.traineeId === "string" ? metadata.traineeId : null;
-  const courseId = metadata && typeof metadata.courseId === "string" ? metadata.courseId : null;
-  const expectedAmountKobo = metadata && typeof metadata.amountKobo === "number" ? metadata.amountKobo : null;
+  const metaTraineeId = metadata && typeof metadata.traineeId === "string" ? metadata.traineeId : null;
+  const metaCourseId = metadata && typeof metadata.courseId === "string" ? metadata.courseId : null;
+  const metaAmountKobo = metadata && typeof metadata.amountKobo === "number" ? metadata.amountKobo : null;
 
-  if (!traineeId || !courseId || expectedAmountKobo === null) {
+  const resolved =
+    metaTraineeId && metaCourseId && metaAmountKobo !== null
+      ? { traineeId: metaTraineeId, courseId: metaCourseId, expectedAmountKobo: metaAmountKobo }
+      : await resolveFromVerifiedCharge(verified);
+
+  if (!resolved) {
     console.error(`charge.success for reference ${reference} has no usable metadata — cannot activate anything.`);
     return { status: "no_metadata" };
   }
+  const { traineeId, courseId, expectedAmountKobo } = resolved;
 
   const course = await prisma.course.findUnique({
     where: { id: courseId },

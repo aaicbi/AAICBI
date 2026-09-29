@@ -50,7 +50,11 @@ const VerifyResponseSchema = z.object({
     channel: z.string().nullable().optional(),
     // Needed for M26's activation step — recording who to bill again
     // later (M27), not required for the amount/status check above.
-    customer: z.object({ customer_code: z.string() }).optional(),
+    // `email` added for processConfirmedCharge's metadata-fallback path
+    // (see its own comment) — Paystack always populates this from the
+    // authenticated customer record, unlike the custom `metadata` field
+    // below, which a Bank Transfer sub-charge doesn't inherit.
+    customer: z.object({ customer_code: z.string(), email: z.string().optional() }).optional(),
     metadata: z.record(z.unknown()).nullable().optional(),
   }),
 });
