@@ -45,7 +45,17 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
         lifecyclePhaseOverride: true,
       },
     });
-    if (!course || !isCoursePubliclyVisible(course.status)) {
+    // UNLISTED is deliberately payable here, not just PUBLISHED — an
+    // unlisted, paid course is meant to require real payment for
+    // access (a Super Admin's admin-grant is the one deliberate
+    // waiver of that, gated in POST /api/courses/[id]/enrollments),
+    // which only means anything if paying is actually possible. It's
+    // still never listed in any catalog/browse route — this only
+    // affects whether a trainee who already reached the course via a
+    // direct link can pay for it, matching GET /api/courses/[id]'s own
+    // statusReachableByDirectLink. DRAFT/UNPUBLISHED/ARCHIVED remain
+    // unpayable, same as before.
+    if (!course || !(isCoursePubliclyVisible(course.status) || course.status === "UNLISTED")) {
       return NextResponse.json({ error: "Course not found." }, { status: 404 });
     }
     // Coming Soon Courses — a course with no schedule fields set is

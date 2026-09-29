@@ -6,7 +6,7 @@ import { withApiErrors } from "@/lib/apiError";
 import { guardCourseDeletable } from "@/lib/deletionGuards";
 import { getModuleLockMap } from "@/lib/progress";
 import { validateCoursePricing } from "@/lib/coursePricing";
-import { hasCourseAccess, expireLapsedEnrollmentsForTrainee, canTraineeAccessCourse } from "@/lib/courseAccess";
+import { hasCourseAccess, expireLapsedEnrollmentsForTrainee } from "@/lib/courseAccess";
 import { isCoursePubliclyVisible } from "@/lib/courseStatus";
 import { requireOwnedCourse } from "@/lib/courseOwnership";
 import { buildMarketingView } from "@/lib/courseMarketing";
@@ -40,9 +40,13 @@ const fullTree = {
  *
  *   - Staff (SUPER_ADMIN/ADMIN/INSTRUCTOR): can see their own courses,
  *     published or not — that's what building a course *is*.
- *   - Trainee: can only see the course if it's published. An
- *     unpublished course 404s for a trainee exactly the same way a
- *     nonexistent one would — never reveal that a draft exists.
+ *   - Trainee: reachable if the course is PUBLISHED or UNLISTED (a
+ *     direct link, never a catalog listing — see the comment on
+ *     statusReachableByDirectLink below). DRAFT/UNPUBLISHED/ARCHIVED
+ *     404 for a trainee exactly the same way a nonexistent course
+ *     would — never reveal that one of those exists. Actual course
+ *     CONTENT stays enrollment-gated regardless of status, via the
+ *     not-enrolled branch a few lines down.
  */
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
@@ -73,16 +77,24 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // else's course.
     const isOwner = isStaff && (session.role === "SUPER_ADMIN" || course.createdById === session.userId);
 
-    // canTraineeAccessCourse widens isCoursePubliclyVisible to also let
-    // through a trainee with CURRENTLY-active access to an UNLISTED
-    // course. Deliberately current-access only (not "ever had an
-    // enrollment row") — a revoked trainee gets the same honest 404 as
-    // someone never granted access at all, consistent with this
-    // status's privacy intent, rather than the friendlier "your access
-    // expired" message a public course's expired trainee sees below.
-    const isUnlistedButCurrentlyEnrolled = !isStaff && (await canTraineeAccessCourse(course.status, session.userId, course.id));
+    // Unlisted-course direct-link access — an UNLISTED course is
+    // excluded from every catalog/browse listing (that filtering
+    // happens in the LIST routes, untouched by this), but a trainee
+    // with the actual direct link can now reach this DETAIL route the
+    // same way they would a published course's — never 404'd purely
+    // for being unlisted. This is what makes a paid unlisted course
+    // sellable via a direct link at all (see the pay route's own
+    // comment): without it, a not-yet-enrolled trainee had no way to
+    // even see the course to pay for it, only an admin grant could get
+    // them in. The branch below (not enrolled -> marketing view + 403)
+    // already existed for published courses and does the real content
+    // gating here — this just stops UNLISTED from being turned away
+    // before ever reaching it. DRAFT/UNPUBLISHED/ARCHIVED are
+    // deliberately NOT included — those stay 404, never revealed via a
+    // guessed or leaked link.
+    const statusReachableByDirectLink = isCoursePubliclyVisible(course.status) || course.status === "UNLISTED";
 
-    if (!isCoursePubliclyVisible(course.status) && !isOwner && !isUnlistedButCurrentlyEnrolled) {
+    if (!statusReachableByDirectLink && !isOwner) {
       // Same 404 whether the course doesn't exist or just isn't visible
       // to this requester — don't confirm a draft course's existence to
       // anyone who shouldn't see it.

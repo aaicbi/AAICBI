@@ -52,6 +52,21 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
     const course = await requireOwnedCourse(params.id, session.userId, session.role);
 
+    // An UNLISTED, paid course is meant to require real payment (see
+    // the pay route's own comment on why UNLISTED is now payable at
+    // all) — an admin grant here is a genuine waiver of that
+    // requirement, not a routine access grant. Narrowed to Super Admin
+    // alone for exactly this course shape; every other course (free,
+    // or publicly listed) keeps the existing three-role grant
+    // behavior unchanged, since there's no payment being bypassed
+    // there in the first place.
+    if (course.status === "UNLISTED" && !course.isFree && session.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Only a Super Admin can waive payment for this course." },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const parsed = GrantSchema.safeParse(body);
     if (!parsed.success) {
