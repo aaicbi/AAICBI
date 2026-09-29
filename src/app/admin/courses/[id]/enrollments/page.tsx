@@ -89,6 +89,19 @@ export default function CourseEnrollmentsPage({ params }: { params: { id: string
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
+  // Same helper as the course builder page's own copyTraineeLink — see
+  // that comment for why this matters most for UNLISTED courses,
+  // which have no catalog listing at all, only this direct link.
+  async function copyTraineeLink() {
+    const url = `${window.location.origin}/trainee/courses/${params.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast("Course link copied.", "success");
+    } catch {
+      showToast("Could not copy the link — here it is: " + url, "error");
+    }
+  }
+
   async function grant() {
     setGranting(true);
     setError(null);
@@ -165,10 +178,20 @@ export default function CourseEnrollmentsPage({ params }: { params: { id: string
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-2xl px-6 py-10">
-        <h1 className="font-display text-2xl font-semibold text-brand-ink">Enrollments</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Grant a trainee access directly — works for paid courses too, not just free ones.
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="font-display text-2xl font-semibold text-brand-ink">Enrollments</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              Grant a trainee access directly — works for paid courses too, not just free ones.
+            </p>
+          </div>
+          <button
+            onClick={copyTraineeLink}
+            className="shrink-0 text-xs font-semibold text-brand-teal hover:underline"
+          >
+            Copy Trainee Link
+          </button>
+        </div>
 
         <Card className="mt-6">
           <div className="flex gap-2">

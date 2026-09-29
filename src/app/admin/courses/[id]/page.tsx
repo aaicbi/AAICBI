@@ -14,6 +14,7 @@ import {
   ArrowUp,
   ArrowDown,
   LineChart,
+  Link as LinkIcon,
 } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
@@ -168,6 +169,26 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
       return;
     }
     await loadCourse();
+  }
+
+  // Course discounts/unlisted-course follow-up — the trainee-facing
+  // URL for this exact course (same route an enrolled or paying
+  // trainee reaches: src/app/trainee/courses/[id]/page.tsx). Genuinely
+  // useful for any course, but the one real gap this closes is
+  // UNLISTED: since that status is only ever reachable by direct link
+  // (never a catalog listing — see GET /api/courses/[id]'s own
+  // comment), there was previously no way for an admin to actually get
+  // that link short of typing it by hand from the id in this page's
+  // own URL. window.location.origin, not a hardcoded domain — works
+  // identically on the real deployment and any preview/staging URL.
+  async function copyTraineeLink() {
+    const url = `${window.location.origin}/trainee/courses/${params.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast("Course link copied.", "success");
+    } catch {
+      showToast("Could not copy the link — here it is: " + url, "error");
+    }
   }
 
   // M45 — same PUT endpoint, same reasoning as updateEarlyWarningThresholds
@@ -420,6 +441,12 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
             )}
           </div>
           <div className="shrink-0 text-right">
+            <button
+              onClick={copyTraineeLink}
+              className="mb-2 block w-full text-right text-xs font-semibold text-brand-teal hover:underline"
+            >
+              <Icon icon={LinkIcon} size="sm" className="mr-1 inline align-text-bottom" /> Copy Trainee Link
+            </button>
             <a
               href={`/admin/courses/${params.id}/certificates`}
               className="mb-2 block text-xs font-semibold text-brand-teal hover:underline"
