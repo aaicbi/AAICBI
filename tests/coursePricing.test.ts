@@ -51,8 +51,8 @@ describe("validateCoursePricing", () => {
       ).not.toBeNull();
     });
 
-    it("rejects a RECURRING_SUBSCRIPTION course with reminders enabled", () => {
-      expect(validateCoursePricing(false, 500000, "MONTHLY", { accessModel: "RECURRING_SUBSCRIPTION", reminderEnabled: true })).not.toBeNull();
+    it("accepts a RECURRING_SUBSCRIPTION course with reminders enabled — renewal reminders apply to both access models", () => {
+      expect(validateCoursePricing(false, 500000, "MONTHLY", { accessModel: "RECURRING_SUBSCRIPTION", reminderEnabled: true })).toBeNull();
     });
 
     it("accepts a FIXED_DURATION course with a positive value and DAYS/MONTHS unit", () => {

@@ -929,14 +929,15 @@ function PricingSettings({
   );
 }
 
-// Course enrollment/subscription system — expiry reminders, scoped to
-// FIXED_DURATION courses only (see validateCoursePricing's own rule):
-// a RECURRING_SUBSCRIPTION course already gets Paystack-driven
-// subscription.not_renew/invoice.payment_failed emails, so a second,
-// independent reminder schedule for the same event would risk
-// duplicate or conflicting messaging. Hidden entirely, not just
-// disabled, for a free or recurring course — nothing here could ever
-// take effect for either.
+// Course enrollment/subscription system — expiry/renewal reminders.
+// Hidden entirely, not just disabled, for a free course — nothing here
+// could ever take effect for one (see validateCoursePricing's own
+// rule). Available for both access models: FIXED_DURATION's version
+// warns "renew before this lapses," RECURRING_SUBSCRIPTION's is a
+// plain "here's what's about to happen" heads-up before Paystack's own
+// automatic renewal charge — see accessExpiringReminderEmail and
+// subscriptionRenewingReminderEmail's own comments for why those stay
+// two distinct templates rather than one shared one.
 function ReminderSettings({
   course,
   onSave,
@@ -952,7 +953,8 @@ function ReminderSettings({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (course.isFree || course.accessModel !== "FIXED_DURATION") return null;
+  if (course.isFree) return null;
+  const isSubscription = course.accessModel === "RECURRING_SUBSCRIPTION";
 
   function startEditing() {
     setEnabled(course.reminderEnabled);
@@ -984,7 +986,7 @@ function ReminderSettings({
   }
 
   const summary = course.reminderEnabled
-    ? `Reminders at ${course.reminderDaysBeforeExpiry.join(", ")} day(s) before expiry`
+    ? `Reminders at ${course.reminderDaysBeforeExpiry.join(", ")} day(s) before ${isSubscription ? "renewal" : "expiry"}`
     : "Off";
 
   return (
@@ -992,7 +994,7 @@ function ReminderSettings({
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-semibold text-gray-900">
-            <Icon icon={Clock} size="sm" className="mr-1 inline align-text-bottom" /> Expiry Reminders
+            <Icon icon={Clock} size="sm" className="mr-1 inline align-text-bottom" /> {isSubscription ? "Renewal Reminders" : "Expiry Reminders"}
           </p>
           {!editing && <p className="mt-1 text-xs text-gray-600">{summary}</p>}
         </div>
@@ -1007,11 +1009,13 @@ function ReminderSettings({
         <div className="mt-3 space-y-3">
           <label className="flex items-center gap-2 text-xs text-gray-700">
             <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
-            Send trainees an email before their access expires
+            {isSubscription
+              ? "Send trainees an email before their subscription automatically renews"
+              : "Send trainees an email before their access expires"}
           </label>
           {enabled && (
             <label className="block text-xs text-gray-700">
-              Days before expiry to send a reminder (comma-separated)
+              Days before {isSubscription ? "renewal" : "expiry"} to send a reminder (comma-separated)
               <input
                 value={days}
                 onChange={(e) => setDays(e.target.value)}

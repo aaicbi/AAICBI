@@ -38,6 +38,11 @@ export type NotificationType =
   | "STAFF_ACCOUNT_CREATED"
   | "LIKELY_DUPLICATE_PAYMENT"
   | "ACCESS_EXPIRING_REMINDER"
+  // RECURRING_SUBSCRIPTION counterpart to ACCESS_EXPIRING_REMINDER
+  // above — see subscriptionRenewingReminderEmail's own comment for why
+  // this is a distinct, informational-toned notice rather than a reuse
+  // of that one.
+  | "SUBSCRIPTION_RENEWING_REMINDER"
   | "PAYMENT_RECEIPT"
   // Loop broadcast messaging — a message a Super Admin directed Loop
   // to send, delivered through this exact same pipeline. Never

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { welcomeEmail, passwordResetEmail, moduleUnlockedEmail, assessmentResultEmail, accessExpiringReminderEmail, paymentReceiptEmail } from "@/lib/notifications/templates";
+import { welcomeEmail, passwordResetEmail, moduleUnlockedEmail, assessmentResultEmail, accessExpiringReminderEmail, subscriptionRenewingReminderEmail, paymentReceiptEmail } from "@/lib/notifications/templates";
 
 describe("welcomeEmail", () => {
   it("includes the verify URL in both html and text", () => {
@@ -124,6 +124,40 @@ describe("accessExpiringReminderEmail", () => {
   it("includes a Renew Access link, not a generic course link", () => {
     const result = accessExpiringReminderEmail(base);
     expect(result.html).toContain("Renew Access");
+    expect(result.html).toContain(base.courseUrl);
+  });
+});
+
+describe("subscriptionRenewingReminderEmail", () => {
+  const base = {
+    traineeName: "Chidi",
+    courseTitle: "Cybersecurity Foundations",
+    daysRemaining: 3,
+    renewalDate: "October 29, 2026",
+    amountKobo: 160000,
+    courseUrl: "https://example.com/trainee/courses/abc123",
+  };
+
+  it("includes the days remaining, renewal date, and amount in both html and text", () => {
+    const result = subscriptionRenewingReminderEmail(base);
+    expect(result.html).toContain("3 days");
+    expect(result.html).toContain("October 29, 2026");
+    expect(result.html).toContain("₦1,600");
+    expect(result.text).toContain("3 days");
+    expect(result.text).toContain("October 29, 2026");
+    expect(result.text).toContain("₦1,600");
+  });
+
+  it("uses singular 'day' when exactly one day remains", () => {
+    const result = subscriptionRenewingReminderEmail({ ...base, daysRemaining: 1 });
+    expect(result.subject).toContain("1 day");
+    expect(result.subject).not.toContain("1 days");
+  });
+
+  it("frames renewal as automatic, not a call to action — never says 'Renew Access'", () => {
+    const result = subscriptionRenewingReminderEmail(base);
+    expect(result.html).not.toContain("Renew Access");
+    expect(result.html).toContain("automatically");
     expect(result.html).toContain(base.courseUrl);
   });
 });

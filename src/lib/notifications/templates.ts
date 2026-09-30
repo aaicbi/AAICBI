@@ -444,13 +444,11 @@ export function subscriptionEndedEmail(input: SubscriptionEndedEmailInput): Emai
  * Course enrollment/subscription system — the FIXED_DURATION
  * counterpart to subscriptionEndingEmail above, and deliberately a
  * distinct template rather than reusing it: that one is specifically
- * about Paystack's "won't renew" flag on a recurring subscription
- * (task Section 12's renewal-reminder concept doesn't apply there —
- * see PricingSettings/ReminderSettings's own comment on why reminders
- * are scoped to FIXED_DURATION only). This one is the admin-configured
- * "N days before your one-time access window ends" reminder from task
- * Section 13, and its CTA is genuinely different too — "Renew Access"
- * (a fresh one-time payment) rather than "Go to the Course."
+ * about Paystack's "won't renew" flag on a recurring subscription. This
+ * one is the admin-configured "N days before your one-time access
+ * window ends" reminder from task Section 13, and its CTA is genuinely
+ * different too — "Renew Access" (a fresh one-time payment) rather than
+ * "Go to the Course."
  */
 export interface AccessExpiringReminderEmailInput {
   traineeName: string;
@@ -469,6 +467,40 @@ export function accessExpiringReminderEmail(input: AccessExpiringReminderEmailIn
       ${button(input.courseUrl, "Renew Access")}
     `),
     text: `Hi ${input.traineeName},\n\nYour access to ${input.courseTitle} expires in ${input.daysRemaining} ${dayWord}, on ${input.expiryDate}. Renew now to keep your progress uninterrupted.\n\n${input.courseUrl}`,
+  };
+}
+
+/**
+ * Course enrollment/subscription system — the RECURRING_SUBSCRIPTION
+ * counterpart to accessExpiringReminderEmail above, added after a real
+ * gap was flagged: paymentReceiptEmail already states the next billing
+ * date at the moment of payment, but that's easy to forget weeks or
+ * months later, and nothing reminds a trainee again closer to the
+ * actual charge. Deliberately informational in tone, not a warning —
+ * unlike a FIXED_DURATION course, access here doesn't lapse on its own;
+ * Paystack renews it automatically, so the honest framing is "here's
+ * what's about to happen," not "act now or lose access." No CTA button
+ * for that same reason — there's nothing the trainee needs to do.
+ */
+export interface SubscriptionRenewingReminderEmailInput {
+  traineeName: string;
+  courseTitle: string;
+  daysRemaining: number;
+  renewalDate: string;
+  amountKobo: number;
+  courseUrl: string;
+}
+export function subscriptionRenewingReminderEmail(input: SubscriptionRenewingReminderEmailInput): EmailContent {
+  const dayWord = input.daysRemaining === 1 ? "day" : "days";
+  const amountDisplay = `₦${(input.amountKobo / 100).toLocaleString()}`;
+  return {
+    subject: `Your subscription to ${input.courseTitle} renews in ${input.daysRemaining} ${dayWord}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(input.traineeName)},</p>
+      <p style="margin:0 0 16px;">Your subscription to <strong>${escapeHtml(input.courseTitle)}</strong> renews in <strong>${input.daysRemaining} ${dayWord}</strong>, on ${escapeHtml(input.renewalDate)}. ${amountDisplay} will be charged automatically to your saved payment method — no action needed to keep your access.</p>
+      ${button(input.courseUrl, "View the Course")}
+    `),
+    text: `Hi ${input.traineeName},\n\nYour subscription to ${input.courseTitle} renews in ${input.daysRemaining} ${dayWord}, on ${input.renewalDate}. ${amountDisplay} will be charged automatically to your saved payment method — no action needed to keep your access.\n\n${input.courseUrl}`,
   };
 }
 

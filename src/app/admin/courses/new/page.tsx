@@ -72,8 +72,8 @@ export default function NewCoursePage() {
             ? Number(durationValue)
             : null,
         accessDurationUnit: !isFree && accessModel === "FIXED_DURATION" ? durationUnit : null,
-        reminderEnabled: !isFree && accessModel === "FIXED_DURATION" ? reminderEnabled : false,
-        reminderDaysBeforeExpiry: !isFree && accessModel === "FIXED_DURATION" && reminderEnabled ? parsedReminderDays : undefined,
+        reminderEnabled: !isFree ? reminderEnabled : false,
+        reminderDaysBeforeExpiry: !isFree && reminderEnabled ? parsedReminderDays : undefined,
       }),
     });
     setLoading(false);
@@ -234,22 +234,25 @@ export default function NewCoursePage() {
                         </label>
                       </div>
 
-                      <label className="flex items-center gap-2 text-sm text-brand-ink">
-                        <input type="checkbox" checked={reminderEnabled} onChange={(e) => setReminderEnabled(e.target.checked)} />
-                        Email trainees before their access expires
-                      </label>
-                      {reminderEnabled && (
-                        <label className="block text-sm text-brand-ink">
-                          Days before expiry to remind (comma-separated)
-                          <input
-                            value={reminderDays}
-                            onChange={(e) => setReminderDays(e.target.value)}
-                            placeholder="e.g. 14, 7, 1"
-                            className="mt-1 w-full max-w-[16rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-                          />
-                        </label>
-                      )}
                     </>
+                  )}
+
+                  <label className="flex items-center gap-2 text-sm text-brand-ink">
+                    <input type="checkbox" checked={reminderEnabled} onChange={(e) => setReminderEnabled(e.target.checked)} />
+                    {accessModel === "RECURRING_SUBSCRIPTION"
+                      ? "Email trainees before their subscription automatically renews"
+                      : "Email trainees before their access expires"}
+                  </label>
+                  {reminderEnabled && (
+                    <label className="block text-sm text-brand-ink">
+                      Days before {accessModel === "RECURRING_SUBSCRIPTION" ? "renewal" : "expiry"} to remind (comma-separated)
+                      <input
+                        value={reminderDays}
+                        onChange={(e) => setReminderDays(e.target.value)}
+                        placeholder="e.g. 14, 7, 1"
+                        className="mt-1 w-full max-w-[16rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
+                      />
+                    </label>
                   )}
                 </div>
               )}

@@ -80,9 +80,6 @@ export function validateCoursePricing(
     if (accessDurationValue != null || accessDurationUnit != null) {
       return "A recurring-subscription course can't also have a fixed access duration set — choose one access model.";
     }
-    if (reminderEnabled) {
-      return "Expiry reminders are only available for fixed-duration access courses — a recurring subscription already sends its own renewal/expiry emails.";
-    }
     return null;
   }
 
