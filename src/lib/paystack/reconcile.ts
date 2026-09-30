@@ -48,6 +48,8 @@ type PaidCourse = {
   billingInterval: "MONTHLY" | "QUARTERLY" | "ANNUALLY" | null;
   accessDurationValue: number | null;
   accessDurationUnit: "DAYS" | "MONTHS" | "LIFETIME" | null;
+  priceKobo: number | null;
+  discountPercent: number | null;
 };
 
 /**
@@ -117,6 +119,8 @@ async function sendPaymentReceipt(params: {
     nextBillingAmountKobo: isRecurring && params.currentPeriodEnd ? params.amountKobo : null,
     accessUntil: !isRecurring && params.currentPeriodEnd ? params.currentPeriodEnd.toLocaleDateString() : null,
     courseUrl: `${appUrl}${relativeUrl}`,
+    originalPriceKobo: params.course.priceKobo,
+    discountPercent: params.course.discountPercent,
   });
   await notifyByEmail({
     recipientType: "TRAINEE",
@@ -206,6 +210,8 @@ export async function processConfirmedCharge(reference: string): Promise<Process
       billingInterval: true,
       accessDurationValue: true,
       accessDurationUnit: true,
+      priceKobo: true,
+      discountPercent: true,
     },
   });
   const paidConfigValid =

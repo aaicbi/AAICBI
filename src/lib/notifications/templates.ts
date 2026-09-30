@@ -538,15 +538,25 @@ export interface PaymentReceiptEmailInput {
   nextBillingAmountKobo: number | null;
   accessUntil: string | null;
   courseUrl: string;
+  // Course discounts — the course's undiscounted list price and the
+  // percentage actually applied to THIS charge, so a trainee who paid a
+  // discounted price sees the real breakdown (list price, discount,
+  // what they actually paid) rather than just a final number with no
+  // context for it. Both null/undefined for a course with no discount
+  // configured at all — the receipt then shows only "Amount Paid",
+  // exactly as it always has.
+  originalPriceKobo?: number | null;
+  discountPercent?: number | null;
 }
 export function paymentReceiptEmail(input: PaymentReceiptEmailInput): EmailContent {
   const amount = `₦${(input.amountKobo / 100).toLocaleString()}`;
-  const rows: Array<[string, string]> = [
-    ["Course", input.courseTitle],
-    ["Amount Paid", amount],
-    ["Payment Reference", input.reference],
-    ["Date", input.paidAt],
-  ];
+  const rows: Array<[string, string]> = [["Course", input.courseTitle]];
+  if (input.originalPriceKobo != null && input.discountPercent) {
+    rows.push(["Original Price", `₦${(input.originalPriceKobo / 100).toLocaleString()}`]);
+    const savedKobo = input.originalPriceKobo - input.amountKobo;
+    rows.push(["Discount", `-${input.discountPercent}% (−₦${(savedKobo / 100).toLocaleString()})`]);
+  }
+  rows.push(["Amount Paid", amount], ["Payment Reference", input.reference], ["Date", input.paidAt]);
   if (input.method) rows.push(["Payment Method", input.method]);
 
   const htmlRows = rows

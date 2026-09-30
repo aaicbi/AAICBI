@@ -192,6 +192,23 @@ describe("paymentReceiptEmail", () => {
     expect(result.html).toContain("AAICBI");
   });
 
+  it("shows the original price and discount breakdown when a discount was applied", () => {
+    const result = paymentReceiptEmail({ ...base, amountKobo: 4000000, originalPriceKobo: 5000000, discountPercent: 20 });
+    expect(result.html).toContain("₦50,000"); // original price
+    expect(result.html).toContain("₦40,000"); // amount actually paid
+    expect(result.html).toContain("-20%");
+    expect(result.html).toContain("₦10,000"); // amount saved
+    expect(result.text).toContain("Original Price: ₦50,000");
+    expect(result.text).toContain("Discount: -20%");
+  });
+
+  it("omits the discount breakdown entirely when no discount was applied", () => {
+    const result = paymentReceiptEmail({ ...base, originalPriceKobo: 5000000, discountPercent: null });
+    expect(result.html).not.toContain("Original Price");
+    expect(result.html).not.toContain("Discount");
+    expect(result.text).not.toContain("Original Price");
+  });
+
   it("shows the next-payment invoice for a recurring subscription", () => {
     const result = paymentReceiptEmail({
       ...base,
