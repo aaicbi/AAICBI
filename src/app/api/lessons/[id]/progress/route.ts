@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { getModuleLockStatus } from "@/lib/progress";
 import { hasCourseAccess, canTraineeAccessCourse } from "@/lib/courseAccess";
+import { trackEvent } from "@/lib/analytics/track";
 
 const BodySchema = z.object({ completed: z.boolean() });
 
@@ -67,6 +68,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         where: { lessonId_traineeId: { lessonId: params.id, traineeId: session.userId } },
         update: {},
         create: { lessonId: params.id, traineeId: session.userId },
+      });
+      await trackEvent({
+        recipientType: "TRAINEE",
+        userId: session.userId,
+        type: "LESSON_COMPLETED",
+        courseId: lesson.module.courseId,
+        relatedId: params.id,
       });
     } else {
       await prisma.lessonProgress

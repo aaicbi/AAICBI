@@ -12,6 +12,7 @@ import { requireOwnedCourse } from "@/lib/courseOwnership";
 import { buildMarketingView } from "@/lib/courseMarketing";
 import { safeUrl } from "@/lib/materialUrl";
 import { validateCourseSchedule } from "@/lib/courseSchedule";
+import { trackEvent } from "@/lib/analytics/track";
 
 const fullTree = {
   createdBy: { select: { name: true } },
@@ -107,6 +108,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if (isStaff) {
       return NextResponse.json(course);
     }
+
+    // Analytics System Phase 1 — a trainee reaching this point has
+    // genuinely viewed this course's detail page, enrolled or not yet;
+    // the not-yet-enrolled case is exactly the "interest before
+    // conversion" signal the content-performance dashboard cares about,
+    // so this fires before the enrollment-gate check below, not after.
+    await trackEvent({ recipientType: "TRAINEE", userId: session.userId, type: "COURSE_VIEWED", courseId: course.id });
 
     // M18 — the actual gate this milestone exists to add. Before this,
     // any authenticated trainee could fetch this route's full

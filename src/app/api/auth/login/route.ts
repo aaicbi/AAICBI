@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/auth/password";
 import { createSession } from "@/lib/auth/session";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
+import { trackEvent } from "@/lib/analytics/track";
 
 const LoginSchema = z.object({
   email: z.string().email(),
@@ -49,5 +50,6 @@ export async function POST(req: NextRequest) {
     where: { id: user.id },
     data: { previousLoginAt: user.lastLoginAt, lastLoginAt: new Date() },
   });
+  await trackEvent({ recipientType: "STAFF", userId: user.id, type: "LOGIN" });
   return NextResponse.json({ id: user.id, name: user.name, email: user.email, role: user.role });
 }

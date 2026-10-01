@@ -10,6 +10,7 @@ const NAV = [
   { label: "Examinations", href: "/admin/dashboard" },
   { label: "Courses", href: "/admin/courses" },
   { label: "Performance", href: "/admin/performance" },
+          { label: "Analytics", href: "/admin/analytics" },
   { label: "Messages", href: "/admin/messages" },
   { label: "My Profile", href: "/admin/profile" },
   { label: "Settings", href: "/admin/settings" },

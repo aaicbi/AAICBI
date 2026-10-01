@@ -22,6 +22,7 @@ const NAV = [
   { label: "Introductions", href: "/trainee/introductions" },
   { label: "Job Board", href: "/trainee/job-postings" },
   { label: "Ask Loop", href: "/trainee/buddy" },
+          { label: "My Activity", href: "/trainee/my-activity" },
   { label: "Messages", href: "/trainee/messages" },
   { label: "My Profile", href: "/trainee/profile" },
   { label: "Settings", href: "/trainee/settings" },

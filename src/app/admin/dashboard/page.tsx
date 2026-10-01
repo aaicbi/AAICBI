@@ -79,6 +79,7 @@ export default async function AdminDashboardPage() {
     { label: "Create Examination", href: "/admin/exams/new" },
     { label: "Courses", href: "/admin/courses" },
     { label: "Performance", href: "/admin/performance" },
+          { label: "Analytics", href: "/admin/analytics" },
     { label: "Messages", href: "/admin/messages" },
     { label: "My Profile", href: "/admin/profile" },
     // AI Command Center — genuinely SUPER_ADMIN only (unlike the

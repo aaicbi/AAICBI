@@ -2060,6 +2060,55 @@ model NotificationLog {
 }
 
 // ---------------------------------------------------------------------
+// Analytics System — Phase 1 (behavioural foundation)
+//
+// One flexible, log-shaped table for registered-user in-app behaviour,
+// deliberately NOT a bespoke model per event type — see
+// src/lib/analytics/track.ts for the authoritative event-type list and
+// the reasoning. Same String-type-plus-comment convention as
+// NotificationLog.type above, the established pattern for this
+// schema's high-volume, log-shaped tables.
+//
+// Deliberately scoped to AUTHENTICATED, in-app activity only — no
+// anonymous/pre-registration visitor tracking (no visitor-ID cookie,
+// no page views for logged-out pages). That is a genuinely separate,
+// more privacy-sensitive piece of work (a real consent-banner flow
+// doesn't exist anywhere in this codebase yet) deferred to a later
+// phase rather than bolted on here without one.
+//
+// Never logged in `properties`: passwords, tokens, payment details,
+// message content, IP addresses, or any other sensitive value — see
+// this project's own redact.ts discipline for notifications, applied
+// here by simply never collecting that class of data in the first
+// place rather than redacting it after the fact.
+model AnalyticsEvent {
+  id            String   @id @default(cuid())
+  recipientType String // "TRAINEE" | "STAFF" — same values as NotificationLog.recipientType; EMPLOYER/INVESTOR reserved for a later phase
+  userId        String
+  // "LOGIN" | "COURSE_VIEWED" | "LESSON_COMPLETED" | "ASSESSMENT_STARTED" |
+  // "ASSESSMENT_COMPLETED" — see src/lib/analytics/track.ts for the
+  // authoritative list and why Loop usage/certificate issuance
+  // deliberately reuse AiCommandLog/Certificate instead of a duplicate
+  // event here.
+  type          String
+  courseId      String?
+  // A single loosely-typed pointer whose meaning depends on `type` —
+  // same "one column, contextual meaning" convention as
+  // NotificationLog.relatedId (a moduleId, attemptId, certificateId,
+  // etc. depending on the event).
+  relatedId     String?
+  // Small, non-sensitive structured extras only (e.g. {"score": 82}) —
+  // never free text, never anything listed in this model's own "never
+  // logged" comment above.
+  properties    Json?
+  createdAt     DateTime @default(now())
+
+  @@index([userId, type])
+  @@index([type, createdAt])
+  @@index([courseId, type])
+}
+
+// ---------------------------------------------------------------------
 // M15 — Certificates & Verification
 //
 // "Explicitly not blockchain — a signed record plus a public

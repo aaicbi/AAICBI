@@ -28,6 +28,7 @@ import { appUrl } from "@/lib/appUrl";
 import { getModuleLockMap } from "@/lib/progress";
 import { checkFailedAttemptsThreshold } from "@/lib/earlyWarning";
 import { issueCertificateForPassedExam, issueCertificateForPassedStandaloneExam } from "@/lib/certificates";
+import { trackEvent } from "@/lib/analytics/track";
 
 export interface ServeableOption {
   key: string;
@@ -154,6 +155,21 @@ export async function startAttempt(
         passMarkPercent: exam.passMarkPercent,
         certificateName: certificateName || undefined,
       },
+    });
+    // Analytics System Phase 1 — only on a genuinely NEW attempt, not
+    // the resume-existing-attempt path above; resuming isn't a fresh
+    // "start." `exam.courseId` is only ever set for a course-level
+    // examination (see Exam.parentCourse's own schema comment) — a
+    // module-scoped assessment's course attribution isn't resolved here
+    // to keep this security-critical function's own scope narrow; see
+    // ASSESSMENT_COMPLETED in submitAttempt below, which already has
+    // the module→course lookup and resolves it fully.
+    await trackEvent({
+      recipientType: "TRAINEE",
+      userId: traineeId,
+      type: "ASSESSMENT_STARTED",
+      courseId: exam.courseId ?? undefined,
+      relatedId: attempt.id,
     });
     return { attempt, orderedQuestions: pool };
   } catch (e) {
@@ -285,6 +301,22 @@ export async function submitAttempt(attemptId: string) {
   }
 
   const graded = await prisma.attempt.findUniqueOrThrow({ where: { id: attemptId } });
+
+  // Analytics System Phase 1 — `exam` here already has `courseModule`
+  // included (see the fetch above), so this is the one place both exam
+  // shapes (course-level via exam.courseId, module-scoped via
+  // exam.courseModule.courseId) can be resolved to a single courseId
+  // without an extra query — unlike ASSESSMENT_STARTED above, which
+  // deliberately doesn't do this lookup to keep startAttempt's own
+  // scope narrow.
+  await trackEvent({
+    recipientType: "TRAINEE",
+    userId: graded.traineeId,
+    type: "ASSESSMENT_COMPLETED",
+    courseId: exam.courseId ?? exam.courseModule?.courseId ?? undefined,
+    relatedId: graded.id,
+    properties: { score: graded.percentage ?? undefined, passed: graded.passed ?? undefined },
+  });
 
   // TODO (M14 — Notifications): this is the hook point for the
   // "assessment result" email the roadmap names for M14 — grading is
