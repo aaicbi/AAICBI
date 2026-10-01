@@ -29,6 +29,7 @@ interface CoursePerformanceRow {
   title: string;
   views: number;
   uniqueViewers: number;
+  anonymousViews: number;
   enrollments: number;
   completions: number;
   completionRate: number | null;
@@ -44,6 +45,10 @@ interface TrendPoint {
   enrollments: number;
 }
 type LifecycleBreakdown = { NEW: number; ACTIVE: number; INACTIVE: number; COMPLETER: number } | null;
+interface CategoryCount {
+  category: string;
+  count: number;
+}
 
 interface AnalyticsDto {
   days: number;
@@ -53,6 +58,8 @@ interface AnalyticsDto {
   featureUsage: FeatureUsageRow[];
   trend: TrendPoint[];
   lifecycle: LifecycleBreakdown;
+  trafficSources: CategoryCount[] | null;
+  deviceBreakdown: CategoryCount[] | null;
 }
 
 const DAY_OPTIONS = [7, 30, 90];
@@ -69,12 +76,17 @@ const NAV = [
 ];
 
 /**
- * Analytics System Phase 1 — /admin/analytics. SUPER_ADMIN/ADMIN see
- * the platform-wide picture; INSTRUCTOR sees the identical layout
- * scoped to only their own courses (enforced server-side in
+ * Analytics System — /admin/analytics. SUPER_ADMIN/ADMIN see the
+ * platform-wide picture; INSTRUCTOR sees the identical layout scoped to
+ * only their own courses (enforced server-side in
  * GET /api/admin/analytics — this page never decides scope itself,
  * just renders whatever the API returns, including omitting a section
  * entirely when the API sends null for it).
+ *
+ * Phase 2 extended the funnel with two new leading "Visitors"/"Viewed a
+ * Course" stages and added the Traffic Sources/Device Breakdown
+ * sections — all sourced from the new, opt-in, anonymous VisitorEvent
+ * table (see src/lib/analytics/aggregate.ts's own comments on each).
  */
 export default function AdminAnalyticsPage() {
   const [days, setDays] = useState(30);
@@ -239,6 +251,7 @@ export default function AdminAnalyticsPage() {
                         <th className="pb-2 pr-4">Course</th>
                         <th className="pb-2 pr-4 text-right">Views</th>
                         <th className="pb-2 pr-4 text-right">Unique Viewers</th>
+                        <th className="pb-2 pr-4 text-right">Anonymous Views</th>
                         <th className="pb-2 pr-4 text-right">Enrollments</th>
                         <th className="pb-2 pr-4 text-right">Completions</th>
                         <th className="pb-2 text-right">Completion Rate</th>
@@ -250,6 +263,7 @@ export default function AdminAnalyticsPage() {
                           <td className="py-2 pr-4 font-medium text-brand-ink">{row.title}</td>
                           <td className="py-2 pr-4 text-right">{row.views}</td>
                           <td className="py-2 pr-4 text-right">{row.uniqueViewers}</td>
+                          <td className="py-2 pr-4 text-right">{row.anonymousViews}</td>
                           <td className="py-2 pr-4 text-right">{row.enrollments}</td>
                           <td className="py-2 pr-4 text-right">{row.completions}</td>
                           <td className="py-2 text-right">{row.completionRate != null ? `${row.completionRate}%` : "—"}</td>
@@ -298,6 +312,49 @@ export default function AdminAnalyticsPage() {
                   <Badge variant="gold">Completer: {data.lifecycle.COMPLETER}</Badge>
                 </div>
               </Card>
+            )}
+
+            {/* Traffic Sources & Device Breakdown — Phase 2, platform-wide
+                only (anonymous visitors aren't scoped to one instructor). */}
+            {(data.trafficSources || data.deviceBreakdown) && (
+              <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+                {data.trafficSources && (
+                  <Card>
+                    <p className="text-sm font-semibold text-brand-ink">Traffic Sources</p>
+                    <p className="mt-1 text-xs text-gray-500">Where anonymous visitors came from — only visitors who accepted cookie tracking.</p>
+                    <div className="mt-3 space-y-1.5">
+                      {data.trafficSources.length === 0 ? (
+                        <p className="text-sm text-gray-500">No visitor activity in this period yet.</p>
+                      ) : (
+                        data.trafficSources.map((row) => (
+                          <div key={row.category} className="flex items-center justify-between text-sm">
+                            <span className="capitalize text-gray-700">{row.category}</span>
+                            <span className="font-semibold text-brand-ink">{row.count}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </Card>
+                )}
+                {data.deviceBreakdown && (
+                  <Card>
+                    <p className="text-sm font-semibold text-brand-ink">Device Breakdown</p>
+                    <p className="mt-1 text-xs text-gray-500">Coarse device category only — never a raw device/browser string.</p>
+                    <div className="mt-3 space-y-1.5">
+                      {data.deviceBreakdown.length === 0 ? (
+                        <p className="text-sm text-gray-500">No visitor activity in this period yet.</p>
+                      ) : (
+                        data.deviceBreakdown.map((row) => (
+                          <div key={row.category} className="flex items-center justify-between text-sm">
+                            <span className="capitalize text-gray-700">{row.category}</span>
+                            <span className="font-semibold text-brand-ink">{row.count}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </Card>
+                )}
+              </div>
             )}
           </>
         )}

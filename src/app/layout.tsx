@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Manrope } from "next/font/google";
 import { ToastProvider } from "@/components/ui/Toast";
+import CookieConsentBanner from "@/components/CookieConsentBanner";
 import "./globals.css";
 
 // next/font self-hosts these at build time — no external font-CDN
@@ -53,6 +54,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Mounted once, here, so useToast() works from any page in the
             app without every page having to remember to wrap itself. */}
         <ToastProvider>{children}</ToastProvider>
+        {/* Analytics System Phase 2 — mounted once, site-wide, same
+            reasoning as ToastProvider above: one cookie-consent decision
+            per browser, not a per-page concern. */}
+        <CookieConsentBanner />
       </body>
     </html>
   );

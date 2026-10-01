@@ -1,4 +1,5 @@
 import SiteHeader from "@/components/SiteHeader";
+import ManageCookiePreferences from "@/components/analytics/ManageCookiePreferences";
 
 /**
  * The actual destination of the "Privacy Policy" link in the
@@ -184,6 +185,32 @@ export default function PrivacyPolicyPage() {
             <p className="mt-2">
               If this policy changes in a way that affects how your existing data is used, we will
               take reasonable steps to let registered trainees know before the change takes effect.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-base font-bold text-brand-teal">12. Cookies &amp; Anonymous Analytics</h2>
+            <p className="mt-2">
+              When you visit the Platform&apos;s public pages, a banner asks whether we can use a cookie to
+              understand how visitors use the site — this is entirely <strong>opt-in</strong>: nothing is
+              tracked unless you actively click &quot;Accept&quot;, and declining (or simply not answering)
+              means nothing is set and nothing is recorded.
+            </p>
+            <p className="mt-2">If you accept, we set two first-party cookies:</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              <li>
+                <strong>aaicbi_cookie_consent</strong> — remembers your choice, so you&apos;re not asked again.
+              </li>
+              <li>
+                <strong>aaicbi_visitor_id</strong> — a random, anonymous identifier with no name, email, or
+                other identifying information attached to it, used only to recognise repeat visits from the
+                same browser.
+              </li>
+            </ul>
+            <p className="mt-2">With that cookie, we record which pages and courses you view, a coarse category of what device you&apos;re on (mobile, desktop, or tablet — never the exact device or browser), and a coarse category of how you arrived (search, social, a direct visit, or a link from somewhere else) — never the exact page you came from. This data is anonymous and is not linked to your trainee account unless and until you register, at which point your future activity is covered by Section 2 above instead, not this section.</p>
+            <p className="mt-2">We keep this anonymous data for up to 180 days. You can withdraw at any time — clearing your browser&apos;s cookies has the same effect, or use the control below to reset your choice on this device right now.</p>
+            <p className="mt-3">
+              <ManageCookiePreferences />
             </p>
           </section>
         </div>

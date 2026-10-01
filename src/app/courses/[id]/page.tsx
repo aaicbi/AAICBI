@@ -5,6 +5,7 @@ import SiteHeader from "@/components/SiteHeader";
 import Button from "@/components/ui/Button";
 import CourseMarketingView from "@/components/courses/CourseMarketingView";
 import type { MarketingView } from "@/lib/courseMarketing";
+import { trackVisitorEvent } from "@/lib/analytics/visitorTrackClient";
 
 const NAV = [
   { label: "Courses", href: "/courses" },
@@ -41,6 +42,8 @@ export default function PublicCourseDetailPage({ params }: { params: { id: strin
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
+    trackVisitorEvent({ type: "COURSE_VIEWED", path: `/courses/${params.id}`, courseId: params.id });
+
     fetch(`/api/courses/public/${params.id}`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then(setData)
@@ -103,7 +106,11 @@ export default function PublicCourseDetailPage({ params }: { params: { id: strin
           registrationOpen ? (
             <div className="flex flex-wrap gap-2">
               <Button href={`/trainee/login?next=/courses/${params.id}`}>Log in to Enroll</Button>
-              <Button variant="secondary" href={`/trainee/register?next=/courses/${params.id}`}>
+              <Button
+                variant="secondary"
+                href={`/trainee/register?next=/courses/${params.id}`}
+                onClick={() => trackVisitorEvent({ type: "REGISTER_CLICKED", courseId: params.id })}
+              >
                 New here? Sign up
               </Button>
             </div>

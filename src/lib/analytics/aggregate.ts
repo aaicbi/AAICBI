@@ -84,10 +84,34 @@ export interface FunnelStage {
  * first LESSON_COMPLETED or ASSESSMENT_STARTED AnalyticsEvent in the
  * window — the one funnel stage with no pre-existing equivalent field,
  * which is exactly the gap AnalyticsEvent exists to fill.
+ *
+ * Analytics System Phase 2 — now genuinely starts at "Visitors," not
+ * "Registered": VisitorEvent (anonymous, opt-in) supplies the two new
+ * leading stages. "Visitors" is platform-wide only (an anonymous
+ * visitor isn't scoped to one instructor's courses the way a course
+ * VIEW can be) — omitted, not shown as a misleading zero, for an
+ * INSTRUCTOR's scoped funnel; "Viewed a Course" still works scoped,
+ * since VisitorEvent.courseId can be filtered the same as everywhere
+ * else in this file.
  */
 export async function getConversionFunnel(period: PeriodRange, courseIds?: string[]): Promise<FunnelStage[]> {
   const courseFilter = courseIds ? { courseId: { in: courseIds } } : {};
 
+  const visitors = courseIds
+    ? null
+    : (
+        await prisma.visitorEvent.findMany({
+          where: inPeriod("createdAt", period),
+          select: { visitorId: true },
+          distinct: ["visitorId"],
+        })
+      ).length;
+  const viewedCourseRows = await prisma.visitorEvent.findMany({
+    where: { type: "COURSE_VIEWED", ...inPeriod("createdAt", period), ...courseFilter },
+    select: { visitorId: true },
+    distinct: ["visitorId"],
+  });
+  const viewedCourse = viewedCourseRows.length;
   const registered = courseIds ? null : await prisma.trainee.count({ where: inPeriod("createdAt", period) });
   const enrolled = await prisma.courseEnrollment.count({ where: { ...inPeriod("enrolledAt", period), ...courseFilter } });
   const startedLearningRows = await prisma.analyticsEvent.findMany({
@@ -99,10 +123,18 @@ export async function getConversionFunnel(period: PeriodRange, courseIds?: strin
   const completed = await prisma.courseEnrollment.count({ where: { ...inPeriod("completedAt", period), ...courseFilter } });
 
   const stages: FunnelStage[] = [];
-  if (registered !== null) {
-    stages.push({ label: "Registered", count: registered, percentOfPrevious: null });
+  if (visitors !== null) {
+    stages.push({ label: "Visitors", count: visitors, percentOfPrevious: null });
   }
-  stages.push({ label: "Enrolled", count: enrolled, percentOfPrevious: registered !== null ? pct(enrolled, registered) : null });
+  stages.push({ label: "Viewed a Course", count: viewedCourse, percentOfPrevious: visitors !== null ? pct(viewedCourse, visitors) : null });
+  if (registered !== null) {
+    stages.push({ label: "Registered", count: registered, percentOfPrevious: pct(registered, viewedCourse) });
+  }
+  stages.push({
+    label: "Enrolled",
+    count: enrolled,
+    percentOfPrevious: registered !== null ? pct(enrolled, registered) : pct(enrolled, viewedCourse),
+  });
   stages.push({ label: "Started Learning", count: startedLearning, percentOfPrevious: pct(startedLearning, enrolled) });
   stages.push({ label: "Completed", count: completed, percentOfPrevious: pct(completed, startedLearning) });
   return stages;
@@ -113,6 +145,7 @@ export interface CoursePerformanceRow {
   title: string;
   views: number;
   uniqueViewers: number;
+  anonymousViews: number;
   enrollments: number;
   completions: number;
   completionRate: number | null;
@@ -124,6 +157,13 @@ export interface CoursePerformanceRow {
  * this platform's real current course count (a handful); worth
  * revisiting with batched groupBy queries if the catalog grows into the
  * hundreds.
+ *
+ * `anonymousViews` (Phase 2) counts distinct `VisitorEvent` visitorIds —
+ * deliberately kept SEPARATE from `views`/`uniqueViewers` (which stay
+ * exactly what they were in Phase 1: authenticated AnalyticsEvent rows)
+ * rather than summed together, since a trainee who viewed a course both
+ * anonymously and later while logged in would otherwise be silently
+ * double-counted — there's no reliable way to link the two identities.
  */
 export async function getCoursePerformance(period: PeriodRange, courseIds?: string[]): Promise<CoursePerformanceRow[]> {
   const courses = await prisma.course.findMany({
@@ -133,12 +173,17 @@ export async function getCoursePerformance(period: PeriodRange, courseIds?: stri
 
   const rows: CoursePerformanceRow[] = [];
   for (const course of courses) {
-    const [views, viewerRows, enrollments, completions] = await Promise.all([
+    const [views, viewerRows, anonymousViewerRows, enrollments, completions] = await Promise.all([
       prisma.analyticsEvent.count({ where: { type: "COURSE_VIEWED", courseId: course.id, ...inPeriod("createdAt", period) } }),
       prisma.analyticsEvent.findMany({
         where: { type: "COURSE_VIEWED", courseId: course.id, ...inPeriod("createdAt", period) },
         select: { userId: true },
         distinct: ["userId"],
+      }),
+      prisma.visitorEvent.findMany({
+        where: { type: "COURSE_VIEWED", courseId: course.id, ...inPeriod("createdAt", period) },
+        select: { visitorId: true },
+        distinct: ["visitorId"],
       }),
       prisma.courseEnrollment.count({ where: { courseId: course.id, ...inPeriod("enrolledAt", period) } }),
       prisma.courseEnrollment.count({ where: { courseId: course.id, ...inPeriod("completedAt", period) } }),
@@ -148,6 +193,7 @@ export async function getCoursePerformance(period: PeriodRange, courseIds?: stri
       title: course.title,
       views,
       uniqueViewers: viewerRows.length,
+      anonymousViews: anonymousViewerRows.length,
       enrollments,
       completions,
       completionRate: pct(completions, enrollments),
@@ -260,4 +306,52 @@ export async function getLifecycleBreakdown(courseIds?: string[]): Promise<Recor
     counts[tag]++;
   }
   return counts;
+}
+
+export interface CategoryCount {
+  category: string;
+  count: number;
+}
+
+/**
+ * Analytics System Phase 2. Both platform-wide only (`null` when
+ * scoped to an instructor) — traffic source and device category are
+ * facts about an anonymous VISITOR, not about any one course, with the
+ * same "no honest per-instructor reading" reasoning as
+ * getLifecycleBreakdown above. Counts distinct VISITORS per category
+ * (not raw event counts), so a visitor who views three pages in one
+ * category isn't counted three times.
+ */
+export async function getTrafficSources(period: PeriodRange, courseIds?: string[]): Promise<CategoryCount[] | null> {
+  if (courseIds) return null;
+  // orderBy createdAt asc + distinct visitorId: the earliest event in
+  // the period per visitor wins — the closest this simple query gets to
+  // genuine first-touch attribution, rather than an arbitrary row.
+  const rows = await prisma.visitorEvent.findMany({
+    where: inPeriod("createdAt", period),
+    select: { visitorId: true, referrerSource: true },
+    orderBy: { createdAt: "asc" },
+    distinct: ["visitorId"],
+  });
+  return tallyByCategory(rows.map((r) => r.referrerSource));
+}
+
+export async function getDeviceBreakdown(period: PeriodRange, courseIds?: string[]): Promise<CategoryCount[] | null> {
+  if (courseIds) return null;
+  const rows = await prisma.visitorEvent.findMany({
+    where: inPeriod("createdAt", period),
+    select: { visitorId: true, deviceCategory: true },
+    orderBy: { createdAt: "asc" },
+    distinct: ["visitorId"],
+  });
+  return tallyByCategory(rows.map((r) => r.deviceCategory));
+}
+
+function tallyByCategory(values: (string | null)[]): CategoryCount[] {
+  const counts = new Map<string, number>();
+  for (const v of values) {
+    const key = v ?? "unknown";
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return [...counts.entries()].sort(([, a], [, b]) => b - a).map(([category, count]) => ({ category, count }));
 }

@@ -26,11 +26,12 @@ export async function GET(req: NextRequest) {
 
     const rows = await getCoursePerformance(period, courseIds);
 
-    const header = ["Course", "Views", "Unique Viewers", "Enrollments", "Completions", "Completion Rate"];
+    const header = ["Course", "Views", "Unique Viewers", "Anonymous Views", "Enrollments", "Completions", "Completion Rate"];
     const csvRows = rows.map((r) => [
       r.title,
       String(r.views),
       String(r.uniqueViewers),
+      String(r.anonymousViews),
       String(r.enrollments),
       String(r.completions),
       r.completionRate != null ? `${r.completionRate}%` : "",

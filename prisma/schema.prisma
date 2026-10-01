@@ -2108,6 +2108,38 @@ model AnalyticsEvent {
   @@index([courseId, type])
 }
 
+// Analytics System — Phase 2 (anonymous visitor tracking). Deliberately
+// a SEPARATE table from AnalyticsEvent, not a reuse of it with an
+// anonymous id stuffed into `userId` — these are two genuinely
+// different identity concepts, and conflating them risks accidentally
+// treating an anonymous visitor's id as if it carried the same
+// guarantees an authenticated userId does. `visitorId` is the opaque
+// value of the httpOnly `aaicbi_visitor_id` cookie (see
+// src/lib/analytics/visitorCookies.ts), only ever created once a
+// visitor has actively accepted the cookie-consent banner — see that
+// same file's own comment for why this is opt-in, not opt-out.
+//
+// `referrerSource`/`deviceCategory` are coarse CATEGORIES only, derived
+// server-side and never stored raw — see
+// src/lib/analytics/visitorCategorizationCore.ts. A raw referrer URL or
+// User-Agent string never reaches this table.
+model VisitorEvent {
+  id             String   @id @default(cuid())
+  visitorId      String
+  // "PAGE_VIEWED" | "COURSE_VIEWED" | "REGISTER_CLICKED" — see
+  // src/lib/analytics/visitorTrack.ts for the authoritative list.
+  type           String
+  path           String?
+  courseId       String?
+  referrerSource String? // "direct" | "search" | "social" | "referral" | "campaign"
+  deviceCategory String? // "mobile" | "desktop" | "tablet"
+  createdAt      DateTime @default(now())
+
+  @@index([visitorId, type])
+  @@index([type, createdAt])
+  @@index([courseId, type])
+}
+
 // ---------------------------------------------------------------------
 // M15 — Certificates & Verification
 //

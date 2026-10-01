@@ -9,6 +9,8 @@ import {
   getFeatureUsage,
   getRegistrationTrend,
   getLifecycleBreakdown,
+  getTrafficSources,
+  getDeviceBreakdown,
   type PeriodRange,
 } from "@/lib/analytics/aggregate";
 
@@ -43,15 +45,17 @@ export async function GET(req: NextRequest) {
         ? (await prisma.course.findMany({ where: { createdById: session.userId }, select: { id: true } })).map((c) => c.id)
         : undefined;
 
-    const [overview, funnel, coursePerformance, featureUsage, trend, lifecycle] = await Promise.all([
+    const [overview, funnel, coursePerformance, featureUsage, trend, lifecycle, trafficSources, deviceBreakdown] = await Promise.all([
       getPlatformOverview(period, courseIds),
       getConversionFunnel(period, courseIds),
       getCoursePerformance(period, courseIds),
       getFeatureUsage(period, courseIds),
       getRegistrationTrend(period, courseIds),
       getLifecycleBreakdown(courseIds),
+      getTrafficSources(period, courseIds),
+      getDeviceBreakdown(period, courseIds),
     ]);
 
-    return NextResponse.json({ days, overview, funnel, coursePerformance, featureUsage, trend, lifecycle });
+    return NextResponse.json({ days, overview, funnel, coursePerformance, featureUsage, trend, lifecycle, trafficSources, deviceBreakdown });
   });
 }

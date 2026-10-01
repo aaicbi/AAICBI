@@ -9,6 +9,7 @@ import { SkeletonList } from "@/components/ui/Skeleton";
 import UpcomingCourseCard, { type UpcomingCourseRow } from "@/components/courses/UpcomingCourseCard";
 import PriceTag from "@/components/courses/PriceTag";
 import { CalendarClock, ArrowRight } from "lucide-react";
+import { trackVisitorEvent } from "@/lib/analytics/visitorTrackClient";
 
 interface PublicCourseRow extends UpcomingCourseRow {
   level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | null;
@@ -34,6 +35,7 @@ export default function PublicCoursesPage() {
   const [courses, setCourses] = useState<PublicCourseRow[] | null>(null);
 
   useEffect(() => {
+    trackVisitorEvent({ type: "PAGE_VIEWED", path: "/courses" });
     fetch("/api/courses/public")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then(setCourses)

@@ -10,6 +10,8 @@ import CorrectnessMark from "@/components/ui/CorrectnessMark";
 import Icon from "@/components/ui/Icon";
 import { ArrowRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import VisitorTracker from "@/components/analytics/VisitorTracker";
+import RegisterCta from "@/components/analytics/RegisterCta";
 
 /**
  * Design-pass finding: this page was a straight leftover from the
@@ -64,6 +66,7 @@ export default async function LandingPage() {
 
   return (
     <>
+      <VisitorTracker path="/" />
       <SiteHeader
         nav={[
           { label: "Verify a Certificate", href: "/certificate" },
@@ -184,9 +187,9 @@ export default async function LandingPage() {
             Browse what&apos;s available now, or sign in if you&apos;ve already started a course.
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <Button href="/trainee/register" size="lg">
+            <RegisterCta href="/trainee/register" size="lg">
               Create an Account
-            </Button>
+            </RegisterCta>
             <Button href="/trainee/login" variant="ghost" size="lg">
               Sign In
             </Button>
