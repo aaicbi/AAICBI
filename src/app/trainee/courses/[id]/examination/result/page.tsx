@@ -7,6 +7,7 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import CorrectnessMark from "@/components/ui/CorrectnessMark";
 import BackLink from "@/components/ui/BackLink";
+import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
 interface ReviewQuestion {
   questionText: string;
@@ -95,17 +96,10 @@ export default function CourseExaminationResultPage({ params }: { params: { id: 
     if (raw) setResult(JSON.parse(raw));
   }, [params.id]);
 
-  const nav = [
-    { label: "Dashboard", href: "/trainee/dashboard" },
-    { label: "Courses", href: "/trainee/courses" },
-    { label: "My Profile", href: "/trainee/profile" },
-    { label: "Settings", href: "/trainee/settings" },
-  ];
-
   if (!result) {
     return (
       <>
-        <SiteHeader nav={nav} right={<LogoutButton />} />
+        <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
         <main className="mx-auto flex min-h-[calc(100vh-73px)] max-w-md flex-col justify-center px-6 py-10">
           <div className="mx-auto h-4 w-32 animate-pulse rounded-full bg-brand-gray/60" />
           <div className="mx-auto mt-4 h-40 w-full animate-pulse rounded-xl bg-brand-gray/40" />
@@ -117,7 +111,7 @@ export default function CourseExaminationResultPage({ params }: { params: { id: 
   if (!result.released) {
     return (
       <>
-        <SiteHeader nav={nav} right={<LogoutButton />} />
+        <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
         <main className="mx-auto flex min-h-[calc(100vh-73px)] max-w-sm flex-col items-center justify-center px-6 text-center">
           <p className="text-gray-700">{result.message}</p>
           <BackLink href={`/trainee/courses/${params.id}`} className="mt-6 text-sm font-semibold text-brand-teal hover:underline">
@@ -130,7 +124,7 @@ export default function CourseExaminationResultPage({ params }: { params: { id: 
 
   return (
     <>
-      <SiteHeader nav={nav} right={<LogoutButton />} />
+      <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-2xl px-6 py-10">
         <div className="flex flex-col items-center">
           <span className="text-center text-xs font-semibold uppercase tracking-widest text-brand-teal">

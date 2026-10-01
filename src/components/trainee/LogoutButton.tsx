@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import NotificationBell from "@/components/NotificationBell";
+import QuickActionsNavMenu from "@/components/trainee/QuickActionsNavMenu";
 
 // M32/Stage 6 audit — the bell renders here, not on every individual
 // page, since this component already renders on every trainee page in
@@ -9,10 +10,15 @@ import NotificationBell from "@/components/NotificationBell";
 // notification bell "for free," matching the same reach LogoutButton
 // itself already has, rather than needing dozens of individual page
 // edits to achieve the same coverage.
+//
+// Dashboard/Examination redesign — QuickActionsNavMenu rides the same
+// mechanism for the same reason: one addition here reaches every
+// trainee page instead of threading a new prop through dozens of them.
 export default function LogoutButton() {
   const router = useRouter();
   return (
     <div className="flex items-center gap-2">
+      <QuickActionsNavMenu />
       <NotificationBell />
       <button
         onClick={async () => {

@@ -12,6 +12,7 @@ import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 import { MessageCircle } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import NewConversationModal from "@/components/messaging/NewConversationModal";
+import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
 interface ConversationRow {
   id: string;
@@ -21,19 +22,6 @@ interface ConversationRow {
   lastMessage: { body: string; createdAt: string } | null;
   unreadCount: number;
 }
-
-const NAV = [
-  { label: "Dashboard", href: "/trainee/dashboard" },
-  { label: "Courses", href: "/trainee/courses" },
-  { label: "My Downloads", href: "/trainee/downloads" },
-  { label: "Introductions", href: "/trainee/introductions" },
-  { label: "Job Board", href: "/trainee/job-postings" },
-  { label: "Ask Loop", href: "/trainee/buddy" },
-          { label: "My Activity", href: "/trainee/my-activity" },
-  { label: "Messages", href: "/trainee/messages" },
-  { label: "My Profile", href: "/trainee/profile" },
-  { label: "Settings", href: "/trainee/settings" },
-];
 
 export default function TraineeMessagesPage() {
   const [conversations, setConversations] = useState<ConversationRow[] | null>(null);
@@ -52,7 +40,7 @@ export default function TraineeMessagesPage() {
 
   return (
     <>
-      <SiteHeader nav={NAV} right={<LogoutButton />} />
+      <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-2xl px-6 py-10">
         <div className="flex items-center justify-between gap-4">
           <div>

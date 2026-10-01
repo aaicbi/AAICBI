@@ -2,16 +2,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
-import LogoutButton from "@/components/admin/LogoutButton";
+import LogoutButton from "@/components/trainee/LogoutButton";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import PitchLoopPanel from "@/components/trainee/PitchLoopPanel";
-
-const NAV = [
-  { label: "Dashboard", href: "/trainee/dashboard" },
-  { label: "Pitch & Post", href: "/trainee/pitch" },
-];
+import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
 const EMPTY_FORM = {
   startupName: "",
@@ -84,7 +80,7 @@ export default function NewPitchPage() {
 
   return (
     <>
-      <SiteHeader nav={NAV} right={<LogoutButton />} />
+      <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-2xl px-6 py-10">
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Submit a Pitch</h1>
         <p className="mt-1 text-sm text-gray-500">Save a draft any time, or submit when you're ready for review.</p>

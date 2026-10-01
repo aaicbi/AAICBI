@@ -2,9 +2,12 @@
 import { useState } from "react";
 import Card from "@/components/ui/Card";
 import EmptyState from "@/components/ui/EmptyState";
+import Icon from "@/components/ui/Icon";
+import { notificationIconFor } from "@/lib/notifications/typeIcons";
 
 interface NotificationDto {
   id: string;
+  type: string;
   title: string;
   body: string;
   url: string | null;
@@ -48,13 +51,18 @@ export default function NotificationsList({ initialNotifications }: { initialNot
         ) : (
           notifications.map((n) => (
             <Card key={n.id} interactive className={!n.readAt ? "bg-brand-mint/20" : ""}>
-              <button onClick={() => handleClick(n)} className="block w-full text-left">
-                {n.senderLabel && (
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-brand-tealDeep">{n.senderLabel}</p>
-                )}
-                <p className="text-sm font-semibold text-brand-ink">{n.title}</p>
-                <p className="mt-1 text-sm text-gray-600">{n.body}</p>
-                <p className="mt-1.5 text-xs text-gray-400">{new Date(n.createdAt).toLocaleString()}</p>
+              <button onClick={() => handleClick(n)} className="flex w-full items-start gap-3 text-left">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-mint text-brand-teal">
+                  <Icon icon={notificationIconFor(n.type)} size="sm" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  {n.senderLabel && (
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-brand-tealDeep">{n.senderLabel}</p>
+                  )}
+                  <p className="text-sm font-semibold text-brand-ink">{n.title}</p>
+                  <p className="mt-1 text-sm text-gray-600">{n.body}</p>
+                  <p className="mt-1.5 text-xs text-gray-400">{new Date(n.createdAt).toLocaleString()}</p>
+                </span>
               </button>
             </Card>
           ))

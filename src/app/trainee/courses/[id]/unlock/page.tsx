@@ -5,6 +5,7 @@ import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/trainee/LogoutButton";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
+import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
 /**
  * Reachable two ways, deliberately the same code either way — see the
@@ -46,16 +47,9 @@ export default function UnlockCoursePage({ params }: { params: { id: string } })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const nav = [
-    { label: "Dashboard", href: "/trainee/dashboard" },
-    { label: "Courses", href: "/trainee/courses" },
-    { label: "My Profile", href: "/trainee/profile" },
-    { label: "Settings", href: "/trainee/settings" },
-  ];
-
   return (
     <>
-      <SiteHeader nav={nav} right={<LogoutButton />} />
+      <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-sm px-6 py-16 text-center">
         <Card>
           {unlocked ? (

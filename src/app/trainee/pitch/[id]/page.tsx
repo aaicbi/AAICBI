@@ -1,12 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
-import LogoutButton from "@/components/admin/LogoutButton";
+import LogoutButton from "@/components/trainee/LogoutButton";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
 interface PitchDetail {
   id: string;
@@ -47,12 +48,6 @@ const STATUS_LABEL: Record<PitchDetail["status"], string> = {
   REJECTED: "Not Approved",
   PUBLISHED: "Published",
 };
-
-const NAV = [
-  { label: "Dashboard", href: "/trainee/dashboard" },
-  { label: "Pitch & Post", href: "/trainee/pitch" },
-  { label: "Messages", href: "/trainee/messages" },
-];
 
 function naira(kobo: number | null) {
   if (kobo == null) return null;
@@ -108,7 +103,7 @@ export default function PitchDetailPage({ params }: { params: { id: string } }) 
   if (pitch === null) {
     return (
       <>
-        <SiteHeader nav={NAV} right={<LogoutButton />} />
+        <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
         <main className="mx-auto max-w-2xl px-6 py-10">
           <SkeletonList rows={3} />
         </main>
@@ -121,7 +116,7 @@ export default function PitchDetailPage({ params }: { params: { id: string } }) 
 
   return (
     <>
-      <SiteHeader nav={NAV} right={<LogoutButton />} />
+      <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-2xl px-6 py-10">
         <div className="flex items-center justify-between">
           <h1 className="font-display text-2xl font-semibold text-brand-ink">{pitch.startupName}</h1>

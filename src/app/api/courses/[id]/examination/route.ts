@@ -84,6 +84,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         maxAttempts: true,
         published: true,
         retakeCooldownHours: true,
+        numQuestions: true,
         _count: { select: { questions: true } },
       },
     });
@@ -117,7 +118,16 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       durationMinutes: exam.durationMinutes,
       passMarkPercent: exam.passMarkPercent,
       maxAttempts: exam.maxAttempts,
-      totalQuestions: exam._count.questions,
+      // Pre-existing bug, fixed here while cross-checking against the
+      // new Examinations table: this previously always showed the full
+      // question bank size, ignoring exam.numQuestions — but
+      // startAttempt (examEngine.ts) draws exactly numQuestions when
+      // it's set and smaller than the pool, for a course examination
+      // exactly the same as a module assessment. A trainee with a
+      // configured subset saw a higher count here than they'd actually
+      // be asked. Matches GET /api/modules/[id]/assessment's own
+      // already-correct formula.
+      totalQuestions: exam.numQuestions ?? exam._count.questions,
       attempts,
       cooldownEndsAt,
     });

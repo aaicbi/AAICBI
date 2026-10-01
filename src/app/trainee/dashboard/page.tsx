@@ -20,7 +20,9 @@ import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import QuickActionsCard from "@/components/dashboard/QuickActionsCard";
 import CorrectnessMark from "@/components/ui/CorrectnessMark";
 import Icon from "@/components/ui/Icon";
-import { AchievementIcon } from "@/components/icons/brand";
+import { AchievementIcon, AssessmentIcon } from "@/components/icons/brand";
+import { TRAINEE_NAV } from "@/lib/trainee/nav";
+import { getTraineeExaminationOverview } from "@/lib/trainee/examinationsOverview";
 
 /**
  * M12 — replaces the M10-era empty shell (browsing-only, no progress)
@@ -82,7 +84,7 @@ export default async function TraineeDashboardPage() {
   // revisits).
   await expireLapsedEnrollmentsForTrainee(session.userId);
 
-  const [publishedCourseCount, certificates, notifications, unreadCount] = await Promise.all([
+  const [publishedCourseCount, certificates, notifications, unreadCount, examRows] = await Promise.all([
     prisma.course.count({ where: { status: "PUBLISHED" } }),
     prisma.certificate.findMany({
       where: { traineeId: session.userId, revokedAt: null },
@@ -91,7 +93,21 @@ export default async function TraineeDashboardPage() {
     }),
     getRecentNotifications("TRAINEE", session.userId, 5),
     getUnreadNotificationCount("TRAINEE", session.userId),
+    // Dashboard/Examination redesign — one shared call backing both the
+    // "Your Examinations" summary below and the Quick Actions card's
+    // "Next Assessment" shortcut, same aggregation the new
+    // /trainee/examinations page itself uses.
+    getTraineeExaminationOverview(session.userId),
   ]);
+
+  const examAvailableCount = examRows.filter((r) => r.status === "AVAILABLE" || r.status === "RETAKE_AVAILABLE").length;
+  const examInProgressCount = examRows.filter((r) => r.status === "IN_PROGRESS").length;
+  const examPassedCount = examRows.filter((r) => r.status === "PASSED").length;
+  const nextExam =
+    examRows.find((r) => r.status === "IN_PROGRESS") ??
+    examRows.find((r) => r.status === "AVAILABLE") ??
+    examRows.find((r) => r.status === "RETAKE_AVAILABLE") ??
+    null;
   const sinceLastVisit = await getEventsSinceLastVisit("TRAINEE", session.userId, trainee.previousLoginAt, 10);
 
   // Course enrollment/subscription system — task Section 17's
@@ -224,32 +240,33 @@ export default async function TraineeDashboardPage() {
       ? { label: "Q&A Restricted", variant: "danger" }
       : { label: "Active", variant: "success" };
 
+  // Dashboard/Examination redesign — split into a primary set (shown
+  // by default) and the rest (behind the card's own "Show more"
+  // toggle), rather than one flat always-expanded grid. "Next
+  // Assessment" only appears when one genuinely exists — never a
+  // placeholder pointing nowhere.
   const quickActions = [
-    { label: "Continue Learning", href: resumeTarget?.url ?? "/trainee/courses" },
-    { label: "My Downloads", href: "/trainee/downloads" },
-    { label: "Job Board", href: "/trainee/job-postings" },
-    { label: "Introductions", href: "/trainee/introductions" },
-    { label: "Pitch & Post", href: "/trainee/pitch" },
-    { label: "My Profile", href: "/trainee/profile" },
-    { label: "Settings", href: "/trainee/settings" },
+    { label: "Continue Learning", href: resumeTarget?.url ?? "/trainee/courses", primary: true },
+    ...(nextExam
+      ? [{ label: nextExam.status === "IN_PROGRESS" ? `Continue: ${nextExam.title}` : `Take: ${nextExam.title}`, href: nextExam.actionHref, primary: true }]
+      : []),
+    { label: "Messages", href: "/trainee/messages", primary: true },
+    { label: "Notifications", href: "/notifications", primary: true },
+    { label: "Examinations", href: "/trainee/examinations", primary: false },
+    { label: "Certificates", href: "/trainee/certificates", primary: false },
+    { label: "My Downloads", href: "/trainee/downloads", primary: false },
+    { label: "Job Board", href: "/trainee/job-postings", primary: false },
+    { label: "Introductions", href: "/trainee/introductions", primary: false },
+    { label: "Pitch & Post", href: "/trainee/pitch", primary: false },
+    { label: "My Profile", href: "/trainee/profile", primary: false },
+    { label: "Settings", href: "/trainee/settings", primary: false },
   ];
 
   return (
     <>
       <TraineeOnboarding shouldShow={!trainee.onboardingCompletedAt} />
       <SiteHeader
-        nav={[
-          { label: "Dashboard", href: "/trainee/dashboard" },
-          { label: "Courses", href: "/trainee/courses" },
-          { label: "My Downloads", href: "/trainee/downloads" },
-          { label: "Introductions", href: "/trainee/introductions" },
-          { label: "Job Board", href: "/trainee/job-postings" },
-          { label: "Ask Loop", href: "/trainee/buddy" },
-          { label: "My Activity", href: "/trainee/my-activity" },
-          { label: "Messages", href: "/trainee/messages" },
-          { label: "My Profile", href: "/trainee/profile" },
-          { label: "Settings", href: "/trainee/settings" },
-        ]}
+        nav={TRAINEE_NAV}
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-3xl px-6 py-12">
@@ -335,6 +352,38 @@ export default async function TraineeDashboardPage() {
             <Button href={resumeTarget?.url ?? `/trainee/courses/${topCourse.courseId}`} className="mt-4">
               Resume
             </Button>
+          </Card>
+        )}
+
+        {/* Dashboard/Examination redesign — "how am I doing on exams"
+            answered at a glance, previously only visible by opening
+            every course and expanding every module one at a time. Same
+            getTraineeExaminationOverview aggregation the new
+            /trainee/examinations page itself renders in full. */}
+        {examRows.length > 0 && (
+          <Card className="mt-6">
+            <div className="flex items-center justify-between">
+              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <Icon icon={AssessmentIcon} size="sm" /> Your Examinations
+              </p>
+              <Link href="/trainee/examinations" className="text-xs font-semibold text-brand-teal hover:underline">
+                View All
+              </Link>
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+              <div>
+                <p className="font-display text-xl font-semibold text-brand-ink">{examAvailableCount}</p>
+                <p className="text-xs text-gray-500">Available</p>
+              </div>
+              <div>
+                <p className="font-display text-xl font-semibold text-brand-ink">{examInProgressCount}</p>
+                <p className="text-xs text-gray-500">In Progress</p>
+              </div>
+              <div>
+                <p className="font-display text-xl font-semibold text-brand-tealDeep">{examPassedCount}</p>
+                <p className="text-xs text-gray-500">Passed</p>
+              </div>
+            </div>
           </Card>
         )}
 

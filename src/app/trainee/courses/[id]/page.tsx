@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/trainee/LogoutButton";
+import { TRAINEE_NAV } from "@/lib/trainee/nav";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -653,23 +654,10 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
     });
   }
 
-  const nav = [
-    { label: "Dashboard", href: "/trainee/dashboard" },
-    { label: "Courses", href: "/trainee/courses" },
-    { label: "My Downloads", href: "/trainee/downloads" },
-    { label: "Introductions", href: "/trainee/introductions" },
-    { label: "Job Board", href: "/trainee/job-postings" },
-    { label: "Ask Loop", href: "/trainee/buddy" },
-          { label: "My Activity", href: "/trainee/my-activity" },
-    { label: "Messages", href: "/trainee/messages" },
-    { label: "My Profile", href: "/trainee/profile" },
-    { label: "Settings", href: "/trainee/settings" },
-  ];
-
   if (notFound) {
     return (
       <>
-        <SiteHeader nav={nav} right={<LogoutButton />} />
+        <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
         <main className="mx-auto max-w-2xl px-6 py-10 text-center text-gray-600">
           Course not found, or it isn&apos;t published yet.
         </main>
@@ -679,7 +667,7 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
   if (expiredInfo) {
     return (
       <>
-        <SiteHeader nav={nav} right={<LogoutButton />} />
+        <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
         <main className="mx-auto max-w-2xl px-6 py-10">
           <Card variant="highlighted">
             <div className="flex items-center justify-between">
@@ -711,7 +699,7 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
   if (notEnrolled) {
     return (
       <>
-        <SiteHeader nav={nav} right={<LogoutButton />} />
+        <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
         <CourseMarketingView
           data={notEnrolled}
           actions={
@@ -743,7 +731,7 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
   if (!course) {
     return (
       <>
-        <SiteHeader nav={nav} right={<LogoutButton />} />
+        <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
         <main className="mx-auto max-w-3xl px-6 py-10">
           <div className="h-8 w-72 animate-pulse rounded-full bg-brand-gray/60" />
           <div className="mt-3 h-4 w-full max-w-md animate-pulse rounded-full bg-brand-gray/40" />
@@ -760,7 +748,7 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
 
   return (
     <>
-      <SiteHeader nav={nav} right={<LogoutButton />} />
+      <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-3xl px-6 py-10">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h1 className="font-display text-2xl font-semibold text-brand-ink">{course.title}</h1>

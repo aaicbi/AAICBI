@@ -7,6 +7,7 @@ import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
+import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
 interface IntroductionDto {
   id: string;
@@ -21,18 +22,6 @@ interface CertificateOption {
   revoked: boolean;
   included: boolean;
 }
-
-const NAV = [
-  { label: "Dashboard", href: "/trainee/dashboard" },
-  { label: "Courses", href: "/trainee/courses" },
-  { label: "Introductions", href: "/trainee/introductions" },
-  { label: "Job Board", href: "/trainee/job-postings" },
-  { label: "Ask Loop", href: "/trainee/buddy" },
-          { label: "My Activity", href: "/trainee/my-activity" },
-  { label: "Messages", href: "/trainee/messages" },
-  { label: "My Profile", href: "/trainee/profile" },
-  { label: "Settings", href: "/trainee/settings" },
-];
 
 /**
  * M33 — the actual accept/decline action, including the disclosure
@@ -118,7 +107,7 @@ export default function TraineeIntroductionsPage() {
 
   return (
     <>
-      <SiteHeader nav={NAV} right={<LogoutButton />} />
+      <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-2xl px-6 py-10">
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Introductions</h1>
         <p className="mt-1 text-sm text-gray-500">

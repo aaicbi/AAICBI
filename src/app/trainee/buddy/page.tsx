@@ -6,6 +6,7 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
+import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
 interface KeyStat {
   label: string;
@@ -19,19 +20,6 @@ interface ChatMessage {
 }
 
 const SUGGESTIONS = ["Where am I in my courses?", "How am I doing so far?", "What should I do next?"];
-
-const NAV = [
-  { label: "Dashboard", href: "/trainee/dashboard" },
-  { label: "Courses", href: "/trainee/courses" },
-  { label: "My Downloads", href: "/trainee/downloads" },
-  { label: "Introductions", href: "/trainee/introductions" },
-  { label: "Job Board", href: "/trainee/job-postings" },
-  { label: "Ask Loop", href: "/trainee/buddy" },
-          { label: "My Activity", href: "/trainee/my-activity" },
-  { label: "Messages", href: "/trainee/messages" },
-  { label: "My Profile", href: "/trainee/profile" },
-  { label: "Settings", href: "/trainee/settings" },
-];
 
 /**
  * /trainee/buddy — Loop's trainee-facing persona, the Learning Buddy.
@@ -98,7 +86,7 @@ export default function LearningBuddyPage() {
   if (enabled === false) {
     return (
       <>
-        <SiteHeader nav={NAV} right={<LogoutButton />} />
+        <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
         <main className="mx-auto max-w-2xl px-6 py-10">
           <Card>
             <p className="font-display font-semibold text-brand-ink">Ask Loop</p>
@@ -118,7 +106,7 @@ export default function LearningBuddyPage() {
 
   return (
     <>
-      <SiteHeader nav={NAV} right={<LogoutButton />} />
+      <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-3xl px-6 py-8">
         <div className="flex items-center justify-between gap-4">
           <div>

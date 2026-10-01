@@ -5,14 +5,14 @@ import TraineeLogoutButton from "@/components/trainee/LogoutButton";
 import EmployerLogoutButton from "@/components/employer/LogoutButton";
 import AdminLogoutButton from "@/components/admin/LogoutButton";
 import NotificationsList from "./NotificationsList";
+import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
 const NAV_BY_ROLE: Record<string, { label: string; href: string }[]> = {
-  TRAINEE: [
-    { label: "Dashboard", href: "/trainee/dashboard" },
-    { label: "Courses", href: "/trainee/courses" },
-    { label: "My Profile", href: "/trainee/profile" },
-    { label: "Settings", href: "/trainee/settings" },
-  ],
+  // Dashboard/Examination redesign — now the same canonical list every
+  // other trainee page uses, replacing a shorter, separately
+  // hand-maintained copy that had drifted (missing Examinations,
+  // Certificates, Analytics & Reports, Messages).
+  TRAINEE: TRAINEE_NAV,
   EMPLOYER: [
     { label: "Dashboard", href: "/employer/dashboard" },
     { label: "Discover", href: "/employer/discover" },
@@ -70,6 +70,7 @@ export default async function NotificationsPage() {
         <NotificationsList
           initialNotifications={notifications.map((n: (typeof notifications)[number]) => ({
             id: n.id,
+            type: n.type,
             title: n.title,
             body: n.body,
             url: n.url,

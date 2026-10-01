@@ -1,12 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
-import LogoutButton from "@/components/admin/LogoutButton";
+import LogoutButton from "@/components/trainee/LogoutButton";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
 interface PitchRow {
   id: string;
@@ -33,14 +34,6 @@ const STATUS_VARIANT: Record<PitchRow["status"], "neutral" | "warning" | "succes
   PUBLISHED: "gold",
 };
 
-const NAV = [
-  { label: "Dashboard", href: "/trainee/dashboard" },
-  { label: "Courses", href: "/trainee/courses" },
-  { label: "Pitch & Post", href: "/trainee/pitch" },
-  { label: "My Profile", href: "/trainee/profile" },
-  { label: "Settings", href: "/trainee/settings" },
-];
-
 /**
  * /trainee/pitch — "Your Ventures". Pitch & Post, Phase 1's founder
  * home: the eligibility gate (holding at least one certificate) shows
@@ -64,7 +57,7 @@ export default function TraineePitchPage() {
 
   return (
     <>
-      <SiteHeader nav={NAV} right={<LogoutButton />} />
+      <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-2xl px-6 py-10">
         <div className="flex items-center justify-between">
           <h1 className="font-display text-2xl font-semibold text-brand-ink">Your Ventures</h1>

@@ -4,10 +4,20 @@ import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/trainee/LogoutButton";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
 import Icon from "@/components/ui/Icon";
 import ErrorState from "@/components/ui/ErrorState";
 import { SkeletonList } from "@/components/ui/Skeleton";
-import { Flame, BookOpen, GraduationCap, CheckCircle2, ClipboardCheck } from "lucide-react";
+import { Flame, BookOpen, GraduationCap, CheckCircle2, ClipboardCheck, Download, Target, Trophy } from "lucide-react";
+import { TRAINEE_NAV } from "@/lib/trainee/nav";
+
+interface AssessmentStats {
+  totalAttempts: number;
+  totalPassed: number;
+  totalFailed: number;
+  averageScorePercent: number | null;
+  highestScorePercent: number | null;
+}
 
 interface MyActivityDto {
   coursesStarted: number;
@@ -18,6 +28,7 @@ interface MyActivityDto {
   recentlyExplored: string[];
   primaryInterest: string | null;
   secondaryInterests: string[];
+  assessmentStats: AssessmentStats;
 }
 
 /**
@@ -48,23 +59,21 @@ export default function MyActivityPage() {
   return (
     <>
       <SiteHeader
-        nav={[
-          { label: "Dashboard", href: "/trainee/dashboard" },
-          { label: "Courses", href: "/trainee/courses" },
-          { label: "My Downloads", href: "/trainee/downloads" },
-          { label: "Introductions", href: "/trainee/introductions" },
-          { label: "Job Board", href: "/trainee/job-postings" },
-          { label: "Ask Loop", href: "/trainee/buddy" },
-          { label: "My Activity", href: "/trainee/my-activity" },
-          { label: "Messages", href: "/trainee/messages" },
-          { label: "My Profile", href: "/trainee/profile" },
-          { label: "Settings", href: "/trainee/settings" },
-        ]}
+        nav={TRAINEE_NAV}
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-3xl px-6 py-12">
-        <h1 className="font-display text-2xl font-semibold text-brand-ink">Your Learning Activity</h1>
-        <p className="mt-1 text-sm text-gray-500">A quick look at your own progress across the platform.</p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="font-display text-2xl font-semibold text-brand-ink">Analytics &amp; Reports</h1>
+            <p className="mt-1 text-sm text-gray-500">A quick look at your own progress and performance across the platform.</p>
+          </div>
+          {activity && (
+            <Button href="/api/trainee/my-activity/report.pdf" variant="secondary" size="sm" iconLeft={<Icon icon={Download} size="sm" />}>
+              Download My Report (PDF)
+            </Button>
+          )}
+        </div>
 
         {error ? (
           <div className="mt-6">
@@ -110,6 +119,45 @@ export default function MyActivityPage() {
                 </p>
               </Card>
             </div>
+
+            {/* Dashboard/Examination redesign — real assessment
+                performance (avg/highest score, passed/failed counts),
+                computed server-side from the trainee's own SUBMITTED
+                attempts. Omitted entirely when there's genuinely no
+                submitted attempt yet, never shown as zeroes. */}
+            {activity.assessmentStats.totalAttempts > 0 && (
+              <Card className="mt-6">
+                <p className="text-sm font-semibold text-brand-ink">Assessment Performance</p>
+                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <div>
+                    <p className="flex items-center gap-1 text-xs text-gray-500">
+                      <Icon icon={CheckCircle2} size="sm" /> Passed
+                    </p>
+                    <p className="mt-1 font-display text-xl font-semibold text-brand-tealDeep">{activity.assessmentStats.totalPassed}</p>
+                  </div>
+                  <div>
+                    <p className="flex items-center gap-1 text-xs text-gray-500">
+                      <Icon icon={Target} size="sm" /> Failed
+                    </p>
+                    <p className="mt-1 font-display text-xl font-semibold text-brand-rose">{activity.assessmentStats.totalFailed}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Average Score</p>
+                    <p className="mt-1 font-display text-xl font-semibold text-brand-ink">
+                      {activity.assessmentStats.averageScorePercent != null ? `${activity.assessmentStats.averageScorePercent}%` : "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="flex items-center gap-1 text-xs text-gray-500">
+                      <Icon icon={Trophy} size="sm" /> Highest Score
+                    </p>
+                    <p className="mt-1 font-display text-xl font-semibold text-brand-ink">
+                      {activity.assessmentStats.highestScorePercent != null ? `${activity.assessmentStats.highestScorePercent}%` : "—"}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            )}
 
             {(activity.primaryInterest || activity.secondaryInterests.length > 0) && (
               <Card className="mt-6">

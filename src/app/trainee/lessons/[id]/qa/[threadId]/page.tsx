@@ -9,6 +9,7 @@ import { SkeletonList } from "@/components/ui/Skeleton";
 import BackLink from "@/components/ui/BackLink";
 import { Heart } from "lucide-react";
 import Icon from "@/components/ui/Icon";
+import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
 interface PostDto {
   id: string;
@@ -89,19 +90,9 @@ export default function QaThreadPage({ params }: { params: { id: string; threadI
     load();
   }
 
-  const nav = [
-    { label: "Dashboard", href: "/trainee/dashboard" },
-    { label: "Courses", href: "/trainee/courses" },
-    { label: "My Downloads", href: "/trainee/downloads" },
-    { label: "Introductions", href: "/trainee/introductions" },
-    { label: "Job Board", href: "/trainee/job-postings" },
-    { label: "My Profile", href: "/trainee/profile" },
-    { label: "Settings", href: "/trainee/settings" },
-  ];
-
   return (
     <>
-      <SiteHeader nav={nav} right={<LogoutButton />} />
+      <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-2xl px-6 py-10">
         <BackLink href={`/trainee/lessons/${params.id}/qa`}>Back to Q&amp;A</BackLink>
 

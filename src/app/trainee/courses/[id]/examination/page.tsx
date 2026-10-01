@@ -9,6 +9,7 @@ import Button from "@/components/ui/Button";
 import BackLink from "@/components/ui/BackLink";
 import { CheckCircle2 } from "lucide-react";
 import Icon from "@/components/ui/Icon";
+import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
 interface ExamMeta {
   id: string;
@@ -73,17 +74,10 @@ export default function CourseExaminationIntroPage({ params }: { params: { id: s
     router.push(`/trainee/courses/${params.id}/examination/take`);
   }
 
-  const nav = [
-    { label: "Dashboard", href: "/trainee/dashboard" },
-    { label: "Courses", href: "/trainee/courses" },
-    { label: "My Profile", href: "/trainee/profile" },
-    { label: "Settings", href: "/trainee/settings" },
-  ];
-
   if (notFound) {
     return (
       <>
-        <SiteHeader nav={nav} right={<LogoutButton />} />
+        <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
         <main className="mx-auto max-w-2xl px-6 py-10 text-center text-gray-600">
           This course doesn&apos;t have a course examination available yet.
         </main>
@@ -93,7 +87,7 @@ export default function CourseExaminationIntroPage({ params }: { params: { id: s
   if (!meta) {
     return (
       <>
-        <SiteHeader nav={nav} right={<LogoutButton />} />
+        <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
         <main className="mx-auto max-w-2xl px-6 py-10">
           <div className="h-4 w-32 animate-pulse rounded-full bg-brand-gray/60" />
           <div className="mt-4 h-8 w-64 animate-pulse rounded-full bg-brand-gray/60" />
@@ -111,7 +105,7 @@ export default function CourseExaminationIntroPage({ params }: { params: { id: s
 
   return (
     <>
-      <SiteHeader nav={nav} right={<LogoutButton />} />
+      <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-2xl px-6 py-10">
         <BackLink href={`/trainee/courses/${params.id}`} className="text-sm text-brand-teal hover:underline">
           Back to course

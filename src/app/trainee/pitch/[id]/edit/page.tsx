@@ -2,17 +2,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
-import LogoutButton from "@/components/admin/LogoutButton";
+import LogoutButton from "@/components/trainee/LogoutButton";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import PitchLoopPanel from "@/components/trainee/PitchLoopPanel";
-
-const NAV = [
-  { label: "Dashboard", href: "/trainee/dashboard" },
-  { label: "Pitch & Post", href: "/trainee/pitch" },
-];
+import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
 interface FormState {
   startupName: string;
@@ -114,7 +110,7 @@ export default function EditPitchPage({ params }: { params: { id: string } }) {
   if (loadError) {
     return (
       <>
-        <SiteHeader nav={NAV} right={<LogoutButton />} />
+        <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
         <main className="mx-auto max-w-2xl px-6 py-10">
           <p className="text-sm text-gray-500">This pitch can no longer be edited, or wasn&apos;t found.</p>
         </main>
@@ -125,7 +121,7 @@ export default function EditPitchPage({ params }: { params: { id: string } }) {
   if (!form) {
     return (
       <>
-        <SiteHeader nav={NAV} right={<LogoutButton />} />
+        <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
         <main className="mx-auto max-w-2xl px-6 py-10">
           <SkeletonList rows={3} />
         </main>
@@ -138,7 +134,7 @@ export default function EditPitchPage({ params }: { params: { id: string } }) {
 
   return (
     <>
-      <SiteHeader nav={NAV} right={<LogoutButton />} />
+      <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-2xl px-6 py-10">
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Edit Pitch</h1>
 

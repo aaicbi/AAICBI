@@ -11,6 +11,7 @@ import ErrorState from "@/components/ui/ErrorState";
 import CorrectnessMark from "@/components/ui/CorrectnessMark";
 import JobPostingMediaDisplay from "@/components/jobPostings/JobPostingMediaDisplay";
 import type { JobPostingMediaItem } from "@/components/jobPostings/JobPostingMediaGallery";
+import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
 interface JobPostingDto {
   id: string;
@@ -26,18 +27,6 @@ interface CertificateOption {
   revoked: boolean;
   included: boolean;
 }
-
-const NAV = [
-  { label: "Dashboard", href: "/trainee/dashboard" },
-  { label: "Courses", href: "/trainee/courses" },
-  { label: "Introductions", href: "/trainee/introductions" },
-  { label: "Job Board", href: "/trainee/job-postings" },
-  { label: "Ask Loop", href: "/trainee/buddy" },
-          { label: "My Activity", href: "/trainee/my-activity" },
-  { label: "Messages", href: "/trainee/messages" },
-  { label: "My Profile", href: "/trainee/profile" },
-  { label: "Settings", href: "/trainee/settings" },
-];
 
 // Trust-pass addition — "Closing soon" only ever for a genuinely near
 // deadline (within 3 days); anything further out just shows the plain
@@ -123,7 +112,7 @@ export default function TraineeJobBoardPage() {
   if (notDiscoverable) {
     return (
       <>
-        <SiteHeader nav={NAV} right={<LogoutButton />} />
+        <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
         <main className="mx-auto max-w-md px-6 py-16 text-center">
           <p className="text-sm text-gray-600">
             Turn on discoverability in your{" "}
@@ -139,7 +128,7 @@ export default function TraineeJobBoardPage() {
 
   return (
     <>
-      <SiteHeader nav={NAV} right={<LogoutButton />} />
+      <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-2xl px-6 py-10">
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Job Board</h1>
 

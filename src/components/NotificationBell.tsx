@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Bell } from "lucide-react";
 import LoopBroadcastPopup from "@/components/LoopBroadcastPopup";
 import Icon from "@/components/ui/Icon";
+import { notificationIconFor } from "@/lib/notifications/typeIcons";
 
 interface NotificationDto {
   id: string;
@@ -122,14 +123,19 @@ export default function NotificationBell() {
                 <button
                   key={n.id}
                   onClick={() => handleClick(n)}
-                  className={`block w-full border-b border-brand-gray px-4 py-3 text-left last:border-0 hover:bg-brand-mint/40 ${!n.readAt ? "bg-brand-mint/20" : ""}`}
+                  className={`flex w-full items-start gap-3 border-b border-brand-gray px-4 py-3 text-left last:border-0 hover:bg-brand-mint/40 ${!n.readAt ? "bg-brand-mint/20" : ""}`}
                 >
-                  {n.senderLabel && (
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-brand-tealDeep">{n.senderLabel}</p>
-                  )}
-                  <p className="text-sm font-semibold text-brand-ink">{n.title}</p>
-                  <p className="mt-0.5 line-clamp-2 text-xs text-gray-600">{n.body}</p>
-                  <p className="mt-1 text-[11px] text-gray-400">{new Date(n.createdAt).toLocaleDateString()}</p>
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-mint text-brand-teal">
+                    <Icon icon={notificationIconFor(n.type)} size="sm" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    {n.senderLabel && (
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-brand-tealDeep">{n.senderLabel}</p>
+                    )}
+                    <p className="text-sm font-semibold text-brand-ink">{n.title}</p>
+                    <p className="mt-0.5 line-clamp-2 text-xs text-gray-600">{n.body}</p>
+                    <p className="mt-1 text-[11px] text-gray-400">{new Date(n.createdAt).toLocaleDateString()}</p>
+                  </span>
                 </button>
               ))
             )}

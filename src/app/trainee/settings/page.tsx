@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/trainee/LogoutButton";
+import { TRAINEE_NAV } from "@/lib/trainee/nav";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
@@ -198,14 +199,7 @@ export default function TraineeSettingsPage() {
   return (
     <>
       <SiteHeader
-        nav={[
-          { label: t("Dashboard", translations), href: "/trainee/dashboard" },
-          { label: t("Courses", translations), href: "/trainee/courses" },
-          { label: t("Ask Loop", translations), href: "/trainee/buddy" },
-          { label: t("Messages", translations), href: "/trainee/messages" },
-          { label: t("My Profile", translations), href: "/trainee/profile" },
-          { label: t("Settings", translations), href: "/trainee/settings" },
-        ]}
+        nav={TRAINEE_NAV.map((item) => ({ ...item, label: t(item.label, translations) }))}
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-md px-6 py-12">

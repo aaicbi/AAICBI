@@ -9,6 +9,7 @@ import Button from "@/components/ui/Button";
 import BackLink from "@/components/ui/BackLink";
 import { CheckCircle2 } from "lucide-react";
 import Icon from "@/components/ui/Icon";
+import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
 interface AssessmentMeta {
   title: string;
@@ -69,17 +70,10 @@ export default function ModuleAssessmentPage({ params }: { params: { id: string;
     router.push(`/trainee/courses/${params.id}/modules/${params.moduleId}/assessment/take`);
   }
 
-  const nav = [
-    { label: "Dashboard", href: "/trainee/dashboard" },
-    { label: "Courses", href: "/trainee/courses" },
-    { label: "My Profile", href: "/trainee/profile" },
-    { label: "Settings", href: "/trainee/settings" },
-  ];
-
   if (notFound) {
     return (
       <>
-        <SiteHeader nav={nav} right={<LogoutButton />} />
+        <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
         <main className="mx-auto max-w-2xl px-6 py-10 text-center text-gray-600">
           This module doesn&apos;t have an assessment available yet.
         </main>
@@ -89,7 +83,7 @@ export default function ModuleAssessmentPage({ params }: { params: { id: string;
   if (!meta) {
     return (
       <>
-        <SiteHeader nav={nav} right={<LogoutButton />} />
+        <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
         <main className="mx-auto max-w-2xl px-6 py-10">
           <div className="h-4 w-32 animate-pulse rounded-full bg-brand-gray/60" />
           <div className="mt-4 h-8 w-64 animate-pulse rounded-full bg-brand-gray/60" />
@@ -105,7 +99,7 @@ export default function ModuleAssessmentPage({ params }: { params: { id: string;
 
   return (
     <>
-      <SiteHeader nav={nav} right={<LogoutButton />} />
+      <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-2xl px-6 py-10">
         <BackLink href={`/trainee/courses/${params.id}`} className="text-sm text-brand-teal hover:underline">
           Back to course

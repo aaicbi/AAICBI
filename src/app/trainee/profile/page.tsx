@@ -15,18 +15,7 @@ import Icon from "@/components/ui/Icon";
 import ProfileCompletionBanner from "@/components/ui/ProfileCompletionBanner";
 import { computeTraineeCompletion } from "@/lib/profileCompletion";
 import ResumeUpload from "@/components/ResumeUpload";
-
-const NAV = [
-  { label: "Dashboard", href: "/trainee/dashboard" },
-  { label: "Courses", href: "/trainee/courses" },
-  { label: "Introductions", href: "/trainee/introductions" },
-  { label: "Job Board", href: "/trainee/job-postings" },
-  { label: "Ask Loop", href: "/trainee/buddy" },
-          { label: "My Activity", href: "/trainee/my-activity" },
-  { label: "Messages", href: "/trainee/messages" },
-  { label: "My Profile", href: "/trainee/profile" },
-  { label: "Settings", href: "/trainee/settings" },
-];
+import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
 const EMPLOYMENT_STATUS_LABELS: Record<string, string> = {
   STUDENT: "Student",
@@ -246,7 +235,7 @@ export default function TraineeProfilePage() {
   if (loadError) {
     return (
       <>
-        <SiteHeader nav={NAV} right={<LogoutButton />} />
+        <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
         <main className="mx-auto max-w-2xl px-6 py-10">
           <ErrorState message="We couldn't load your profile." onRetry={load} />
         </main>
@@ -256,7 +245,7 @@ export default function TraineeProfilePage() {
 
   return (
     <>
-      <SiteHeader nav={NAV} right={<LogoutButton />} />
+      <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-2xl px-6 py-10">
         <div className="flex items-center gap-4">
           <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full bg-brand-mint">

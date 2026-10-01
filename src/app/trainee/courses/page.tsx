@@ -12,6 +12,7 @@ import CorrectnessMark from "@/components/ui/CorrectnessMark";
 import Icon from "@/components/ui/Icon";
 import PriceTag from "@/components/courses/PriceTag";
 import { ArrowRight } from "lucide-react";
+import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
 interface CourseRow {
   id: string;
@@ -62,18 +63,7 @@ export default function TraineeCoursesPage() {
   return (
     <>
       <SiteHeader
-        nav={[
-          { label: "Dashboard", href: "/trainee/dashboard" },
-          { label: "Courses", href: "/trainee/courses" },
-          { label: "My Downloads", href: "/trainee/downloads" },
-          { label: "Introductions", href: "/trainee/introductions" },
-          { label: "Job Board", href: "/trainee/job-postings" },
-          { label: "Ask Loop", href: "/trainee/buddy" },
-          { label: "My Activity", href: "/trainee/my-activity" },
-          { label: "Messages", href: "/trainee/messages" },
-          { label: "My Profile", href: "/trainee/profile" },
-          { label: "Settings", href: "/trainee/settings" },
-        ]}
+        nav={TRAINEE_NAV}
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-3xl px-6 py-10">
