@@ -10,6 +10,7 @@ import ErrorState from "@/components/ui/ErrorState";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { BarChart3, Download } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import LiveActivityCard from "@/components/analytics/LiveActivityCard";
 
 interface PlatformOverview {
   registeredUsers: number | null;
@@ -174,8 +175,19 @@ export default function AdminAnalyticsPage() {
             <Button href={`/api/admin/analytics/export.csv?days=${days}`} variant="secondary" size="sm" iconLeft={<Icon icon={Download} size="sm" />}>
               Export CSV
             </Button>
+            <Button href={`/api/admin/analytics/report.pdf?days=${days}`} variant="secondary" size="sm" iconLeft={<Icon icon={Download} size="sm" />}>
+              Download Report (PDF)
+            </Button>
           </div>
         </div>
+
+        {/* Live Activity — its own independent poll, not gated by the
+            main dashboard's own loading/error state below. Silently
+            renders nothing for an INSTRUCTOR session (the route itself
+            is SUPER_ADMIN/ADMIN only — see getLiveActivity's own
+            comment), and nothing while its first poll is still in
+            flight. */}
+        <LiveActivityCard />
 
         {error ? (
           <div className="mt-6">

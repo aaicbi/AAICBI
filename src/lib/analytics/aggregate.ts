@@ -393,3 +393,67 @@ export async function getSearchDemand(period: PeriodRange, courseIds?: string[])
 
   return { topQueries: toSortedList(allCounts), zeroResultQueries: toSortedList(zeroCounts) };
 }
+
+export interface LiveActivity {
+  windowMinutes: number;
+  activeTrainees: number;
+  activeVisitors: number;
+  viewingCourses: number;
+  takingAssessments: number;
+  usingLoop: number;
+}
+
+const LIVE_WINDOW_MINUTES = 15;
+
+/**
+ * Analytics System Phase 5 — "LIVE PLATFORM ACTIVITY" (master spec
+ * Section 25), near-real-time rather than literal real-time — this app
+ * has no websocket/SSE infrastructure anywhere (see
+ * NotificationBell.tsx's own precedent), so the dashboard polls this
+ * route instead. Platform-wide only — not meaningfully scopable to one
+ * instructor's courses within a 15-minute window at this platform's
+ * real traffic. `activeTrainees`/`activeVisitors` are two genuinely
+ * separate, non-overlapping identity spaces: a logged-in trainee only
+ * ever generates AnalyticsEvent, never VisitorEvent (Phase 1 tracking
+ * supersedes Phase 2 tracking once authenticated), so summing them is
+ * never double-counting the same person.
+ */
+export async function getLiveActivity(now: Date = new Date()): Promise<LiveActivity> {
+  const since = new Date(now.getTime() - LIVE_WINDOW_MINUTES * 60 * 1000);
+  const windowFilter = { createdAt: { gte: since } };
+
+  const [activeTraineeRows, activeVisitorRows, viewingCourseTraineeRows, viewingCourseVisitorRows, takingAssessmentRows, loopRows] =
+    await Promise.all([
+      prisma.analyticsEvent.findMany({ where: { recipientType: "TRAINEE", ...windowFilter }, select: { userId: true }, distinct: ["userId"] }),
+      prisma.visitorEvent.findMany({ where: windowFilter, select: { visitorId: true }, distinct: ["visitorId"] }),
+      prisma.analyticsEvent.findMany({
+        where: { type: "COURSE_VIEWED", ...windowFilter },
+        select: { userId: true },
+        distinct: ["userId"],
+      }),
+      prisma.visitorEvent.findMany({
+        where: { type: "COURSE_VIEWED", ...windowFilter },
+        select: { visitorId: true },
+        distinct: ["visitorId"],
+      }),
+      prisma.analyticsEvent.findMany({
+        where: { type: { in: ["ASSESSMENT_STARTED", "ASSESSMENT_COMPLETED"] }, ...windowFilter },
+        select: { userId: true },
+        distinct: ["userId"],
+      }),
+      prisma.aiCommandLog.findMany({
+        where: { askedByTraineeId: { not: null }, ...windowFilter },
+        select: { askedByTraineeId: true },
+        distinct: ["askedByTraineeId"],
+      }),
+    ]);
+
+  return {
+    windowMinutes: LIVE_WINDOW_MINUTES,
+    activeTrainees: activeTraineeRows.length,
+    activeVisitors: activeVisitorRows.length,
+    viewingCourses: viewingCourseTraineeRows.length + viewingCourseVisitorRows.length,
+    takingAssessments: takingAssessmentRows.length,
+    usingLoop: loopRows.length,
+  };
+}

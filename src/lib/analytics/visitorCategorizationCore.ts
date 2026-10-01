@@ -44,3 +44,28 @@ export function categorizeDevice(userAgent: string): DeviceCategory {
   if (/mobi|iphone|ipod|android/.test(ua)) return "mobile";
   return "desktop";
 }
+
+// Analytics System Phase 5 — a known-pattern check only, not a security
+// feature: the goal is keeping obvious crawlers/scripts out of
+// "visitor" counts, not blocking anything. Deliberately does NOT treat
+// a missing/empty User-Agent as bot-like — that's also what a privacy-
+// focused browser or extension looks like, and flagging it would risk
+// excluding real, legitimate visitors for being cautious.
+const BOT_UA_PATTERNS = [
+  /bot\b/i,
+  /spider/i,
+  /crawl/i,
+  /slurp/i,
+  /headless/i,
+  /phantomjs/i,
+  /curl\//i,
+  /wget\//i,
+  /python-requests/i,
+  /facebookexternalhit/i,
+  /preview/i,
+];
+
+export function isLikelyBot(userAgent: string | null | undefined): boolean {
+  if (!userAgent) return false;
+  return BOT_UA_PATTERNS.some((p) => p.test(userAgent));
+}

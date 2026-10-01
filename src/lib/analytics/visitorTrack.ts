@@ -5,7 +5,7 @@
  */
 import { prisma } from "@/lib/prisma";
 import { getConsentDecision, getVisitorId } from "@/lib/analytics/visitorCookies";
-import { categorizeReferrer, categorizeDevice } from "@/lib/analytics/visitorCategorizationCore";
+import { categorizeReferrer, categorizeDevice, isLikelyBot } from "@/lib/analytics/visitorCategorizationCore";
 
 export type VisitorEventType = "PAGE_VIEWED" | "COURSE_VIEWED" | "REGISTER_CLICKED" | "SEARCH_PERFORMED";
 
@@ -27,13 +27,17 @@ export interface TrackVisitorEventInput {
 
 /**
  * Returns true if an event was actually recorded, false for every
- * no-op case (consent not accepted, no visitor-id cookie present yet).
- * Never throws.
+ * no-op case (consent not accepted, no visitor-id cookie present yet,
+ * or a known crawler/script — see isLikelyBot). Never throws.
  */
 export async function trackVisitorEvent(input: TrackVisitorEventInput): Promise<boolean> {
   if (getConsentDecision() !== "accepted") return false;
   const visitorId = getVisitorId();
   if (!visitorId) return false;
+  // Analytics System Phase 5 — a crawler/script never counts as a
+  // "visitor" at all, same silent no-op treatment as declined consent,
+  // not a new error path.
+  if (isLikelyBot(input.userAgent)) return false;
 
   try {
     await prisma.visitorEvent.create({

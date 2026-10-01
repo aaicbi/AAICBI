@@ -28,7 +28,13 @@ export async function notifyAllAdminStaff(
   // existing callers that have no meaningful destination stay
   // unchanged; when passed, every notified staff member's in-app
   // notification becomes actionable.
-  url?: string
+  url?: string,
+  // Analytics System Phase 5 — optional, passed straight through to
+  // each notifyByEmail call (which already supports this). Backward-
+  // compatible: every existing call site omits this and keeps behaving
+  // exactly as before. Added for the weekly analytics-report cron,
+  // which emails a generated PDF to every SUPER_ADMIN/ADMIN.
+  attachments?: { filename: string; content: Buffer }[]
 ): Promise<void> {
   try {
     const staff = await prisma.user.findMany({
@@ -46,6 +52,7 @@ export async function notifyAllAdminStaff(
         subject: content.subject,
         html: content.html,
         text: content.text,
+        attachments,
       }).catch((e) => console.error(`Admin staff notification failed for user ${s.id}:`, e));
     }
   } catch (e) {

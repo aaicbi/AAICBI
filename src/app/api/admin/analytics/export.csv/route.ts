@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { getCoursePerformance, type PeriodRange } from "@/lib/analytics/aggregate";
-
-const VALID_DAYS = [7, 30, 90];
+import { resolveCourseIdsForSession, VALID_REPORT_DAYS } from "@/lib/analytics/reportData";
 
 /** GET /api/admin/analytics/export.csv?days=30 — same zero-dependency
  * CSV pattern as /api/courses/[id]/performance/export.csv/route.ts.
@@ -16,13 +14,9 @@ export async function GET(req: NextRequest) {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
 
     const daysParam = Number(req.nextUrl.searchParams.get("days"));
-    const days = VALID_DAYS.includes(daysParam) ? daysParam : 30;
+    const days = VALID_REPORT_DAYS.includes(daysParam) ? daysParam : 30;
     const period: PeriodRange = { start: new Date(Date.now() - days * 24 * 60 * 60 * 1000), end: new Date() };
-
-    const courseIds =
-      session.role === "INSTRUCTOR"
-        ? (await prisma.course.findMany({ where: { createdById: session.userId }, select: { id: true } })).map((c) => c.id)
-        : undefined;
+    const courseIds = await resolveCourseIdsForSession(session.role, session.userId);
 
     const rows = await getCoursePerformance(period, courseIds);
 

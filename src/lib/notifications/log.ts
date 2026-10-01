@@ -91,7 +91,13 @@ export type NotificationType =
   // the type) is what actually distinguishes a registration-drop alert
   // from a conversion-rate alert, same as several other notification
   // types in this list already carry varied content under one type.
-  | "ANALYTICS_ALERT";
+  | "ANALYTICS_ALERT"
+  // Analytics System Phase 5 — the weekly scheduled report (a PDF
+  // attachment, src/app/api/cron/analytics-report/route.ts). A
+  // genuinely different kind of notification from ANALYTICS_ALERT
+  // above — scheduled and informational, never threshold-triggered —
+  // so it gets its own type rather than being folded into that one.
+  | "ANALYTICS_REPORT";
 
 export interface NotifyByEmailInput {
   recipientType: "TRAINEE" | "STAFF" | "EMPLOYER" | "INVESTOR";

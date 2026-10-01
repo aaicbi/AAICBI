@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { categorizeReferrer, categorizeDevice } from "../src/lib/analytics/visitorCategorizationCore";
+import { categorizeReferrer, categorizeDevice, isLikelyBot } from "../src/lib/analytics/visitorCategorizationCore";
 
 describe("categorizeReferrer", () => {
   it("returns 'campaign' whenever a utm_source is present, regardless of referrer", () => {
@@ -53,5 +53,36 @@ describe("categorizeDevice", () => {
 
   it("is case-insensitive", () => {
     expect(categorizeDevice("MOZILLA/5.0 (IPHONE; CPU IPHONE OS 17_0)")).toBe("mobile");
+  });
+});
+
+describe("isLikelyBot", () => {
+  it("recognizes well-known search/social crawlers", () => {
+    expect(isLikelyBot("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)")).toBe(true);
+    expect(isLikelyBot("Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)")).toBe(true);
+    expect(isLikelyBot("facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)")).toBe(true);
+  });
+
+  it("recognizes common scripting/automation clients", () => {
+    expect(isLikelyBot("curl/8.4.0")).toBe(true);
+    expect(isLikelyBot("Wget/1.21.3")).toBe(true);
+    expect(isLikelyBot("python-requests/2.31.0")).toBe(true);
+    expect(isLikelyBot("Mozilla/5.0 (X11; Linux x86_64) HeadlessChrome/120.0.0.0")).toBe(true);
+  });
+
+  it("does not flag genuine desktop or mobile browsers", () => {
+    expect(isLikelyBot("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")).toBe(false);
+    expect(isLikelyBot("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1")).toBe(false);
+    expect(isLikelyBot("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")).toBe(false);
+  });
+
+  it("does not flag a missing/empty User-Agent as a bot — that's also what a privacy-conscious browser looks like", () => {
+    expect(isLikelyBot(null)).toBe(false);
+    expect(isLikelyBot(undefined)).toBe(false);
+    expect(isLikelyBot("")).toBe(false);
+  });
+
+  it("is case-insensitive", () => {
+    expect(isLikelyBot("MOZILLA/5.0 (COMPATIBLE; GOOGLEBOT/2.1)")).toBe(true);
   });
 });
