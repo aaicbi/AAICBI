@@ -8,9 +8,10 @@ import Button from "@/components/ui/Button";
 import Icon from "@/components/ui/Icon";
 import ErrorState from "@/components/ui/ErrorState";
 import { SkeletonList } from "@/components/ui/Skeleton";
-import { BarChart3, Download } from "lucide-react";
+import { BarChart3, Download, Mail } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import LiveActivityCard from "@/components/analytics/LiveActivityCard";
+import { useToast } from "@/components/ui/Toast";
 
 interface PlatformOverview {
   registeredUsers: number | null;
@@ -132,6 +133,28 @@ export default function AdminAnalyticsPage() {
   const [days, setDays] = useState(30);
   const [data, setData] = useState<AnalyticsDto | null>(null);
   const [error, setError] = useState(false);
+  const [showSendForm, setShowSendForm] = useState(false);
+  const [sendEmail, setSendEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const { showToast } = useToast();
+
+  function submitSend() {
+    if (!sendEmail.trim()) return;
+    setSending(true);
+    fetch("/api/admin/analytics/report.pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ days, email: sendEmail.trim() }),
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then(() => {
+        showToast(`Report sent to ${sendEmail.trim()}.`, "success");
+        setShowSendForm(false);
+        setSendEmail("");
+      })
+      .catch(() => showToast("Couldn't send the report — please try again.", "error"))
+      .finally(() => setSending(false));
+  }
 
   function load(selectedDays: number) {
     setError(false);
@@ -178,8 +201,39 @@ export default function AdminAnalyticsPage() {
             <Button href={`/api/admin/analytics/report.pdf?days=${days}`} variant="secondary" size="sm" iconLeft={<Icon icon={Download} size="sm" />}>
               Download Report (PDF)
             </Button>
+            <Button
+              onClick={() => setShowSendForm((v) => !v)}
+              variant="secondary"
+              size="sm"
+              iconLeft={<Icon icon={Mail} size="sm" />}
+            >
+              Send by Email
+            </Button>
           </div>
         </div>
+
+        {/* Send-by-email — lets an admin route the same PDF the
+            "Download" button produces to any address, not just the
+            weekly cron's fixed SUPER_ADMIN/ADMIN staff list. */}
+        {showSendForm && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-brand-gray bg-brand-surface px-4 py-3">
+            <input
+              type="email"
+              value={sendEmail}
+              onChange={(e) => setSendEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && submitSend()}
+              placeholder="recipient@example.com"
+              className="min-w-[220px] flex-1 rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
+              autoFocus
+            />
+            <Button onClick={submitSend} loading={sending} disabled={!sendEmail.trim()} size="sm">
+              Send ({days}d report)
+            </Button>
+            <Button onClick={() => setShowSendForm(false)} variant="ghost" size="sm">
+              Cancel
+            </Button>
+          </div>
+        )}
 
         {/* Live Activity — its own independent poll, not gated by the
             main dashboard's own loading/error state below. Silently
