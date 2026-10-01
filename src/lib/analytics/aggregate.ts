@@ -355,3 +355,41 @@ function tallyByCategory(values: (string | null)[]): CategoryCount[] {
   }
   return [...counts.entries()].sort(([, a], [, b]) => b - a).map(([category, count]) => ({ category, count }));
 }
+
+export interface SearchQueryCount {
+  query: string;
+  count: number;
+}
+
+export interface SearchDemand {
+  topQueries: SearchQueryCount[];
+  zeroResultQueries: SearchQueryCount[];
+}
+
+/**
+ * Analytics System Phase 3 — "What Are Users Looking For?" (master
+ * spec Section 10). Platform-wide only — course search happens on the
+ * public catalog, not scoped to any one instructor's courses.
+ * Zero-result queries are the genuinely actionable signal: real demand
+ * for content that doesn't exist yet.
+ */
+export async function getSearchDemand(period: PeriodRange, courseIds?: string[]): Promise<SearchDemand | null> {
+  if (courseIds) return null;
+  const rows = await prisma.visitorEvent.findMany({
+    where: { type: "SEARCH_PERFORMED", searchQuery: { not: null }, ...inPeriod("createdAt", period) },
+    select: { searchQuery: true, resultCount: true },
+  });
+
+  const allCounts = new Map<string, number>();
+  const zeroCounts = new Map<string, number>();
+  for (const row of rows) {
+    const q = row.searchQuery!.toLowerCase();
+    allCounts.set(q, (allCounts.get(q) ?? 0) + 1);
+    if (row.resultCount === 0) zeroCounts.set(q, (zeroCounts.get(q) ?? 0) + 1);
+  }
+
+  const toSortedList = (m: Map<string, number>) =>
+    [...m.entries()].sort(([, a], [, b]) => b - a).map(([query, count]) => ({ query, count }));
+
+  return { topQueries: toSortedList(allCounts), zeroResultQueries: toSortedList(zeroCounts) };
+}

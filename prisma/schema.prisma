@@ -447,6 +447,19 @@ model Trainee {
   // any row that predates this change).
   privacyConsentAt DateTime?
   createdAt        DateTime  @default(now())
+  // Analytics System Phase 3 — captured ONCE, at registration, from the
+  // `aaicbi_visitor_id` cookie (src/lib/analytics/visitorCookies.ts) if
+  // present — same "recorded once, never re-derived" shape as
+  // privacyConsentAt above. Only ever set when the browser had already
+  // accepted cookie tracking pre-signup; null for everyone else,
+  // including every account created before this field existed. Lets
+  // getTraineeInterestProfile (src/lib/analytics/interestScoring.ts)
+  // fold a trainee's own pre-registration VisitorEvent activity into
+  // their interest score, and lets cohort analysis group by acquisition
+  // source — see the master spec's own Section 4 ("where technically
+  // and legally appropriate, allow an anonymous visitor journey to be
+  // associated with their account after registration").
+  registrationVisitorId String?
 
   // M14 — gates the two OPTIONAL notification types (module unlocked,
   // assessment result), never the essential/security-critical ones
@@ -2126,13 +2139,24 @@ model AnalyticsEvent {
 model VisitorEvent {
   id             String   @id @default(cuid())
   visitorId      String
-  // "PAGE_VIEWED" | "COURSE_VIEWED" | "REGISTER_CLICKED" — see
-  // src/lib/analytics/visitorTrack.ts for the authoritative list.
+  // "PAGE_VIEWED" | "COURSE_VIEWED" | "REGISTER_CLICKED" |
+  // "SEARCH_PERFORMED" — see src/lib/analytics/visitorTrack.ts for the
+  // authoritative list.
   type           String
   path           String?
   courseId       String?
   referrerSource String? // "direct" | "search" | "social" | "referral" | "campaign"
   deviceCategory String? // "mobile" | "desktop" | "tablet"
+  // Analytics System Phase 3 — SEARCH_PERFORMED only. `searchQuery` is
+  // the trimmed, length-capped query text itself (unlike every other
+  // column on this model, this one IS allowed to carry real free text —
+  // that's the entire point of Search Intelligence: seeing what people
+  // actually typed, per the master spec's own Section 10). `resultCount`
+  // is how many courses matched, so a zero-result search — a real
+  // signal of demand for content that doesn't exist yet — is directly
+  // queryable.
+  searchQuery    String?
+  resultCount    Int?
   createdAt      DateTime @default(now())
 
   @@index([visitorId, type])

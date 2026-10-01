@@ -16,13 +16,17 @@ interface MyActivityDto {
   assessmentsCompleted: number;
   currentStreakDays: number;
   recentlyExplored: string[];
+  primaryInterest: string | null;
+  secondaryInterests: string[];
 }
 
 /**
- * Analytics System Phase 1 — "Your Learning Activity" (task Section
- * 24). Entirely the trainee's own data; the personal-analytics
- * counterpart to the admin-facing /admin/analytics dashboard, reusing
- * the same underlying tables.
+ * Analytics System — "Your Learning Activity" (task Section 24).
+ * Entirely the trainee's own data; the personal-analytics counterpart
+ * to the admin-facing /admin/analytics dashboard, reusing the same
+ * underlying tables. Phase 3 added the Primary/Secondary Interest
+ * labels, from the same Interest Intelligence engine the admin
+ * trainee-detail page uses.
  */
 export default function MyActivityPage() {
   const [activity, setActivity] = useState<MyActivityDto | null>(null);
@@ -106,6 +110,21 @@ export default function MyActivityPage() {
                 </p>
               </Card>
             </div>
+
+            {(activity.primaryInterest || activity.secondaryInterests.length > 0) && (
+              <Card className="mt-6">
+                <p className="text-sm font-semibold text-brand-ink">Your Interests</p>
+                <p className="mt-1 text-xs text-gray-500">Inferred from your own activity — not a label, just a reflection of where you've spent time.</p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {activity.primaryInterest && <Badge variant="gold">{activity.primaryInterest}</Badge>}
+                  {activity.secondaryInterests.map((topic) => (
+                    <Badge key={topic} variant="success">
+                      {topic}
+                    </Badge>
+                  ))}
+                </div>
+              </Card>
+            )}
 
             <Card className="mt-6">
               <p className="text-sm font-semibold text-brand-ink">Areas You've Been Exploring</p>

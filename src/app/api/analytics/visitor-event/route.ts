@@ -5,13 +5,16 @@ import { rateLimit, clientIp } from "@/lib/rateLimit";
 import { trackVisitorEvent, type VisitorEventType } from "@/lib/analytics/visitorTrack";
 
 const BodySchema = z.object({
-  type: z.enum(["PAGE_VIEWED", "COURSE_VIEWED", "REGISTER_CLICKED"]),
+  type: z.enum(["PAGE_VIEWED", "COURSE_VIEWED", "REGISTER_CLICKED", "SEARCH_PERFORMED"]),
   path: z.string().max(500).optional(),
   courseId: z.string().max(100).optional(),
   // A hostname only, never a full URL — see visitorTrack.ts's own
   // comment on why the raw referrer URL never crosses the wire at all.
   referrerHostname: z.string().max(255).optional(),
   utmSource: z.string().max(100).optional(),
+  // SEARCH_PERFORMED only.
+  searchQuery: z.string().max(200).optional(),
+  resultCount: z.number().int().min(0).optional(),
 });
 
 /**
@@ -47,6 +50,8 @@ export async function POST(req: NextRequest) {
       referrerHostname: parsed.data.referrerHostname,
       utmSource: parsed.data.utmSource,
       userAgent: req.headers.get("user-agent"),
+      searchQuery: parsed.data.searchQuery,
+      resultCount: parsed.data.resultCount,
     });
 
     return NextResponse.json({ ok: recorded });

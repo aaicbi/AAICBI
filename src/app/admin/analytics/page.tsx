@@ -49,6 +49,35 @@ interface CategoryCount {
   category: string;
   count: number;
 }
+interface SearchQueryCount {
+  query: string;
+  count: number;
+}
+interface SearchDemand {
+  topQueries: SearchQueryCount[];
+  zeroResultQueries: SearchQueryCount[];
+}
+interface TopicCount {
+  topic: string;
+  traineeCount: number;
+}
+interface InterestSummary {
+  topTopics: TopicCount[];
+  emergingTopics: TopicCount[];
+}
+interface SegmentSummary {
+  key: string;
+  label: string;
+  count: number;
+}
+interface CohortRow {
+  weekStart: string;
+  size: number;
+  activeCount: number;
+  completedCount: number;
+  completionRate: number | null;
+  topReferrerSource: string | null;
+}
 
 interface AnalyticsDto {
   days: number;
@@ -60,6 +89,10 @@ interface AnalyticsDto {
   lifecycle: LifecycleBreakdown;
   trafficSources: CategoryCount[] | null;
   deviceBreakdown: CategoryCount[] | null;
+  searchDemand: SearchDemand | null;
+  interestSummary: InterestSummary | null;
+  segments: SegmentSummary[] | null;
+  cohorts: CohortRow[] | null;
 }
 
 const DAY_OPTIONS = [7, 30, 90];
@@ -355,6 +388,143 @@ export default function AdminAnalyticsPage() {
                   </Card>
                 )}
               </div>
+            )}
+
+            {/* What Are Users Looking For? — Phase 3, platform-wide only. */}
+            {data.searchDemand && (
+              <Card className="mt-6">
+                <p className="text-sm font-semibold text-brand-ink">What Are Users Looking For?</p>
+                <p className="mt-1 text-xs text-gray-500">Course-catalog searches this period — zero-result searches are real, unmet demand.</p>
+                {data.searchDemand.topQueries.length === 0 ? (
+                  <p className="mt-3 text-sm text-gray-500">No searches in this period yet.</p>
+                ) : (
+                  <div className="mt-3 grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Top Searches</p>
+                      <ul className="mt-2 space-y-1.5 text-sm">
+                        {data.searchDemand.topQueries.slice(0, 10).map((q) => (
+                          <li key={q.query} className="flex items-center justify-between">
+                            <span className="text-gray-700">{q.query}</span>
+                            <span className="font-semibold text-brand-ink">{q.count}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Zero-Result Searches</p>
+                      {data.searchDemand.zeroResultQueries.length === 0 ? (
+                        <p className="mt-2 text-sm text-gray-500">None — every search found something.</p>
+                      ) : (
+                        <ul className="mt-2 space-y-1.5 text-sm">
+                          {data.searchDemand.zeroResultQueries.slice(0, 10).map((q) => (
+                            <li key={q.query} className="flex items-center justify-between">
+                              <span className="text-brand-rose">{q.query}</span>
+                              <span className="font-semibold text-brand-ink">{q.count}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </Card>
+            )}
+
+            {/* Interest Intelligence — Phase 3, platform-wide only. Topic
+                is whatever an admin typed into Course.category, used
+                as-is (see interestScoring.ts's own comment). */}
+            {data.interestSummary && (
+              <Card className="mt-6">
+                <p className="text-sm font-semibold text-brand-ink">Interest Intelligence</p>
+                <p className="mt-1 text-xs text-gray-500">
+                  How many trainees currently show primary/secondary interest in each topic — a behavioural association, not a causal claim.
+                </p>
+                <div className="mt-3 grid grid-cols-1 gap-6 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Most Popular Skill Areas</p>
+                    {data.interestSummary.topTopics.length === 0 ? (
+                      <p className="mt-2 text-sm text-gray-500">Not enough activity yet.</p>
+                    ) : (
+                      <ul className="mt-2 space-y-1.5 text-sm">
+                        {data.interestSummary.topTopics.slice(0, 8).map((t) => (
+                          <li key={t.topic} className="flex items-center justify-between">
+                            <span className="text-gray-700">{t.topic}</span>
+                            <span className="font-semibold text-brand-ink">{t.traineeCount}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Emerging Skill Interests</p>
+                    {data.interestSummary.emergingTopics.length === 0 ? (
+                      <p className="mt-2 text-sm text-gray-500">Nothing newly emerging right now.</p>
+                    ) : (
+                      <ul className="mt-2 space-y-1.5 text-sm">
+                        {data.interestSummary.emergingTopics.slice(0, 8).map((t) => (
+                          <li key={t.topic} className="flex items-center justify-between">
+                            <span className="text-gray-700">{t.topic}</span>
+                            <span className="font-semibold text-brand-ink">{t.traineeCount}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Segments — Phase 3, platform-wide only. Each card links to
+                the filtered trainee list. */}
+            {data.segments && data.segments.length > 0 && (
+              <Card className="mt-6">
+                <p className="text-sm font-semibold text-brand-ink">Segments</p>
+                <p className="mt-1 text-xs text-gray-500">Click a segment to see the matching trainees.</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {data.segments.map((s) => (
+                    <a key={s.key} href={`/admin/trainees?segment=${encodeURIComponent(s.key)}`}>
+                      <Badge variant="neutral">
+                        {s.label}: {s.count}
+                      </Badge>
+                    </a>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {/* Cohorts — Phase 3, platform-wide only. A single
+                registration-cohort summary table, not the full
+                weeks-since-joining retention matrix. */}
+            {data.cohorts && data.cohorts.length > 0 && (
+              <Card className="mt-6">
+                <p className="text-sm font-semibold text-brand-ink">Cohorts — by registration week</p>
+                <div className="mt-3 overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-brand-gray text-left text-xs uppercase tracking-wide text-gray-500">
+                        <th className="pb-2 pr-4">Week</th>
+                        <th className="pb-2 pr-4 text-right">Size</th>
+                        <th className="pb-2 pr-4 text-right">Active</th>
+                        <th className="pb-2 pr-4 text-right">Completed</th>
+                        <th className="pb-2 pr-4 text-right">Completion Rate</th>
+                        <th className="pb-2 text-right">Top Source</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.cohorts.map((c) => (
+                        <tr key={c.weekStart} className="border-b border-gray-100">
+                          <td className="py-2 pr-4 font-medium text-brand-ink">{c.weekStart}</td>
+                          <td className="py-2 pr-4 text-right">{c.size}</td>
+                          <td className="py-2 pr-4 text-right">{c.activeCount}</td>
+                          <td className="py-2 pr-4 text-right">{c.completedCount}</td>
+                          <td className="py-2 pr-4 text-right">{c.completionRate != null ? `${c.completionRate}%` : "—"}</td>
+                          <td className="py-2 text-right capitalize">{c.topReferrerSource ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
             )}
           </>
         )}

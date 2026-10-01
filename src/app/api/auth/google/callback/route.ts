@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { exchangeCodeForIdentity, OAUTH_STATE_COOKIE } from "@/lib/auth/google";
 import { completeTraineeLogin } from "@/lib/auth/completeTraineeLogin";
 import { appUrl } from "@/lib/appUrl";
+import { getConsentDecision, getVisitorId } from "@/lib/analytics/visitorCookies";
 
 /**
  * GET /api/auth/google/callback — where Google redirects back to after
@@ -116,6 +117,10 @@ export async function GET(req: NextRequest) {
       // clicked a Google button that was disabled until the same
       // privacy-consent checkbox was ticked (see the register page).
       privacyConsentAt: new Date(),
+      // Analytics System Phase 3 — same capture as register/route.ts's
+      // password path; see the schema comment on
+      // Trainee.registrationVisitorId.
+      registrationVisitorId: getConsentDecision() === "accepted" ? (getVisitorId() ?? undefined) : undefined,
     },
   });
   await completeTraineeLogin(created);

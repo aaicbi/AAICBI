@@ -10,9 +10,12 @@
 "use client";
 
 export interface TrackVisitorEventOptions {
-  type: "PAGE_VIEWED" | "COURSE_VIEWED" | "REGISTER_CLICKED";
+  type: "PAGE_VIEWED" | "COURSE_VIEWED" | "REGISTER_CLICKED" | "SEARCH_PERFORMED";
   path?: string;
   courseId?: string;
+  // SEARCH_PERFORMED only.
+  searchQuery?: string;
+  resultCount?: number;
 }
 
 function readCookie(name: string): string | null {
@@ -55,6 +58,8 @@ export function trackVisitorEvent(options: TrackVisitorEventOptions): void {
         courseId: options.courseId,
         referrerHostname,
         utmSource,
+        searchQuery: options.searchQuery,
+        resultCount: options.resultCount,
       }),
       // Lets the request outlive a page navigation (e.g. a
       // REGISTER_CLICKED beacon fired the instant before the browser

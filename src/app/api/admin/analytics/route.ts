@@ -11,8 +11,12 @@ import {
   getLifecycleBreakdown,
   getTrafficSources,
   getDeviceBreakdown,
+  getSearchDemand,
   type PeriodRange,
 } from "@/lib/analytics/aggregate";
+import { computeAllTraineeProfiles, getPlatformInterestSummary } from "@/lib/analytics/interestScoring";
+import { getFixedSegments, getInterestSegments } from "@/lib/analytics/segments";
+import { getRegistrationCohorts } from "@/lib/analytics/cohorts";
 
 const VALID_DAYS = [7, 30, 90];
 
@@ -45,17 +49,56 @@ export async function GET(req: NextRequest) {
         ? (await prisma.course.findMany({ where: { createdById: session.userId }, select: { id: true } })).map((c) => c.id)
         : undefined;
 
-    const [overview, funnel, coursePerformance, featureUsage, trend, lifecycle, trafficSources, deviceBreakdown] = await Promise.all([
-      getPlatformOverview(period, courseIds),
-      getConversionFunnel(period, courseIds),
-      getCoursePerformance(period, courseIds),
-      getFeatureUsage(period, courseIds),
-      getRegistrationTrend(period, courseIds),
-      getLifecycleBreakdown(courseIds),
-      getTrafficSources(period, courseIds),
-      getDeviceBreakdown(period, courseIds),
-    ]);
+    const [overview, funnel, coursePerformance, featureUsage, trend, lifecycle, trafficSources, deviceBreakdown, searchDemand] =
+      await Promise.all([
+        getPlatformOverview(period, courseIds),
+        getConversionFunnel(period, courseIds),
+        getCoursePerformance(period, courseIds),
+        getFeatureUsage(period, courseIds),
+        getRegistrationTrend(period, courseIds),
+        getLifecycleBreakdown(courseIds),
+        getTrafficSources(period, courseIds),
+        getDeviceBreakdown(period, courseIds),
+        getSearchDemand(period, courseIds),
+      ]);
 
-    return NextResponse.json({ days, overview, funnel, coursePerformance, featureUsage, trend, lifecycle, trafficSources, deviceBreakdown });
+    // Analytics System Phase 3 — Interest Intelligence, Segments, and
+    // Cohorts are all platform-wide-only (same reasoning as every other
+    // platform-wide-only section above: an "interest" or a "cohort" is a
+    // fact about a TRAINEE, not about one instructor's courses). Interest
+    // profiles are computed ONCE here and shared between the summary and
+    // the dynamic "Interested in X" segments — see
+    // interestScoring.ts's own comment on why.
+    let interestSummary = null;
+    let segments = null;
+    let cohorts = null;
+    if (!courseIds) {
+      const profiles = await computeAllTraineeProfiles();
+      const [platformInterest, fixedSegments, interestSegments, registrationCohorts] = await Promise.all([
+        getPlatformInterestSummary(undefined, profiles),
+        getFixedSegments(),
+        getInterestSegments(profiles),
+        getRegistrationCohorts(),
+      ]);
+      interestSummary = platformInterest;
+      segments = [...fixedSegments.summaries, ...interestSegments.summaries];
+      cohorts = registrationCohorts;
+    }
+
+    return NextResponse.json({
+      days,
+      overview,
+      funnel,
+      coursePerformance,
+      featureUsage,
+      trend,
+      lifecycle,
+      trafficSources,
+      deviceBreakdown,
+      searchDemand,
+      interestSummary,
+      segments,
+      cohorts,
+    });
   });
 }

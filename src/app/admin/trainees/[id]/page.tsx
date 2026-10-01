@@ -17,6 +17,33 @@ const NAV = [
   { label: "Settings", href: "/admin/settings" },
 ];
 
+interface TopicEvidence {
+  topic: string;
+  confidencePercent: number;
+  counts: Record<string, number>;
+}
+interface InterestProfile {
+  primary: string | null;
+  secondary: string[];
+  emerging: string[];
+  topics: TopicEvidence[];
+}
+
+const COUNT_LABEL: Record<string, string> = {
+  views: "view",
+  lessonsCompleted: "lesson completed",
+  assessmentsStarted: "assessment started",
+  assessmentsCompleted: "assessment completed",
+  enrolled: "enrollment",
+  completed: "completion",
+  anonymousViews: "anonymous view (pre-signup)",
+};
+
+function describeEvidence(counts: Record<string, number>): string {
+  const parts = Object.entries(counts).map(([key, n]) => `${n} ${COUNT_LABEL[key] ?? key}${n === 1 ? "" : "s"}`);
+  return parts.length > 0 ? parts.join(", ") : "No evidence recorded.";
+}
+
 interface TraineeDetail {
   id: string;
   name: string;
@@ -54,6 +81,7 @@ interface TraineeDetail {
  */
 export default function AdminTraineeDetailPage({ params }: { params: { id: string } }) {
   const [trainee, setTrainee] = useState<TraineeDetail | null>(null);
+  const [interests, setInterests] = useState<InterestProfile | null>(null);
   const [error, setError] = useState(false);
   const [notFound, setNotFound] = useState(false);
 
@@ -70,6 +98,11 @@ export default function AdminTraineeDetailPage({ params }: { params: { id: strin
       })
       .then((data) => data && setTrainee(data))
       .catch(() => setError(true));
+
+    fetch(`/api/admin/trainees/${params.id}/interests`)
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then(setInterests)
+      .catch(() => {}); // non-critical — the rest of the page works fine without it
   }
 
   useEffect(() => {
@@ -162,6 +195,48 @@ export default function AdminTraineeDetailPage({ params }: { params: { id: strin
                 </p>
               </div>
             </Card>
+
+            {interests && (interests.primary || interests.secondary.length > 0 || interests.emerging.length > 0) && (
+              <Card className="mt-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Interest Profile</p>
+                <p className="mt-1 text-[11px] text-gray-400">
+                  Inferred from behaviour — a behavioural association, not a fact about this trainee.
+                </p>
+                <div className="mt-3 space-y-2">
+                  {interests.primary && (
+                    <div>
+                      <Badge variant="gold">Primary: {interests.primary}</Badge>
+                    </div>
+                  )}
+                  {interests.secondary.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {interests.secondary.map((topic) => (
+                        <Badge key={topic} variant="success">
+                          Secondary: {topic}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  {interests.emerging.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {interests.emerging.map((topic) => (
+                        <Badge key={topic} variant="neutral">
+                          Emerging: {topic}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <ul className="mt-3 space-y-1 text-xs text-gray-500">
+                  {interests.topics.slice(0, 6).map((t) => (
+                    <li key={t.topic}>
+                      <span className="font-semibold text-gray-700">{t.topic}</span> ({t.confidencePercent}%) —{" "}
+                      {describeEvidence(t.counts)}
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            )}
 
             {trainee.skills.length > 0 && (
               <Card className="mt-4">

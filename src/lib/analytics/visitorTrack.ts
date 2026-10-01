@@ -7,7 +7,9 @@ import { prisma } from "@/lib/prisma";
 import { getConsentDecision, getVisitorId } from "@/lib/analytics/visitorCookies";
 import { categorizeReferrer, categorizeDevice } from "@/lib/analytics/visitorCategorizationCore";
 
-export type VisitorEventType = "PAGE_VIEWED" | "COURSE_VIEWED" | "REGISTER_CLICKED";
+export type VisitorEventType = "PAGE_VIEWED" | "COURSE_VIEWED" | "REGISTER_CLICKED" | "SEARCH_PERFORMED";
+
+const MAX_SEARCH_QUERY_LENGTH = 200;
 
 export interface TrackVisitorEventInput {
   type: VisitorEventType;
@@ -16,6 +18,11 @@ export interface TrackVisitorEventInput {
   referrerHostname?: string | null;
   utmSource?: string | null;
   userAgent?: string | null;
+  // Phase 3 — SEARCH_PERFORMED only. See VisitorEvent's own schema
+  // comment on why searchQuery is the one column on this model allowed
+  // to carry real free text.
+  searchQuery?: string | null;
+  resultCount?: number | null;
 }
 
 /**
@@ -37,6 +44,8 @@ export async function trackVisitorEvent(input: TrackVisitorEventInput): Promise<
         courseId: input.courseId ?? undefined,
         referrerSource: categorizeReferrer(input.referrerHostname ?? null, input.utmSource ?? null),
         deviceCategory: input.userAgent ? categorizeDevice(input.userAgent) : undefined,
+        searchQuery: input.searchQuery ? input.searchQuery.trim().slice(0, MAX_SEARCH_QUERY_LENGTH) : undefined,
+        resultCount: input.resultCount ?? undefined,
       },
     });
   } catch (e) {

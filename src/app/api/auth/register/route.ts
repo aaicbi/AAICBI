@@ -8,6 +8,7 @@ import { rateLimit, clientIp } from "@/lib/rateLimit";
 import { notifyByEmail } from "@/lib/notifications/log";
 import { welcomeEmail } from "@/lib/notifications/templates";
 import { appUrl } from "@/lib/appUrl";
+import { getConsentDecision, getVisitorId } from "@/lib/analytics/visitorCookies";
 
 const RegisterSchema = z.object({
   name: z.string().min(1),
@@ -84,6 +85,14 @@ export async function POST(req: NextRequest) {
     const verifyToken = randomBytes(24).toString("hex");
     const verifyTokenExpiresAt = new Date(Date.now() + VERIFY_TOKEN_LIFETIME_MS);
 
+    // Analytics System Phase 3 — captured ONCE, here, same "recorded at
+    // the moment it's genuinely true" reasoning as privacyConsentAt
+    // right below. Only set when this same browser had already accepted
+    // cookie tracking (getConsentDecision() === "accepted") — never
+    // speculatively read a visitor-id cookie that exists for some other
+    // reason. See the schema comment on Trainee.registrationVisitorId.
+    const registrationVisitorId = getConsentDecision() === "accepted" ? getVisitorId() : null;
+
     let trainee;
     try {
       trainee = await prisma.trainee.create({
@@ -99,6 +108,7 @@ export async function POST(req: NextRequest) {
           // the actual evidence, not the fact that a checkbox existed
           // in the UI at some point.
           privacyConsentAt: new Date(),
+          registrationVisitorId: registrationVisitorId ?? undefined,
         },
       });
     } catch (e) {

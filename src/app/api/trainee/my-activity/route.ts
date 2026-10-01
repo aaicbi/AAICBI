@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { computeStreakDays } from "@/lib/analytics/streakCore";
+import { getTraineeInterestProfile } from "@/lib/analytics/interestScoring";
 
 const STREAK_LOOKBACK_DAYS = 60;
 const EXPLORED_LOOKBACK_DAYS = 30;
@@ -51,6 +52,12 @@ export async function GET() {
     const titleById = new Map(courses.map((c) => [c.id, c.title]));
     const recentlyExplored = exploredCourseRows.map((r) => titleById.get(r.courseId!)).filter((t): t is string => !!t);
 
+    // Analytics System Phase 3 — a trainee's own inferred interests,
+    // the personal-analytics counterpart to the admin-facing one on
+    // the trainee-detail page. Same underlying function, same
+    // "behavioural association, not a fact about you" framing.
+    const interests = await getTraineeInterestProfile(traineeId);
+
     return NextResponse.json({
       coursesStarted,
       coursesCompleted,
@@ -58,6 +65,8 @@ export async function GET() {
       assessmentsCompleted,
       currentStreakDays: computeStreakDays(recentEvents.map((e) => e.createdAt)),
       recentlyExplored,
+      primaryInterest: interests.primary,
+      secondaryInterests: interests.secondary,
     });
   });
 }
