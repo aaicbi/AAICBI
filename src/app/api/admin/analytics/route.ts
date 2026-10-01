@@ -17,6 +17,7 @@ import {
 import { computeAllTraineeProfiles, getPlatformInterestSummary } from "@/lib/analytics/interestScoring";
 import { getFixedSegments, getInterestSegments } from "@/lib/analytics/segments";
 import { getRegistrationCohorts } from "@/lib/analytics/cohorts";
+import { getAutomatedInsights } from "@/lib/analytics/insights";
 
 const VALID_DAYS = [7, 30, 90];
 
@@ -72,17 +73,20 @@ export async function GET(req: NextRequest) {
     let interestSummary = null;
     let segments = null;
     let cohorts = null;
+    let insights = null;
     if (!courseIds) {
       const profiles = await computeAllTraineeProfiles();
-      const [platformInterest, fixedSegments, interestSegments, registrationCohorts] = await Promise.all([
+      const [platformInterest, fixedSegments, interestSegments, registrationCohorts, automatedInsights] = await Promise.all([
         getPlatformInterestSummary(undefined, profiles),
         getFixedSegments(),
         getInterestSegments(profiles),
         getRegistrationCohorts(),
+        getAutomatedInsights(days),
       ]);
       interestSummary = platformInterest;
       segments = [...fixedSegments.summaries, ...interestSegments.summaries];
       cohorts = registrationCohorts;
+      insights = automatedInsights;
     }
 
     return NextResponse.json({
@@ -99,6 +103,7 @@ export async function GET(req: NextRequest) {
       interestSummary,
       segments,
       cohorts,
+      insights,
     });
   });
 }

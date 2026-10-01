@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/course-access-sweep",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/analytics-alerts",
+      "schedule": "0 7 * * *"
     }
   ]
 }

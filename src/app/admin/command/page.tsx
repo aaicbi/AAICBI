@@ -335,9 +335,10 @@ export default function CommandCenterPage() {
           <div>
             <h1 className="font-display text-2xl font-semibold text-brand-ink">Command</h1>
             <p className="mt-1 text-sm text-gray-500">
-              Ask Loop about any trainee, employer, staff member, or cohort — it can only look things up and report
-              back, never change anything on its own — or, with your explicit confirmation, send a message on the
-              platform's behalf.
+              Ask Loop about any trainee, employer, staff member, or cohort — or about platform analytics: visitors,
+              registrations, content performance, search demand, interests, and segments. It can only look things up
+              and report back, never change anything on its own — or, with your explicit confirmation, send a
+              message on the platform's behalf.
             </p>
           </div>
           <Badge variant="success">Loop</Badge>
@@ -545,7 +546,7 @@ export default function CommandCenterPage() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && send()}
-                  placeholder="Ask Loop about a trainee, employer, staff member, or cohort…"
+                  placeholder="Ask Loop about a trainee, employer, cohort, or platform analytics…"
                   className="flex-1 rounded-lg border border-brand-gray px-3 py-2.5 text-sm outline-none focus:border-brand-teal"
                 />
                 <Button onClick={() => send()} disabled={asking || !input.trim()}>

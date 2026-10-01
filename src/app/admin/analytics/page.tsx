@@ -78,6 +78,11 @@ interface CohortRow {
   completionRate: number | null;
   topReferrerSource: string | null;
 }
+interface Insight {
+  type: string;
+  summary: string;
+  evidence: Record<string, number | string>;
+}
 
 interface AnalyticsDto {
   days: number;
@@ -93,6 +98,7 @@ interface AnalyticsDto {
   interestSummary: InterestSummary | null;
   segments: SegmentSummary[] | null;
   cohorts: CohortRow[] | null;
+  insights: Insight[] | null;
 }
 
 const DAY_OPTIONS = [7, 30, 90];
@@ -219,6 +225,25 @@ export default function AdminAnalyticsPage() {
                 </p>
               </Card>
             </div>
+
+            {/* Automated Insights — Phase 4, platform-wide only. Real,
+                standalone value independent of the AI assistant — no LLM
+                call involved, just this period vs. the previous one. */}
+            {data.insights && data.insights.length > 0 && (
+              <Card className="mt-6">
+                <p className="text-sm font-semibold text-brand-ink">Automated Insights</p>
+                <p className="mt-1 text-xs text-gray-500">
+                  This period vs. the immediately-preceding period of the same length — a behavioural association, not a causal claim.
+                </p>
+                <ul className="mt-3 space-y-2">
+                  {data.insights.map((insight) => (
+                    <li key={insight.type} className="rounded-lg bg-brand-mint/40 px-3 py-2 text-sm text-brand-ink">
+                      {insight.summary}
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            )}
 
             {/* Conversion funnel */}
             <Card className="mt-6">

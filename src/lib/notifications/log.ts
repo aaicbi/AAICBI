@@ -85,7 +85,13 @@ export type NotificationType =
   | "COURSE_INSTRUCTOR_ASSIGNED"
   // Standalone-exam certificates — see ExamCertificate's own schema
   // comment.
-  | "EXAM_CERTIFICATE_ISSUED";
+  | "EXAM_CERTIFICATE_ISSUED"
+  // Analytics System Phase 4 — one shared type for all four alert
+  // rules in src/lib/analytics/alerts.ts; the subject/body text (not
+  // the type) is what actually distinguishes a registration-drop alert
+  // from a conversion-rate alert, same as several other notification
+  // types in this list already carry varied content under one type.
+  | "ANALYTICS_ALERT";
 
 export interface NotifyByEmailInput {
   recipientType: "TRAINEE" | "STAFF" | "EMPLOYER" | "INVESTOR";

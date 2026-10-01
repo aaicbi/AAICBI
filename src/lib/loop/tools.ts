@@ -27,6 +27,11 @@ import { resolveModuleByQuery } from "@/lib/loop/moduleLookup";
 import { generateBankQuestionBatch } from "@/lib/ai/generateBankQuestions";
 import { validateBankQuestionBatch } from "@/lib/ai/validateBankQuestions";
 import { getModuleAssessmentStats } from "@/lib/performanceDashboard";
+import { getPlatformOverview as getAnalyticsOverviewData, getConversionFunnel, getCoursePerformance, getFeatureUsage, getSearchDemand, type PeriodRange } from "@/lib/analytics/aggregate";
+import { getPlatformInterestSummary, computeAllTraineeProfiles } from "@/lib/analytics/interestScoring";
+import { getFixedSegments, getInterestSegments } from "@/lib/analytics/segments";
+import { getRegistrationCohorts as getAnalyticsCohorts } from "@/lib/analytics/cohorts";
+import { getAutomatedInsights } from "@/lib/analytics/insights";
 
 // ---------------------------------------------------------------------
 // search_people
@@ -293,6 +298,73 @@ export async function getPlatformOverview() {
     pendingEmployerApprovals: pendingEmployerCount,
     pendingJobPostingReviews: pendingJobPostingCount,
   };
+}
+
+// ---------------------------------------------------------------------
+// Analytics System Phase 4 — six new read-only tools, each a thin
+// wrapper over the Phase 1-3 aggregation functions already used by
+// /admin/analytics. Deliberately distinct from get_platform_overview
+// above (operational numbers: trainees, employers, revenue) — these
+// answer BEHAVIOURAL questions (visitors, funnel, content interest,
+// search demand) get_platform_overview was never built to cover.
+// `days` defaults to 30 everywhere, matching the dashboard's own
+// default period.
+
+function periodFromDays(days: number | undefined, now = new Date()): PeriodRange {
+  const n = typeof days === "number" && days > 0 ? days : 30;
+  return { start: new Date(now.getTime() - n * 24 * 60 * 60 * 1000), end: now };
+}
+
+export async function getAnalyticsOverview(days?: number) {
+  const period = periodFromDays(days);
+  const [overview, funnel, featureUsage] = await Promise.all([
+    getAnalyticsOverviewData(period),
+    getConversionFunnel(period),
+    getFeatureUsage(period),
+  ]);
+  return { periodDays: days ?? 30, overview, funnel, featureUsage };
+}
+
+export async function getAnalyticsContentPerformance(days?: number) {
+  const period = periodFromDays(days);
+  const rows = await getCoursePerformance(period);
+  return { periodDays: days ?? 30, courses: rows.sort((a, b) => b.views + b.anonymousViews - (a.views + a.anonymousViews)).slice(0, 15) };
+}
+
+export async function getAnalyticsInterestAndSegments() {
+  // Interest profiles are the expensive part (one per trainee) — computed
+  // ONCE and shared between getPlatformInterestSummary and
+  // getInterestSegments, same reasoning as GET /api/admin/analytics's own
+  // route (see interestScoring.ts's own comment on why). Without this,
+  // this tool redundantly recomputed every trainee's profile twice,
+  // which measurably slowed a live Loop conversation at this platform's
+  // real trainee count.
+  const profiles = await computeAllTraineeProfiles();
+  const [interestSummary, fixedSegments, interestSegments] = await Promise.all([
+    getPlatformInterestSummary(undefined, profiles),
+    getFixedSegments(),
+    getInterestSegments(profiles),
+  ]);
+  return {
+    topTopics: interestSummary.topTopics,
+    emergingTopics: interestSummary.emergingTopics,
+    segments: [...fixedSegments.summaries, ...interestSegments.summaries],
+  };
+}
+
+export async function getAnalyticsSearchDemand(days?: number) {
+  const period = periodFromDays(days);
+  const demand = await getSearchDemand(period);
+  return { periodDays: days ?? 30, ...demand };
+}
+
+export async function getAnalyticsCohortsReport() {
+  return { cohorts: await getAnalyticsCohorts() };
+}
+
+export async function getAnalyticsInsights(days?: number) {
+  const n = typeof days === "number" && days > 0 ? days : 30;
+  return { periodDays: n, insights: await getAutomatedInsights(n) };
 }
 
 // ---------------------------------------------------------------------
@@ -615,6 +687,53 @@ export const LOOP_TOOL_SCHEMAS = [
     description: "Get platform-wide numbers: total trainees, employers by approval state, published courses, active enrollments, total revenue, and pending approvals. Use this for general questions not about one specific person, employer, or cohort.",
     input_schema: { type: "object" as const, properties: {}, required: [] },
   },
+  {
+    name: "get_analytics_overview",
+    description:
+      "Get behavioural analytics for a period: visitor/registration/enrollment/completion funnel, conversion rate, currently-active trainees, and feature usage (Ask Loop, messaging, certificates). Use this for questions like 'how many people visited/registered this month', 'what's our conversion rate', 'which features are underused', or 'where does the biggest drop-off happen'.",
+    input_schema: {
+      type: "object" as const,
+      properties: { days: { type: "number", description: "How many days back to look. Defaults to 30 if omitted." } },
+      required: [],
+    },
+  },
+  {
+    name: "get_analytics_content_performance",
+    description: "Get per-course content performance for a period: views (authenticated and anonymous), unique viewers, enrollments, completions, and completion rate, sorted by most-viewed first. Use this for 'which courses are getting the most interest/attention'.",
+    input_schema: {
+      type: "object" as const,
+      properties: { days: { type: "number", description: "How many days back to look. Defaults to 30 if omitted." } },
+      required: [],
+    },
+  },
+  {
+    name: "get_analytics_interest_and_segments",
+    description: "Get the platform's most popular and emerging skill/topic interests (inferred from trainee behaviour), and every defined trainee segment with its current count (e.g. registered-not-enrolled, highly engaged, inactive, interested-in-X). Use this for 'what are people interested in' or 'how many trainees are in segment X'.",
+    input_schema: { type: "object" as const, properties: {}, required: [] },
+  },
+  {
+    name: "get_analytics_search_demand",
+    description: "Get the top course-catalog search queries for a period, and queries that returned ZERO results — real, unmet demand for content that doesn't currently exist. Use this for 'what are users searching for' or 'what courses should we consider building'.",
+    input_schema: {
+      type: "object" as const,
+      properties: { days: { type: "number", description: "How many days back to look. Defaults to 30 if omitted." } },
+      required: [],
+    },
+  },
+  {
+    name: "get_analytics_cohorts",
+    description: "Get trainees grouped by registration week, with each cohort's size, currently-active count, completion rate, and top acquisition source where known.",
+    input_schema: { type: "object" as const, properties: {}, required: [] },
+  },
+  {
+    name: "get_analytics_insights",
+    description: "Get automatically-generated insights comparing a period against the immediately-preceding period of the same length — e.g. 'registrations increased by 18%'. Use this for 'compare this month with last month' or 'what changed recently' or 'what caused the highest drop-off recently'.",
+    input_schema: {
+      type: "object" as const,
+      properties: { days: { type: "number", description: "The length of each comparison window in days. Defaults to 30 if omitted." } },
+      required: [],
+    },
+  },
   RESOLVE_RECIPIENTS_TOOL,
   ANALYZE_MODULE_MATERIALS_TOOL,
   GENERATE_BANK_QUESTIONS_TOOL,
@@ -639,6 +758,18 @@ export async function runLoopTool(name: string, input: Record<string, unknown>, 
       return getStaffReport(String(input.staffId ?? ""));
     case "get_platform_overview":
       return getPlatformOverview();
+    case "get_analytics_overview":
+      return getAnalyticsOverview(typeof input.days === "number" ? input.days : undefined);
+    case "get_analytics_content_performance":
+      return getAnalyticsContentPerformance(typeof input.days === "number" ? input.days : undefined);
+    case "get_analytics_interest_and_segments":
+      return getAnalyticsInterestAndSegments();
+    case "get_analytics_search_demand":
+      return getAnalyticsSearchDemand(typeof input.days === "number" ? input.days : undefined);
+    case "get_analytics_cohorts":
+      return getAnalyticsCohortsReport();
+    case "get_analytics_insights":
+      return getAnalyticsInsights(typeof input.days === "number" ? input.days : undefined);
     case "resolve_recipients":
       // Deliberately NOT handled here — src/app/api/admin/loop/ask/
       // route.ts intercepts this tool name before ever reaching
