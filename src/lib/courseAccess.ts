@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { notifyByEmail, shouldNotifyTrainee } from "@/lib/notifications/log";
 import { subscriptionEndedEmail } from "@/lib/notifications/templates";
 import { isCoursePubliclyVisible } from "@/lib/courseStatus";
+import { isModuleIndexInFreePreview } from "@/lib/courseAccessCore";
 import type { CourseStatus } from "@prisma/client";
 
 /** True only when a real, unlocked, non-revoked CourseEnrollment row
@@ -23,6 +24,65 @@ export async function hasCourseAccess(traineeId: string, courseId: string): Prom
     select: { id: true },
   });
   return enrollment !== null;
+}
+
+export type ModuleAccessLevel = "FULL" | "PREVIEW" | "NONE";
+
+/**
+ * Free preview modules — the one function every module-content route
+ * (lesson progress, material downloads, module assessments) should
+ * consult alongside (not instead of) `hasCourseAccess`, the same
+ * "one shared function, not five ad-hoc copies" discipline this file's
+ * own header comment describes. `hasCourseAccess` itself is untouched:
+ * a trainee who's actually paid always gets "FULL" immediately, so
+ * every existing paying trainee's path is unaffected.
+ *
+ * "PREVIEW" requires BOTH a configured `freePreviewModuleCount` on a
+ * paid course AND a real `CourseEnrollment` row with
+ * `source: "PREVIEW"` — a trainee has to explicitly start a free
+ * preview (POST /api/courses/[id]/enroll), the same explicit-action
+ * convention every other enrollment path already uses; nothing here
+ * grants preview access just because a course happens to support it.
+ *
+ * Preview is counted by a module's RANK among the course's modules
+ * ordered by `Module.order` (first N), not the raw `order` value
+ * itself — gaps in `order` don't matter, matching
+ * computeUnlockedFromCompletion's own approach in progressCore.ts.
+ * Defensively clamped to `modules.length - 1` so a course can never
+ * end up with every module previewable, even if a module was deleted
+ * after `freePreviewModuleCount` was saved.
+ *
+ * This is a genuinely separate axis from the sequential progress-lock
+ * in src/lib/progress.ts — a module is only really reachable when
+ * BOTH this returns something other than "NONE" AND
+ * getModuleLockStatus says `unlocked`.
+ */
+export async function getModuleAccessLevel(
+  traineeId: string,
+  courseId: string,
+  moduleId: string
+): Promise<ModuleAccessLevel> {
+  if (await hasCourseAccess(traineeId, courseId)) return "FULL";
+
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { isFree: true, freePreviewModuleCount: true },
+  });
+  if (!course || course.isFree || !course.freePreviewModuleCount) return "NONE";
+
+  const enrollment = await prisma.courseEnrollment.findUnique({
+    where: { traineeId_courseId: { traineeId, courseId } },
+    select: { source: true, accessRevokedAt: true },
+  });
+  if (!enrollment || enrollment.source !== "PREVIEW" || enrollment.accessRevokedAt) return "NONE";
+
+  const modules = await prisma.module.findMany({
+    where: { courseId },
+    orderBy: { order: "asc" },
+    select: { id: true },
+  });
+  const rank = modules.findIndex((m) => m.id === moduleId);
+  return isModuleIndexInFreePreview(rank, course.freePreviewModuleCount, modules.length) ? "PREVIEW" : "NONE";
 }
 
 /** Whether a specific trainee can reach this course's actual content —

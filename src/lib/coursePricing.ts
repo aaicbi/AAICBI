@@ -39,7 +39,8 @@ export function validateCoursePricing(
     accessDurationUnit?: string | null;
     reminderEnabled?: boolean | null;
   },
-  discountPercent?: number | null
+  discountPercent?: number | null,
+  freePreviewModuleCount?: number | null
 ): string | null {
   if (discountPercent != null) {
     if (isFree) {
@@ -48,6 +49,12 @@ export function validateCoursePricing(
     if (!Number.isInteger(discountPercent) || discountPercent < 1 || discountPercent > 99) {
       return "Discount must be a whole number between 1 and 99.";
     }
+  }
+  // Free preview modules — isFree-consistency check only; the
+  // cross-check against the course's actual module count happens in
+  // the route itself (this function has no access to the module list).
+  if (freePreviewModuleCount != null && isFree) {
+    return "A free course can't have free preview modules configured — it's already fully free.";
   }
   const accessModel = accessConfig?.accessModel ?? "RECURRING_SUBSCRIPTION";
   const accessDurationValue = accessConfig?.accessDurationValue;

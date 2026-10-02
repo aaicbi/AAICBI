@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
-import { hasCourseAccess, canTraineeAccessCourse } from "@/lib/courseAccess";
+import { getModuleAccessLevel, canTraineeAccessCourse } from "@/lib/courseAccess";
 import { getModuleLockStatus } from "@/lib/progress";
 import { resolveDownloadUrl } from "@/lib/materialUrl";
 import { isPubliclyFetchableUrl } from "@/lib/ssrfGuard";
@@ -118,8 +118,12 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     }
 
     const courseId = material.lesson.module.courseId;
-    const enrolled = await hasCourseAccess(session.userId, courseId);
-    if (!enrolled) {
+    // Free preview modules — "FULL" or "PREVIEW" (this material's
+    // module is within the course's configured preview boundary) both
+    // allow downloading — a preview-module lesson's materials are part
+    // of that lesson, same as everything else in it.
+    const access = await getModuleAccessLevel(session.userId, courseId, material.lesson.module.id);
+    if (access === "NONE") {
       return NextResponse.json({ error: "You're not enrolled in this course yet." }, { status: 403 });
     }
     const lockStatus = await getModuleLockStatus(courseId, material.lesson.module.id, session.userId);

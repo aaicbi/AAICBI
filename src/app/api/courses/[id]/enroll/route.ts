@@ -28,6 +28,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
         endDate: true,
         registrationDeadline: true,
         lifecyclePhaseOverride: true,
+        freePreviewModuleCount: true,
       },
     });
     if (!course || !isCoursePubliclyVisible(course.status)) {
@@ -39,7 +40,15 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     if (!isRegistrationOpen(course)) {
       return NextResponse.json({ error: "Registration for this course is not currently open." }, { status: 400 });
     }
-    if (!course.isFree) {
+    // Free preview modules — a paid course with freePreviewModuleCount
+    // configured gets a genuine, narrow exception to the "paid
+    // enrollment doesn't exist here" rule below: this creates a
+    // PREVIEW-source row (unlockedAt stays null, so hasCourseAccess
+    // still correctly says "no" — see getModuleAccessLevel in
+    // courseAccess.ts for what it actually grants), not a bypass of
+    // payment itself.
+    const isFreePreview = !course.isFree && !!course.freePreviewModuleCount;
+    if (!course.isFree && !isFreePreview) {
       // Honest, not a workaround: paid enrollment doesn't exist yet
       // (that's M25–M29). Rejecting clearly here is better than a
       // confusing partial-success or a silent no-op.
@@ -70,8 +79,10 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     }
 
     await prisma.courseEnrollment.create({
-      data: { traineeId: session.userId, courseId: params.id, source: "FREE", unlockedAt: new Date() },
+      data: isFreePreview
+        ? { traineeId: session.userId, courseId: params.id, source: "PREVIEW" }
+        : { traineeId: session.userId, courseId: params.id, source: "FREE", unlockedAt: new Date() },
     });
-    return NextResponse.json({ enrolled: true });
+    return NextResponse.json({ enrolled: true, preview: isFreePreview });
   });
 }

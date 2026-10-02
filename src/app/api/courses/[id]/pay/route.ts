@@ -81,7 +81,13 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     // access lapses" flow — accessRevokedAt stays null right up until
     // the moment access actually expires, so this guard would otherwise
     // refuse a completely legitimate early renewal.
-    if (existing && existing.accessRevokedAt === null && course.accessModel === "RECURRING_SUBSCRIPTION") {
+    // Free preview modules — checks unlockedAt, not just row existence:
+    // a PREVIEW-source row (unlockedAt null) genuinely doesn't have
+    // access yet, so it must never trip this guard. Every pre-existing
+    // enrollment source (FREE/ADMIN_GRANTED/PAID) always sets
+    // unlockedAt immediately on creation, so this is a strictly more
+    // correct check, not a behavior change for any of them.
+    if (existing && existing.unlockedAt !== null && existing.accessRevokedAt === null && course.accessModel === "RECURRING_SUBSCRIPTION") {
       return NextResponse.json({ error: "You already have access to this course." }, { status: 409 });
     }
 

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { getModuleLockStatus } from "@/lib/progress";
-import { hasCourseAccess, canTraineeAccessCourse } from "@/lib/courseAccess";
+import { getModuleAccessLevel, canTraineeAccessCourse } from "@/lib/courseAccess";
 import { trackEvent } from "@/lib/analytics/track";
 
 const BodySchema = z.object({ completed: z.boolean() });
@@ -50,8 +50,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     // could mark progress in any published course's first module,
     // since a course's first module is unlocked by default regardless
     // of enrollment.
-    const enrolled = await hasCourseAccess(session.userId, lesson.module.courseId);
-    if (!enrolled) {
+    // Free preview modules — "FULL" or "PREVIEW" (this lesson's module
+    // is within the course's configured preview boundary) both allow
+    // marking progress — lessons in the free modules count fully.
+    const access = await getModuleAccessLevel(session.userId, lesson.module.courseId, lesson.module.id);
+    if (access === "NONE") {
       return NextResponse.json({ error: "You're not enrolled in this course yet." }, { status: 403 });
     }
 

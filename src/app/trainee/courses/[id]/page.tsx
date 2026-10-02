@@ -41,6 +41,11 @@ interface ModuleDto {
   lessons: LessonDto[];
   unlocked: boolean;
   completed: boolean;
+  // Free preview modules — only ever "payment" when this specific
+  // module is locked because it's past the course's free-preview
+  // boundary (distinct from "progress", the existing "complete the
+  // previous module" reason); null when unlocked.
+  lockedReason?: "payment" | "progress" | null;
 }
 
 interface AssessmentMetaDto {
@@ -141,9 +146,12 @@ interface CourseDto {
   currentPeriodEnd: string | null;
   daysRemaining: number | null;
   enrollmentStatus?: "ACTIVE" | "EXPIRED" | "COMPLETED" | "AWAITING_UNLOCK";
-  enrollmentSource?: "FREE" | "ADMIN_GRANTED" | "PAID" | null;
+  enrollmentSource?: "FREE" | "ADMIN_GRANTED" | "PAID" | "PREVIEW" | null;
   isPaid?: boolean;
   whatsappGroupUrl: string | null;
+  // Free preview modules
+  isPreviewing?: boolean;
+  freePreviewModuleCount?: number | null;
 }
 
 /**
@@ -499,12 +507,16 @@ interface ForbiddenResponseDto {
   expired?: boolean;
   enrollmentStatus?: string;
   course?: NotEnrolledCourseDto;
+  // Free preview modules
+  previewAvailable?: boolean;
+  previewModuleCount?: number | null;
 }
 
 export default function TraineeCourseViewPage({ params }: { params: { id: string } }) {
   const [course, setCourse] = useState<CourseDto | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [notEnrolled, setNotEnrolled] = useState<NotEnrolledCourseDto | null>(null);
+  const [previewOffer, setPreviewOffer] = useState<{ moduleCount: number } | null>(null);
   const [expiredInfo, setExpiredInfo] = useState<{ isExpired: boolean; course: NotEnrolledCourseDto } | null>(null);
   const [enrolling, setEnrolling] = useState(false);
   const [enrollError, setEnrollError] = useState<string | null>(null);
@@ -522,9 +534,11 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
             setNotEnrolled(data?.course ?? null);
             setExpiredInfo(null);
           }
+          setPreviewOffer(data?.previewAvailable && data.previewModuleCount ? { moduleCount: data.previewModuleCount } : null);
           return;
         }
         setExpiredInfo(null);
+        setPreviewOffer(null);
         if (!r.ok) {
           setNotFound(true);
           return;
@@ -712,15 +726,31 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
                       notEnrolled.billingInterval?.toLowerCase() ?? "month"
                     } — you'll pay securely via Paystack.`}
               </p>
+              {/* Free preview modules — offered alongside, never instead
+                  of, paying outright: a trainee who already knows they
+                  want the course can still skip straight to Pay & Enroll. */}
+              {!notEnrolled.isFree && previewOffer && (
+                <p className="mt-2 text-sm text-brand-tealDeep">
+                  Not ready to pay yet? Preview the first {previewOffer.moduleCount} module
+                  {previewOffer.moduleCount === 1 ? "" : "s"} free — lessons and assessments included.
+                </p>
+              )}
               {enrollError && <p className="mt-2 text-sm text-brand-rose">{enrollError}</p>}
               {notEnrolled.isFree ? (
                 <Button className="mt-3" onClick={enroll} loading={enrolling}>
                   Enroll
                 </Button>
               ) : (
-                <Button className="mt-3" onClick={pay} loading={enrolling}>
-                  Pay & Enroll
-                </Button>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button onClick={pay} loading={enrolling}>
+                    Pay & Enroll
+                  </Button>
+                  {previewOffer && (
+                    <Button variant="secondary" onClick={enroll} loading={enrolling}>
+                      Start Free Preview
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
           }
@@ -996,8 +1026,9 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
                       </Badge>
                     )}
                     {!mod.unlocked && (
-                      <Badge variant="neutral">
-                        <Icon icon={Lock} size="sm" className="mr-1 inline align-text-bottom" /> Locked
+                      <Badge variant={mod.lockedReason === "payment" ? "warning" : "neutral"}>
+                        <Icon icon={Lock} size="sm" className="mr-1 inline align-text-bottom" />{" "}
+                        {mod.lockedReason === "payment" ? "Pay to Unlock" : "Locked"}
                       </Badge>
                     )}
                   </div>
@@ -1015,7 +1046,19 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
               {openModule === mod.id && !mod.unlocked && (
                 <div className="flex flex-col items-center gap-2 border-t border-brand-gray p-6 text-center">
                   <LockedDoodle className="h-16 w-16" />
-                  <p className="text-sm text-gray-500">Complete the previous module to unlock this one.</p>
+                  {mod.lockedReason === "payment" ? (
+                    <>
+                      <p className="text-sm text-gray-600">
+                        You&apos;ve completed the free preview — pay to continue with this course.
+                      </p>
+                      {enrollError && <p className="text-sm text-brand-rose">{enrollError}</p>}
+                      <Button className="mt-1" onClick={pay} loading={enrolling}>
+                        Pay Now
+                      </Button>
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-500">Complete the previous module to unlock this one.</p>
+                  )}
                 </div>
               )}
 

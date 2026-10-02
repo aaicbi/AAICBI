@@ -68,6 +68,7 @@ interface CourseDto {
   // Course enrollment/subscription system
   priceKobo: number | null;
   discountPercent: number | null;
+  freePreviewModuleCount: number | null;
   billingInterval: "MONTHLY" | "QUARTERLY" | "ANNUALLY" | null;
   accessModel: "RECURRING_SUBSCRIPTION" | "FIXED_DURATION";
   accessDurationValue: number | null;
@@ -268,6 +269,7 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
     isFree: boolean;
     priceKobo: number | null;
     discountPercent: number | null;
+    freePreviewModuleCount: number | null;
     accessModel: "RECURRING_SUBSCRIPTION" | "FIXED_DURATION";
     billingInterval: "MONTHLY" | "QUARTERLY" | "ANNUALLY" | null;
     accessDurationValue: number | null;
@@ -701,6 +703,7 @@ function PricingSettings({
     isFree: boolean;
     priceKobo: number | null;
     discountPercent: number | null;
+    freePreviewModuleCount: number | null;
     accessModel: "RECURRING_SUBSCRIPTION" | "FIXED_DURATION";
     billingInterval: "MONTHLY" | "QUARTERLY" | "ANNUALLY" | null;
     accessDurationValue: number | null;
@@ -715,6 +718,9 @@ function PricingSettings({
   // converted back to kobo only at save time.
   const [priceNaira, setPriceNaira] = useState(course.priceKobo != null ? String(course.priceKobo / 100) : "");
   const [discountPercent, setDiscountPercent] = useState(course.discountPercent != null ? String(course.discountPercent) : "");
+  const [freePreviewModuleCount, setFreePreviewModuleCount] = useState(
+    course.freePreviewModuleCount != null ? String(course.freePreviewModuleCount) : ""
+  );
   const [accessModel, setAccessModel] = useState<"RECURRING_SUBSCRIPTION" | "FIXED_DURATION">(course.accessModel);
   const [billingInterval, setBillingInterval] = useState<"MONTHLY" | "QUARTERLY" | "ANNUALLY">(
     course.billingInterval ?? "MONTHLY"
@@ -728,6 +734,7 @@ function PricingSettings({
     setIsFree(course.isFree);
     setPriceNaira(course.priceKobo != null ? String(course.priceKobo / 100) : "");
     setDiscountPercent(course.discountPercent != null ? String(course.discountPercent) : "");
+    setFreePreviewModuleCount(course.freePreviewModuleCount != null ? String(course.freePreviewModuleCount) : "");
     setAccessModel(course.accessModel);
     setBillingInterval(course.billingInterval ?? "MONTHLY");
     setDurationValue(course.accessDurationValue?.toString() ?? "");
@@ -741,10 +748,18 @@ function PricingSettings({
     setError(null);
     const priceKobo = isFree || priceNaira.trim() === "" ? null : Math.round(Number(priceNaira) * 100);
     const discountPercentValue = isFree || discountPercent.trim() === "" ? null : Number(discountPercent);
+    const freePreviewModuleCountValue =
+      isFree || freePreviewModuleCount.trim() === "" ? null : Number(freePreviewModuleCount);
+    if (freePreviewModuleCountValue != null && freePreviewModuleCountValue >= course.modules.length) {
+      setSaving(false);
+      setError(`Free preview modules must be less than the course's total module count (${course.modules.length}).`);
+      return;
+    }
     const err = await onSave({
       isFree,
       priceKobo,
       discountPercent: discountPercentValue,
+      freePreviewModuleCount: freePreviewModuleCountValue,
       accessModel: isFree ? "RECURRING_SUBSCRIPTION" : accessModel,
       billingInterval: !isFree && accessModel === "RECURRING_SUBSCRIPTION" ? billingInterval : null,
       accessDurationValue:
@@ -777,6 +792,10 @@ function PricingSettings({
       : `${priceLabel} — Access: ${
           course.accessDurationUnit === "LIFETIME" ? "Lifetime" : `${course.accessDurationValue} ${course.accessDurationUnit?.toLowerCase()}`
         }`;
+  const previewSummary =
+    !course.isFree && course.freePreviewModuleCount
+      ? ` · First ${course.freePreviewModuleCount} module${course.freePreviewModuleCount === 1 ? "" : "s"} free to preview`
+      : "";
 
   return (
     <div className="mt-4 rounded-lg border border-brand-gray bg-gray-50 p-4">
@@ -785,7 +804,12 @@ function PricingSettings({
           <p className="text-sm font-semibold text-gray-900">
             <Icon icon={PaymentsIcon} size="sm" className="mr-1 inline align-text-bottom" /> Pricing &amp; Access
           </p>
-          {!editing && <p className="mt-1 text-xs text-gray-600">{summary}</p>}
+          {!editing && (
+            <p className="mt-1 text-xs text-gray-600">
+              {summary}
+              {previewSummary}
+            </p>
+          )}
         </div>
         {!editing && (
           <button onClick={startEditing} className="text-xs font-semibold text-brand-teal hover:underline">
@@ -838,6 +862,24 @@ function PricingSettings({
                   <span className="font-semibold">-{discountPercent}% OFF</span> badge.
                 </p>
               )}
+
+              <label className="block text-xs text-gray-700">
+                Free preview modules (optional)
+                <input
+                  type="number"
+                  min={0}
+                  max={Math.max(0, course.modules.length - 1)}
+                  value={freePreviewModuleCount}
+                  onChange={(e) => setFreePreviewModuleCount(e.target.value)}
+                  placeholder="e.g. 2"
+                  className="mt-1 w-full max-w-[8rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
+                />
+                <span className="mt-1 block text-[11px] font-normal text-gray-500">
+                  A trainee can register and go through this many of the course&apos;s {course.modules.length} module
+                  {course.modules.length === 1 ? "" : "s"} (lessons and assessments) before paying. Leave blank to
+                  require payment before any content is accessible, as today.
+                </span>
+              </label>
 
               <div className="flex gap-4 text-xs text-gray-700">
                 <label className="flex items-center gap-1.5">

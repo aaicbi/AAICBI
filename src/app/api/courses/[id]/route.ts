@@ -7,6 +7,7 @@ import { guardCourseDeletable } from "@/lib/deletionGuards";
 import { getModuleLockMap } from "@/lib/progress";
 import { validateCoursePricing } from "@/lib/coursePricing";
 import { hasCourseAccess, expireLapsedEnrollmentsForTrainee } from "@/lib/courseAccess";
+import { isModuleIndexInFreePreview } from "@/lib/courseAccessCore";
 import { isCoursePubliclyVisible } from "@/lib/courseStatus";
 import { requireOwnedCourse } from "@/lib/courseOwnership";
 import { buildMarketingView } from "@/lib/courseMarketing";
@@ -146,7 +147,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const isExpired = !!existingEnrollment?.accessRevokedAt;
     const enrolled = await hasCourseAccess(session.userId, course.id);
 
-    if (!enrolled) {
+    // Free preview modules — a PREVIEW-source row isn't "enrolled" by
+    // hasCourseAccess's own (unchanged) definition, but it isn't
+    // "no access at all" either. Distinct from `enrolled`: this trainee
+    // still gets the real module tree below, just with a payment-based
+    // lock layered on top past the preview boundary, instead of the
+    // marketing-only 403 every other not-yet-enrolled trainee gets.
+    const previewing = !enrolled && !isExpired && existingEnrollment?.source === "PREVIEW";
+
+    if (!enrolled && !previewing) {
       return NextResponse.json(
         {
           error: isExpired ? "Your access to this course has expired." : "You're not enrolled in this course yet.",
@@ -159,6 +168,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           // catalogue detail route both use, so all three surfaces can
           // never quietly drift apart on what a prospective trainee sees.
           course: buildMarketingView(course),
+          // Free preview modules — lets the trainee page offer "Start
+          // Free Preview" alongside Pay/Enroll, only when genuinely
+          // configured on a paid course and not already tried (a
+          // revoked preview enrollment doesn't get offered again).
+          previewAvailable: !isExpired && !course.isFree && !!course.freePreviewModuleCount && !existingEnrollment,
+          previewModuleCount: course.freePreviewModuleCount ?? null,
         },
         { status: 403 }
       );
@@ -187,28 +202,43 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       ).map((p: { lessonId: string }) => p.lessonId)
     );
 
-    const shapedModules = course.modules.map((m: { id: string; description: string | null; lessons: { id: string; materials: unknown[] }[] }) => {
-      const status = lockMap[m.id];
-      const unlocked = status?.unlocked ?? true; // fail open to "visible" for a module the lock map somehow didn't cover, never fail closed into hiding structure
-      return {
-        ...m,
-        unlocked,
-        completed: status?.completed ?? false,
-        // M12 audit finding: only `materials` was being redacted for a
-        // locked module — `description` (real content a module builder
-        // writes, not just a label) was still shipped over the wire
-        // and only hidden by the UI choosing not to render it. Same
-        // "real redaction, not a client-side hide" standard applied
-        // here now — a locked module's description is null on the
-        // wire, not just unrendered.
-        description: unlocked ? m.description : null,
-        lessons: m.lessons.map((l: { id: string; materials: unknown[] }) => ({
-          ...l,
-          completedByMe: completedLessonIds.has(l.id),
-          materials: unlocked ? l.materials : [],
-        })),
-      };
-    });
+    // Free preview modules — only relevant while `previewing` (a
+    // fully-enrolled/paid trainee's `enrolled` is already true and this
+    // is never consulted for them). Same shared, pure, unit-tested rank
+    // check getModuleAccessLevel (courseAccess.ts) uses — course.modules
+    // is already ordered by `order: asc` (see fullTree above), so the
+    // array index IS the rank, no second query needed here.
+    const shapedModules = course.modules.map(
+      (m: { id: string; description: string | null; lessons: { id: string; materials: unknown[] }[] }, index: number) => {
+        const status = lockMap[m.id];
+        const progressUnlocked = status?.unlocked ?? true; // fail open to "visible" for a module the lock map somehow didn't cover, never fail closed into hiding structure
+        const paymentLocked = previewing && !isModuleIndexInFreePreview(index, course.freePreviewModuleCount, course.modules.length);
+        const unlocked = progressUnlocked && !paymentLocked;
+        return {
+          ...m,
+          unlocked,
+          completed: status?.completed ?? false,
+          // Free preview modules — only ever set when payment, not
+          // progress, is what's actually blocking this module; the
+          // trainee page uses this to show "Pay to continue" instead
+          // of "complete the previous module first."
+          lockedReason: unlocked ? null : paymentLocked ? "payment" : "progress",
+          // M12 audit finding: only `materials` was being redacted for a
+          // locked module — `description` (real content a module builder
+          // writes, not just a label) was still shipped over the wire
+          // and only hidden by the UI choosing not to render it. Same
+          // "real redaction, not a client-side hide" standard applied
+          // here now — a locked module's description is null on the
+          // wire, not just unrendered.
+          description: unlocked ? m.description : null,
+          lessons: m.lessons.map((l: { id: string; materials: unknown[] }) => ({
+            ...l,
+            completedByMe: completedLessonIds.has(l.id),
+            materials: unlocked ? l.materials : [],
+          })),
+        };
+      }
+    );
 
     // M15 — include the trainee's own certificate for this course, if
     // one has been issued. Only ever their own (scoped by
@@ -285,6 +315,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       enrollmentStatus,
       enrollmentSource: myEnrollment?.source ?? null,
       isPaid: myEnrollment?.source === "PAID" || !course.isFree,
+      // Free preview modules — lets the trainee page show "Pay to
+      // continue" messaging referencing the actual boundary without
+      // having to re-derive it by counting locked modules itself.
+      isPreviewing: previewing,
+      freePreviewModuleCount: previewing ? course.freePreviewModuleCount : null,
     });
   });
 }
@@ -298,6 +333,10 @@ const UpdateCourseSchema = z.object({
   priceKobo: z.number().int().positive().nullable().optional(),
   // Course discounts — see Course.discountPercent's own schema comment.
   discountPercent: z.number().int().min(1).max(99).nullable().optional(),
+  // Free preview modules — see Course.freePreviewModuleCount's own
+  // schema comment. Cross-validated against the course's real module
+  // count below (merged-with-existing-state, same pattern as pricing).
+  freePreviewModuleCount: z.number().int().min(0).max(1000).nullable().optional(),
   // M26 — same reasoning as priceKobo above.
   billingInterval: z.enum(["MONTHLY", "QUARTERLY", "ANNUALLY"]).nullable().optional(),
   // Course enrollment/subscription system — same reasoning as
@@ -415,6 +454,21 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const resultingAccessDurationUnit =
       parsed.data.accessDurationUnit !== undefined ? parsed.data.accessDurationUnit : course.accessDurationUnit;
     const resultingReminderEnabled = parsed.data.reminderEnabled ?? course.reminderEnabled;
+    const resultingFreePreviewModuleCount =
+      parsed.data.freePreviewModuleCount !== undefined ? parsed.data.freePreviewModuleCount : course.freePreviewModuleCount;
+    // Free preview modules — a course can never be configured so every
+    // module is free preview (that would just be a paid course nobody
+    // ever pays for). Only queried when actually relevant — every
+    // other course update keeps its existing single-query cost.
+    if (resultingFreePreviewModuleCount != null) {
+      const moduleCount = await prisma.module.count({ where: { courseId: params.id } });
+      if (resultingFreePreviewModuleCount >= moduleCount) {
+        return NextResponse.json(
+          { error: `Free preview modules must be less than the course's total module count (${moduleCount}).` },
+          { status: 400 }
+        );
+      }
+    }
     const pricingError = validateCoursePricing(
       resultingIsFree,
       resultingPriceKobo,
@@ -425,7 +479,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         accessDurationUnit: resultingAccessDurationUnit,
         reminderEnabled: resultingReminderEnabled,
       },
-      resultingDiscountPercent
+      resultingDiscountPercent,
+      resultingFreePreviewModuleCount
     );
     if (pricingError) {
       return NextResponse.json({ error: pricingError }, { status: 400 });

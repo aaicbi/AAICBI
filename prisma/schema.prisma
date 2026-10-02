@@ -1106,6 +1106,19 @@ model Course {
   // isFree is true, same reasoning as priceKobo — a free course has
   // nothing to discount.
   discountPercent Int?
+  // Free preview modules — null/unset means the feature is off (every
+  // existing course keeps today's all-or-nothing access unchanged),
+  // same "opt-in, no surprise default" convention as
+  // inactivityThresholdDays below. Only meaningful when isFree is
+  // false; a free course already grants full access on enroll, so
+  // there's nothing for this to gate. Counted against Module.order
+  // rank (first N modules), not raw order values — see
+  // getModuleAccessLevel in courseAccess.ts, the one function that
+  // reads this. Validated server-side (UpdateCourseSchema's handler)
+  // to always be less than the course's total module count — a course
+  // can never be configured so every module is free preview, which
+  // would defeat the paywall entirely.
+  freePreviewModuleCount Int?
   // M26 — both null whenever isFree is true, same reasoning as
   // priceKobo above. `billingInterval` is a real, deliberate per-course
   // choice, not a single platform-wide setting — confirmed directly
@@ -2600,6 +2613,15 @@ enum EnrollmentSource {
   FREE
   ADMIN_GRANTED
   PAID
+  // Free preview modules — a trainee registered to try a paid course's
+  // first N modules (Course.freePreviewModuleCount) before paying.
+  // `unlockedAt` stays null for this source, so hasCourseAccess() keeps
+  // correctly returning false (see getModuleAccessLevel in
+  // courseAccess.ts for the module-level carve-out). When the trainee
+  // pays, processConfirmedCharge's existing `unlockedAt: existing.unlockedAt
+  // ?? now` upgrades this exact row to source PAID with no code change
+  // needed there.
+  PREVIEW
 }
 
 // M26 — deliberately just these three; Paystack's own Plan resource

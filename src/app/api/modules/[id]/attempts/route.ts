@@ -4,7 +4,7 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { startAttempt, serveableQuestion, secondsRemaining } from "@/lib/examEngine";
 import { getModuleLockStatus } from "@/lib/progress";
-import { hasCourseAccess, canTraineeAccessCourse } from "@/lib/courseAccess";
+import { getModuleAccessLevel, canTraineeAccessCourse } from "@/lib/courseAccess";
 
 /**
  * POST /api/modules/[id]/attempts — the M11 replacement for typing an
@@ -67,8 +67,12 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     // 404-not-403 reasoning as the checks above — don't confirm
     // anything about this assessment's existence to someone who was
     // never enrolled.
-    const enrolled = await hasCourseAccess(session.userId, exam.courseModule.courseId);
-    if (!enrolled) {
+    // Free preview modules — "FULL" or "PREVIEW" (this module is within
+    // the course's configured preview boundary) both allow starting a
+    // real, graded attempt — the whole point of the feature is that
+    // preview-module assessments count fully, not just lesson viewing.
+    const access = await getModuleAccessLevel(session.userId, exam.courseModule.courseId, params.id);
+    if (access === "NONE") {
       return NextResponse.json(
         { error: "This assessment is not currently available." },
         { status: 404 }
@@ -130,8 +134,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     // still shouldn't be able to confirm whether a module has an
     // assessment at all.
     if (exam.courseModule) {
-      const enrolled = await hasCourseAccess(session.userId, exam.courseModule.courseId);
-      if (!enrolled) {
+      const access = await getModuleAccessLevel(session.userId, exam.courseModule.courseId, params.id);
+      if (access === "NONE") {
         return NextResponse.json({ error: "This module doesn't have an assessment yet." }, { status: 404 });
       }
     }

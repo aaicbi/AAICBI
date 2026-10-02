@@ -5,7 +5,7 @@ import { getSession, requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { requireOwnedModule } from "@/lib/courseOwnership";
 import { getModuleLockStatus } from "@/lib/progress";
-import { hasCourseAccess } from "@/lib/courseAccess";
+import { getModuleAccessLevel } from "@/lib/courseAccess";
 
 // Same code-generation helper as POST /api/exams, duplicated locally on
 // purpose rather than imported — it's five lines with zero dependencies
@@ -134,8 +134,12 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     // course at all. Same 404-not-403 reasoning as the lock check
     // below — don't let "not enrolled" be distinguishable from
     // "doesn't exist" for something a trainee was never meant to see.
-    const enrolled = await hasCourseAccess(session.userId, exam.courseModule.courseId);
-    if (!enrolled) {
+    // Free preview modules — "FULL" (paid/enrolled) or "PREVIEW" (this
+    // specific module is within the course's configured preview
+    // boundary) both count as allowed here; hasCourseAccess's own
+    // binary check is unchanged, just no longer the only way in.
+    const access = await getModuleAccessLevel(session.userId, exam.courseModule.courseId, params.id);
+    if (access === "NONE") {
       return NextResponse.json({ error: "This module doesn't have an assessment available yet." }, { status: 404 });
     }
 
