@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { SidebarActiveProvider } from "@/components/SidebarActiveContext";
 import TraineeSidebar from "@/components/trainee/TraineeSidebar";
+import FloatingMessagesButton from "@/components/trainee/FloatingMessagesButton";
 import { pageHasSidebar } from "@/lib/sidebarRoutes";
 
 /**
@@ -19,6 +20,13 @@ import { pageHasSidebar } from "@/lib/sidebarRoutes";
  * there directly (bug fix — see AdminLayout's own comment for the
  * full story; pageHasSidebar excludes these paths regardless of
  * session state).
+ *
+ * FloatingMessagesButton lives here too, not the sidebar — it's a
+ * persistent shortcut meant to float over EVERY authenticated trainee
+ * page (it excludes itself on the two live exam/assessment screens;
+ * see its own comment), same "mount once" reasoning as TourGuideButton
+ * in the root layout, just scoped to this one role's pages instead of
+ * the whole app.
  */
 export default async function TraineeLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
@@ -38,6 +46,7 @@ export default async function TraineeLayout({ children }: { children: React.Reac
       <div className="min-h-screen">
         <TraineeSidebar name={trainee?.name ?? session.email} avatarUrl={trainee?.avatarUrl ?? null} />
         <div className="sm:pl-64">{children}</div>
+        <FloatingMessagesButton />
       </div>
     </SidebarActiveProvider>
   );
