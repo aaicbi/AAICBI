@@ -37,7 +37,7 @@ interface NotificationDto {
  * notification badge is a real but minor trade-off, not a broken
  * experience.
  */
-export default function NotificationBell() {
+export default function NotificationBell({ align = "right" }: { align?: "left" | "right" }) {
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
@@ -106,7 +106,20 @@ export default function NotificationBell() {
         // Audit finding, closed here: same hardcoded-`bg-white` gap as
         // Card's own — see that component's comment for the full
         // reasoning.
-        <div className="absolute right-0 top-11 z-50 w-80 max-w-[90vw] rounded-xl border border-brand-gray bg-brand-surface shadow-lg animate-[modal-in_0.15s_ease-out]">
+        //
+        // `align` — added for the admin sidebar pilot: this component
+        // is shared across every role's LogoutButton, most of which
+        // still sit near the right edge of a wide top bar (where
+        // right-0, expanding leftward, is correct). The admin sidebar
+        // is a narrow 256px column pinned to the left of the screen,
+        // where expanding leftward from a button near its left edge
+        // runs the panel off-screen — see AdminSidebar.tsx's own
+        // LogoutButton usage for the "left" case.
+        <div
+          className={`absolute top-11 z-50 w-80 max-w-[90vw] rounded-xl border border-brand-gray bg-brand-surface shadow-lg animate-[modal-in_0.15s_ease-out] ${
+            align === "left" ? "left-0" : "right-0"
+          }`}
+        >
           <div className="flex items-center justify-between border-b border-brand-gray px-4 py-3">
             <p className="text-sm font-semibold text-brand-ink">Notifications</p>
             {unreadCount > 0 && (

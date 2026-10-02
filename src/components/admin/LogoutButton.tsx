@@ -15,7 +15,10 @@ export default function LogoutButton() {
   return (
     <div className="flex items-center gap-2">
       <AdminQuickActionsNavMenu />
-      <NotificationBell />
+      {/* align="left" — see NotificationBell.tsx's own comment: this
+          renders inside the narrow admin sidebar now, not a wide top
+          bar, so the dropdown needs to expand rightward, not leftward. */}
+      <NotificationBell align="left" />
       <button
         onClick={async () => {
           await fetch("/api/auth/logout", { method: "POST" });

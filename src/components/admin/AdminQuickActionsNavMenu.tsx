@@ -54,7 +54,14 @@ export default function AdminQuickActionsNavMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-11 z-50 w-64 rounded-xl border border-brand-gray bg-brand-surface py-2 shadow-lg animate-[modal-in_0.15s_ease-out]">
+        // Admin sidebar pilot — this component is admin-only and (with
+        // SiteHeader now suppressed on every authenticated admin page,
+        // see SidebarActiveContext.tsx) only ever renders inside the
+        // narrow left sidebar now, not a wide top bar. left-0 expands
+        // the panel rightward into the main content area; right-0
+        // (the old positioning) ran it off the left edge of the
+        // screen from a button already near the sidebar's left side.
+        <div className="absolute left-0 top-11 z-50 w-64 rounded-xl border border-brand-gray bg-brand-surface py-2 shadow-lg animate-[modal-in_0.15s_ease-out]">
           {QUICK_LINKS.map((item) => (
             <Link
               key={item.href}
