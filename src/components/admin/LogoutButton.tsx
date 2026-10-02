@@ -1,20 +1,18 @@
 "use client";
 import { useRouter } from "next/navigation";
 import NotificationBell from "@/components/NotificationBell";
-import AdminQuickActionsNavMenu from "@/components/admin/AdminQuickActionsNavMenu";
 
 // Same reasoning as the trainee version of this component — see its
 // own comment.
 //
-// Admin Dashboard & Examinations redesign (Phase 2) — AdminQuickActionsNavMenu
-// rides the same mechanism for the same reason: one addition here
-// reaches every admin page instead of threading a new prop through
-// dozens of them (mirrors trainee/LogoutButton.tsx's own QuickActionsNavMenu).
+// AdminQuickActionsNavMenu used to render here too (Phase 2), but once
+// the admin sidebar pilot put every one of its shortcuts directly in
+// the sidebar's own nav list, the dropdown was pure duplication —
+// removed, along with the now-dead AdminQuickActionsNavMenu.tsx file.
 export default function LogoutButton() {
   const router = useRouter();
   return (
     <div className="flex items-center gap-2">
-      <AdminQuickActionsNavMenu />
       {/* align="left" — see NotificationBell.tsx's own comment: this
           renders inside the narrow admin sidebar now, not a wide top
           bar, so the dropdown needs to expand rightward, not leftward. */}

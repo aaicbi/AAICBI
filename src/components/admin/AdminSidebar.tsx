@@ -21,10 +21,10 @@ import { getTourGuideContent } from "@/lib/tourGuideContent";
  * a path-based lookup replacing the old "each page imports the right
  * constant" wiring — this component needs zero per-page input.
  *
- * NotificationBell/AdminQuickActionsNavMenu/Logout (bundled in the
- * existing LogoutButton.tsx) sit right under the logo, not the
- * sidebar's footer, specifically so their dropdowns — which already
- * open downward via `absolute ... top-11` — need no repositioning.
+ * NotificationBell/Logout (bundled in the existing LogoutButton.tsx)
+ * sit right under the logo, not the sidebar's footer, specifically so
+ * the notifications dropdown — which opens downward via
+ * `absolute ... top-11` — needs no vertical repositioning.
  */
 export default function AdminSidebar() {
   const pathname = usePathname() ?? "/admin/dashboard";
