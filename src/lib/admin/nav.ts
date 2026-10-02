@@ -16,8 +16,16 @@
 
 /** The general-admin cluster — courses, exams, performance, analytics,
  * messages, payments, and every course/exam sub-page. Examinations now
- * points at the real index (/admin/exams) instead of /admin/dashboard. */
+ * points at the real index (/admin/exams) instead of /admin/dashboard.
+ *
+ * Bug fix: when Examinations was repointed at /admin/exams, nothing
+ * replaced it as a way back to the dashboard — every one of these four
+ * lists went from zero-effort reachable (Examinations WAS the
+ * dashboard) to completely unreachable from the top nav once you
+ * navigated away from it. "Dashboard" is a real, explicit nav item
+ * now, first in every list, matching TRAINEE_NAV's own convention. */
 export const ADMIN_NAV = [
+  { label: "Dashboard", href: "/admin/dashboard" },
   { label: "Examinations", href: "/admin/exams" },
   { label: "Courses", href: "/admin/courses" },
   { label: "Performance", href: "/admin/performance" },
@@ -30,6 +38,7 @@ export const ADMIN_NAV = [
 
 /** The instructor-management cluster. */
 export const ADMIN_NAV_STAFF = [
+  { label: "Dashboard", href: "/admin/dashboard" },
   { label: "Examinations", href: "/admin/exams" },
   { label: "Courses", href: "/admin/courses" },
   { label: "Instructors", href: "/admin/instructors" },
@@ -41,6 +50,7 @@ export const ADMIN_NAV_STAFF = [
 
 /** The Pitch & Post review cluster. */
 export const ADMIN_NAV_PITCH = [
+  { label: "Dashboard", href: "/admin/dashboard" },
   { label: "Examinations", href: "/admin/exams" },
   { label: "Courses", href: "/admin/courses" },
   { label: "Pitches", href: "/admin/pitches" },
@@ -52,6 +62,7 @@ export const ADMIN_NAV_PITCH = [
 
 /** The SUPER_ADMIN-only utility cluster — legitimately minimal. */
 export const ADMIN_NAV_COMMAND = [
+  { label: "Dashboard", href: "/admin/dashboard" },
   { label: "Examinations", href: "/admin/exams" },
   { label: "Courses", href: "/admin/courses" },
   { label: "Command", href: "/admin/command" },
