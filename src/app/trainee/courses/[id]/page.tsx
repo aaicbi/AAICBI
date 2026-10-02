@@ -689,7 +689,7 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
               <Badge variant="danger">EXPIRED</Badge>
             </div>
             {expiredInfo.course.description && <p className="mt-2 text-sm text-gray-600">{expiredInfo.course.description}</p>}
-            <div className="mt-4 rounded-lg border border-brand-rose bg-red-50 p-4 text-sm text-brand-rose">
+            <div className="mt-4 rounded-lg border border-brand-rose bg-brand-roseLight/40 p-4 text-sm text-brand-rose">
               <p className="font-semibold">Your course access has expired.</p>
               <p className="mt-1 text-gray-700">
                 Restricted course materials are locked. Re-enroll or renew below to restore full access. Your past enrollment history and progress are safely preserved.

@@ -25,8 +25,16 @@ function stateFor(
 const STATE_STYLES: Record<QuestionState, string> = {
   unanswered: "bg-gray-100 text-gray-500 border border-brand-gray",
   answered: "bg-brand-teal text-white",
-  current: "bg-blue-600 text-white ring-2 ring-offset-1 ring-blue-300",
-  review: "bg-amber-400 text-white",
+  // Contrast/consistency fix — this used an off-palette bg-blue-600 and
+  // bg-amber-400 (the latter a real WCAG failure: white text on a
+  // light amber has nowhere near enough contrast), neither of which
+  // adapts for dark mode the way every brand-* token does. "current"
+  // now uses the app's own darker teal shade to stay visually distinct
+  // from "answered"'s brand-teal; "review" matches Badge.tsx's already-
+  // established "gold" variant (bg-brand-gold text-white) instead of
+  // inventing a third, inconsistent gold.
+  current: "bg-brand-tealDeep text-white ring-2 ring-offset-1 ring-brand-mint",
+  review: "bg-brand-gold text-white",
 };
 
 export function NavigationGrid({ total, currentIndex, answeredIndices, markedIndices, onJump }: NavigationPanelProps) {
@@ -51,8 +59,8 @@ export function NavigationGrid({ total, currentIndex, answeredIndices, markedInd
       <div className="mt-4 space-y-1.5 text-xs text-gray-600">
         <Legend swatch="bg-gray-100 border border-brand-gray" label="Unanswered" />
         <Legend swatch="bg-brand-teal" label="Answered" />
-        <Legend swatch="bg-blue-600" label="Current" />
-        <Legend swatch="bg-amber-400" label="Marked for review" />
+        <Legend swatch="bg-brand-tealDeep" label="Current" />
+        <Legend swatch="bg-brand-gold" label="Marked for review" />
       </div>
     </div>
   );

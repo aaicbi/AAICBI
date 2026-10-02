@@ -179,7 +179,7 @@ export default function AdminAnalyticsPage() {
                 <button
                   key={d}
                   onClick={() => setDays(d)}
-                  className={`px-3 py-1.5 text-sm font-semibold ${d === days ? "bg-brand-teal text-white" : "bg-white text-brand-ink hover:bg-gray-50"}`}
+                  className={`px-3 py-1.5 text-sm font-semibold ${d === days ? "bg-brand-teal text-white" : "bg-brand-surface text-brand-ink hover:bg-gray-50"}`}
                 >
                   {d}d
                 </button>

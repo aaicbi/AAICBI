@@ -365,7 +365,7 @@ function Gate2Card({
       </p>
 
       {detail && (
-        <div className="mb-3 space-y-1 rounded border border-brand-gray bg-white p-3 text-xs text-gray-700">
+        <div className="mb-3 space-y-1 rounded border border-brand-gray bg-brand-surface p-3 text-xs text-gray-700">
           {detail.correctness && !detail.correctness.agrees && (
             <p>
               Independent check believes option {detail.correctness.verifiedOptionIndex ?? "?"} is correct, not option{" "}

@@ -406,7 +406,7 @@ export default function CommandCenterPage() {
                       {m.text && <p className="whitespace-pre-line text-sm leading-relaxed text-brand-ink">{m.text}</p>}
 
                       {m.proposal && (
-                        <Card className="w-full max-w-md space-y-3 border-brand-teal/40 bg-white">
+                        <Card className="w-full max-w-md space-y-3 border-brand-teal/40">
                           <div className="flex items-center justify-between gap-2">
                             <Badge variant="success">Message proposal</Badge>
                             <span className="text-xs font-semibold text-gray-500">
@@ -442,13 +442,13 @@ export default function CommandCenterPage() {
                             </p>
                           )}
                           {m.proposal.state === "failed" && (
-                            <p className="text-xs font-semibold text-red-600">{m.proposal.errorMessage ?? "Send failed."}</p>
+                            <p className="text-xs font-semibold text-brand-rose">{m.proposal.errorMessage ?? "Send failed."}</p>
                           )}
                         </Card>
                       )}
 
                       {m.objectivesProposal && (
-                        <Card className="w-full max-w-md space-y-3 border-brand-teal/40 bg-white">
+                        <Card className="w-full max-w-md space-y-3 border-brand-teal/40">
                           <div className="flex items-center justify-between gap-2">
                             <Badge variant="success">Learning objectives</Badge>
                             <span className="text-xs font-semibold text-gray-500">
@@ -481,13 +481,13 @@ export default function CommandCenterPage() {
                             <p className="text-xs font-semibold text-brand-tealDeep">Saved to the module.</p>
                           )}
                           {m.objectivesProposal.state === "failed" && (
-                            <p className="text-xs font-semibold text-red-600">{m.objectivesProposal.errorMessage ?? "Save failed."}</p>
+                            <p className="text-xs font-semibold text-brand-rose">{m.objectivesProposal.errorMessage ?? "Save failed."}</p>
                           )}
                         </Card>
                       )}
 
                       {m.suspensionProposal && (
-                        <Card className="w-full max-w-md space-y-3 border-brand-rose/40 bg-white">
+                        <Card className="w-full max-w-md space-y-3 border-brand-rose/40">
                           <div className="flex items-center justify-between gap-2">
                             <Badge variant="danger">Suspend messaging</Badge>
                           </div>
@@ -514,7 +514,7 @@ export default function CommandCenterPage() {
                             <p className="text-xs font-semibold text-brand-rose">Messaging access suspended.</p>
                           )}
                           {m.suspensionProposal.state === "failed" && (
-                            <p className="text-xs font-semibold text-red-600">{m.suspensionProposal.errorMessage ?? "Failed."}</p>
+                            <p className="text-xs font-semibold text-brand-rose">{m.suspensionProposal.errorMessage ?? "Failed."}</p>
                           )}
                         </Card>
                       )}

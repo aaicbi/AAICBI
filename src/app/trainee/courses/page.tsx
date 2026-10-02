@@ -101,7 +101,7 @@ export default function TraineeCoursesPage() {
                         PAID <CorrectnessMark state="correct" label={undefined} />
                       </span>
                     ) : course.isExpired ? (
-                      <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-brand-rose">
+                      <span className="rounded-full bg-brand-roseLight px-2 py-0.5 text-[10px] font-semibold text-brand-rose">
                         EXPIRED
                       </span>
                     ) : course.isFree ? (

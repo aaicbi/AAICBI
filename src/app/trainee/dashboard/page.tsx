@@ -332,7 +332,7 @@ export default async function TraineeDashboardPage() {
                   PAID <CorrectnessMark state="correct" label={undefined} />
                 </span>
               ) : topCourse.isExpired ? (
-                <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-brand-rose">
+                <span className="rounded-full bg-brand-roseLight px-2 py-0.5 text-[10px] font-semibold text-brand-rose">
                   EXPIRED
                 </span>
               ) : null}
@@ -453,7 +453,7 @@ export default async function TraineeDashboardPage() {
                             PAID <CorrectnessMark state="correct" label={undefined} />
                           </span>
                         ) : c.isExpired ? (
-                          <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-brand-rose">
+                          <span className="rounded-full bg-brand-roseLight px-2 py-0.5 text-[10px] font-semibold text-brand-rose">
                             EXPIRED
                           </span>
                         ) : null}

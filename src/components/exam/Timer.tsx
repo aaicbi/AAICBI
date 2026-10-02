@@ -60,9 +60,9 @@ export default function Timer({ initialSecondsRemaining, clientStartedAt, onExpi
     <div
       className={`flex items-center gap-2 rounded-lg px-3 py-1.5 font-mono text-sm font-semibold ${
         critical
-          ? "bg-red-50 text-red-600"
+          ? "bg-brand-roseLight text-brand-rose"
           : low
-          ? "bg-amber-50 text-amber-700"
+          ? "bg-brand-goldLight text-brand-goldText"
           : "bg-brand-mint text-brand-teal"
       }`}
     >
