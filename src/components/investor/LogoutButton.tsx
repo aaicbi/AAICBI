@@ -7,11 +7,16 @@ import NotificationBell from "@/components/NotificationBell";
 // imported the ADMIN LogoutButton, which redirects to /admin/login
 // after logging out an investor — wrong destination. This is the real,
 // investor-scoped one.
+//
+// Sidebar rollout (Phase 2) — this now renders only inside
+// InvestorSidebar.tsx (SiteHeader is suppressed on every other
+// authenticated investor page), so align="left"/justify-between match
+// that narrow sidebar row instead of the old wide top bar.
 export default function LogoutButton() {
   const router = useRouter();
   return (
-    <div className="flex items-center gap-2">
-      <NotificationBell />
+    <div className="flex items-center justify-between">
+      <NotificationBell align="left" />
       <button
         onClick={async () => {
           await fetch("/api/auth/logout", { method: "POST" });

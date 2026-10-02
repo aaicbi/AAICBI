@@ -4,11 +4,16 @@ import NotificationBell from "@/components/NotificationBell";
 
 // Same reasoning as the trainee version of this component — see its
 // own comment.
+//
+// Sidebar rollout (Phase 2) — this now renders only inside
+// EmployerSidebar.tsx (SiteHeader is suppressed on every other
+// authenticated employer page), so align="left"/justify-between match
+// that narrow sidebar row instead of the old wide top bar.
 export default function LogoutButton() {
   const router = useRouter();
   return (
-    <div className="flex items-center gap-2">
-      <NotificationBell />
+    <div className="flex items-center justify-between">
+      <NotificationBell align="left" />
       <button
         onClick={async () => {
           await fetch("/api/auth/logout", { method: "POST" });

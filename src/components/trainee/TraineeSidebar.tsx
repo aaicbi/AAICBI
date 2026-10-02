@@ -4,58 +4,31 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, HelpCircle } from "lucide-react";
 import Logo from "@/components/Logo";
-import LogoutButton from "@/components/admin/LogoutButton";
+import LogoutButton from "@/components/trainee/LogoutButton";
 import Icon from "@/components/ui/Icon";
 import AvatarFallback from "@/components/ui/AvatarFallback";
 import Badge from "@/components/ui/Badge";
-import { getSidebarNavForPath } from "@/lib/admin/nav";
+import { TRAINEE_NAV } from "@/lib/trainee/nav";
 import { getSidebarTourGuideContent } from "@/lib/tourGuideContent";
 
-const ROLE_LABELS: Record<string, string> = {
-  SUPER_ADMIN: "Super Admin",
-  ADMIN: "Admin",
-  INSTRUCTOR: "Instructor",
-};
-
 /**
- * Admin sidebar pilot — replaces the old cramped top SiteHeader bar
- * for every authenticated admin page (see src/app/admin/layout.tsx,
- * which renders this and suppresses SiteHeader via
- * SidebarActiveContext). Trainee/employer/investor/instructor keep
- * the old top nav for now — see the plan this shipped from for why
- * this is a deliberate pilot, not the whole rollout.
+ * Sidebar rollout (Phase 2) — the trainee counterpart to
+ * src/components/admin/AdminSidebar.tsx, same structure and same
+ * reasoning throughout (see that file's own comment for the fuller
+ * explanation of each piece): rendered once by src/app/trainee/
+ * layout.tsx, which also suppresses every trainee page's own
+ * `<SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />` call via
+ * SidebarActiveContext — no per-page changes needed.
  *
- * Nav content comes from getSidebarNavForPath (src/lib/admin/nav.ts),
- * a path-based lookup replacing the old "each page imports the right
- * constant" wiring — this component needs zero per-page input.
- *
- * NotificationBell/Logout (bundled in the existing LogoutButton.tsx)
- * sit right under the logo, not the sidebar's footer, specifically so
- * the notifications dropdown — which opens downward via
- * `absolute ... top-11` — needs no vertical repositioning.
- *
- * The account card (photo + name + role) between the logo and that
- * row is this sidebar's one way to reach /admin/profile — it replaced
- * a plain "My Profile" text link that used to sit in the nav list
- * below (see nav.ts's own comment). name/avatarUrl/role come from the
- * server layout (src/app/admin/layout.tsx), which already looks the
- * session's user up — no client-side fetch needed just to show them.
+ * One flat nav list (TRAINEE_NAV), unlike admin's four clusters — the
+ * trainee side has never needed more than one.
  */
-export default function AdminSidebar({
-  name,
-  avatarUrl,
-  role,
-}: {
-  name: string;
-  avatarUrl: string | null;
-  role: string;
-}) {
-  const pathname = usePathname() ?? "/admin/dashboard";
+export default function TraineeSidebar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
+  const pathname = usePathname() ?? "/trainee/dashboard";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const helpRef = useRef<HTMLDivElement>(null);
 
-  const navItems = getSidebarNavForPath(pathname);
   const tourEntry = getSidebarTourGuideContent(pathname);
 
   useEffect(() => {
@@ -84,10 +57,10 @@ export default function AdminSidebar({
       </div>
 
       <Link
-        href="/admin/profile"
+        href="/trainee/profile"
         onClick={() => setMobileOpen(false)}
         className={`flex items-center gap-3 border-b border-brand-gray px-4 py-3 hover:bg-brand-mint ${
-          isActive("/admin/profile") ? "bg-brand-mint" : ""
+          isActive("/trainee/profile") ? "bg-brand-mint" : ""
         }`}
       >
         <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-brand-mint">
@@ -102,7 +75,7 @@ export default function AdminSidebar({
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-brand-ink">{name}</p>
-          <Badge variant="neutral">{ROLE_LABELS[role] ?? role}</Badge>
+          <Badge variant="neutral">Trainee</Badge>
         </div>
       </Link>
 
@@ -111,7 +84,7 @@ export default function AdminSidebar({
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-3">
-        {navItems.map((item) => (
+        {TRAINEE_NAV.map((item) => (
           <Link
             key={item.href}
             href={item.href}
@@ -165,9 +138,6 @@ export default function AdminSidebar({
 
   return (
     <>
-      {/* Mobile top bar — the sidebar itself is hidden below sm:, so this
-          is the only way to reach it on a small screen. Same hamburger
-          pattern SiteHeader already proves. */}
       <div className="flex items-center justify-between border-b border-brand-gray bg-brand-surface px-4 py-3 sm:hidden">
         <Logo />
         <button

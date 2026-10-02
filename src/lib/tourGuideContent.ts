@@ -71,7 +71,7 @@ export const TOUR_GUIDE_CONTENT: TourGuideEntry[] = [
     notes: [
       "\"Continue Learning\" always picks up exactly where you left off.",
       "Quick Actions give you one-click shortcuts — click \"Show more\" to see everything.",
-      "The bell icon in the header shows your notifications.",
+      "The bell icon in the sidebar shows your notifications.",
     ],
   },
   {
@@ -124,7 +124,7 @@ export const TOUR_GUIDE_CONTENT: TourGuideEntry[] = [
     match: exact("/admin/dashboard"),
     title: "Admin Dashboard",
     notes: [
-      "Your personal landing page — the full examinations list now lives under \"Examinations\" in the top nav.",
+      "Your personal landing page — the full examinations list now lives under \"Examinations\" in the sidebar.",
       "Pending-approval tiles only appear when there's genuinely something to review.",
       "Quick Actions give you shortcuts to the admin areas you use most.",
     ],
@@ -159,6 +159,34 @@ export const DEFAULT_TOUR_ENTRY: TourGuideEntry = {
   ],
 };
 
+/**
+ * Sidebar rollout (Phase 2) — a second default, for pages that render
+ * inside a role's persistent left sidebar instead of the plain top
+ * header DEFAULT_TOUR_ENTRY above describes. Every role's own
+ * `<Role>Sidebar.tsx` "Page Help" trigger falls back to this one
+ * (via getSidebarTourGuideContent) for any page not explicitly listed
+ * in TOUR_GUIDE_CONTENT above — which today is most of Employer/
+ * Investor/Instructor and much of Admin/Trainee, since this table is
+ * deliberately not exhaustive. DEFAULT_TOUR_ENTRY itself is untouched
+ * and still correct for its own remaining audience: TourGuideButton's
+ * floating button, which (per sidebarRoutes.ts) only ever shows on
+ * pages that still have the old top header — public pages and every
+ * role's pre-auth pages.
+ */
+export const DEFAULT_TOUR_ENTRY_SIDEBAR: TourGuideEntry = {
+  match: () => true,
+  title: "Getting Around",
+  notes: [
+    "Use the sidebar on the left to move between sections.",
+    "Your notifications and account are near the top of the sidebar.",
+    "If something looks locked or unavailable, it usually means a previous step needs finishing first.",
+  ],
+};
+
 export function getTourGuideContent(pathname: string): TourGuideEntry {
   return TOUR_GUIDE_CONTENT.find((entry) => entry.match(pathname)) ?? DEFAULT_TOUR_ENTRY;
+}
+
+export function getSidebarTourGuideContent(pathname: string): TourGuideEntry {
+  return TOUR_GUIDE_CONTENT.find((entry) => entry.match(pathname)) ?? DEFAULT_TOUR_ENTRY_SIDEBAR;
 }

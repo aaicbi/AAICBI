@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { HelpCircle, X } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import { getTourGuideContent } from "@/lib/tourGuideContent";
+import { pageHasSidebar } from "@/lib/sidebarRoutes";
 
 /**
  * A persistent, platform-wide "page help" button — fixed bottom-right
@@ -25,11 +26,13 @@ export default function TourGuideButton() {
   const pathname = usePathname();
   const entry = getTourGuideContent(pathname ?? "/");
 
-  // Admin sidebar pilot — /admin/* now has its own "Page Help" row
-  // inside AdminSidebar.tsx, reusing this same getTourGuideContent
-  // table. Keeping both mounted would just show the same content
-  // twice. Every other page is unaffected.
-  const isAdmin = pathname?.startsWith("/admin");
+  // Sidebar rollout (Phase 2) — every role with a persistent sidebar
+  // now has its own "Page Help" row inside its own <Role>Sidebar.tsx,
+  // reusing this same tourGuideContent table. Keeping both mounted
+  // would just show the same content twice. pageHasSidebar correctly
+  // keeps this button showing on every role's own pre-auth pages
+  // (login, register, etc.), which still use the old top header.
+  const hasSidebar = pageHasSidebar(pathname ?? "/");
 
   // Rules of Hooks: the two effects below must still run on every
   // render (even one we're about to render null for), so the early
@@ -52,7 +55,7 @@ export default function TourGuideButton() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  if (isAdmin) return null;
+  if (hasSidebar) return null;
 
   return (
     <div ref={containerRef} className="fixed bottom-6 right-6 z-40">

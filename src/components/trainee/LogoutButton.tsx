@@ -1,7 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
 import NotificationBell from "@/components/NotificationBell";
-import QuickActionsNavMenu from "@/components/trainee/QuickActionsNavMenu";
 
 // M32/Stage 6 audit — the bell renders here, not on every individual
 // page, since this component already renders on every trainee page in
@@ -11,15 +10,20 @@ import QuickActionsNavMenu from "@/components/trainee/QuickActionsNavMenu";
 // itself already has, rather than needing dozens of individual page
 // edits to achieve the same coverage.
 //
-// Dashboard/Examination redesign — QuickActionsNavMenu rides the same
-// mechanism for the same reason: one addition here reaches every
-// trainee page instead of threading a new prop through dozens of them.
+// Sidebar rollout (Phase 2) — QuickActionsNavMenu used to render here
+// too, but once its genuinely-unique shortcuts (Ask Loop, My
+// Downloads) moved into TRAINEE_NAV itself (now shown directly in the
+// sidebar), the dropdown was pure duplication — removed, along with
+// the now-dead QuickActionsNavMenu.tsx file. This also now renders
+// only inside TraineeSidebar.tsx (SiteHeader is suppressed on every
+// other authenticated trainee page), so `align="left"` and
+// `justify-between` match that narrow sidebar row rather than the old
+// wide top bar.
 export default function LogoutButton() {
   const router = useRouter();
   return (
-    <div className="flex items-center gap-2">
-      <QuickActionsNavMenu />
-      <NotificationBell />
+    <div className="flex items-center justify-between">
+      <NotificationBell align="left" />
       <button
         onClick={async () => {
           await fetch("/api/auth/logout", { method: "POST" });

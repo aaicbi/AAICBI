@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { getTourGuideContent, DEFAULT_TOUR_ENTRY } from "../src/lib/tourGuideContent";
+import {
+  getTourGuideContent,
+  getSidebarTourGuideContent,
+  DEFAULT_TOUR_ENTRY,
+  DEFAULT_TOUR_ENTRY_SIDEBAR,
+} from "../src/lib/tourGuideContent";
 
 describe("getTourGuideContent", () => {
   it("matches an exact static page", () => {
@@ -30,5 +35,16 @@ describe("getTourGuideContent", () => {
   it("matches the root path exactly, not every path", () => {
     expect(getTourGuideContent("/").title).toBe("Welcome to AAICBI");
     expect(getTourGuideContent("/trainee/login")).toBe(DEFAULT_TOUR_ENTRY);
+  });
+});
+
+describe("getSidebarTourGuideContent", () => {
+  it("returns the same specific entry as getTourGuideContent for a covered page", () => {
+    expect(getSidebarTourGuideContent("/trainee/dashboard")).toBe(getTourGuideContent("/trainee/dashboard"));
+  });
+
+  it("falls back to the sidebar-specific default, not the header one, for an uncovered page", () => {
+    expect(getSidebarTourGuideContent("/employer/settings")).toBe(DEFAULT_TOUR_ENTRY_SIDEBAR);
+    expect(getSidebarTourGuideContent("/employer/settings")).not.toBe(DEFAULT_TOUR_ENTRY);
   });
 });
