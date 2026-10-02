@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, Manrope } from "next/font/google";
 import { ToastProvider } from "@/components/ui/Toast";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
+import TourGuideButton from "@/components/TourGuideButton";
 import "./globals.css";
 
 // next/font self-hosts these at build time — no external font-CDN
@@ -58,6 +59,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             reasoning as ToastProvider above: one cookie-consent decision
             per browser, not a per-page concern. */}
         <CookieConsentBanner />
+        {/* Platform-wide "page help" button — mounted once, same
+            reasoning as the two components above. See
+            TourGuideButton.tsx's own comment for why this is a
+            fixed-position affordance rather than an element-anchored
+            tour. */}
+        <TourGuideButton />
       </body>
     </html>
   );

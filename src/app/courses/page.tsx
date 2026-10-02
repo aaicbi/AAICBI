@@ -8,12 +8,24 @@ import EmptyState from "@/components/ui/EmptyState";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import UpcomingCourseCard, { type UpcomingCourseRow } from "@/components/courses/UpcomingCourseCard";
 import PriceTag from "@/components/courses/PriceTag";
-import { CalendarClock, ArrowRight, Search } from "lucide-react";
+import AttentionPulse from "@/components/ui/AttentionPulse";
+import { CalendarClock, ArrowRight, Search, Sparkles } from "lucide-react";
 import { trackVisitorEvent } from "@/lib/analytics/visitorTrackClient";
 
 interface PublicCourseRow extends UpcomingCourseRow {
   level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | null;
   moduleCount: number;
+  // Free preview modules
+  freePreviewModuleCount: number | null;
+}
+
+function FreePreviewNote({ count }: { count: number }) {
+  return (
+    <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-brand-teal">
+      <AttentionPulse icon={Sparkles} />
+      Try the first {count} module{count === 1 ? "" : "s"} free
+    </p>
+  );
 }
 
 const LEVEL_LABEL: Record<string, string> = { BEGINNER: "Beginner", INTERMEDIATE: "Intermediate", ADVANCED: "Advanced" };
@@ -124,6 +136,9 @@ export default function PublicCoursesPage() {
                         </div>
                         {course.description && <p className="mt-1 line-clamp-2 text-sm text-gray-600">{course.description}</p>}
                         {course.category && <p className="mt-1 text-xs text-gray-500">{course.category}</p>}
+                        {!course.isFree && !!course.freePreviewModuleCount && (
+                          <FreePreviewNote count={course.freePreviewModuleCount} />
+                        )}
                       </div>
                     </Card>
                   </a>
@@ -168,6 +183,9 @@ export default function PublicCoursesPage() {
                             size="sm"
                           />
                         </div>
+                      )}
+                      {!course.isFree && !!course.freePreviewModuleCount && (
+                        <FreePreviewNote count={course.freePreviewModuleCount} />
                       )}
                       <p className="mt-1 text-xs text-gray-500">
                         {course.category && `${course.category} · `}

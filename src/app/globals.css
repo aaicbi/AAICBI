@@ -275,6 +275,17 @@ h1, h2, h3 {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-4px); }
 }
+/* Shared "notice me" primitive — see src/components/ui/AttentionPulse.tsx,
+   the one place this is actually used from. A slow opacity pulse
+   (glow/dim), not a fast flash — meant to draw the eye to a genuinely
+   new/actionable moment (a free preview becoming available, an exam
+   unlocking) without being obnoxious. Automatically respects
+   prefers-reduced-motion via the global media query above, same as
+   every other animation in this file. */
+@keyframes glow-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
 
 /* Audit finding, closed here: ~29 form inputs across this app use
    `outline-none focus:border-brand-teal` — removing the browser's own

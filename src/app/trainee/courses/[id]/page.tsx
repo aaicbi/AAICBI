@@ -11,6 +11,7 @@ import { SkeletonList } from "@/components/ui/Skeleton";
 import MaterialTypeIcon from "@/components/ui/MaterialTypeIcon";
 import CorrectnessMark from "@/components/ui/CorrectnessMark";
 import Icon from "@/components/ui/Icon";
+import AttentionPulse from "@/components/ui/AttentionPulse";
 import { AchievementIcon, AssessmentIcon } from "@/components/icons/brand";
 import { ChevronDown, ChevronRight, Lock, MessageSquare, MessageCircle, ArrowRight, Star } from "lucide-react";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
@@ -980,7 +981,7 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
           <a href={`/trainee/courses/${params.id}/examination`}>
             <Card interactive className="mt-4 flex items-center justify-between">
               <span className="flex items-center gap-2 text-sm font-semibold text-brand-ink">
-                <Icon icon={AssessmentIcon} size="lg" />
+                <AttentionPulse icon={AssessmentIcon} size="lg" />
                 Course Examination available
               </span>
               <span className="inline-flex items-center gap-1 text-xs font-semibold text-brand-teal">
