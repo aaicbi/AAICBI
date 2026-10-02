@@ -4,11 +4,18 @@ import SiteHeader from "@/components/SiteHeader";
 import Card from "@/components/ui/Card";
 import { SkeletonList } from "@/components/ui/Skeleton";
 
+interface ShowcaseMedia {
+  id: string;
+  type: "IMAGE" | "VIDEO";
+  url: string;
+}
+
 interface ShowcaseProjectDetail {
   id: string;
   title: string;
   description: string | null;
   url: string | null;
+  media: ShowcaseMedia[];
   founderName: string;
   founderAvatarUrl: string | null;
   founderUsername: string | null;
@@ -65,6 +72,19 @@ export default function ShowcaseProjectPage({ params }: { params: { id: string }
             </div>
 
             {project.description && <p className="mt-4 whitespace-pre-line text-sm text-gray-700">{project.description}</p>}
+
+            {project.media.length > 0 && (
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                {project.media.map((m) =>
+                  m.type === "IMAGE" ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- a real, dynamically-uploaded external URL.
+                    <img key={m.id} src={m.url} alt="" className="h-40 w-full rounded-lg object-cover" />
+                  ) : (
+                    <video key={m.id} src={m.url} controls className="h-40 w-full rounded-lg object-cover" />
+                  )
+                )}
+              </div>
+            )}
 
             {project.url && (
               <a

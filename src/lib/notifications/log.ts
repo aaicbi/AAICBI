@@ -97,7 +97,11 @@ export type NotificationType =
   // genuinely different kind of notification from ANALYTICS_ALERT
   // above — scheduled and informational, never threshold-triggered —
   // so it gets its own type rather than being folded into that one.
-  | "ANALYTICS_REPORT";
+  | "ANALYTICS_REPORT"
+  // Community Showcase moderation — a trainee's showcase post has been
+  // decided. Same pair shape as JOB_POSTING_APPROVED/REJECTED above.
+  | "PROJECT_APPROVED"
+  | "PROJECT_REJECTED";
 
 export interface NotifyByEmailInput {
   recipientType: "TRAINEE" | "STAFF" | "EMPLOYER" | "INVESTOR";

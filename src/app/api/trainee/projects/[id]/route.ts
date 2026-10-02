@@ -30,13 +30,22 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
+    const nextListedInShowcase = parsed.data.listedInShowcase ?? existing.listedInShowcase;
+    // Community Showcase moderation — re-enter the review queue only
+    // when listing is genuinely turning on (false -> true) or the
+    // project was REJECTED and the trainee wants another look. An
+    // already-APPROVED project that just has its description tweaked
+    // doesn't silently vanish from the public showcase on every save.
+    const shouldResetForReview = nextListedInShowcase && (!existing.listedInShowcase || existing.showcaseStatus === "REJECTED");
+
     const updated = await prisma.project.update({
       where: { id: params.id },
       data: {
         title: parsed.data.title,
         description: parsed.data.description || null,
         url: parsed.data.url || null,
-        listedInShowcase: parsed.data.listedInShowcase ?? existing.listedInShowcase,
+        listedInShowcase: nextListedInShowcase,
+        ...(shouldResetForReview ? { showcaseStatus: "PENDING_REVIEW" as const, reviewedById: null, reviewedAt: null } : {}),
       },
     });
     return NextResponse.json(updated);

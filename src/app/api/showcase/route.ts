@@ -10,19 +10,25 @@ import { withApiErrors } from "@/lib/apiError";
  * profile is PUBLIC — same non-oracle discipline as
  * /api/profile/u/[username]: a showcased project never implies a
  * browsable profile that trainee didn't separately choose to expose.
+ *
+ * Community Showcase moderation — also requires showcaseStatus
+ * APPROVED. A project's default status is PENDING_REVIEW, so opting
+ * into listedInShowcase alone no longer makes a project public; an
+ * admin has to approve it first (see /admin/showcase).
  */
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   return withApiErrors(async () => {
     const projects = await prisma.project.findMany({
-      where: { listedInShowcase: true },
+      where: { listedInShowcase: true, showcaseStatus: "APPROVED" },
       orderBy: [{ trainee: { name: "asc" } }, { order: "asc" }],
       select: {
         id: true,
         title: true,
         description: true,
         url: true,
+        media: { orderBy: { order: "asc" }, select: { id: true, type: true, url: true } },
         trainee: {
           select: { name: true, avatarUrl: true, username: true, profileVisibility: true },
         },
@@ -34,6 +40,7 @@ export async function GET() {
       title: p.title,
       description: p.description,
       url: p.url,
+      media: p.media,
       founderName: p.trainee.name,
       founderAvatarUrl: p.trainee.avatarUrl,
       founderUsername: p.trainee.profileVisibility === "PUBLIC" ? p.trainee.username : null,

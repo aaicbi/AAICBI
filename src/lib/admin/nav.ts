@@ -40,6 +40,9 @@ export const ADMIN_NAV = [
   { label: "Analytics", href: "/admin/analytics" },
   { label: "Messages", href: "/admin/messages" },
   { label: "Payments", href: "/admin/payments" },
+  // Community Showcase moderation — general content review, alongside
+  // Courses/Exams, not a staff/pitch/command-specific concern.
+  { label: "Showcase", href: "/admin/showcase" },
   { label: "Settings", href: "/admin/settings" },
 ];
 

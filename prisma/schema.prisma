@@ -314,6 +314,10 @@ model User {
   employersApproved Employer[]
   jobPostingsReviewed JobPosting[]
   testimonialsCreated Testimonial[]
+  // Community Showcase moderation — every trainee project this staff
+  // member has personally approved or rejected. Same audit-trail
+  // reasoning as jobPostingsReviewed above.
+  projectsReviewed Project[]
   // Universal profile system, Phase 3 — same audit-trail reasoning as
   // the relations above: every profile report this staff member has
   // personally decided, not an untracked backdoor.
@@ -728,6 +732,18 @@ model WorkExperience {
   @@index([traineeId])
 }
 
+// Community Showcase moderation — the trainee's own `listedInShowcase`
+// opt-in used to be instant-publish, with no review step at all. This
+// mirrors JobPosting's own approve/reject shape exactly (same enum
+// values, same reviewedById/reviewedAt audit fields, same child media
+// table) rather than the account-approval flows (Employer/Investor),
+// since this is moderating a piece of content, not an account.
+enum ProjectShowcaseStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
 model Project {
   id          String  @id @default(cuid())
   traineeId   String
@@ -741,9 +757,39 @@ model Project {
   // Trainee.profileVisibility: a trainee can showcase a project without
   // exposing their full profile (the showcase card still only links
   // through to the profile page when that page is itself PUBLIC).
-  listedInShowcase Boolean @default(false)
+  listedInShowcase Boolean               @default(false)
+  // Defaults to PENDING_REVIEW regardless of listedInShowcase — a
+  // project only actually appears on GET /api/showcase once this is
+  // APPROVED, so an unlisted project's status is simply never checked.
+  showcaseStatus ProjectShowcaseStatus @default(PENDING_REVIEW)
+  reviewedById   String?
+  reviewedBy     User?                 @relation(fields: [reviewedById], references: [id])
+  reviewedAt     DateTime?
+
+  media ProjectMedia[]
 
   @@index([traineeId])
+  @@index([showcaseStatus])
+}
+
+enum ProjectMediaType {
+  IMAGE
+  VIDEO
+}
+
+// Same real-child-table reasoning as JobPostingMedia's own comment —
+// a showcase post can have several images and/or short videos, each
+// independently removable, not one single cover-image field.
+model ProjectMedia {
+  id        String           @id @default(cuid())
+  projectId String
+  project   Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type      ProjectMediaType
+  url       String
+  order     Int              @default(0)
+  createdAt DateTime         @default(now())
+
+  @@index([projectId])
 }
 
 // ---------------------------------------------------------------------

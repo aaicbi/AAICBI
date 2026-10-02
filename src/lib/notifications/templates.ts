@@ -847,6 +847,35 @@ export function jobPostingRejectedEmail(input: JobPostingDecisionEmailInput): Em
   };
 }
 
+// Community Showcase moderation — same pair, same shape, as
+// jobPostingApprovedEmail/jobPostingRejectedEmail directly above.
+export interface ProjectDecisionEmailInput {
+  traineeName: string;
+  projectTitle: string;
+  showcaseUrl: string;
+}
+export function projectApprovedEmail(input: ProjectDecisionEmailInput): EmailContent {
+  return {
+    subject: `Your project "${input.projectTitle}" is now on the Community Showcase`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(input.traineeName)},</p>
+      <p style="margin:0 0 16px;">Your project, <strong>${escapeHtml(input.projectTitle)}</strong>, has been approved and is now visible on the public Community Showcase.</p>
+      ${button(input.showcaseUrl, "View the Showcase")}
+    `),
+    text: `Hi ${input.traineeName},\n\nYour project, ${input.projectTitle}, has been approved and is now visible on the public Community Showcase.\n\n${input.showcaseUrl}`,
+  };
+}
+export function projectRejectedEmail(input: ProjectDecisionEmailInput): EmailContent {
+  return {
+    subject: `Your project "${input.projectTitle}" wasn't approved for the Showcase`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(input.traineeName)},</p>
+      <p style="margin:0 0 16px;">Your project, <strong>${escapeHtml(input.projectTitle)}</strong>, wasn't approved for the Community Showcase. You're welcome to make changes and submit it again.</p>
+    `),
+    text: `Hi ${input.traineeName},\n\nYour project, ${input.projectTitle}, wasn't approved for the Community Showcase. You're welcome to make changes and submit it again.`,
+  };
+}
+
 /**
  * M33 — audit finding, closed here: an employer sends an introduction
  * request and has no way to know whether the trainee accepted or
