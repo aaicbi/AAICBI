@@ -5,6 +5,7 @@ import { X, Menu } from "lucide-react";
 import Logo from "./Logo";
 import BackButton from "./BackButton";
 import Icon from "./ui/Icon";
+import { useSidebarActive } from "./SidebarActiveContext";
 
 interface NavItem {
   label: string;
@@ -52,6 +53,14 @@ export default function SiteHeader({
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const hasMobileMenu = (nav && nav.length > 0) || !!right;
+
+  // Admin sidebar pilot — a role area with its own persistent sidebar
+  // (currently just /admin/*, via src/app/admin/layout.tsx) renders
+  // its nav/notifications/logout there instead; this header would
+  // otherwise duplicate it. Every other page is unaffected — see
+  // SidebarActiveContext.tsx's own comment.
+  const sidebarActive = useSidebarActive();
+  if (sidebarActive) return null;
 
   return (
     <header className="relative border-b border-brand-gray">

@@ -25,6 +25,16 @@ export default function TourGuideButton() {
   const pathname = usePathname();
   const entry = getTourGuideContent(pathname ?? "/");
 
+  // Admin sidebar pilot — /admin/* now has its own "Page Help" row
+  // inside AdminSidebar.tsx, reusing this same getTourGuideContent
+  // table. Keeping both mounted would just show the same content
+  // twice. Every other page is unaffected.
+  const isAdmin = pathname?.startsWith("/admin");
+
+  // Rules of Hooks: the two effects below must still run on every
+  // render (even one we're about to render null for), so the early
+  // return happens after them, not before.
+
   // Close whenever the trainee navigates to a different page — the
   // notes are about the page they were just reading, not wherever they
   // land next.
@@ -41,6 +51,8 @@ export default function TourGuideButton() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  if (isAdmin) return null;
 
   return (
     <div ref={containerRef} className="fixed bottom-6 right-6 z-40">

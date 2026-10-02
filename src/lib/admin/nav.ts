@@ -68,3 +68,37 @@ export const ADMIN_NAV_COMMAND = [
   { label: "Command", href: "/admin/command" },
   { label: "Settings", href: "/admin/settings" },
 ];
+
+/**
+ * Admin sidebar pilot — picks which of the four clusters above a given
+ * admin path belongs to. Each individual page used to import the
+ * "right" constant itself (fine for a per-page top nav, but the new
+ * sidebar is rendered once in src/app/admin/layout.tsx with no
+ * per-page input), so this is the single place that now encodes the
+ * same clustering as a path lookup instead. Plain prefix checks are
+ * sufficient here — unlike tourGuideContent.ts's segment-exact
+ * matching, a sidebar's job is just "which cluster", not "which
+ * specific page", so a detail page under a cluster's prefix (e.g.
+ * /admin/instructors/abc123) correctly resolves to the same cluster
+ * as its list page.
+ */
+export function getSidebarNavForPath(pathname: string) {
+  if (
+    pathname.startsWith("/admin/instructors") ||
+    pathname.startsWith("/admin/agreement-templates") ||
+    pathname.startsWith("/admin/staff")
+  ) {
+    return ADMIN_NAV_STAFF;
+  }
+  if (
+    pathname.startsWith("/admin/pitches") ||
+    pathname.startsWith("/admin/pitch-cohorts") ||
+    pathname.startsWith("/admin/investors")
+  ) {
+    return ADMIN_NAV_PITCH;
+  }
+  if (pathname.startsWith("/admin/command")) {
+    return ADMIN_NAV_COMMAND;
+  }
+  return ADMIN_NAV;
+}
