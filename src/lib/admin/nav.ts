@@ -12,6 +12,14 @@
  * so this is four named constants, not one flattened list, each fixed
  * to its own most-complete, correct variant rather than forcing false
  * uniformity.
+ *
+ * Admin sidebar pilot — "My Profile" was removed from the three
+ * clusters that had it (ADMIN_NAV_COMMAND never did): the sidebar now
+ * has its own account card (photo + name + role) right under the
+ * logo, already linking to /admin/profile, so the plain text link was
+ * a second way to reach the exact same page — same reasoning as
+ * removing the Quick Actions dropdown for duplicating this file's own
+ * links.
  */
 
 /** The general-admin cluster — courses, exams, performance, analytics,
@@ -32,7 +40,6 @@ export const ADMIN_NAV = [
   { label: "Analytics", href: "/admin/analytics" },
   { label: "Messages", href: "/admin/messages" },
   { label: "Payments", href: "/admin/payments" },
-  { label: "My Profile", href: "/admin/profile" },
   { label: "Settings", href: "/admin/settings" },
 ];
 
@@ -44,7 +51,6 @@ export const ADMIN_NAV_STAFF = [
   { label: "Instructors", href: "/admin/instructors" },
   { label: "Agreement Templates", href: "/admin/agreement-templates" },
   { label: "Staff", href: "/admin/staff" },
-  { label: "My Profile", href: "/admin/profile" },
   { label: "Settings", href: "/admin/settings" },
 ];
 
@@ -56,7 +62,6 @@ export const ADMIN_NAV_PITCH = [
   { label: "Pitches", href: "/admin/pitches" },
   { label: "Pitch Cohorts", href: "/admin/pitch-cohorts" },
   { label: "Investors", href: "/admin/investors" },
-  { label: "My Profile", href: "/admin/profile" },
   { label: "Settings", href: "/admin/settings" },
 ];
 

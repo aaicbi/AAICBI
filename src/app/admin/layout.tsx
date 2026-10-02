@@ -1,4 +1,5 @@
 import { getSession } from "@/lib/auth/session";
+import { prisma } from "@/lib/prisma";
 import { SidebarActiveProvider } from "@/components/SidebarActiveContext";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 
@@ -32,10 +33,19 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     return <>{children}</>;
   }
 
+  // Account card (photo + name + role, linking to /admin/profile) —
+  // session only carries userId/email/role, so this looks up the rest
+  // once per request, same as every admin page's own dashboard-data
+  // fetch already does with session.userId.
+  const staff = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { name: true, avatarUrl: true },
+  });
+
   return (
     <SidebarActiveProvider>
       <div className="min-h-screen">
-        <AdminSidebar />
+        <AdminSidebar name={staff?.name ?? session.email} avatarUrl={staff?.avatarUrl ?? null} role={session.role} />
         <div className="sm:pl-64">{children}</div>
       </div>
     </SidebarActiveProvider>

@@ -6,8 +6,16 @@ import { Menu, X, HelpCircle } from "lucide-react";
 import Logo from "@/components/Logo";
 import LogoutButton from "@/components/admin/LogoutButton";
 import Icon from "@/components/ui/Icon";
+import AvatarFallback from "@/components/ui/AvatarFallback";
+import Badge from "@/components/ui/Badge";
 import { getSidebarNavForPath } from "@/lib/admin/nav";
 import { getTourGuideContent } from "@/lib/tourGuideContent";
+
+const ROLE_LABELS: Record<string, string> = {
+  SUPER_ADMIN: "Super Admin",
+  ADMIN: "Admin",
+  INSTRUCTOR: "Instructor",
+};
 
 /**
  * Admin sidebar pilot — replaces the old cramped top SiteHeader bar
@@ -25,8 +33,23 @@ import { getTourGuideContent } from "@/lib/tourGuideContent";
  * sit right under the logo, not the sidebar's footer, specifically so
  * the notifications dropdown — which opens downward via
  * `absolute ... top-11` — needs no vertical repositioning.
+ *
+ * The account card (photo + name + role) between the logo and that
+ * row is this sidebar's one way to reach /admin/profile — it replaced
+ * a plain "My Profile" text link that used to sit in the nav list
+ * below (see nav.ts's own comment). name/avatarUrl/role come from the
+ * server layout (src/app/admin/layout.tsx), which already looks the
+ * session's user up — no client-side fetch needed just to show them.
  */
-export default function AdminSidebar() {
+export default function AdminSidebar({
+  name,
+  avatarUrl,
+  role,
+}: {
+  name: string;
+  avatarUrl: string | null;
+  role: string;
+}) {
   const pathname = usePathname() ?? "/admin/dashboard";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -59,6 +82,29 @@ export default function AdminSidebar() {
       <div className="border-b border-brand-gray px-4 py-4">
         <Logo />
       </div>
+
+      <Link
+        href="/admin/profile"
+        onClick={() => setMobileOpen(false)}
+        className={`flex items-center gap-3 border-b border-brand-gray px-4 py-3 hover:bg-brand-mint ${
+          isActive("/admin/profile") ? "bg-brand-mint" : ""
+        }`}
+      >
+        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-brand-mint">
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <AvatarFallback size="md" />
+            </div>
+          )}
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-brand-ink">{name}</p>
+          <Badge variant="neutral">{ROLE_LABELS[role] ?? role}</Badge>
+        </div>
+      </Link>
 
       <div className="border-b border-brand-gray px-4 py-3">
         <LogoutButton />
