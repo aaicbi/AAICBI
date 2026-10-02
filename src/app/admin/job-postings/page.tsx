@@ -10,6 +10,7 @@ import ErrorState from "@/components/ui/ErrorState";
 import JobPostingMediaGallery, { JobPostingMediaItem } from "@/components/jobPostings/JobPostingMediaGallery";
 import { AlertTriangle } from "lucide-react";
 import Icon from "@/components/ui/Icon";
+import { ADMIN_NAV } from "@/lib/admin/nav";
 
 interface JobPostingDto {
   id: string;
@@ -103,12 +104,7 @@ export default function AdminJobPostingsPage() {
   return (
     <>
       <SiteHeader
-        nav={[
-          { label: "Examinations", href: "/admin/dashboard" },
-          { label: "Courses", href: "/admin/courses" },
-          { label: "My Profile", href: "/admin/profile" },
-          { label: "Settings", href: "/admin/settings" },
-        ]}
+        nav={ADMIN_NAV}
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-2xl px-6 py-10">

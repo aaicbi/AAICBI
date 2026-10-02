@@ -12,6 +12,7 @@ import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 import { MessageCircle } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import NewConversationModal from "@/components/messaging/NewConversationModal";
+import { ADMIN_NAV } from "@/lib/admin/nav";
 
 interface ConversationRow {
   id: string;
@@ -21,17 +22,6 @@ interface ConversationRow {
   lastMessage: { body: string; createdAt: string } | null;
   unreadCount: number;
 }
-
-const NAV = [
-  { label: "Examinations", href: "/admin/dashboard" },
-  { label: "Courses", href: "/admin/courses" },
-  { label: "Performance", href: "/admin/performance" },
-          { label: "Analytics", href: "/admin/analytics" },
-  { label: "Messages", href: "/admin/messages" },
-  { label: "Payments", href: "/admin/payments" },
-  { label: "My Profile", href: "/admin/profile" },
-  { label: "Settings", href: "/admin/settings" },
-];
 
 /**
  * The shared team inbox. SUPER_ADMIN sees every conversation platform-
@@ -57,7 +47,7 @@ export default function AdminMessagesPage() {
 
   return (
     <>
-      <SiteHeader nav={NAV} right={<LogoutButton />} />
+      <SiteHeader nav={ADMIN_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-2xl px-6 py-10">
         <div className="flex items-center justify-between gap-4">
           <div>

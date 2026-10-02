@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import EmptyState from "@/components/ui/EmptyState";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
+import { ADMIN_NAV_STAFF } from "@/lib/admin/nav";
 
 interface AgreementDto {
   id: string;
@@ -50,15 +51,6 @@ interface CourseOption {
   id: string;
   title: string;
 }
-
-const NAV = [
-  { label: "Examinations", href: "/admin/dashboard" },
-  { label: "Courses", href: "/admin/courses" },
-  { label: "Instructors", href: "/admin/instructors" },
-  { label: "Agreement Templates", href: "/admin/agreement-templates" },
-  { label: "Staff", href: "/admin/staff" },
-  { label: "Settings", href: "/admin/settings" },
-];
 
 /**
  * /admin/instructors/[id] — the one place a Super Admin sends an
@@ -229,7 +221,7 @@ export default function InstructorDetailPage({ params }: { params: { id: string 
   if (instructor === undefined) {
     return (
       <>
-        <SiteHeader nav={NAV} right={<LogoutButton />} />
+        <SiteHeader nav={ADMIN_NAV_STAFF} right={<LogoutButton />} />
         <main className="mx-auto max-w-3xl px-6 py-10">
           <SkeletonList rows={4} />
         </main>
@@ -239,7 +231,7 @@ export default function InstructorDetailPage({ params }: { params: { id: string 
   if (instructor === null) {
     return (
       <>
-        <SiteHeader nav={NAV} right={<LogoutButton />} />
+        <SiteHeader nav={ADMIN_NAV_STAFF} right={<LogoutButton />} />
         <main className="mx-auto max-w-3xl px-6 py-10">
           <EmptyState title="Instructor not found" />
         </main>
@@ -251,7 +243,7 @@ export default function InstructorDetailPage({ params }: { params: { id: string 
 
   return (
     <>
-      <SiteHeader nav={NAV} right={<LogoutButton />} />
+      <SiteHeader nav={ADMIN_NAV_STAFF} right={<LogoutButton />} />
       {modal}
       <main className="mx-auto max-w-3xl px-6 py-10">
         <BackLink href="/admin/instructors" className="text-sm text-brand-teal hover:underline">

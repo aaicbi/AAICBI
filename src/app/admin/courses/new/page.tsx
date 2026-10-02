@@ -5,6 +5,7 @@ import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
+import { ADMIN_NAV } from "@/lib/admin/nav";
 
 export default function NewCoursePage() {
   const router = useRouter();
@@ -93,12 +94,7 @@ export default function NewCoursePage() {
   return (
     <>
       <SiteHeader
-        nav={[
-          { label: "Examinations", href: "/admin/dashboard" },
-          { label: "Courses", href: "/admin/courses" },
-          { label: "My Profile", href: "/admin/profile" },
-          { label: "Settings", href: "/admin/settings" },
-        ]}
+        nav={ADMIN_NAV}
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-xl px-6 py-10">

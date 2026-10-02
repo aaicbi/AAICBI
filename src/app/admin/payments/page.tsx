@@ -8,6 +8,7 @@ import Badge from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
+import { ADMIN_NAV } from "@/lib/admin/nav";
 
 interface PaymentRow {
   id: string;
@@ -68,16 +69,7 @@ export default function AdminPaymentsPage() {
   return (
     <>
       <SiteHeader
-        nav={[
-          { label: "Examinations", href: "/admin/dashboard" },
-          { label: "Courses", href: "/admin/courses" },
-          { label: "Performance", href: "/admin/performance" },
-          { label: "Analytics", href: "/admin/analytics" },
-          { label: "Messages", href: "/admin/messages" },
-          { label: "Payments", href: "/admin/payments" },
-          { label: "My Profile", href: "/admin/profile" },
-          { label: "Settings", href: "/admin/settings" },
-        ]}
+        nav={ADMIN_NAV}
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-4xl px-6 py-10">

@@ -7,6 +7,7 @@ import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
+import { ADMIN_NAV_PITCH } from "@/lib/admin/nav";
 
 interface InvestorDto {
   id: string;
@@ -88,14 +89,7 @@ export default function AdminInvestorsPage() {
   return (
     <>
       <SiteHeader
-        nav={[
-          { label: "Examinations", href: "/admin/dashboard" },
-          { label: "Courses", href: "/admin/courses" },
-          { label: "Pitches", href: "/admin/pitches" },
-          { label: "Investors", href: "/admin/investors" },
-          { label: "My Profile", href: "/admin/profile" },
-          { label: "Settings", href: "/admin/settings" },
-        ]}
+        nav={ADMIN_NAV_PITCH}
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-2xl px-6 py-10">

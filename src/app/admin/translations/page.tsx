@@ -10,6 +10,7 @@ import { SUPPORTED_LANGUAGES, LANGUAGE_LABELS, type LanguageCode } from "@/lib/i
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { Globe } from "lucide-react";
 import Icon from "@/components/ui/Icon";
+import { ADMIN_NAV } from "@/lib/admin/nav";
 
 interface TranslationRow {
   id: string;
@@ -95,12 +96,7 @@ export default function TranslationsAdminPage() {
   return (
     <>
       <SiteHeader
-        nav={[
-          { label: "Examinations", href: "/admin/dashboard" },
-          { label: "Courses", href: "/admin/courses" },
-          { label: "My Profile", href: "/admin/profile" },
-          { label: "Settings", href: "/admin/settings" },
-        ]}
+        nav={ADMIN_NAV}
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-3xl px-6 py-10">

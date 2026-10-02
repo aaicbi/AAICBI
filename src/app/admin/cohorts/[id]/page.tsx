@@ -11,6 +11,7 @@ import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 import BackLink from "@/components/ui/BackLink";
 import Icon from "@/components/ui/Icon";
 import { AchievementIcon } from "@/components/icons/brand";
+import { ADMIN_NAV } from "@/lib/admin/nav";
 
 interface RosterEntry {
   trainee: { id: string; name: string; email: string };
@@ -92,12 +93,7 @@ export default function CohortDetailPage({ params }: { params: { id: string } })
     return (
       <>
         <SiteHeader
-          nav={[
-            { label: "Examinations", href: "/admin/dashboard" },
-            { label: "Courses", href: "/admin/courses" },
-            { label: "My Profile", href: "/admin/profile" },
-            { label: "Settings", href: "/admin/settings" },
-          ]}
+          nav={ADMIN_NAV}
           right={<LogoutButton />}
         />
         <main className="mx-auto max-w-2xl px-6 py-10 text-center text-gray-600">
@@ -110,12 +106,7 @@ export default function CohortDetailPage({ params }: { params: { id: string } })
   return (
     <>
       <SiteHeader
-        nav={[
-          { label: "Examinations", href: "/admin/dashboard" },
-          { label: "Courses", href: "/admin/courses" },
-          { label: "My Profile", href: "/admin/profile" },
-          { label: "Settings", href: "/admin/settings" },
-        ]}
+        nav={ADMIN_NAV}
         right={<LogoutButton />}
       />
       {modal}

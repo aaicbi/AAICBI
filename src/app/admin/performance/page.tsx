@@ -11,6 +11,7 @@ import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 import { LineChart as GaugeIcon, BookOpen, Clock, Users2, GraduationCap } from "lucide-react";
 import PerformanceDashboard from "@/components/admin/PerformanceDashboard";
 import type { CourseStatus } from "@prisma/client";
+import { ADMIN_NAV } from "@/lib/admin/nav";
 
 interface CourseOption {
   id: string;
@@ -28,17 +29,6 @@ interface CourseOption {
 
 const LEVEL_LABEL: Record<string, string> = { BEGINNER: "Beginner", INTERMEDIATE: "Intermediate", ADVANCED: "Advanced" };
 const FORMAT_LABEL: Record<string, string> = { SELF_PACED: "Self-paced", INSTRUCTOR_LED: "Instructor-led", HYBRID: "Hybrid" };
-
-const NAV = [
-  { label: "Examinations", href: "/admin/dashboard" },
-  { label: "Courses", href: "/admin/courses" },
-  { label: "Performance", href: "/admin/performance" },
-          { label: "Analytics", href: "/admin/analytics" },
-  { label: "Messages", href: "/admin/messages" },
-  { label: "Payments", href: "/admin/payments" },
-  { label: "My Profile", href: "/admin/profile" },
-  { label: "Settings", href: "/admin/settings" },
-];
 
 /**
  * The general Trainee Performance dashboard — a course picker on top
@@ -68,7 +58,7 @@ export default function GeneralPerformancePage() {
 
   return (
     <>
-      <SiteHeader nav={NAV} right={<LogoutButton />} />
+      <SiteHeader nav={ADMIN_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-6xl px-6 py-10">
         <h1 className="flex items-center gap-2 font-display text-2xl font-semibold text-brand-ink">
           <Icon icon={GaugeIcon} size="lg" /> Trainee Performance

@@ -12,6 +12,7 @@ import Icon from "@/components/ui/Icon";
 import { User, CreditCard, Lock, Plug, Inbox, ArrowRight } from "lucide-react";
 import { LoopIcon } from "@/components/icons/brand";
 import type { LucideIcon } from "lucide-react";
+import { ADMIN_NAV } from "@/lib/admin/nav";
 
 type SectionId = "account" | "payments" | "security" | "integrations";
 
@@ -63,12 +64,7 @@ export default function AdminSettingsPage() {
   return (
     <>
       <SiteHeader
-        nav={[
-          { label: "Examinations", href: "/admin/dashboard" },
-          { label: "Courses", href: "/admin/courses" },
-          { label: "My Profile", href: "/admin/profile" },
-          { label: "Settings", href: "/admin/settings" },
-        ]}
+        nav={ADMIN_NAV}
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-4xl px-6 py-10">

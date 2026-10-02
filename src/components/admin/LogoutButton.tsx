@@ -1,13 +1,20 @@
 "use client";
 import { useRouter } from "next/navigation";
 import NotificationBell from "@/components/NotificationBell";
+import AdminQuickActionsNavMenu from "@/components/admin/AdminQuickActionsNavMenu";
 
 // Same reasoning as the trainee version of this component — see its
 // own comment.
+//
+// Admin Dashboard & Examinations redesign (Phase 2) — AdminQuickActionsNavMenu
+// rides the same mechanism for the same reason: one addition here
+// reaches every admin page instead of threading a new prop through
+// dozens of them (mirrors trainee/LogoutButton.tsx's own QuickActionsNavMenu).
 export default function LogoutButton() {
   const router = useRouter();
   return (
     <div className="flex items-center gap-2">
+      <AdminQuickActionsNavMenu />
       <NotificationBell />
       <button
         onClick={async () => {

@@ -13,13 +13,7 @@ import AvatarUpload from "@/components/AvatarUpload";
 import Toggle from "@/components/ui/Toggle";
 import ProfileCompletionBanner from "@/components/ui/ProfileCompletionBanner";
 import { computeAdminCompletion } from "@/lib/profileCompletion";
-
-const NAV = [
-  { label: "Examinations", href: "/admin/dashboard" },
-  { label: "Courses", href: "/admin/courses" },
-  { label: "My Profile", href: "/admin/profile" },
-  { label: "Settings", href: "/admin/settings" },
-];
+import { ADMIN_NAV } from "@/lib/admin/nav";
 
 const ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: "Super Admin",
@@ -108,7 +102,7 @@ export default function AdminProfilePage() {
   if (loadError) {
     return (
       <>
-        <SiteHeader nav={NAV} right={<LogoutButton />} />
+        <SiteHeader nav={ADMIN_NAV} right={<LogoutButton />} />
         <main className="mx-auto max-w-2xl px-6 py-10">
           <ErrorState message="We couldn't load your profile." onRetry={load} />
         </main>
@@ -118,7 +112,7 @@ export default function AdminProfilePage() {
 
   return (
     <>
-      <SiteHeader nav={NAV} right={<LogoutButton />} />
+      <SiteHeader nav={ADMIN_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-2xl px-6 py-10">
         <div className="flex items-center gap-4">
           <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full bg-brand-mint">

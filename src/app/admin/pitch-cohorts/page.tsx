@@ -7,6 +7,7 @@ import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { ADMIN_NAV_PITCH } from "@/lib/admin/nav";
 
 interface CohortDto {
   id: string;
@@ -69,12 +70,7 @@ export default function AdminPitchCohortsPage() {
   return (
     <>
       <SiteHeader
-        nav={[
-          { label: "Examinations", href: "/admin/dashboard" },
-          { label: "Pitches", href: "/admin/pitches" },
-          { label: "Pitch Cohorts", href: "/admin/pitch-cohorts" },
-          { label: "Investors", href: "/admin/investors" },
-        ]}
+        nav={ADMIN_NAV_PITCH}
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-2xl px-6 py-10">

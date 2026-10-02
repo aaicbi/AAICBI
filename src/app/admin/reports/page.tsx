@@ -9,13 +9,7 @@ import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
 import EmptyState from "@/components/ui/EmptyState";
-
-const NAV = [
-  { label: "Examinations", href: "/admin/dashboard" },
-  { label: "Courses", href: "/admin/courses" },
-  { label: "My Profile", href: "/admin/profile" },
-  { label: "Settings", href: "/admin/settings" },
-];
+import { ADMIN_NAV } from "@/lib/admin/nav";
 
 interface ReportDto {
   id: string;
@@ -80,7 +74,7 @@ export default function AdminReportsPage() {
 
   return (
     <>
-      <SiteHeader nav={NAV} right={<LogoutButton />} />
+      <SiteHeader nav={ADMIN_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-2xl px-6 py-10">
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Reported Profiles</h1>
 

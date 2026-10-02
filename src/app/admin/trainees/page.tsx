@@ -8,13 +8,7 @@ import Badge from "@/components/ui/Badge";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
 import EmptyState from "@/components/ui/EmptyState";
-
-const NAV = [
-  { label: "Examinations", href: "/admin/dashboard" },
-  { label: "Courses", href: "/admin/courses" },
-  { label: "My Profile", href: "/admin/profile" },
-  { label: "Settings", href: "/admin/settings" },
-];
+import { ADMIN_NAV } from "@/lib/admin/nav";
 
 const FIXED_SEGMENT_LABEL: Record<string, string> = {
   REGISTERED_NOT_ENROLLED: "Registered, not yet enrolled",
@@ -91,7 +85,7 @@ function AdminTraineesContent() {
 
   return (
     <>
-      <SiteHeader nav={NAV} right={<LogoutButton />} />
+      <SiteHeader nav={ADMIN_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-3xl px-6 py-10">
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Trainees</h1>
         <p className="mt-1 text-sm text-gray-500">Search and review trainee accounts and profiles.</p>

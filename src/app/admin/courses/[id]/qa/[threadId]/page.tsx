@@ -9,6 +9,7 @@ import { SkeletonList } from "@/components/ui/Skeleton";
 import BackLink from "@/components/ui/BackLink";
 import { Heart } from "lucide-react";
 import Icon from "@/components/ui/Icon";
+import { ADMIN_NAV } from "@/lib/admin/nav";
 
 interface PostDto {
   id: string;
@@ -131,12 +132,7 @@ export default function StaffQaThreadPage({ params }: { params: { id: string; th
   return (
     <>
       <SiteHeader
-        nav={[
-          { label: "Examinations", href: "/admin/dashboard" },
-          { label: "Courses", href: "/admin/courses" },
-          { label: "My Profile", href: "/admin/profile" },
-          { label: "Settings", href: "/admin/settings" },
-        ]}
+        nav={ADMIN_NAV}
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-2xl px-6 py-10">

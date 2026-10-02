@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import CorrectnessMark from "@/components/ui/CorrectnessMark";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
+import { ADMIN_NAV } from "@/lib/admin/nav";
 
 interface OptionDto {
   id: string;
@@ -256,12 +257,7 @@ export default function CourseExaminationPage({ params }: { params: { id: string
     return (
       <>
         <SiteHeader
-          nav={[
-            { label: "Examinations", href: "/admin/dashboard" },
-            { label: "Courses", href: "/admin/courses" },
-            { label: "My Profile", href: "/admin/profile" },
-            { label: "Settings", href: "/admin/settings" },
-          ]}
+          nav={ADMIN_NAV}
           right={<LogoutButton />}
         />
         <main className="mx-auto max-w-2xl px-6 py-10 text-center text-gray-600">
@@ -279,12 +275,7 @@ export default function CourseExaminationPage({ params }: { params: { id: string
     return (
       <>
         <SiteHeader
-          nav={[
-            { label: "Examinations", href: "/admin/dashboard" },
-            { label: "Courses", href: "/admin/courses" },
-            { label: "My Profile", href: "/admin/profile" },
-            { label: "Settings", href: "/admin/settings" },
-          ]}
+          nav={ADMIN_NAV}
           right={<LogoutButton />}
         />
         <main className="mx-auto max-w-3xl px-6 py-10">
@@ -308,12 +299,7 @@ export default function CourseExaminationPage({ params }: { params: { id: string
   return (
     <>
       <SiteHeader
-        nav={[
-          { label: "Examinations", href: "/admin/dashboard" },
-          { label: "Courses", href: "/admin/courses" },
-          { label: "My Profile", href: "/admin/profile" },
-          { label: "Settings", href: "/admin/settings" },
-        ]}
+        nav={ADMIN_NAV}
         right={<LogoutButton />}
       />
       {modal}

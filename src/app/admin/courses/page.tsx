@@ -18,6 +18,7 @@ import {
   COURSE_LIFECYCLE_PHASE_BADGE_VARIANT,
 } from "@/lib/courseLifecycle";
 import type { CourseStatus } from "@prisma/client";
+import { ADMIN_NAV } from "@/lib/admin/nav";
 
 interface CourseRow {
   id: string;
@@ -43,16 +44,7 @@ export default function AdminCoursesPage() {
   return (
     <>
       <SiteHeader
-        nav={[
-          { label: "Examinations", href: "/admin/dashboard" },
-          { label: "Courses", href: "/admin/courses" },
-          { label: "Performance", href: "/admin/performance" },
-          { label: "Analytics", href: "/admin/analytics" },
-          { label: "Messages", href: "/admin/messages" },
-          { label: "Payments", href: "/admin/payments" },
-          { label: "My Profile", href: "/admin/profile" },
-          { label: "Settings", href: "/admin/settings" },
-        ]}
+        nav={ADMIN_NAV}
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-4xl px-6 py-10">

@@ -5,6 +5,7 @@ import LogoutButton from "@/components/admin/LogoutButton";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { SkeletonTableRows } from "@/components/ui/Skeleton";
+import { ADMIN_NAV_PITCH } from "@/lib/admin/nav";
 
 interface PitchRow {
   id: string;
@@ -65,15 +66,7 @@ export default function AdminPitchesPage() {
   return (
     <>
       <SiteHeader
-        nav={[
-          { label: "Examinations", href: "/admin/dashboard" },
-          { label: "Courses", href: "/admin/courses" },
-          { label: "Pitches", href: "/admin/pitches" },
-          { label: "Pitch Cohorts", href: "/admin/pitch-cohorts" },
-          { label: "Investors", href: "/admin/investors" },
-          { label: "My Profile", href: "/admin/profile" },
-          { label: "Settings", href: "/admin/settings" },
-        ]}
+        nav={ADMIN_NAV_PITCH}
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-4xl px-6 py-10">

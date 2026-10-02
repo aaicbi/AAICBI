@@ -9,6 +9,7 @@ import ErrorState from "@/components/ui/ErrorState";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { DEFAULT_INSTRUCTOR_AGREEMENT_NAME, DEFAULT_INSTRUCTOR_AGREEMENT_CONTENT } from "@/lib/instructorAgreementTemplate";
+import { ADMIN_NAV_STAFF } from "@/lib/admin/nav";
 
 interface TemplateDto {
   id: string;
@@ -92,14 +93,7 @@ export default function AgreementTemplatesPage() {
   return (
     <>
       <SiteHeader
-        nav={[
-          { label: "Examinations", href: "/admin/dashboard" },
-          { label: "Courses", href: "/admin/courses" },
-          { label: "Instructors", href: "/admin/instructors" },
-          { label: "Agreement Templates", href: "/admin/agreement-templates" },
-          { label: "Staff", href: "/admin/staff" },
-          { label: "Settings", href: "/admin/settings" },
-        ]}
+        nav={ADMIN_NAV_STAFF}
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-3xl px-6 py-10">

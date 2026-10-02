@@ -6,6 +6,7 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
+import { ADMIN_NAV_COMMAND } from "@/lib/admin/nav";
 
 interface KeyStat {
   label: string;
@@ -303,17 +304,10 @@ export default function CommandCenterPage() {
     showToast("Messaging access suspended.", "success");
   }
 
-  const nav = [
-    { label: "Examinations", href: "/admin/dashboard" },
-    { label: "Courses", href: "/admin/courses" },
-    { label: "Command", href: "/admin/command" },
-    { label: "Settings", href: "/admin/settings" },
-  ];
-
   if (roleChecked && role !== "SUPER_ADMIN") {
     return (
       <>
-        <SiteHeader nav={nav} right={<LogoutButton />} />
+        <SiteHeader nav={ADMIN_NAV_COMMAND} right={<LogoutButton />} />
         <main className="mx-auto max-w-2xl px-6 py-10">
           <Card>
             <p className="font-display font-semibold text-brand-ink">Command</p>
@@ -329,7 +323,7 @@ export default function CommandCenterPage() {
 
   return (
     <>
-      <SiteHeader nav={nav} right={<LogoutButton />} />
+      <SiteHeader nav={ADMIN_NAV_COMMAND} right={<LogoutButton />} />
       <main className="mx-auto max-w-6xl px-6 py-8">
         <div className="flex items-center justify-between gap-4">
           <div>

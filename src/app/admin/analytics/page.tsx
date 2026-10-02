@@ -12,6 +12,7 @@ import { BarChart3, Download, Mail } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import LiveActivityCard from "@/components/analytics/LiveActivityCard";
 import { useToast } from "@/components/ui/Toast";
+import { ADMIN_NAV } from "@/lib/admin/nav";
 
 interface PlatformOverview {
   registeredUsers: number | null;
@@ -105,17 +106,6 @@ interface AnalyticsDto {
 
 const DAY_OPTIONS = [7, 30, 90];
 
-const NAV = [
-  { label: "Examinations", href: "/admin/dashboard" },
-  { label: "Courses", href: "/admin/courses" },
-  { label: "Performance", href: "/admin/performance" },
-  { label: "Analytics", href: "/admin/analytics" },
-  { label: "Messages", href: "/admin/messages" },
-  { label: "Payments", href: "/admin/payments" },
-  { label: "My Profile", href: "/admin/profile" },
-  { label: "Settings", href: "/admin/settings" },
-];
-
 /**
  * Analytics System — /admin/analytics. SUPER_ADMIN/ADMIN see the
  * platform-wide picture; INSTRUCTOR sees the identical layout scoped to
@@ -172,7 +162,7 @@ export default function AdminAnalyticsPage() {
 
   return (
     <>
-      <SiteHeader nav={NAV} right={<LogoutButton />} />
+      <SiteHeader nav={ADMIN_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-6xl px-6 py-10">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>

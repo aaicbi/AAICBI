@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
+import { ADMIN_NAV } from "@/lib/admin/nav";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
@@ -413,12 +414,7 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
   return (
     <>
       <SiteHeader
-        nav={[
-          { label: "Examinations", href: "/admin/dashboard" },
-          { label: "Courses", href: "/admin/courses" },
-          { label: "My Profile", href: "/admin/profile" },
-          { label: "Settings", href: "/admin/settings" },
-        ]}
+        nav={ADMIN_NAV}
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-3xl px-6 py-10">

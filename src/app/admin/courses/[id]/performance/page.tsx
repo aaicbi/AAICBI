@@ -5,21 +5,12 @@ import BackLink from "@/components/ui/BackLink";
 import Icon from "@/components/ui/Icon";
 import { LineChart as GaugeIcon } from "lucide-react";
 import PerformanceDashboard from "@/components/admin/PerformanceDashboard";
-
-const NAV = [
-  { label: "Examinations", href: "/admin/dashboard" },
-  { label: "Courses", href: "/admin/courses" },
-  { label: "Performance", href: "/admin/performance" },
-          { label: "Analytics", href: "/admin/analytics" },
-  { label: "Messages", href: "/admin/messages" },
-  { label: "My Profile", href: "/admin/profile" },
-  { label: "Settings", href: "/admin/settings" },
-];
+import { ADMIN_NAV } from "@/lib/admin/nav";
 
 export default function CoursePerformancePage({ params }: { params: { id: string } }) {
   return (
     <>
-      <SiteHeader nav={NAV} right={<LogoutButton />} />
+      <SiteHeader nav={ADMIN_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-6xl px-6 py-10">
         <BackLink href={`/admin/courses/${params.id}`} className="text-sm text-brand-teal hover:underline">
           Back to course

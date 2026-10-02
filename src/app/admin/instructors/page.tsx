@@ -7,6 +7,7 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import ErrorState from "@/components/ui/ErrorState";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { ADMIN_NAV_STAFF } from "@/lib/admin/nav";
 
 interface InstructorRow {
   id: string;
@@ -56,14 +57,7 @@ export default function AdminInstructorsPage() {
   return (
     <>
       <SiteHeader
-        nav={[
-          { label: "Examinations", href: "/admin/dashboard" },
-          { label: "Courses", href: "/admin/courses" },
-          { label: "Instructors", href: "/admin/instructors" },
-          { label: "Agreement Templates", href: "/admin/agreement-templates" },
-          { label: "Staff", href: "/admin/staff" },
-          { label: "Settings", href: "/admin/settings" },
-        ]}
+        nav={ADMIN_NAV_STAFF}
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-3xl px-6 py-10">

@@ -8,6 +8,7 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { ADMIN_NAV_PITCH } from "@/lib/admin/nav";
 
 interface PitchCohortOption {
   id: string;
@@ -111,7 +112,7 @@ export default function AdminPitchReviewPage({ params }: { params: { id: string 
   if (!pitch) {
     return (
       <>
-        <SiteHeader nav={[{ label: "Pitches", href: "/admin/pitches" }]} right={<LogoutButton />} />
+        <SiteHeader nav={ADMIN_NAV_PITCH} right={<LogoutButton />} />
         <main className="mx-auto max-w-3xl px-6 py-10">
           <SkeletonList rows={3} />
         </main>
@@ -122,12 +123,7 @@ export default function AdminPitchReviewPage({ params }: { params: { id: string 
   return (
     <>
       <SiteHeader
-        nav={[
-          { label: "Examinations", href: "/admin/dashboard" },
-          { label: "Pitches", href: "/admin/pitches" },
-          { label: "Pitch Cohorts", href: "/admin/pitch-cohorts" },
-          { label: "Investors", href: "/admin/investors" },
-        ]}
+        nav={ADMIN_NAV_PITCH}
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-3xl px-6 py-10">

@@ -9,13 +9,7 @@ import ErrorState from "@/components/ui/ErrorState";
 import BackLink from "@/components/ui/BackLink";
 import { MapPin } from "lucide-react";
 import Icon from "@/components/ui/Icon";
-
-const NAV = [
-  { label: "Examinations", href: "/admin/dashboard" },
-  { label: "Courses", href: "/admin/courses" },
-  { label: "My Profile", href: "/admin/profile" },
-  { label: "Settings", href: "/admin/settings" },
-];
+import { ADMIN_NAV } from "@/lib/admin/nav";
 
 interface TopicEvidence {
   topic: string;
@@ -113,7 +107,7 @@ export default function AdminTraineeDetailPage({ params }: { params: { id: strin
   if (notFound) {
     return (
       <>
-        <SiteHeader nav={NAV} right={<LogoutButton />} />
+        <SiteHeader nav={ADMIN_NAV} right={<LogoutButton />} />
         <main className="mx-auto max-w-2xl px-6 py-10">
           <p className="text-sm text-gray-600">This trainee could not be found.</p>
         </main>
@@ -124,7 +118,7 @@ export default function AdminTraineeDetailPage({ params }: { params: { id: strin
   if (error) {
     return (
       <>
-        <SiteHeader nav={NAV} right={<LogoutButton />} />
+        <SiteHeader nav={ADMIN_NAV} right={<LogoutButton />} />
         <main className="mx-auto max-w-2xl px-6 py-10">
           <ErrorState message="We couldn't load this trainee." onRetry={load} />
         </main>
@@ -134,7 +128,7 @@ export default function AdminTraineeDetailPage({ params }: { params: { id: strin
 
   return (
     <>
-      <SiteHeader nav={NAV} right={<LogoutButton />} />
+      <SiteHeader nav={ADMIN_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-2xl px-6 py-10">
         <BackLink href="/admin/trainees">Back to Trainees</BackLink>
 

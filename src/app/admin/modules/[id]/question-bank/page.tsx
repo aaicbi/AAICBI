@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/Toast";
 import { AlertTriangle } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import CorrectnessMark from "@/components/ui/CorrectnessMark";
+import { ADMIN_NAV } from "@/lib/admin/nav";
 
 interface OptionDto {
   id: string;
@@ -126,17 +127,10 @@ export default function QuestionBankReviewPage({ params }: { params: { id: strin
     await load();
   }
 
-  const nav = [
-    { label: "Examinations", href: "/admin/dashboard" },
-    { label: "Courses", href: "/admin/courses" },
-    { label: "Command", href: "/admin/command" },
-    { label: "Settings", href: "/admin/settings" },
-  ];
-
   if (!data) {
     return (
       <>
-        <SiteHeader nav={nav} right={<LogoutButton />} />
+        <SiteHeader nav={ADMIN_NAV} right={<LogoutButton />} />
         <main className="mx-auto max-w-3xl px-6 py-10">
           <div className="h-6 w-40 animate-pulse rounded-full bg-brand-gray/60" />
           <div className="mt-3 h-8 w-72 animate-pulse rounded-full bg-brand-gray/60" />
@@ -149,7 +143,7 @@ export default function QuestionBankReviewPage({ params }: { params: { id: strin
 
   return (
     <>
-      <SiteHeader nav={nav} right={<LogoutButton />} />
+      <SiteHeader nav={ADMIN_NAV} right={<LogoutButton />} />
       {modal}
       <main className="mx-auto max-w-3xl px-6 py-10">
         <h1 className="text-2xl font-bold text-gray-900">Question Bank Review</h1>

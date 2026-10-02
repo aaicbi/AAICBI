@@ -7,6 +7,7 @@ import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
+import { ADMIN_NAV_STAFF } from "@/lib/admin/nav";
 
 interface StaffDto {
   id: string;
@@ -95,13 +96,7 @@ export default function AdminStaffPage() {
   return (
     <>
       <SiteHeader
-        nav={[
-          { label: "Examinations", href: "/admin/dashboard" },
-          { label: "Courses", href: "/admin/courses" },
-          { label: "Instructors", href: "/admin/instructors" },
-          { label: "My Profile", href: "/admin/profile" },
-          { label: "Settings", href: "/admin/settings" },
-        ]}
+        nav={ADMIN_NAV_STAFF}
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-2xl px-6 py-10">
