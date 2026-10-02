@@ -1,7 +1,9 @@
+import { headers } from "next/headers";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { SidebarActiveProvider } from "@/components/SidebarActiveContext";
 import AdminSidebar from "@/components/admin/AdminSidebar";
+import { pageHasSidebar } from "@/lib/sidebarRoutes";
 
 // Same allow-list every admin page's own getSession()-then-redirect()
 // check already uses (e.g. src/app/admin/dashboard/page.tsx) — this
@@ -19,6 +21,16 @@ const ALLOWED_ROLES = ["SUPER_ADMIN", "ADMIN", "INSTRUCTOR"];
  * fall through here unchanged — no sidebar, no provider — and keep
  * rendering their own existing plain SiteHeader exactly as before.
  *
+ * Bug fix: that pre-auth check used to be session validity alone —
+ * but this middleware's own PUBLIC_ADMIN_PATHS never redirects an
+ * already-logged-in admin AWAY from /admin/login, so a staff member
+ * with a valid session who still navigates there directly (a stale
+ * bookmark, a shared link, testing) got the sidebar wrapped around
+ * the login form. pageHasSidebar(pathname) (src/lib/sidebarRoutes.ts,
+ * fed the current path via middleware.ts's x-pathname header — the
+ * documented way a Server Component layout reads the request path)
+ * now also excludes these exact paths regardless of session state.
+ *
  * Every other admin page's own `<SiteHeader nav={...}
  * right={<LogoutButton />} />` call is deliberately left in place
  * (not stripped) — SidebarActiveProvider makes SiteHeader render
@@ -28,8 +40,9 @@ const ALLOWED_ROLES = ["SUPER_ADMIN", "ADMIN", "INSTRUCTOR"];
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
   const isStaff = !!session && ALLOWED_ROLES.includes(session.role);
+  const pathname = headers().get("x-pathname") ?? "";
 
-  if (!isStaff) {
+  if (!isStaff || !pageHasSidebar(pathname)) {
     return <>{children}</>;
   }
 

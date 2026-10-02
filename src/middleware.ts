@@ -23,6 +23,22 @@ const COOKIE_NAME = "lms_session";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Sidebar rollout — a role's layout.tsx (src/app/<role>/layout.tsx)
+  // needs the current pathname to tell a genuine pre-auth page
+  // (login, register, ...) apart from an authenticated one, since a
+  // visitor who still has a valid session cookie can freely reach
+  // e.g. /admin/login (this middleware's own PUBLIC_ADMIN_PATHS below
+  // never redirects them away from it) — without this, that layout
+  // only had session validity to go on and wrongly wrapped the login
+  // form in the sidebar. Server Components have no other way to read
+  // the current path; this is the documented Next.js pattern for it.
+  // Forwarded for every request this middleware runs on, not just the
+  // protected ones, so the header is there even on genuinely public
+  // pre-auth pages.
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-pathname", pathname);
+  const withPathname = () => NextResponse.next({ request: { headers: requestHeaders } });
+
   const PUBLIC_TRAINEE_PATHS = new Set([
     "/trainee/login",
     "/trainee/register",
@@ -35,7 +51,7 @@ export async function middleware(req: NextRequest) {
   const isAdminPath = pathname.startsWith("/admin") && !PUBLIC_ADMIN_PATHS.has(pathname);
   const isTraineePath = pathname.startsWith("/trainee") && !PUBLIC_TRAINEE_PATHS.has(pathname);
   const isExamPath = pathname.startsWith("/exam");
-  if (!isAdminPath && !isTraineePath && !isExamPath) return NextResponse.next();
+  if (!isAdminPath && !isTraineePath && !isExamPath) return withPathname();
 
   const loginPath = isAdminPath ? "/admin/login" : "/trainee/login";
   const token = req.cookies.get(COOKIE_NAME)?.value;
@@ -51,7 +67,7 @@ export async function middleware(req: NextRequest) {
 
   try {
     await jwtVerify(token, new TextEncoder().encode(process.env.AUTH_SECRET));
-    return NextResponse.next();
+    return withPathname();
   } catch {
     const redirectUrl = new URL(loginPath, req.url);
     redirectUrl.searchParams.set("next", pathname);
@@ -60,5 +76,12 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/trainee/:path*", "/exam/:path*"],
+  // employer/investor added for the x-pathname header alone (see the
+  // comment above) — they hit the early `withPathname()` return
+  // immediately below, since isAdminPath/isTraineePath/isExamPath are
+  // all false for them: no redirect/token logic newly applies to
+  // these two, their existing page-level auth checks are unaffected.
+  // instructor isn't listed — it has no pre-auth pages at all, so its
+  // layout never needs this header (see InstructorLayout's comment).
+  matcher: ["/admin/:path*", "/trainee/:path*", "/exam/:path*", "/employer/:path*", "/investor/:path*"],
 };
