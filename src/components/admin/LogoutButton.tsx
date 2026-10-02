@@ -12,7 +12,7 @@ import NotificationBell from "@/components/NotificationBell";
 export default function LogoutButton() {
   const router = useRouter();
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center justify-between">
       {/* align="left" — see NotificationBell.tsx's own comment: this
           renders inside the narrow admin sidebar now, not a wide top
           bar, so the dropdown needs to expand rightward, not leftward. */}
