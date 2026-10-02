@@ -1,5 +1,4 @@
 "use client";
-import { useRouter } from "next/navigation";
 import NotificationBell from "@/components/NotificationBell";
 
 // Same reasoning as the trainee version of this component — see its
@@ -10,14 +9,18 @@ import NotificationBell from "@/components/NotificationBell";
 // authenticated employer page), so align="left"/justify-between match
 // that narrow sidebar row instead of the old wide top bar.
 export default function LogoutButton() {
-  const router = useRouter();
   return (
     <div className="flex items-center justify-between">
       <NotificationBell align="left" />
       <button
         onClick={async () => {
           await fetch("/api/auth/logout", { method: "POST" });
-          router.push("/employer/login");
+          // Bug fix — see trainee/LogoutButton.tsx's own comment: a
+          // hard navigation (not router.push) is required so the
+          // shared employer/layout.tsx server-side session check
+          // actually re-runs instead of leaving a stale sidebar
+          // mounted over the login form.
+          window.location.href = "/employer/login";
         }}
         className="rounded-lg border border-brand-gray px-3 py-2.5 text-sm font-semibold text-gray-600 hover:border-brand-teal"
       >

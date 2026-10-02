@@ -1,5 +1,4 @@
 "use client";
-import { useRouter } from "next/navigation";
 import NotificationBell from "@/components/NotificationBell";
 
 // Same reasoning as the trainee version of this component — see its
@@ -10,7 +9,6 @@ import NotificationBell from "@/components/NotificationBell";
 // the sidebar's own nav list, the dropdown was pure duplication —
 // removed, along with the now-dead AdminQuickActionsNavMenu.tsx file.
 export default function LogoutButton() {
-  const router = useRouter();
   return (
     <div className="flex items-center justify-between">
       {/* align="left" — see NotificationBell.tsx's own comment: this
@@ -20,7 +18,15 @@ export default function LogoutButton() {
       <button
         onClick={async () => {
           await fetch("/api/auth/logout", { method: "POST" });
-          router.push("/admin/login");
+          // Bug fix — see trainee/LogoutButton.tsx's own comment: a
+          // client-side router.push() here left the sidebar on screen
+          // over the login form, since /admin/login shares
+          // admin/layout.tsx with every authenticated admin page and
+          // Next.js doesn't re-render an already-mounted shared layout
+          // on navigation between its own sibling routes. A hard
+          // navigation forces that layout's server-side session check
+          // to run fresh.
+          window.location.href = "/admin/login";
         }}
         className="rounded-lg border border-brand-gray px-3 py-2.5 text-sm font-semibold text-gray-600 hover:border-brand-teal"
       >

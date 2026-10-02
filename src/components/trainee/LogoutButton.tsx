@@ -1,5 +1,4 @@
 "use client";
-import { useRouter } from "next/navigation";
 import NotificationBell from "@/components/NotificationBell";
 
 // M32/Stage 6 audit — the bell renders here, not on every individual
@@ -20,14 +19,22 @@ import NotificationBell from "@/components/NotificationBell";
 // `justify-between` match that narrow sidebar row rather than the old
 // wide top bar.
 export default function LogoutButton() {
-  const router = useRouter();
   return (
     <div className="flex items-center justify-between">
       <NotificationBell align="left" />
       <button
         onClick={async () => {
           await fetch("/api/auth/logout", { method: "POST" });
-          router.push("/trainee/login");
+          // Bug fix — a client-side router.push() here left the
+          // sidebar on screen: /trainee/login shares trainee/layout.tsx
+          // with every authenticated page, and Next.js doesn't
+          // re-render a still-mounted shared layout on navigation
+          // between its own sibling routes, so the layout's
+          // server-side session check (now stale) never re-ran and the
+          // sidebar stayed up over the login form. A hard navigation
+          // forces that server check to run fresh, with the
+          // just-cleared session cookie.
+          window.location.href = "/trainee/login";
         }}
         className="rounded-lg border border-brand-gray px-3 py-2.5 text-sm font-semibold text-gray-600 hover:border-brand-teal"
       >
