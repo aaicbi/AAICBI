@@ -202,7 +202,7 @@ export default function TraineeSettingsPage() {
         nav={TRAINEE_NAV.map((item) => ({ ...item, label: t(item.label, translations) }))}
         right={<LogoutButton />}
       />
-      <main className="mx-auto max-w-md px-6 py-12">
+      <main className="mx-auto max-w-5xl px-6 py-12">
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Settings</h1>
         <p className="mt-1 text-sm text-gray-500">Manage your account and preferences.</p>
 
@@ -214,172 +214,186 @@ export default function TraineeSettingsPage() {
           </div>
         </Card>
 
+        {/* Landscape pass — now that the sidebar frees up the width a
+            centered max-w-md column used to need for a top nav, every
+            section below pairs its cards two-up on wide screens
+            (lg:grid-cols-2) instead of stacking everything in one
+            narrow column. "Progress notifications" moved up next to
+            WhatsApp — it's a notification setting like its new
+            neighbor, it just hadn't had a row to share with one
+            before. Content and behavior are otherwise unchanged. */}
         <p className="mt-8 text-xs font-semibold uppercase tracking-wide text-gray-500">Notifications</p>
-        <WhatsAppSettings
-          optedIn={whatsappOptIn}
-          verifiedAt={whatsappVerifiedAt}
-          phone={phone}
-          onOptedIn={(p) => {
-            setWhatsappOptIn(true);
-            setPhone(p);
-          }}
-          onVerified={() => setWhatsappVerifiedAt(new Date().toISOString())}
-          onOptedOut={() => {
-            setWhatsappOptIn(false);
-            setWhatsappVerifiedAt(null);
-          }}
-        />
+        <div className="mt-2 grid gap-4 lg:grid-cols-2">
+          <WhatsAppSettings
+            optedIn={whatsappOptIn}
+            verifiedAt={whatsappVerifiedAt}
+            phone={phone}
+            onOptedIn={(p) => {
+              setWhatsappOptIn(true);
+              setPhone(p);
+            }}
+            onVerified={() => setWhatsappVerifiedAt(new Date().toISOString())}
+            onOptedOut={() => {
+              setWhatsappOptIn(false);
+              setWhatsappVerifiedAt(null);
+            }}
+          />
 
-        <p className="mt-8 text-xs font-semibold uppercase tracking-wide text-gray-500">Your visibility</p>
-        <DiscoverabilitySettings />
-
-        <PublicProfileSettings />
-
-        <Card className="mt-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="font-display font-semibold text-brand-ink">Progress notifications</p>
-              <p className="mt-1 text-sm text-gray-600">
-                Email me when I unlock the next module in a course, and when an assessment result is ready.
-              </p>
-            </div>
-            {notificationsEnabled !== null && (
-              <button
-                onClick={() => toggle("notificationsEnabled")}
-                disabled={saving}
-                role="switch"
-                aria-checked={notificationsEnabled}
-                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                  notificationsEnabled ? "bg-brand-teal" : "bg-gray-300"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                    notificationsEnabled ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
-            )}
-          </div>
-        </Card>
-
-        <Card className="mt-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="font-display font-semibold text-brand-ink">Low-bandwidth mode</p>
-              <p className="mt-1 text-sm text-gray-600">
-                Video thumbnails won&apos;t load automatically on a lesson page — you&apos;ll see a simple icon
-                instead until you tap to watch. Videos already require a tap to actually play either way; this
-                just saves the thumbnail image itself too, on a slow or limited connection.
-              </p>
-            </div>
-            {lowBandwidthMode !== null && (
-              <button
-                onClick={() => toggle("lowBandwidthMode")}
-                disabled={saving}
-                role="switch"
-                aria-checked={lowBandwidthMode}
-                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                  lowBandwidthMode ? "bg-brand-teal" : "bg-gray-300"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                    lowBandwidthMode ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
-            )}
-          </div>
-        </Card>
-
-        <Card className="mt-4">
-          <p className="font-display font-semibold text-brand-ink">Language</p>
-          <p className="mt-1 text-sm text-gray-600">
-            Choose the language you&apos;d like to see menus and system messages in.
-          </p>
-          {preferredLanguage !== null && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {SUPPORTED_LANGUAGES.map((lang) => (
+          <Card>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="font-display font-semibold text-brand-ink">Progress notifications</p>
+                <p className="mt-1 text-sm text-gray-600">
+                  Email me when I unlock the next module in a course, and when an assessment result is ready.
+                </p>
+              </div>
+              {notificationsEnabled !== null && (
                 <button
-                  key={lang}
-                  onClick={() => changeLanguage(lang)}
+                  onClick={() => toggle("notificationsEnabled")}
                   disabled={saving}
-                  className={`rounded-lg border px-3 py-1.5 text-sm font-semibold ${
-                    preferredLanguage === lang
-                      ? "border-brand-teal bg-brand-mint text-brand-teal"
-                      : "border-brand-gray text-gray-600"
+                  role="switch"
+                  aria-checked={notificationsEnabled}
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                    notificationsEnabled ? "bg-brand-teal" : "bg-gray-300"
                   }`}
                 >
-                  {LANGUAGE_LABELS[lang]}
+                  <span
+                    className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                      notificationsEnabled ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
                 </button>
-              ))}
-            </div>
-          )}
-          <p className="mt-3 text-xs text-gray-500">
-            Course lesson content isn&apos;t translated yet — this only changes menus and system messages for now.
-          </p>
-        </Card>
-
-        <Card className="mt-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="font-display font-semibold text-brand-ink">AI Study Buddy</p>
-              <p className="mt-1 text-sm text-gray-600">
-                Turn on AI-powered study help. This isn&apos;t available yet — turning it on now just means
-                it&apos;ll be ready for you the moment it launches.
-              </p>
-              {aiCreditBalance !== null && (
-                <p className="mt-2 text-xs text-gray-500">
-                  Your credit balance: <span className="font-semibold text-brand-ink">{aiCreditBalance}</span>
-                </p>
               )}
             </div>
-            {aiStudyBuddyEnabled !== null && (
-              <button
-                onClick={() => toggle("aiStudyBuddyEnabled")}
-                disabled={saving}
-                role="switch"
-                aria-checked={aiStudyBuddyEnabled}
-                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                  aiStudyBuddyEnabled ? "bg-brand-teal" : "bg-gray-300"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                    aiStudyBuddyEnabled ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
-            )}
-          </div>
-        </Card>
+          </Card>
+        </div>
 
-        <Card className="mt-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="font-display font-semibold text-brand-ink">Dark Mode</p>
-              <p className="mt-1 text-sm text-gray-600">Switch to a dark theme. This follows you across devices.</p>
-            </div>
-            {darkMode !== null && (
-              <button
-                onClick={() => toggle("darkMode")}
-                disabled={saving}
-                role="switch"
-                aria-checked={darkMode}
-                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                  darkMode ? "bg-brand-teal" : "bg-gray-300"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                    darkMode ? "translate-x-5" : "translate-x-0"
+        <p className="mt-8 text-xs font-semibold uppercase tracking-wide text-gray-500">Your visibility</p>
+        <div className="mt-2 grid gap-4 lg:grid-cols-2">
+          <DiscoverabilitySettings />
+          <PublicProfileSettings />
+        </div>
+
+        <p className="mt-8 text-xs font-semibold uppercase tracking-wide text-gray-500">Preferences</p>
+        <div className="mt-2 grid gap-4 lg:grid-cols-2">
+          <Card>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="font-display font-semibold text-brand-ink">Low-bandwidth mode</p>
+                <p className="mt-1 text-sm text-gray-600">
+                  Video thumbnails won&apos;t load automatically on a lesson page — you&apos;ll see a simple icon
+                  instead until you tap to watch. Videos already require a tap to actually play either way; this
+                  just saves the thumbnail image itself too, on a slow or limited connection.
+                </p>
+              </div>
+              {lowBandwidthMode !== null && (
+                <button
+                  onClick={() => toggle("lowBandwidthMode")}
+                  disabled={saving}
+                  role="switch"
+                  aria-checked={lowBandwidthMode}
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                    lowBandwidthMode ? "bg-brand-teal" : "bg-gray-300"
                   }`}
-                />
-              </button>
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                      lowBandwidthMode ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              )}
+            </div>
+          </Card>
+
+          <Card>
+            <p className="font-display font-semibold text-brand-ink">Language</p>
+            <p className="mt-1 text-sm text-gray-600">
+              Choose the language you&apos;d like to see menus and system messages in.
+            </p>
+            {preferredLanguage !== null && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {SUPPORTED_LANGUAGES.map((lang) => (
+                  <button
+                    key={lang}
+                    onClick={() => changeLanguage(lang)}
+                    disabled={saving}
+                    className={`rounded-lg border px-3 py-1.5 text-sm font-semibold ${
+                      preferredLanguage === lang
+                        ? "border-brand-teal bg-brand-mint text-brand-teal"
+                        : "border-brand-gray text-gray-600"
+                    }`}
+                  >
+                    {LANGUAGE_LABELS[lang]}
+                  </button>
+                ))}
+              </div>
             )}
-          </div>
-        </Card>
+            <p className="mt-3 text-xs text-gray-500">
+              Course lesson content isn&apos;t translated yet — this only changes menus and system messages for now.
+            </p>
+          </Card>
+
+          <Card>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="font-display font-semibold text-brand-ink">AI Study Buddy</p>
+                <p className="mt-1 text-sm text-gray-600">
+                  Turn on AI-powered study help. This isn&apos;t available yet — turning it on now just means
+                  it&apos;ll be ready for you the moment it launches.
+                </p>
+                {aiCreditBalance !== null && (
+                  <p className="mt-2 text-xs text-gray-500">
+                    Your credit balance: <span className="font-semibold text-brand-ink">{aiCreditBalance}</span>
+                  </p>
+                )}
+              </div>
+              {aiStudyBuddyEnabled !== null && (
+                <button
+                  onClick={() => toggle("aiStudyBuddyEnabled")}
+                  disabled={saving}
+                  role="switch"
+                  aria-checked={aiStudyBuddyEnabled}
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                    aiStudyBuddyEnabled ? "bg-brand-teal" : "bg-gray-300"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                      aiStudyBuddyEnabled ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              )}
+            </div>
+          </Card>
+
+          <Card>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="font-display font-semibold text-brand-ink">Dark Mode</p>
+                <p className="mt-1 text-sm text-gray-600">Switch to a dark theme. This follows you across devices.</p>
+              </div>
+              {darkMode !== null && (
+                <button
+                  onClick={() => toggle("darkMode")}
+                  disabled={saving}
+                  role="switch"
+                  aria-checked={darkMode}
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                    darkMode ? "bg-brand-teal" : "bg-gray-300"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                      darkMode ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              )}
+            </div>
+          </Card>
+        </div>
 
         <p className="mt-4 text-xs text-gray-500">
           Account verification and password reset emails always send, regardless of this setting — they&apos;re
@@ -474,7 +488,7 @@ function WhatsAppSettings({
   }
 
   return (
-    <Card className="mt-4">
+    <Card>
       <p className="font-display font-semibold text-brand-ink">WhatsApp Notifications</p>
       <p className="mt-1 text-xs text-gray-500">
         Get key updates — account verification, password reset, module unlocks, certificates, and payment codes —
@@ -609,7 +623,7 @@ function DiscoverabilitySettings() {
   if (!loaded) return null;
 
   return (
-    <Card className="mt-4">
+    <Card>
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="font-display font-semibold text-brand-ink">Employer Discoverability</p>
@@ -730,7 +744,7 @@ function PublicProfileSettings() {
   if (!loaded) return null;
 
   return (
-    <Card className="mt-4">
+    <Card>
       <p className="font-display font-semibold text-brand-ink">Public Profile Link</p>
       <p className="mt-1 text-xs text-gray-500">
         A shareable link to your profile — useful for a resume or LinkedIn. Not listed or searchable anywhere; only
