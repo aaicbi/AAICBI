@@ -8,7 +8,7 @@ import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 import StarRating from "@/components/ui/StarRating";
 import CorrectnessMark from "@/components/ui/CorrectnessMark";
 import Icon from "@/components/ui/Icon";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Building2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import VisitorTracker from "@/components/analytics/VisitorTracker";
 import RegisterCta from "@/components/analytics/RegisterCta";
@@ -139,6 +139,44 @@ export default async function LandingPage() {
               <Link href="/certificate" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-teal hover:underline">
                 Verify a certificate <Icon icon={ArrowRight} size="sm" />
               </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Training Organizations — a second audience this page never
+            addressed at all: an outside organization that wants to run
+            its OWN training through AAICBI's platform (their own
+            courses, their own trainees, a certificate carrying their
+            own logo and colors) rather than enrolling into AAICBI's own
+            catalogue. The pages this links to (/org/register,
+            /org/login) already existed and worked — nothing anywhere on
+            the public site ever linked to them, so reaching this flow
+            required already knowing the exact URL. */}
+        <section className="border-t border-brand-gray bg-brand-mint/30">
+          <div className="mx-auto grid max-w-5xl grid-cols-1 items-center gap-10 px-6 py-16 sm:grid-cols-2">
+            <div className="order-2 sm:order-1">
+              <span className="text-xs font-semibold uppercase tracking-widest text-brand-teal">For Organizations</span>
+              <h2 className="mt-2 font-display text-2xl font-semibold text-brand-ink">
+                Run your own training through AAICBI.
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-gray-600">
+                Bring your own courses and trainees onto our platform — structured modules, AI-graded assessments,
+                and progress tracking, the same engine powering AAICBI&apos;s own courses. Trainees finish with a
+                certificate carrying your organization&apos;s own logo and colors.
+              </p>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <Button href="/org/register" size="lg">
+                  Register Your Organization
+                </Button>
+                <Button href="/org/login" variant="secondary" size="lg">
+                  Organization Sign In
+                </Button>
+              </div>
+            </div>
+            <div className="order-1 flex justify-center sm:order-2">
+              <div className="flex h-28 w-28 items-center justify-center rounded-full bg-brand-teal/10">
+                <Icon icon={Building2} size="xl" className="text-brand-teal" />
+              </div>
             </div>
           </div>
         </section>
