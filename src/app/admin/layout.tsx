@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { SidebarActiveProvider } from "@/components/SidebarActiveContext";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import { pageHasSidebar } from "@/lib/sidebarRoutes";
+import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
 // Same allow-list every admin page's own getSession()-then-redirect()
 // check already uses (e.g. src/app/admin/dashboard/page.tsx) — this
@@ -55,10 +56,24 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     select: { name: true, avatarUrl: true },
   });
 
+  // Training Organizations, Phase 2 — a training org's own login issues
+  // a real ADMIN session on its shadow staff account (see
+  // training-org-login's own comment), so this is the one place that
+  // tells such a session apart from a real staff ADMIN, purely to
+  // restrict its sidebar — see ADMIN_NAV_TRAINING_ORG's own comment for
+  // why this is cosmetic, not the security boundary.
+  const trainingOrg =
+    session.role === "ADMIN" ? await findTrainingOrgByStaffUserId(session.userId) : null;
+
   return (
     <SidebarActiveProvider>
       <div className="min-h-screen">
-        <AdminSidebar name={staff?.name ?? session.email} avatarUrl={staff?.avatarUrl ?? null} role={session.role} />
+        <AdminSidebar
+          name={trainingOrg ? trainingOrg.name : (staff?.name ?? session.email)}
+          avatarUrl={staff?.avatarUrl ?? null}
+          role={session.role}
+          isTrainingOrg={!!trainingOrg}
+        />
         <div className="sm:pl-64">{children}</div>
       </div>
     </SidebarActiveProvider>

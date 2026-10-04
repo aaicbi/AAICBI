@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { resolveSegmentTraineeIds } from "@/lib/analytics/segments";
+import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
 /**
  * GET /api/admin/trainees?q=...&segment=... — the trainee half of
@@ -23,7 +24,18 @@ import { resolveSegmentTraineeIds } from "@/lib/analytics/segments";
  */
 export async function GET(req: NextRequest) {
   return withApiErrors(async () => {
-    await requireRole("SUPER_ADMIN", "ADMIN");
+    const session = await requireRole("SUPER_ADMIN", "ADMIN");
+    // Training Organizations, Phase 2 — this list has no per-creator
+    // scoping at all (every trainee on the platform, not just one
+    // organization's own), unlike the course-content routes a
+    // training-org-backed ADMIN session is meant to reuse. Not in that
+    // session's nav at all (see ADMIN_NAV_TRAINING_ORG), so this is
+    // defense-in-depth against the URL being hit directly — a 404, not
+    // a 403, so it never confirms the route exists for a caller it
+    // isn't meant for.
+    if (await findTrainingOrgByStaffUserId(session.userId)) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
     const q = req.nextUrl.searchParams.get("q")?.trim();
     const segment = req.nextUrl.searchParams.get("segment")?.trim();
 

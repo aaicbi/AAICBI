@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
+import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
 /**
  * GET /api/admin/showcase — every project a trainee has opted into
@@ -17,7 +18,14 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   return withApiErrors(async () => {
-    await requireRole("SUPER_ADMIN", "ADMIN");
+    const session = await requireRole("SUPER_ADMIN", "ADMIN");
+    // Training Organizations, Phase 2 — Project has no FK to Course or
+    // any creator, so it's structurally incapable of per-organization
+    // scoping. Same defense-in-depth 404 as the trainees route's own
+    // comment explains.
+    if (await findTrainingOrgByStaffUserId(session.userId)) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
 
     const projects = await prisma.project.findMany({
       where: { listedInShowcase: true },

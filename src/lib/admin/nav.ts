@@ -82,6 +82,30 @@ export const ADMIN_NAV_COMMAND = [
 ];
 
 /**
+ * Training Organizations, Phase 2 — a training-org-backed ADMIN session
+ * (see src/lib/trainingOrgStaff.ts) reuses the real admin course-builder
+ * directly, but should only ever reach the slice of it research
+ * confirmed is actually scoped to its own courses: GET /api/courses,
+ * GET /api/exams, GET /api/courses/[id]/performance and
+ * GET /api/admin/payments all correctly filter by createdById for a
+ * plain ADMIN with no SUPER_ADMIN-only bypass. Deliberately excluded,
+ * even though a real staff ADMIN sees them in ADMIN_NAV: Analytics
+ * (confirmed unscoped for ADMIN — see the 404 guard this organization's
+ * session also hits if it tries the URL directly), Messages (never
+ * confirmed scoped, left out conservatively), Showcase, Training
+ * Organizations, and every staff/pitch/command-specific page (none of
+ * which make sense for a single external organization anyway).
+ */
+export const ADMIN_NAV_TRAINING_ORG = [
+  { label: "Dashboard", href: "/admin/dashboard" },
+  { label: "Courses", href: "/admin/courses" },
+  { label: "Examinations", href: "/admin/exams" },
+  { label: "Performance", href: "/admin/performance" },
+  { label: "Payments", href: "/admin/payments" },
+  { label: "Settings", href: "/admin/settings" },
+];
+
+/**
  * Admin sidebar pilot — picks which of the four clusters above a given
  * admin path belongs to. Each individual page used to import the
  * "right" constant itself (fine for a per-page top nav, but the new
@@ -93,8 +117,17 @@ export const ADMIN_NAV_COMMAND = [
  * specific page", so a detail page under a cluster's prefix (e.g.
  * /admin/instructors/abc123) correctly resolves to the same cluster
  * as its list page.
+ *
+ * Training Organizations, Phase 2 — `isTrainingOrg` is checked first and
+ * short-circuits every other cluster: a training-org-backed session has
+ * no business in the staff/pitch/command clusters regardless of which
+ * path it's on (it can't actually reach most of those pages anyway, but
+ * the sidebar itself should never even suggest them).
  */
-export function getSidebarNavForPath(pathname: string) {
+export function getSidebarNavForPath(pathname: string, isTrainingOrg?: boolean) {
+  if (isTrainingOrg) {
+    return ADMIN_NAV_TRAINING_ORG;
+  }
   if (
     pathname.startsWith("/admin/instructors") ||
     pathname.startsWith("/admin/agreement-templates") ||

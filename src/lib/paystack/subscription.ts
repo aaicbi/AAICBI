@@ -19,6 +19,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getEffectivePriceKobo } from "@/lib/coursePricing";
+import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
 const INTERVAL_MAP: Record<string, string> = {
   MONTHLY: "monthly",
@@ -121,6 +122,12 @@ export async function initializeCoursePayment(
     // every existing call site (which only ever dealt with recurring
     // paid courses) keeps compiling and behaving exactly as before.
     accessModel?: "RECURRING_SUBSCRIPTION" | "FIXED_DURATION";
+    // Training Organizations, Phase 2 — optional, same reasoning as
+    // accessModel above: resolves this course's own organization (if
+    // any) below to apply its Paystack Subaccount split. Omitted
+    // entirely (undefined) behaves exactly as an AAICBI-own course
+    // always has.
+    createdById?: string;
   }
 ): Promise<{ authorizationUrl: string; accessCode?: string; reference: string }> {
   const appUrl = process.env.APP_URL ?? "https://aaicbi.org";
@@ -138,6 +145,24 @@ export async function initializeCoursePayment(
   // (see that field's own comment just below for why it's the
   // initiation-time amount, never the course's live price).
   const amountKobo = getEffectivePriceKobo(course)!;
+
+  // Training Organizations, Phase 2 — the actual revenue-split
+  // mechanism: "the trainee pays in the platform and the money lands
+  // the AAICBI Paystack account, then it's automatically split with
+  // the organization's portion going to their account" (settled this
+  // way during planning, replacing an earlier per-trainee-subscription
+  // idea entirely). Paystack applies the split itself once `subaccount`
+  // is present on `/transaction/initialize` — no change needed on the
+  // verification/webhook side (see reconcile.ts). `bearer: "account"`
+  // means AAICBI absorbs the Paystack processing fee, same as it
+  // already implicitly does for its own courses today. An org with no
+  // Subaccount code configured yet (or an AAICBI-own course, where
+  // createdById resolves to no organization at all) takes the exact
+  // same path as before — no `subaccount`/`bearer` sent at all.
+  const org = course.createdById ? await findTrainingOrgByStaffUserId(course.createdById) : null;
+  const splitFields = org?.paystackSubaccountCode
+    ? { subaccount: org.paystackSubaccountCode, bearer: "account" as const }
+    : {};
 
   const res = await fetch("https://api.paystack.co/transaction/initialize", {
     method: "POST",
@@ -185,6 +210,7 @@ export async function initializeCoursePayment(
       // instead of the course's live price, is what makes this
       // correct regardless of when a price change happens to land.
       metadata: { traineeId: trainee.id, courseId: course.id, amountKobo },
+      ...splitFields,
     }),
   });
   if (!res.ok) {

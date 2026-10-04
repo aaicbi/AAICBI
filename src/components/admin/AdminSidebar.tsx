@@ -45,17 +45,25 @@ export default function AdminSidebar({
   name,
   avatarUrl,
   role,
+  isTrainingOrg,
 }: {
   name: string;
   avatarUrl: string | null;
   role: string;
+  /** Training Organizations, Phase 2 — see admin/layout.tsx's own
+   * comment. Restricts the nav list and swaps the role badge for
+   * "Training Organization", rather than the generic staff role label,
+   * which would be misleading here (the underlying session role really
+   * is ADMIN, but that's an implementation detail this account holder
+   * has no reason to see). */
+  isTrainingOrg?: boolean;
 }) {
   const pathname = usePathname() ?? "/admin/dashboard";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const helpRef = useRef<HTMLDivElement>(null);
 
-  const navItems = getSidebarNavForPath(pathname);
+  const navItems = getSidebarNavForPath(pathname, isTrainingOrg);
   const tourEntry = getSidebarTourGuideContent(pathname);
 
   useEffect(() => {
@@ -102,7 +110,7 @@ export default function AdminSidebar({
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-brand-ink">{name}</p>
-          <Badge variant="neutral">{ROLE_LABELS[role] ?? role}</Badge>
+          <Badge variant="neutral">{isTrainingOrg ? "Training Organization" : (ROLE_LABELS[role] ?? role)}</Badge>
         </div>
       </Link>
 

@@ -17,6 +17,9 @@ interface TrainingOrgDto {
   createdAt: string;
   approvedBy: { name: string } | null;
   certificateTemplates: { id: string; name: string; approvedAt: string | null }[];
+  // Training Organizations, Phase 2
+  paystackSubaccountCode: string | null;
+  brandingFooterRemoved: boolean;
 }
 
 /**
@@ -123,13 +126,16 @@ export default function AdminTrainingOrganizationsPage() {
                   </span>
                 </div>
                 {o.approvalState === "APPROVED" && (
-                  <a
-                    href={`/admin/training-organizations/${o.id}/certificate-templates`}
-                    className="mt-3 inline-block text-xs font-semibold text-brand-teal hover:underline"
-                  >
-                    Manage certificate templates
-                    {o.certificateTemplates.length > 0 && ` (${o.certificateTemplates.length})`} →
-                  </a>
+                  <>
+                    <a
+                      href={`/admin/training-organizations/${o.id}/certificate-templates`}
+                      className="mt-3 inline-block text-xs font-semibold text-brand-teal hover:underline"
+                    >
+                      Manage certificate templates
+                      {o.certificateTemplates.length > 0 && ` (${o.certificateTemplates.length})`} →
+                    </a>
+                    <PayoutSettings org={o} onSaved={load} showToast={showToast} />
+                  </>
                 )}
               </Card>
             ))}
@@ -137,5 +143,117 @@ export default function AdminTrainingOrganizationsPage() {
         </>
       )}
     </main>
+  );
+}
+
+/**
+ * Training Organizations, Phase 2 — the two payout/billing settings
+ * SUPER_ADMIN sets by hand: the Paystack Subaccount code (created
+ * manually in Paystack's own dashboard, where the split percentage
+ * itself is also configured — see TrainingOrganization.
+ * paystackSubaccountCode's own schema comment for why there's no
+ * separate percentage field here) and the "Powered by aaicbi.org"
+ * premium-removal toggle. One inline form on each approved org's own
+ * card, rather than a separate settings page, since it's only two
+ * fields.
+ */
+function PayoutSettings({
+  org,
+  onSaved,
+  showToast,
+}: {
+  org: TrainingOrgDto;
+  onSaved: () => void;
+  showToast: (message: string, variant?: "success" | "error") => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [code, setCode] = useState(org.paystackSubaccountCode ?? "");
+  const [footerRemoved, setFooterRemoved] = useState(org.brandingFooterRemoved);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function startEditing() {
+    setCode(org.paystackSubaccountCode ?? "");
+    setFooterRemoved(org.brandingFooterRemoved);
+    setError(null);
+    setEditing(true);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    setError(null);
+    const res = await fetch(`/api/admin/training-organizations/${org.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        paystackSubaccountCode: code.trim() || null,
+        brandingFooterRemoved: footerRemoved,
+      }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      setError("Could not save. Try again.");
+      return;
+    }
+    setEditing(false);
+    showToast("Payout settings saved.");
+    onSaved();
+  }
+
+  return (
+    <div className="mt-3 rounded-lg border border-brand-gray bg-gray-50 p-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-gray-700">Payout Settings</p>
+        {!editing && (
+          <button onClick={startEditing} className="text-xs font-semibold text-brand-teal hover:underline">
+            Edit
+          </button>
+        )}
+      </div>
+      {!editing && (
+        <p className="mt-1 text-xs text-gray-500">
+          {org.paystackSubaccountCode ? `Subaccount: ${org.paystackSubaccountCode}` : "No Paystack Subaccount set — payments land fully with AAICBI."}
+          {org.brandingFooterRemoved && " · \"Powered by aaicbi.org\" removed"}
+        </p>
+      )}
+      {editing && (
+        <div className="mt-2 space-y-2">
+          <label className="block text-xs text-gray-700">
+            Paystack Subaccount code
+            <input
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="ACCT_xxxxxxxxxxxx"
+              className="mt-1 w-full rounded-lg border border-brand-gray px-2.5 py-1.5 text-sm outline-none focus:border-brand-teal"
+            />
+            <span className="mt-1 block text-[11px] font-normal text-gray-500">
+              Create the Subaccount in Paystack&apos;s own dashboard first (that&apos;s also where its split
+              percentage is set), then paste its code here. Blank means trainee payments for this organization&apos;s
+              courses land entirely with AAICBI, same as any other course.
+            </span>
+          </label>
+          <label className="flex items-center gap-2 text-xs text-gray-700">
+            <input type="checkbox" checked={footerRemoved} onChange={(e) => setFooterRemoved(e.target.checked)} />
+            Remove &quot;Powered by aaicbi.org&quot; from this organization&apos;s certificates (premium)
+          </label>
+          {error && <p className="text-xs text-brand-rose">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+            <button
+              onClick={() => setEditing(false)}
+              className="rounded-lg border border-brand-gray px-3 py-1.5 text-xs font-semibold"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

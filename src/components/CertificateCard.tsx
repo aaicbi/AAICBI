@@ -25,6 +25,11 @@ export interface CertificateCardProps {
     logoUrl: string | null;
     primaryColor: string;
     accentColor: string;
+    /** Training Organizations, Phase 2 — true only for an organization
+     * SUPER_ADMIN has explicitly marked this way (a manually-arranged
+     * premium, see TrainingOrganization.brandingFooterRemoved's own
+     * schema comment), never toggled by the org itself. */
+    hideFooter?: boolean;
   };
 }
 
@@ -104,7 +109,9 @@ export default function CertificateCard({ traineeName, verb, credentialTitle, is
           </Badge>
         </div>
 
-        {branding && <p className="mt-4 text-[10px] uppercase tracking-widest text-gray-400">Powered by aaicbi.org</p>}
+        {branding && !branding.hideFooter && (
+          <p className="mt-4 text-[10px] uppercase tracking-widest text-gray-400">Powered by aaicbi.org</p>
+        )}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { getAnalyticsReportPayload, resolveCourseIdsForSession, VALID_REPORT_DAYS } from "@/lib/analytics/reportData";
+import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
 /**
  * GET /api/admin/analytics?days=30 — the analytics dashboard's one data
@@ -25,6 +26,16 @@ import { getAnalyticsReportPayload, resolveCourseIdsForSession, VALID_REPORT_DAY
 export async function GET(req: NextRequest) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
+
+    // Training Organizations, Phase 2 — a newly-found gap this route
+    // never had: it scopes INSTRUCTOR to their own courses but shows
+    // plain ADMIN the platform-wide picture, which a training-org-backed
+    // ADMIN session must never see. Not in that session's nav (see
+    // ADMIN_NAV_TRAINING_ORG) — same defense-in-depth 404 as the
+    // trainees/showcase routes.
+    if (await findTrainingOrgByStaffUserId(session.userId)) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
 
     const daysParam = Number(req.nextUrl.searchParams.get("days"));
     const days = VALID_REPORT_DAYS.includes(daysParam) ? daysParam : 30;

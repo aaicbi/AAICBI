@@ -3077,6 +3077,21 @@ model TrainingOrganization {
   previousLoginAt DateTime?
   createdAt       DateTime  @default(now())
 
+  // Phase 2 — the Paystack Subaccount a trainee's payment for one of
+  // this org's courses automatically splits into, landing their share
+  // directly instead of AAICBI manually paying them out. Set by
+  // SUPER_ADMIN after creating the Subaccount in Paystack's own
+  // dashboard (the split percentage itself is configured there, as
+  // part of that Subaccount — not duplicated into a field here). Null
+  // means this org's courses are charged exactly as an AAICBI-own
+  // course is today, with no split at all.
+  paystackSubaccountCode String?
+  // Phase 2 — the "Powered by aaicbi.org" certificate footer (see
+  // CertificateCard's own prop) is removed only for an org SUPER_ADMIN
+  // has explicitly marked this way, a manually-arranged premium —
+  // never toggled by the org itself.
+  brandingFooterRemoved  Boolean @default(false)
+
   certificateTemplates CertificateTemplate[]
 
   @@index([approvalState])

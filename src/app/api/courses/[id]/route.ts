@@ -14,9 +14,15 @@ import { buildMarketingView } from "@/lib/courseMarketing";
 import { safeUrl } from "@/lib/materialUrl";
 import { validateCourseSchedule } from "@/lib/courseSchedule";
 import { trackEvent } from "@/lib/analytics/track";
+import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
 const fullTree = {
   createdBy: { select: { name: true } },
+  // Training Organizations, Phase 2 — lets the admin course-builder page
+  // show which template (if any) is currently assigned, without a
+  // second round-trip; see the staff branch below for the full list of
+  // templates it could be reassigned to.
+  certificateTemplate: { select: { id: true, name: true } },
   modules: {
     orderBy: { order: "asc" as const },
     include: {
@@ -107,7 +113,28 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // and reviewing a course *is*. M12 locking is a trainee-facing
     // concept only.
     if (isStaff) {
-      return NextResponse.json(course);
+      // Training Organizations, Phase 2 — the certificate-template
+      // picker only ever appears on a course that belongs to a training
+      // organization (via its shadow staff createdById, see
+      // TrainingOrganization.staffUserId's own schema comment); for
+      // every other course this is simply null and the admin page
+      // renders nothing extra. Visible to whoever is editing the course
+      // — the org's own session, or SUPER_ADMIN reviewing it — not
+      // gated further, since seeing which templates exist for an org
+      // you can already edit this course for isn't a new exposure.
+      const org = await findTrainingOrgByStaffUserId(course.createdById);
+      const trainingOrganization = org
+        ? {
+            id: org.id,
+            name: org.name,
+            availableCertificateTemplates: await prisma.certificateTemplate.findMany({
+              where: { trainingOrganizationId: org.id, approvedAt: { not: null } },
+              orderBy: { createdAt: "desc" },
+              select: { id: true, name: true },
+            }),
+          }
+        : null;
+      return NextResponse.json({ ...course, trainingOrganization });
     }
 
     // Analytics System Phase 1 — a trainee reaching this point has
@@ -419,6 +446,14 @@ const UpdateCourseSchema = z.object({
     .enum(["COMING_SOON", "REGISTRATION_OPEN", "REGISTRATION_CLOSED", "STARTED", "COMPLETED"])
     .nullable()
     .optional(),
+
+  // Training Organizations, Phase 2 — replaces Phase 1's retired
+  // /api/org/courses/[id] PATCH (see that route's own former comment):
+  // the org admin (or SUPER_ADMIN reviewing the course) picks which of
+  // the organization's own approved templates applies here, from the
+  // real course editor now instead of a separate bespoke page. null
+  // clears it back to AAICBI's own default certificate.
+  certificateTemplateId: z.string().nullable().optional(),
 });
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
@@ -434,6 +469,21 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const parsed = UpdateCourseSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    }
+
+    // Training Organizations, Phase 2 — a non-null template id must
+    // belong to the same organization that owns this course (via its
+    // shadow staff createdById) and already be approved. Same
+    // non-oracle 404 either way Phase 1's retired PATCH route used —
+    // never confirms a template id exists but belongs to someone else.
+    if (parsed.data.certificateTemplateId) {
+      const org = await findTrainingOrgByStaffUserId(course.createdById);
+      const template = org
+        ? await prisma.certificateTemplate.findUnique({ where: { id: parsed.data.certificateTemplateId } })
+        : null;
+      if (!template || template.trainingOrganizationId !== org!.id || !template.approvedAt) {
+        return NextResponse.json({ error: "Certificate template not found." }, { status: 404 });
+      }
     }
 
     // Post-M15 milestone — merged with the course's EXISTING state

@@ -80,7 +80,7 @@ export default async function CertificateVerificationPage({ params }: { params: 
               primaryColor: true,
               accentColor: true,
               approvedAt: true,
-              trainingOrganization: { select: { name: true } },
+              trainingOrganization: { select: { name: true, brandingFooterRemoved: true } },
             },
           },
         },
@@ -127,6 +127,7 @@ export default async function CertificateVerificationPage({ params }: { params: 
           logoUrl: assignedTemplate.logoUrl,
           primaryColor: assignedTemplate.primaryColor,
           accentColor: assignedTemplate.accentColor,
+          hideFooter: assignedTemplate.trainingOrganization.brandingFooterRemoved,
         }
       : undefined;
 

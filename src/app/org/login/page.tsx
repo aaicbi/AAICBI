@@ -35,9 +35,12 @@ export default function TrainingOrgLoginPage() {
       return;
     }
     // Hard navigation, not router.push() — see trainee/login/page.tsx's
-    // own comment for the full reasoning: guarantees /org/dashboard
-    // renders fresh with the new session cookie.
-    window.location.href = "/org/dashboard";
+    // own comment for the full reasoning: guarantees /admin/dashboard
+    // renders fresh with the new session cookie. Phase 2 — this now
+    // lands the org in the real admin course-builder instead of
+    // Phase 1's retired bespoke /org/dashboard (see training-org-login's
+    // own comment for why the session itself changed shape).
+    window.location.href = "/admin/dashboard";
   }
 
   return (

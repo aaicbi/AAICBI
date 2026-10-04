@@ -20,6 +20,15 @@ const LoginSchema = z.object({
  * and a not-yet-approved account return the exact same generic error
  * shape (just a different message), so this never confirms an email
  * exists before password verification.
+ *
+ * Phase 2 — the session issued here is now the org's shadow staff
+ * `User` as a real ADMIN session (see TrainingOrganization.staffUserId's
+ * own schema comment), not a standalone TRAINING_ORG session: this is
+ * what lets the org reuse the real admin course-builder directly
+ * instead of Phase 1's bespoke /org/dashboard. An APPROVED org always
+ * has a staffUserId (the decide route's APPROVE branch provisions it
+ * the first time), so the missing-staffUserId branch below is only a
+ * defensive guard against a data inconsistency, never an expected path.
  */
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
@@ -49,7 +58,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  await createSession({ userId: org.id, email: org.email, role: "TRAINING_ORG" });
+  if (!org.staffUserId) {
+    console.error(`Training organization ${org.id} is APPROVED but has no staffUserId — cannot issue a session.`);
+    return NextResponse.json({ error: "Your account isn't fully set up yet. Please contact AAICBI." }, { status: 500 });
+  }
+
+  await createSession({ userId: org.staffUserId, email: org.email, role: "ADMIN" });
   await prisma.trainingOrganization.update({
     where: { id: org.id },
     data: { previousLoginAt: org.lastLoginAt, lastLoginAt: new Date() },

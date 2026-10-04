@@ -106,6 +106,14 @@ interface CourseDto {
   venue: string | null;
   capacity: number | null;
   lifecyclePhaseOverride: "COMING_SOON" | "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "STARTED" | "COMPLETED" | null;
+  // Training Organizations, Phase 2
+  certificateTemplateId: string | null;
+  certificateTemplate: { id: string; name: string } | null;
+  trainingOrganization: {
+    id: string;
+    name: string;
+    availableCertificateTemplates: { id: string; name: string }[];
+  } | null;
 }
 
 /** Parses the { error: { fieldErrors, formErrors } | string } shapes the
@@ -212,6 +220,20 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ qaScope }),
+    });
+    if (!res.ok) return readApiError(res, "Could not save. Try again.");
+    await loadCourse();
+    return null;
+  }
+
+  // Training Organizations, Phase 2 — replaces Phase 1's retired
+  // /org/dashboard assignment UI one-for-one; see UpdateCourseSchema's
+  // own comment on the API side.
+  async function updateCertificateTemplate(certificateTemplateId: string | null): Promise<string | null> {
+    const res = await fetch(`/api/courses/${params.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ certificateTemplateId }),
     });
     if (!res.ok) return readApiError(res, "Could not save. Try again.");
     await loadCourse();
@@ -515,6 +537,15 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
         </div>
 
         <PricingSettings course={course} onSave={updatePricing} showToast={showToast} />
+
+        {course.trainingOrganization && (
+          <CertificateTemplateSettings
+            course={course}
+            trainingOrganization={course.trainingOrganization}
+            onSave={updateCertificateTemplate}
+            showToast={showToast}
+          />
+        )}
 
         <ReminderSettings course={course} onSave={updateReminders} showToast={showToast} />
 
@@ -963,6 +994,71 @@ function PricingSettings({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Training Organizations, Phase 2 — only ever rendered when the course
+// belongs to a training organization (see CourseDto.trainingOrganization's
+// own comment); picks which of that org's own approved templates
+// applies to this course, or AAICBI's default. Same edit/save/error
+// shape as the other settings blocks on this page, but with no
+// edit/view toggle — a single dropdown doesn't need one.
+function CertificateTemplateSettings({
+  course,
+  trainingOrganization,
+  onSave,
+  showToast,
+}: {
+  course: CourseDto;
+  trainingOrganization: { id: string; name: string; availableCertificateTemplates: { id: string; name: string }[] };
+  onSave: (certificateTemplateId: string | null) => Promise<string | null>;
+  showToast: (message: string, variant?: "success" | "error") => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleChange(value: string) {
+    setSaving(true);
+    setError(null);
+    const err = await onSave(value || null);
+    setSaving(false);
+    if (err) {
+      setError(err);
+      return;
+    }
+    showToast("Certificate template saved.");
+  }
+
+  return (
+    <div className="mt-4 rounded-lg border border-brand-gray bg-gray-50 p-4">
+      <p className="text-sm font-semibold text-gray-900">
+        <Icon icon={AchievementIcon} size="sm" className="mr-1 inline align-text-bottom" /> Certificate Template
+      </p>
+      <p className="mt-1 text-xs text-gray-600">
+        This course belongs to <span className="font-medium">{trainingOrganization.name}</span>. Pick which of their
+        approved certificate templates this course&apos;s certificate uses.
+      </p>
+      <select
+        value={course.certificateTemplateId ?? ""}
+        onChange={(e) => handleChange(e.target.value)}
+        disabled={saving || trainingOrganization.availableCertificateTemplates.length === 0}
+        className="mt-2 w-full max-w-xs rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
+      >
+        <option value="">AAICBI default</option>
+        {trainingOrganization.availableCertificateTemplates.map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.name}
+          </option>
+        ))}
+      </select>
+      {trainingOrganization.availableCertificateTemplates.length === 0 && (
+        <p className="mt-2 text-xs text-gray-500">
+          No approved certificate templates yet — this course will use AAICBI&apos;s default certificate until one is
+          ready.
+        </p>
+      )}
+      {error && <p className="mt-2 text-xs text-brand-rose">{error}</p>}
     </div>
   );
 }
