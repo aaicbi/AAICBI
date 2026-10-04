@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { isCoursePubliclyVisible } from "@/lib/courseStatus";
 import { isRegistrationOpen } from "@/lib/courseLifecycle";
+import { hasAvailableTrainingSeat } from "@/lib/trainingOrgSeatCap";
 
 /**
  * POST /api/courses/[id]/enroll — genuinely minimal, on purpose. Just
@@ -76,6 +77,18 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
       // doesn't see a confusing failure for something that already
       // succeeded.
       return NextResponse.json({ enrolled: true });
+    }
+
+    // Direct platform-fee billing — a genuine new FREE enrollment is
+    // exactly the "brand-new trainee" case the seat cap exists to
+    // gate; a PREVIEW row is a courtesy sample, not real access, so it
+    // never consumes or is blocked by a seat (see hasAvailableTrainingSeat's
+    // own comment).
+    if (!isFreePreview && !(await hasAvailableTrainingSeat(params.id, session.userId))) {
+      return NextResponse.json(
+        { error: "This organization has reached its trainee capacity. Contact AAICBI or the organization for more information." },
+        { status: 409 }
+      );
     }
 
     await prisma.courseEnrollment.create({

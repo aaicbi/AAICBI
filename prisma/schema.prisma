@@ -3135,6 +3135,17 @@ model TrainingOrganization {
   // hasCourseAccess's own comment on where this is actually enforced.
   suspendTraineeAccessOnLapse Boolean @default(false)
 
+  // Direct platform-fee billing — a total trainee-seat cap SUPER_ADMIN
+  // negotiates per organization (null means unlimited), and a combined
+  // waiver that lets training continue regardless of EITHER reason
+  // access would otherwise be blocked (an unpaid/lapsed fee, or a full
+  // seat cap) — see hasActivePlatformFeeAccess's and
+  // hasAvailableTrainingSeat's own comments for exactly how each is
+  // enforced. Both freely editable at any time by SUPER_ADMIN, not
+  // fixed at approval.
+  trainingSeatCap   Int?
+  accessBlockWaived Boolean @default(false)
+
   certificateTemplates CertificateTemplate[]
 
   @@index([approvalState])

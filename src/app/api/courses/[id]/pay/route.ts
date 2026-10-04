@@ -6,6 +6,7 @@ import { initializeCoursePayment } from "@/lib/paystack/subscription";
 import { isCoursePubliclyVisible } from "@/lib/courseStatus";
 import { isRegistrationOpen } from "@/lib/courseLifecycle";
 import { getEffectivePriceKobo } from "@/lib/coursePricing";
+import { hasAvailableTrainingSeat } from "@/lib/trainingOrgSeatCap";
 
 /**
  * POST /api/courses/[id]/pay — the paid counterpart to
@@ -93,6 +94,19 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     // correct check, not a behavior change for any of them.
     if (existing && existing.unlockedAt !== null && existing.accessRevokedAt === null && course.accessModel === "RECURRING_SUBSCRIPTION") {
       return NextResponse.json({ error: "You already have access to this course." }, { status: 409 });
+    }
+
+    // Direct platform-fee billing — checked before initializing
+    // checkout at all, so a trainee is told the organization is at
+    // capacity before paying anything, not after. Correctly a no-op
+    // for a trainee who already has real (unlockedAt-set) access to
+    // ANY of this organization's courses, including a renewal here —
+    // see hasAvailableTrainingSeat's own comment.
+    if (!(await hasAvailableTrainingSeat(course.id, trainee.id))) {
+      return NextResponse.json(
+        { error: "This organization has reached its trainee capacity. Contact AAICBI or the organization for more information." },
+        { status: 409 }
+      );
     }
 
     const { authorizationUrl, accessCode, reference } = await initializeCoursePayment(trainee, course);

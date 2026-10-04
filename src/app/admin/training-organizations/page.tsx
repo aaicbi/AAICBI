@@ -27,6 +27,10 @@ interface TrainingOrgDto {
   platformFeeCurrentPeriodEnd: string | null;
   platformFeeAccessRevokedAt: string | null;
   suspendTraineeAccessOnLapse: boolean;
+  // Trainee seat cap + waiver
+  trainingSeatCap: number | null;
+  accessBlockWaived: boolean;
+  activeTraineeCount: number | null;
 }
 
 /**
@@ -288,6 +292,8 @@ function PlatformFeeSettings({
   const [feeNaira, setFeeNaira] = useState(org.platformFeeKobo != null ? String(org.platformFeeKobo / 100) : "");
   const [billingInterval, setBillingInterval] = useState<"MONTHLY" | "QUARTERLY" | "ANNUALLY">(org.platformFeeBillingInterval ?? "MONTHLY");
   const [suspendOnLapse, setSuspendOnLapse] = useState(org.suspendTraineeAccessOnLapse);
+  const [seatCap, setSeatCap] = useState(org.trainingSeatCap != null ? String(org.trainingSeatCap) : "");
+  const [waived, setWaived] = useState(org.accessBlockWaived);
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -297,6 +303,8 @@ function PlatformFeeSettings({
     setFeeNaira(org.platformFeeKobo != null ? String(org.platformFeeKobo / 100) : "");
     setBillingInterval(org.platformFeeBillingInterval ?? "MONTHLY");
     setSuspendOnLapse(org.suspendTraineeAccessOnLapse);
+    setSeatCap(org.trainingSeatCap != null ? String(org.trainingSeatCap) : "");
+    setWaived(org.accessBlockWaived);
     setError(null);
     setEditing(true);
   }
@@ -305,6 +313,7 @@ function PlatformFeeSettings({
     setSaving(true);
     setError(null);
     const platformFeeKobo = feeNaira.trim() === "" ? null : Math.round(Number(feeNaira) * 100);
+    const trainingSeatCap = seatCap.trim() === "" ? null : Math.round(Number(seatCap));
     const res = await fetch(`/api/admin/training-organizations/${org.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -313,6 +322,8 @@ function PlatformFeeSettings({
         platformFeeKobo,
         platformFeeBillingInterval: platformFeeKobo ? billingInterval : null,
         suspendTraineeAccessOnLapse: suspendOnLapse,
+        trainingSeatCap,
+        accessBlockWaived: waived,
       }),
     });
     setSaving(false);
@@ -340,6 +351,9 @@ function PlatformFeeSettings({
 
   const now = Date.now();
   const periodEnd = org.platformFeeCurrentPeriodEnd ? new Date(org.platformFeeCurrentPeriodEnd) : null;
+  // The real, unwaived payment status — still used to decide whether to
+  // show "Confirm Payment Received" below, since waiving access doesn't
+  // change whether a real payment has actually landed.
   const isActive = org.billingModel === "DIRECT_PAYMENT" && org.platformFeeAccessRevokedAt === null && !!periodEnd && periodEnd.getTime() > now;
   const statusLabel =
     org.billingModel !== "DIRECT_PAYMENT"
@@ -349,6 +363,10 @@ function PlatformFeeSettings({
         : isActive
           ? `Active until ${periodEnd!.toLocaleDateString()}`
           : "Not yet paid";
+  const seatUsageLabel =
+    org.billingModel === "DIRECT_PAYMENT" && org.trainingSeatCap
+      ? `${org.activeTraineeCount ?? 0} / ${org.trainingSeatCap} trainees`
+      : null;
 
   return (
     <div className="mt-3 rounded-lg border border-brand-gray bg-gray-50 p-3">
@@ -365,6 +383,10 @@ function PlatformFeeSettings({
           {org.billingModel === "REVENUE_SHARE" ? "Revenue share (see Payout Settings above)" : "Direct payment"}
           {statusLabel && ` · ${statusLabel}`}
           {org.billingModel === "DIRECT_PAYMENT" && org.suspendTraineeAccessOnLapse && " · trainees blocked on lapse"}
+          {seatUsageLabel && ` · ${seatUsageLabel}`}
+          {org.billingModel === "DIRECT_PAYMENT" && org.accessBlockWaived && (
+            <span className="font-semibold text-brand-teal"> · Access blocking waived</span>
+          )}
         </p>
       )}
       {!editing && org.billingModel === "DIRECT_PAYMENT" && !isActive && org.platformFeeKobo && (
@@ -420,6 +442,28 @@ function PlatformFeeSettings({
               <label className="flex items-center gap-2 text-xs text-gray-700">
                 <input type="checkbox" checked={suspendOnLapse} onChange={(e) => setSuspendOnLapse(e.target.checked)} />
                 If payment lapses, also block trainees already enrolled in this organization&apos;s courses
+              </label>
+
+              <label className="block text-xs text-gray-700">
+                Trainee seat cap (blank = unlimited)
+                <input
+                  type="number"
+                  min={1}
+                  value={seatCap}
+                  onChange={(e) => setSeatCap(e.target.value)}
+                  placeholder="e.g. 50"
+                  className="mt-1 w-full max-w-[8rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
+                />
+                <span className="mt-1 block text-[11px] font-normal text-gray-500">
+                  Total trainees this organization can give access to, across all of its courses combined. Can be
+                  raised at any time, including mid-training.
+                </span>
+              </label>
+
+              <label className="flex items-center gap-2 text-xs text-gray-700">
+                <input type="checkbox" checked={waived} onChange={(e) => setWaived(e.target.checked)} />
+                Waive access blocking for this organization (permits training to continue regardless of payment or
+                seat-cap status)
               </label>
             </>
           )}

@@ -7,6 +7,7 @@ import { requireOwnedCourse } from "@/lib/courseOwnership";
 import { notifyByEmail, shouldNotifyTrainee } from "@/lib/notifications/log";
 import { courseAccessGrantedEmail } from "@/lib/notifications/templates";
 import { appUrl } from "@/lib/appUrl";
+import { hasAvailableTrainingSeat } from "@/lib/trainingOrgSeatCap";
 
 const GrantSchema = z.object({ email: z.string().email() });
 
@@ -97,6 +98,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       });
       await notifyGranted(trainee, course.title, params.id);
       return NextResponse.json(reactivated, { status: 200 });
+    }
+
+    // Direct platform-fee billing — a genuinely new trainee for this
+    // course (the reactivation branch above, an existing trainee, is
+    // already handled and returns before this point). See
+    // hasAvailableTrainingSeat's own comment for why a trainee already
+    // active in another of this organization's courses isn't blocked.
+    if (!(await hasAvailableTrainingSeat(params.id, trainee.id))) {
+      return NextResponse.json(
+        { error: "This organization has reached its trainee capacity." },
+        { status: 409 }
+      );
     }
 
     const enrollment = await prisma.courseEnrollment.create({

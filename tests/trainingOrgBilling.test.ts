@@ -8,6 +8,7 @@ describe("hasActivePlatformFeeAccess", () => {
         billingModel: "REVENUE_SHARE",
         platformFeeCurrentPeriodEnd: null,
         platformFeeAccessRevokedAt: new Date(),
+        accessBlockWaived: false,
       })
     ).toBe(true);
   });
@@ -18,6 +19,7 @@ describe("hasActivePlatformFeeAccess", () => {
         billingModel: "DIRECT_PAYMENT",
         platformFeeCurrentPeriodEnd: null,
         platformFeeAccessRevokedAt: null,
+        accessBlockWaived: false,
       })
     ).toBe(false);
   });
@@ -29,6 +31,7 @@ describe("hasActivePlatformFeeAccess", () => {
         billingModel: "DIRECT_PAYMENT",
         platformFeeCurrentPeriodEnd: future,
         platformFeeAccessRevokedAt: null,
+        accessBlockWaived: false,
       })
     ).toBe(true);
   });
@@ -40,6 +43,7 @@ describe("hasActivePlatformFeeAccess", () => {
         billingModel: "DIRECT_PAYMENT",
         platformFeeCurrentPeriodEnd: past,
         platformFeeAccessRevokedAt: null,
+        accessBlockWaived: false,
       })
     ).toBe(false);
   });
@@ -51,7 +55,42 @@ describe("hasActivePlatformFeeAccess", () => {
         billingModel: "DIRECT_PAYMENT",
         platformFeeCurrentPeriodEnd: future,
         platformFeeAccessRevokedAt: new Date(),
+        accessBlockWaived: false,
       })
     ).toBe(false);
+  });
+
+  it("is active for DIRECT_PAYMENT with no period end at all, when waived", () => {
+    expect(
+      hasActivePlatformFeeAccess({
+        billingModel: "DIRECT_PAYMENT",
+        platformFeeCurrentPeriodEnd: null,
+        platformFeeAccessRevokedAt: null,
+        accessBlockWaived: true,
+      })
+    ).toBe(true);
+  });
+
+  it("is active for DIRECT_PAYMENT with a past period end, when waived", () => {
+    const past = new Date(Date.now() - 1000 * 60 * 60 * 24);
+    expect(
+      hasActivePlatformFeeAccess({
+        billingModel: "DIRECT_PAYMENT",
+        platformFeeCurrentPeriodEnd: past,
+        platformFeeAccessRevokedAt: null,
+        accessBlockWaived: true,
+      })
+    ).toBe(true);
+  });
+
+  it("is active for DIRECT_PAYMENT when explicitly revoked, when waived", () => {
+    expect(
+      hasActivePlatformFeeAccess({
+        billingModel: "DIRECT_PAYMENT",
+        platformFeeCurrentPeriodEnd: null,
+        platformFeeAccessRevokedAt: new Date(),
+        accessBlockWaived: true,
+      })
+    ).toBe(true);
   });
 });

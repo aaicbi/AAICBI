@@ -16,6 +16,12 @@ const PatchSchema = z.object({
   platformFeeKobo: z.number().int().positive().nullable().optional(),
   platformFeeBillingInterval: z.enum(["MONTHLY", "QUARTERLY", "ANNUALLY"]).nullable().optional(),
   suspendTraineeAccessOnLapse: z.boolean().optional(),
+  // Trainee seat cap + waiver — freely editable at any time, not fixed
+  // at approval (see TrainingOrganization.trainingSeatCap's own schema
+  // comment). No reset-on-change logic needed, unlike the Paystack Plan
+  // code — neither field feeds a cached external resource.
+  trainingSeatCap: z.number().int().positive().nullable().optional(),
+  accessBlockWaived: z.boolean().optional(),
 });
 
 /**
