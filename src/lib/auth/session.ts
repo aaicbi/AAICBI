@@ -61,7 +61,7 @@ function requireStrongSecret(name: string): string {
   return v;
 }
 
-export type Role = "SUPER_ADMIN" | "ADMIN" | "INSTRUCTOR" | "TRAINEE" | "EMPLOYER" | "INVESTOR";
+export type Role = "SUPER_ADMIN" | "ADMIN" | "INSTRUCTOR" | "TRAINEE" | "EMPLOYER" | "INVESTOR" | "TRAINING_ORG";
 
 export interface SessionPayload {
   userId: string;
@@ -99,6 +99,10 @@ export interface SessionPayload {
 // configured PlatformSettings value below: same category of infrequent
 // external visitor, no reason yet to give it a separate admin-tunable
 // setting of its own.
+// Training Organizations — same infrequent-external-visitor category as
+// Employer/Investor (its own new account type, no reason assumed
+// identical without one, but nothing about it suggests a different
+// session length than those two share).
 const DEFAULT_SESSION_HOURS: Record<Role, number> = {
   SUPER_ADMIN: 12,
   ADMIN: 12,
@@ -106,6 +110,7 @@ const DEFAULT_SESSION_HOURS: Record<Role, number> = {
   TRAINEE: 7 * 24,
   EMPLOYER: 24,
   INVESTOR: 24,
+  TRAINING_ORG: 24,
 };
 
 /**
@@ -125,6 +130,7 @@ async function getSessionDurationHours(role: Role): Promise<number> {
         return settings.traineeSessionDays * 24;
       case "EMPLOYER":
       case "INVESTOR":
+      case "TRAINING_ORG":
         return settings.employerSessionHours;
       default:
         return settings.staffSessionHours;

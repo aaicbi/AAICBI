@@ -76,12 +76,12 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // employer/investor added for the x-pathname header alone (see the
-  // comment above) — they hit the early `withPathname()` return
+  // employer/investor/org added for the x-pathname header alone (see
+  // the comment above) — they hit the early `withPathname()` return
   // immediately below, since isAdminPath/isTraineePath/isExamPath are
   // all false for them: no redirect/token logic newly applies to
-  // these two, their existing page-level auth checks are unaffected.
+  // these, their existing page-level auth checks are unaffected.
   // instructor isn't listed — it has no pre-auth pages at all, so its
   // layout never needs this header (see InstructorLayout's comment).
-  matcher: ["/admin/:path*", "/trainee/:path*", "/exam/:path*", "/employer/:path*", "/investor/:path*"],
+  matcher: ["/admin/:path*", "/trainee/:path*", "/exam/:path*", "/employer/:path*", "/investor/:path*", "/org/:path*"],
 };

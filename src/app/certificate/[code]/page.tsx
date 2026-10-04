@@ -4,13 +4,10 @@ import { rateLimit } from "@/lib/rateLimit";
 import { certificateQrCodeSvg } from "@/lib/certificateQr";
 import { appUrl } from "@/lib/appUrl";
 import SiteHeader from "@/components/SiteHeader";
-import Logo from "@/components/Logo";
 import PrintCertificateButton from "@/components/PrintCertificateButton";
-import Badge from "@/components/ui/Badge";
-import AchievementDoodle from "@/components/doodles/AchievementDoodle";
+import CertificateCard from "@/components/CertificateCard";
 import { XCircle, AlertTriangle } from "lucide-react";
 import Icon from "@/components/ui/Icon";
-import { VerifiedCredentialIcon } from "@/components/icons/brand";
 
 /**
  * M15 — the public certificate verification page. No authentication —
@@ -68,7 +65,26 @@ export default async function CertificateVerificationPage({ params }: { params: 
       issuedAt: true,
       revokedAt: true,
       trainee: { select: { name: true } },
-      course: { select: { title: true, description: true } },
+      course: {
+        select: {
+          title: true,
+          description: true,
+          // Training Organizations, Phase 1 — the org admin's own
+          // chosen template for this course, if any (see Course.
+          // certificateTemplateId's own schema comment). Only
+          // included so the render below can branch on it; an
+          // unapproved template is never used even if assigned.
+          certificateTemplate: {
+            select: {
+              logoUrl: true,
+              primaryColor: true,
+              accentColor: true,
+              approvedAt: true,
+              trainingOrganization: { select: { name: true } },
+            },
+          },
+        },
+      },
       // The name the trainee confirmed when they started the course
       // examination — see Attempt.certificateName's own schema
       // comment. Null for a certificate issued before this field
@@ -98,6 +114,21 @@ export default async function CertificateVerificationPage({ params }: { params: 
           examAttempt: { select: { certificateName: true } },
         },
       });
+
+  // Training Organizations, Phase 1 — only an APPROVED template ever
+  // renders, even if one is assigned; a course pointed at a template
+  // still mid-review shows AAICBI's own default until the org actually
+  // approves it.
+  const assignedTemplate = courseCertificate?.course.certificateTemplate;
+  const branding =
+    assignedTemplate && assignedTemplate.approvedAt
+      ? {
+          organizationName: assignedTemplate.trainingOrganization.name,
+          logoUrl: assignedTemplate.logoUrl,
+          primaryColor: assignedTemplate.primaryColor,
+          accentColor: assignedTemplate.accentColor,
+        }
+      : undefined;
 
   const certificate = courseCertificate
     ? {
@@ -171,90 +202,15 @@ export default async function CertificateVerificationPage({ params }: { params: 
     <>
       <SiteHeader nav={nav} />
       <main className="mx-auto max-w-2xl px-6 py-12 print:py-4">
-        <div
-          // This card is a fixed, printable, shareable document — it
-          // must look identical regardless of the viewer's site theme,
-          // the same way a printed certificate can't have a "dark
-          // mode." The brand-*/gray-* tokens used inside all resolve
-          // through CSS custom properties that flip under the site-wide
-          // `.dark` class (see globals.css), which made the trainee's
-          // name and the Issued/Certificate Code text nearly invisible
-          // against this card's always-white/gold background for
-          // anyone without an explicit `theme=light` cookie — the
-          // default for every first-time, logged-out visitor, i.e.
-          // exactly who a shared verification link is for. Re-pinning
-          // these custom properties to their light-mode values locally
-          // on this subtree fixes every `text-brand-ink`/`text-gray-*`
-          // class inside without touching any of them individually.
-          style={
-            {
-              "--brand-ink": "22 48 43",
-              "--brand-teal": "1 107 97",
-              "--brand-gold": "217 154 52",
-              "--brand-gold-light": "246 232 204",
-              "--gray-400": "156 163 175",
-              "--gray-500": "107 114 128",
-              "--gray-600": "75 85 99",
-            } as React.CSSProperties
-          }
-          className="relative overflow-hidden rounded-2xl border-2 border-brand-gold bg-gradient-to-b from-brand-goldLight/40 via-white to-white p-6 text-center shadow-sm print:border print:shadow-none animate-[modal-in_0.4s_ease-out] sm:p-10"
-        >
-          {/* The achievement doodle sits behind the content, quiet enough
-              not to compete with the name and course title — the one
-              genuinely decorative flourish in this whole redesign,
-              earned by being reserved for this exact moment. */}
-          <AchievementDoodle className="pointer-events-none absolute left-1/2 top-0 h-32 w-32 -translate-x-1/2 -translate-y-4 opacity-90 sm:h-40 sm:w-40 sm:-translate-y-6" />
-
-          <div className="relative pt-20 sm:pt-24">
-            {/* The logo belongs to the certificate DOCUMENT itself, not
-                just the page around it — SiteHeader above already has
-                the mark, but a printed or shared/screenshotted
-                certificate never includes that header, only this card.
-                Without this, the actual credential someone downloads or
-                posts to LinkedIn would carry no AAICBI branding at all. */}
-            <Logo href={null} compact markClassName="h-11 w-11 sm:h-12 sm:w-12" className="justify-center" />
-            <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-brand-teal">
-              Africa&apos;s AI Capacity Building Initiative
-            </p>
-            <p className="mt-6 text-sm text-gray-500">This certifies that</p>
-            <p className="mt-2 font-display text-2xl font-semibold italic text-brand-ink sm:text-4xl">
-              {certificate.traineeName}
-            </p>
-            <p className="mt-4 text-sm text-gray-500">{certificate.verb}</p>
-            <p className="mt-2 font-display text-lg font-semibold text-brand-teal sm:text-xl">
-              {certificate.credentialTitle}
-            </p>
-
-            {/* Responsiveness fix: this used to be a fixed
-                flex-row with no stacking — on a real phone width,
-                the fixed 96px QR code left barely 120px for the
-                "Issued"/"Certificate Code" text next to it, which
-                would wrap illegibly. Stacks on mobile, sits side by
-                side once there's room for it. */}
-            <div className="mt-8 flex flex-col items-center gap-5 sm:flex-row sm:justify-center sm:gap-8">
-              <div className="text-center text-sm text-gray-600 sm:text-left">
-                <p>
-                  <span className="font-semibold text-brand-ink">Issued:</span>{" "}
-                  {certificate.issuedAt.toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })}
-                </p>
-                <p className="mt-1">
-                  <span className="font-semibold text-brand-ink">Certificate Code:</span> {certificate.code}
-                </p>
-              </div>
-              <div
-                className="h-24 w-24 shrink-0 print:h-20 print:w-20"
-                dangerouslySetInnerHTML={{ __html: qrSvg }}
-                aria-label="QR code linking to this verification page"
-              />
-            </div>
-
-            <div className="mt-8 flex justify-center">
-              <Badge variant="gold">
-                <Icon icon={VerifiedCredentialIcon} size="sm" className="mr-1 inline align-text-bottom" /> Verified by AAICBI
-              </Badge>
-            </div>
-          </div>
-        </div>
+        <CertificateCard
+          traineeName={certificate.traineeName}
+          verb={certificate.verb}
+          credentialTitle={certificate.credentialTitle}
+          issuedAt={certificate.issuedAt}
+          code={certificate.code}
+          qrSvg={qrSvg}
+          branding={branding}
+        />
 
         <p className="mt-6 text-center text-xs text-gray-400 print:hidden">
           Anyone with this link can verify this certificate is genuine — no login required.

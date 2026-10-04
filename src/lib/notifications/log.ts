@@ -101,10 +101,18 @@ export type NotificationType =
   // Community Showcase moderation — a trainee's showcase post has been
   // decided. Same pair shape as JOB_POSTING_APPROVED/REJECTED above.
   | "PROJECT_APPROVED"
-  | "PROJECT_REJECTED";
+  | "PROJECT_REJECTED"
+  // Training Organizations, Phase 1 — same pair-plus-pending shape as
+  // NEW_EMPLOYER_PENDING/EMPLOYER_APPROVED/EMPLOYER_REJECTED.
+  | "NEW_TRAINING_ORG_PENDING"
+  | "TRAINING_ORG_APPROVED"
+  | "TRAINING_ORG_REJECTED"
+  // A SUPER_ADMIN finished designing a certificate template and sent it
+  // to the organization for review via the share link.
+  | "CERTIFICATE_TEMPLATE_READY";
 
 export interface NotifyByEmailInput {
-  recipientType: "TRAINEE" | "STAFF" | "EMPLOYER" | "INVESTOR";
+  recipientType: "TRAINEE" | "STAFF" | "EMPLOYER" | "INVESTOR" | "TRAINING_ORG";
   recipientId: string;
   to: string;
   type: NotificationType;

@@ -738,6 +738,73 @@ export function employerRejectedEmail(input: EmployerDecisionEmailInput): EmailC
 }
 
 /**
+ * Training Organizations, Phase 1 — the same pending/approved/rejected
+ * trio Employer already has above, for a training organization's own
+ * self-registration. The one real behavioral difference lives at the
+ * login route, not here: a training organization can't log in at all
+ * until approved, so trainingOrgApprovedEmail's link is the first time
+ * sign-in genuinely works, not just a status-page bounce.
+ */
+export interface NewTrainingOrgPendingEmailInput {
+  organizationName: string;
+  reviewUrl: string;
+}
+export function newTrainingOrgPendingEmail(input: NewTrainingOrgPendingEmailInput): EmailContent {
+  return {
+    subject: `New training organization awaiting review: ${input.organizationName}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;"><strong>${escapeHtml(input.organizationName)}</strong> has registered as a training organization and is awaiting review.</p>
+      ${button(input.reviewUrl, "Review Training Organizations")}
+    `),
+    text: `${input.organizationName} has registered as a training organization and is awaiting review.\n\n${input.reviewUrl}`,
+  };
+}
+
+export interface TrainingOrgDecisionEmailInput {
+  contactName: string;
+  loginUrl: string;
+}
+export function trainingOrgApprovedEmail(input: TrainingOrgDecisionEmailInput): EmailContent {
+  return {
+    subject: "Your AAICBI training organization account is approved",
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(input.contactName)},</p>
+      <p style="margin:0 0 16px;">Your training organization account has been approved. You can now sign in to your dashboard.</p>
+      ${button(input.loginUrl, "Sign In")}
+    `),
+    text: `Hi ${input.contactName},\n\nYour training organization account has been approved. You can now sign in to your dashboard.\n\n${input.loginUrl}`,
+  };
+}
+export function trainingOrgRejectedEmail(input: TrainingOrgDecisionEmailInput): EmailContent {
+  return {
+    subject: "Update on your AAICBI training organization account",
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(input.contactName)},</p>
+      <p style="margin:0 0 16px;">Your training organization account application wasn't approved at this time. If you believe this is a mistake, please contact support.</p>
+    `),
+    text: `Hi ${input.contactName},\n\nYour training organization account application wasn't approved at this time. If you believe this is a mistake, please contact support.`,
+  };
+}
+
+export interface CertificateTemplateReadyEmailInput {
+  organizationName: string;
+  templateName: string;
+  reviewUrl: string;
+}
+export function certificateTemplateReadyEmail(input: CertificateTemplateReadyEmailInput): EmailContent {
+  return {
+    subject: `Your certificate template "${input.templateName}" is ready to review`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(input.organizationName)},</p>
+      <p style="margin:0 0 16px;">We've designed a certificate template for your courses — take a look and let us know it's good to go.</p>
+      ${button(input.reviewUrl, "Review Your Certificate")}
+      <p style="margin:0;font-size:13px;color:#666;">Anyone with this link can view the preview; approving it is a one-time action.</p>
+    `),
+    text: `Hi ${input.organizationName},\n\nWe've designed a certificate template for your courses — take a look and let us know it's good to go.\n\n${input.reviewUrl}`,
+  };
+}
+
+/**
  * Pitch & Post, Phase 2 — the investor counterparts to the three
  * Employer decision/pending templates directly above.
  */

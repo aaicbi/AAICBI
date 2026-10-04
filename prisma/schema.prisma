@@ -318,6 +318,13 @@ model User {
   // member has personally approved or rejected. Same audit-trail
   // reasoning as jobPostingsReviewed above.
   projectsReviewed Project[]
+  // Training Organizations, Phase 1 — every org this staff member has
+  // personally approved/rejected, same audit-trail reasoning as the
+  // relations above. Named relation since User also relates to
+  // TrainingOrganization the other way (staffUserId, below) — a User
+  // can appear on both sides.
+  trainingOrganizationsApproved TrainingOrganization[]
+  trainingOrgAsStaffUser        TrainingOrganization?  @relation("TrainingOrgStaffUser")
   // Universal profile system, Phase 3 — same audit-trail reasoning as
   // the relations above: every profile report this staff member has
   // personally decided, not an untracked backdoor.
@@ -1243,6 +1250,15 @@ model Course {
   createdBy   User     @relation(fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // Training Organizations, Phase 1 — an organization's own branded
+  // certificate (logo/colors), picked by the org admin themselves on
+  // their own dashboard from their own approved templates. Nullable:
+  // no template means the certificate page's existing AAICBI default
+  // renders completely unchanged, exactly as it did before this field
+  // existed.
+  certificateTemplateId String?
+  certificateTemplate   CertificateTemplate? @relation(fields: [certificateTemplateId], references: [id])
 
   // Instructor Portal, Phase 1 — the individually-negotiated payout
   // arrangement for this course's instructor (Course.createdById is
@@ -3017,6 +3033,79 @@ model EnrollmentRecord {
 // times has this specific certificate been shared" and "which
 // disclosures include a since-revoked certificate" answerable
 // queries, not just implicit in an opaque list.
+
+// Training Organizations, Phase 1 — a fourth genuinely new account type,
+// same "no open self-signup, real staff approval" discipline as
+// Employer/Investor. A training organization runs its own training on
+// this platform (unlisted courses, reachable only by their own
+// trainees) with custom-branded certificates. Login is deliberately
+// blocked entirely until APPROVED (see training-org-login's own
+// comment) — a real departure from how Employer/Investor logins work,
+// which let a PENDING account log in to a status page.
+enum TrainingOrganizationApprovalState {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model TrainingOrganization {
+  id            String                             @id @default(cuid())
+  name          String
+  contactName   String
+  email         String                             @unique
+  passwordHash  String
+  phone         String?
+  website       String?
+  logoUrl       String?
+  approvalState TrainingOrganizationApprovalState @default(PENDING)
+  approvedById  String?
+  approvedBy    User?                              @relation(fields: [approvedById], references: [id])
+  approvedAt    DateTime?
+  // Phase-2 enabler, unused by any Phase-1 feature — a dedicated,
+  // login-disabled staff User row this org's courses are attributed to
+  // internally. Course.createdById is a required FK to User everywhere
+  // else in the app; rather than widen that across the whole codebase
+  // now, each approved org gets one shadow ADMIN account it "owns"
+  // (created by the decide route's APPROVE branch), so every existing
+  // course/exam/certificate/analytics query keeed off createdById
+  // keeps working completely unchanged for a training org's courses.
+  staffUserId   String?   @unique
+  staffUser     User?     @relation("TrainingOrgStaffUser", fields: [staffUserId], references: [id])
+  resetToken          String?   @unique
+  resetTokenExpiresAt DateTime?
+  lastLoginAt     DateTime?
+  previousLoginAt DateTime?
+  createdAt       DateTime  @default(now())
+
+  certificateTemplates CertificateTemplate[]
+
+  @@index([approvalState])
+}
+
+// Community Showcase moderation's ProjectMedia/JobPostingMedia both
+// established "a real child row per file, not a JSON array" for
+// repeatable media — this template only ever has one logo, so a plain
+// nullable `logoUrl` on the template itself is the honest shape, not a
+// one-row child table.
+model CertificateTemplate {
+  id                     String               @id @default(cuid())
+  trainingOrganizationId String
+  trainingOrganization   TrainingOrganization @relation(fields: [trainingOrganizationId], references: [id], onDelete: Cascade)
+  name         String // e.g. "Default", "2026 Bootcamp"
+  logoUrl      String?
+  primaryColor String // hex, e.g. "#016B61"
+  accentColor  String // hex
+  // Single-use share-link review — see the public review page's own
+  // comment. The VIEW stays reachable forever via this token; the
+  // Approve action is the one-time part, guarded by approvedAt below.
+  reviewToken String    @unique
+  approvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  courses Course[]
+
+  @@index([trainingOrganizationId])
+}
 
 enum EmployerApprovalState {
   PENDING

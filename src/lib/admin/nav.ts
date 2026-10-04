@@ -43,6 +43,10 @@ export const ADMIN_NAV = [
   // Community Showcase moderation — general content review, alongside
   // Courses/Exams, not a staff/pitch/command-specific concern.
   { label: "Showcase", href: "/admin/showcase" },
+  // Training Organizations, Phase 1 — a platform-wide trust/account
+  // decision (same reasoning as Employer/Investor already in this
+  // list's own precedent), general enough for the default cluster.
+  { label: "Training Organizations", href: "/admin/training-organizations" },
   { label: "Settings", href: "/admin/settings" },
 ];
 
