@@ -70,6 +70,12 @@ export default async function LandingPage() {
       <SiteHeader
         nav={[
           { label: "Verify a Certificate", href: "/certificate" },
+          // Links to the "For Organizations" section lower on this same
+          // page (#for-organizations) rather than straight to
+          // /org/register or /org/login — unlike Employer/Staff Login,
+          // there are two real actions here (register or sign in), so
+          // the nav link surfaces the choice instead of guessing one.
+          { label: "Training Organizations", href: "#for-organizations" },
           { label: "Employer Login", href: "/employer/login" },
           { label: "Staff Login", href: "/admin/login" },
         ]}
@@ -152,7 +158,7 @@ export default async function LandingPage() {
             /org/login) already existed and worked — nothing anywhere on
             the public site ever linked to them, so reaching this flow
             required already knowing the exact URL. */}
-        <section className="border-t border-brand-gray bg-brand-mint/30">
+        <section id="for-organizations" className="border-t border-brand-gray bg-brand-mint/30">
           <div className="mx-auto grid max-w-5xl grid-cols-1 items-center gap-10 px-6 py-16 sm:grid-cols-2">
             <div className="order-2 sm:order-1">
               <span className="text-xs font-semibold uppercase tracking-widest text-brand-teal">For Organizations</span>
