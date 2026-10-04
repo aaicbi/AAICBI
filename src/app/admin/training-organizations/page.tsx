@@ -20,6 +20,13 @@ interface TrainingOrgDto {
   // Training Organizations, Phase 2
   paystackSubaccountCode: string | null;
   brandingFooterRemoved: boolean;
+  // Direct platform-fee billing
+  billingModel: "REVENUE_SHARE" | "DIRECT_PAYMENT";
+  platformFeeKobo: number | null;
+  platformFeeBillingInterval: "MONTHLY" | "QUARTERLY" | "ANNUALLY" | null;
+  platformFeeCurrentPeriodEnd: string | null;
+  platformFeeAccessRevokedAt: string | null;
+  suspendTraineeAccessOnLapse: boolean;
 }
 
 /**
@@ -135,6 +142,7 @@ export default function AdminTrainingOrganizationsPage() {
                       {o.certificateTemplates.length > 0 && ` (${o.certificateTemplates.length})`} →
                     </a>
                     <PayoutSettings org={o} onSaved={load} showToast={showToast} />
+                    <PlatformFeeSettings org={o} onSaved={load} showToast={showToast} />
                   </>
                 )}
               </Card>
@@ -236,6 +244,186 @@ function PayoutSettings({
             <input type="checkbox" checked={footerRemoved} onChange={(e) => setFooterRemoved(e.target.checked)} />
             Remove &quot;Powered by aaicbi.org&quot; from this organization&apos;s certificates (premium)
           </label>
+          {error && <p className="text-xs text-brand-rose">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+            <button
+              onClick={() => setEditing(false)}
+              className="rounded-lg border border-brand-gray px-3 py-1.5 text-xs font-semibold"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Direct platform-fee billing — the second, mutually-exclusive revenue
+ * model: instead of the Paystack Subaccount split above, the
+ * organization pays AAICBI a recurring fee directly. The billing-model
+ * selector is always visible (SUPER_ADMIN can correct what the org
+ * picked at registration); the fee/interval/status/confirm-payment
+ * controls only matter once DIRECT_PAYMENT is selected.
+ */
+function PlatformFeeSettings({
+  org,
+  onSaved,
+  showToast,
+}: {
+  org: TrainingOrgDto;
+  onSaved: () => void;
+  showToast: (message: string, variant?: "success" | "error") => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [billingModel, setBillingModel] = useState(org.billingModel);
+  const [feeNaira, setFeeNaira] = useState(org.platformFeeKobo != null ? String(org.platformFeeKobo / 100) : "");
+  const [billingInterval, setBillingInterval] = useState<"MONTHLY" | "QUARTERLY" | "ANNUALLY">(org.platformFeeBillingInterval ?? "MONTHLY");
+  const [suspendOnLapse, setSuspendOnLapse] = useState(org.suspendTraineeAccessOnLapse);
+  const [saving, setSaving] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function startEditing() {
+    setBillingModel(org.billingModel);
+    setFeeNaira(org.platformFeeKobo != null ? String(org.platformFeeKobo / 100) : "");
+    setBillingInterval(org.platformFeeBillingInterval ?? "MONTHLY");
+    setSuspendOnLapse(org.suspendTraineeAccessOnLapse);
+    setError(null);
+    setEditing(true);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    setError(null);
+    const platformFeeKobo = feeNaira.trim() === "" ? null : Math.round(Number(feeNaira) * 100);
+    const res = await fetch(`/api/admin/training-organizations/${org.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        billingModel,
+        platformFeeKobo,
+        platformFeeBillingInterval: platformFeeKobo ? billingInterval : null,
+        suspendTraineeAccessOnLapse: suspendOnLapse,
+      }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      setError("Could not save. Try again.");
+      return;
+    }
+    setEditing(false);
+    showToast("Billing settings saved.");
+    onSaved();
+  }
+
+  async function handleConfirmPayment() {
+    setConfirming(true);
+    const res = await fetch(`/api/admin/training-organizations/${org.id}/confirm-platform-fee`, { method: "POST" });
+    setConfirming(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showToast(typeof data.error === "string" ? data.error : "Could not confirm payment.", "error");
+      return;
+    }
+    showToast("Payment confirmed — access is active.");
+    onSaved();
+  }
+
+  const now = Date.now();
+  const periodEnd = org.platformFeeCurrentPeriodEnd ? new Date(org.platformFeeCurrentPeriodEnd) : null;
+  const isActive = org.billingModel === "DIRECT_PAYMENT" && org.platformFeeAccessRevokedAt === null && !!periodEnd && periodEnd.getTime() > now;
+  const statusLabel =
+    org.billingModel !== "DIRECT_PAYMENT"
+      ? null
+      : org.platformFeeAccessRevokedAt
+        ? `Access revoked ${new Date(org.platformFeeAccessRevokedAt).toLocaleDateString()}`
+        : isActive
+          ? `Active until ${periodEnd!.toLocaleDateString()}`
+          : "Not yet paid";
+
+  return (
+    <div className="mt-3 rounded-lg border border-brand-gray bg-gray-50 p-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-gray-700">Platform Fee Billing</p>
+        {!editing && (
+          <button onClick={startEditing} className="text-xs font-semibold text-brand-teal hover:underline">
+            Edit
+          </button>
+        )}
+      </div>
+      {!editing && (
+        <p className="mt-1 text-xs text-gray-500">
+          {org.billingModel === "REVENUE_SHARE" ? "Revenue share (see Payout Settings above)" : "Direct payment"}
+          {statusLabel && ` · ${statusLabel}`}
+          {org.billingModel === "DIRECT_PAYMENT" && org.suspendTraineeAccessOnLapse && " · trainees blocked on lapse"}
+        </p>
+      )}
+      {!editing && org.billingModel === "DIRECT_PAYMENT" && !isActive && org.platformFeeKobo && (
+        <button
+          onClick={handleConfirmPayment}
+          disabled={confirming}
+          className="mt-2 rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+        >
+          {confirming ? "Confirming..." : "Confirm Payment Received"}
+        </button>
+      )}
+
+      {editing && (
+        <div className="mt-2 space-y-2">
+          <div className="flex gap-4 text-xs text-gray-700">
+            <label className="flex items-center gap-1.5">
+              <input type="radio" checked={billingModel === "REVENUE_SHARE"} onChange={() => setBillingModel("REVENUE_SHARE")} />
+              Revenue share
+            </label>
+            <label className="flex items-center gap-1.5">
+              <input type="radio" checked={billingModel === "DIRECT_PAYMENT"} onChange={() => setBillingModel("DIRECT_PAYMENT")} />
+              Direct payment
+            </label>
+          </div>
+
+          {billingModel === "DIRECT_PAYMENT" && (
+            <>
+              <div className="flex flex-wrap gap-3">
+                <label className="block text-xs text-gray-700">
+                  Platform fee (₦)
+                  <input
+                    type="number"
+                    min={1}
+                    value={feeNaira}
+                    onChange={(e) => setFeeNaira(e.target.value)}
+                    placeholder="e.g. 50000"
+                    className="mt-1 w-full max-w-[10rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
+                  />
+                </label>
+                <label className="block text-xs text-gray-700">
+                  Billing interval
+                  <select
+                    value={billingInterval}
+                    onChange={(e) => setBillingInterval(e.target.value as "MONTHLY" | "QUARTERLY" | "ANNUALLY")}
+                    className="mt-1 block w-full max-w-[10rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
+                  >
+                    <option value="MONTHLY">Monthly</option>
+                    <option value="QUARTERLY">Quarterly</option>
+                    <option value="ANNUALLY">Annually</option>
+                  </select>
+                </label>
+              </div>
+              <label className="flex items-center gap-2 text-xs text-gray-700">
+                <input type="checkbox" checked={suspendOnLapse} onChange={(e) => setSuspendOnLapse(e.target.checked)} />
+                If payment lapses, also block trainees already enrolled in this organization&apos;s courses
+              </label>
+            </>
+          )}
+
           {error && <p className="text-xs text-brand-rose">{error}</p>}
           <div className="flex gap-2">
             <button

@@ -4,12 +4,16 @@ import { verifyPaystackSignature } from "@/lib/paystack/verifySignature";
 import { redactPaystackPayloadForStorage } from "@/lib/paystack/redact";
 import { processConfirmedCharge } from "@/lib/paystack/reconcile";
 import { findEnrollmentForSubscriptionEvent } from "@/lib/paystack/correlate";
+import { findTrainingOrgForSubscriptionEvent } from "@/lib/paystack/correlateOrgBilling";
 import { notifyByEmail, shouldNotifyTrainee } from "@/lib/notifications/log";
+import { notifyAllAdminStaff } from "@/lib/notifications/notifyAllAdminStaff";
 import {
   paymentFailedEmail,
   subscriptionEndingEmail,
   subscriptionEndedEmail,
+  platformFeeAccessRevokedEmail,
 } from "@/lib/notifications/templates";
+import { appUrl } from "@/lib/appUrl";
 
 /**
  * POST /api/webhooks/paystack — built and hardened first, per the
@@ -130,7 +134,18 @@ export async function POST(req: NextRequest) {
             data: { paystackSubscriptionCode: subscriptionCode },
           });
         } else {
-          console.error(`subscription.create for reference ${reference}: no matching enrollment found to record subscription_code ${subscriptionCode} against.`);
+          // Direct platform-fee billing — the same event, for a
+          // training organization's own platform-fee subscription
+          // instead of a trainee's course enrollment.
+          const org = await findTrainingOrgForSubscriptionEvent(d, false);
+          if (org) {
+            await prisma.trainingOrganization.update({
+              where: { id: org.id },
+              data: { platformFeePaystackSubscriptionCode: subscriptionCode },
+            });
+          } else {
+            console.error(`subscription.create for reference ${reference}: no matching enrollment or training organization found to record subscription_code ${subscriptionCode} against.`);
+          }
         }
       }
     } catch (e) {
@@ -150,7 +165,17 @@ export async function POST(req: NextRequest) {
     try {
       const enrollment = await findEnrollmentForSubscriptionEvent(data as Record<string, unknown>, true);
       if (!enrollment) {
-        console.error(`subscription.not_renew for reference ${reference}: no matching enrollment found.`);
+        // Direct platform-fee billing — same courtesy-notice reasoning
+        // as the trainee case below, but for a training organization's
+        // own platform-fee subscription; log-only, since
+        // subscription.disable (not this event) is the real revoke
+        // trigger either way.
+        const org = await findTrainingOrgForSubscriptionEvent(data as Record<string, unknown>, true);
+        if (org) {
+          console.log(`subscription.not_renew for reference ${reference}: training organization ${org.id}'s platform-fee subscription won't renew — access continues until the current period ends.`);
+        } else {
+          console.error(`subscription.not_renew for reference ${reference}: no matching enrollment or training organization found.`);
+        }
       } else {
         const [trainee, course, enrollmentRow] = await Promise.all([
           prisma.trainee.findUnique({ where: { id: enrollment.traineeId } }),
@@ -199,12 +224,49 @@ export async function POST(req: NextRequest) {
     try {
       const enrollment = await findEnrollmentForSubscriptionEvent(data as Record<string, unknown>, true);
       if (!enrollment) {
-        // Never a silent miss for the most consequential event this
-        // webhook handles — a real staff member needs to be able to
-        // find this in logs and manually revoke access if correlation
-        // genuinely failed, rather than access quietly continuing
-        // forever with no billing behind it.
-        console.error(`ACTION NEEDED: subscription.disable for reference ${reference} could not be correlated to any enrollment — access was NOT revoked automatically. Manual staff review required.`);
+        // Direct platform-fee billing — the actual revoke trigger for a
+        // training organization's own platform-fee subscription,
+        // mirroring the trainee branch below: sets
+        // platformFeeAccessRevokedAt (hasActivePlatformFeeAccess then
+        // correctly reports this org as inactive), notifies the
+        // organization by email, and notifies admin staff so they can
+        // follow up — same "never a silent miss" discipline as the
+        // trainee case's own comment, just for a different subject.
+        const org = await findTrainingOrgForSubscriptionEvent(data as Record<string, unknown>, true);
+        if (!org) {
+          console.error(`ACTION NEEDED: subscription.disable for reference ${reference} could not be correlated to any enrollment or training organization — access was NOT revoked automatically. Manual staff review required.`);
+        } else {
+          const updatedOrg = await prisma.trainingOrganization.update({
+            where: { id: org.id },
+            data: { platformFeeAccessRevokedAt: new Date() },
+            select: { id: true, name: true, contactName: true, email: true },
+          });
+          const content = platformFeeAccessRevokedEmail({
+            contactName: updatedOrg.contactName,
+            billingUrl: appUrl("/org/billing"),
+          });
+          await notifyByEmail({
+            recipientType: "TRAINING_ORG",
+            recipientId: updatedOrg.id,
+            to: updatedOrg.email,
+            type: "PLATFORM_FEE_ACCESS_REVOKED",
+            url: "/org/billing",
+            subject: content.subject,
+            html: content.html,
+            text: content.text,
+          }).catch(() => {});
+          await notifyAllAdminStaff(
+            "PLATFORM_FEE_ACCESS_REVOKED",
+            updatedOrg.id,
+            {
+              subject: `Platform Fee Lapsed: ${updatedOrg.name}`,
+              html: `<p>Training organization <strong>${updatedOrg.name}</strong>'s platform-fee subscription was disabled (reference ${reference}) — their admin access is now blocked until renewed or manually confirmed.</p>`,
+              text: `Training organization ${updatedOrg.name}'s platform-fee subscription was disabled (reference ${reference}) — their admin access is now blocked until renewed or manually confirmed.`,
+            },
+            "/admin/training-organizations"
+          ).catch(() => {});
+          console.log(`Platform-fee access revoked: training organization ${updatedOrg.id}, reference ${reference}.`);
+        }
       } else {
         await prisma.courseEnrollment.update({
           where: { id: enrollment.id },
@@ -267,7 +329,17 @@ export async function POST(req: NextRequest) {
 
       const enrollment = await findEnrollmentForSubscriptionEvent(data as Record<string, unknown>, false);
       if (!enrollment) {
-        console.error(`invoice.payment_failed for reference ${reference}: no matching enrollment found — no notification sent.`);
+        // Direct platform-fee billing — same courtesy-only reasoning as
+        // the trainee case below: Paystack retries automatically,
+        // subscription.disable is the real revoke trigger, so this is
+        // log-only for a training organization's own platform-fee
+        // subscription too.
+        const org = await findTrainingOrgForSubscriptionEvent(data as Record<string, unknown>, false);
+        if (org) {
+          console.log(`invoice.payment_failed for reference ${reference}: training organization ${org.id}'s platform-fee renewal attempt failed — Paystack will retry automatically.`);
+        } else {
+          console.error(`invoice.payment_failed for reference ${reference}: no matching enrollment or training organization found — no notification sent.`);
+        }
       } else {
         const [trainee, course] = await Promise.all([
           prisma.trainee.findUnique({ where: { id: enrollment.traineeId } }),

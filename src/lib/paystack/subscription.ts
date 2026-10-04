@@ -159,10 +159,16 @@ export async function initializeCoursePayment(
   // Subaccount code configured yet (or an AAICBI-own course, where
   // createdById resolves to no organization at all) takes the exact
   // same path as before — no `subaccount`/`bearer` sent at all.
+  // Direct platform-fee billing — a DIRECT_PAYMENT organization keeps
+  // 100% of what its trainees pay it (that's the whole point of paying
+  // AAICBI a flat fee instead), so the split never applies for one even
+  // if a Subaccount code happens to still be configured from before the
+  // organization switched models.
   const org = course.createdById ? await findTrainingOrgByStaffUserId(course.createdById) : null;
-  const splitFields = org?.paystackSubaccountCode
-    ? { subaccount: org.paystackSubaccountCode, bearer: "account" as const }
-    : {};
+  const splitFields =
+    org?.billingModel === "REVENUE_SHARE" && org.paystackSubaccountCode
+      ? { subaccount: org.paystackSubaccountCode, bearer: "account" as const }
+      : {};
 
   const res = await fetch("https://api.paystack.co/transaction/initialize", {
     method: "POST",

@@ -16,6 +16,12 @@ const RegisterSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters."),
   phone: z.string().optional().or(z.literal("")),
   website: safeUrl.optional().or(z.literal("")),
+  // Direct platform-fee billing — the organization's stated preference
+  // between the two mutually-exclusive revenue models, just a signal
+  // for SUPER_ADMIN to act on during review (the actual fee or split
+  // percentage is negotiated and configured after approval, never
+  // collected here).
+  billingModel: z.enum(["REVENUE_SHARE", "DIRECT_PAYMENT"]),
 });
 
 /**
@@ -59,6 +65,7 @@ export async function POST(req: NextRequest) {
         passwordHash,
         phone: parsed.data.phone || null,
         website: parsed.data.website || null,
+        billingModel: parsed.data.billingModel,
       },
     });
 

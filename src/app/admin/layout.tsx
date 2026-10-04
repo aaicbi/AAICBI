@@ -1,10 +1,12 @@
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { SidebarActiveProvider } from "@/components/SidebarActiveContext";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import { pageHasSidebar } from "@/lib/sidebarRoutes";
 import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
+import { hasActivePlatformFeeAccess } from "@/lib/trainingOrgBilling";
 
 // Same allow-list every admin page's own getSession()-then-redirect()
 // check already uses (e.g. src/app/admin/dashboard/page.tsx) — this
@@ -64,6 +66,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // why this is cosmetic, not the security boundary.
   const trainingOrg =
     session.role === "ADMIN" ? await findTrainingOrgByStaffUserId(session.userId) : null;
+
+  // Direct platform-fee billing — the page-level UX counterpart to
+  // requireRole's own API-level gate (session.ts): a billing-gated
+  // organization never sees the admin sidebar/content at all, just a
+  // clear status page instead of a confusing 403 on every click. The
+  // real security boundary is requireRole; this is what makes the
+  // experience make sense.
+  if (trainingOrg && !hasActivePlatformFeeAccess(trainingOrg)) {
+    redirect("/org/billing");
+  }
 
   return (
     <SidebarActiveProvider>

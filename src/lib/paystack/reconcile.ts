@@ -34,12 +34,19 @@ import { notifyAllAdminStaff } from "@/lib/notifications/notifyAllAdminStaff";
 import { likelyDuplicatePaymentEmail, paymentReceiptEmail } from "@/lib/notifications/templates";
 import { grantAiCreditsForPayment } from "@/lib/paystack/aiCredits";
 import { getEffectivePriceKobo } from "@/lib/coursePricing";
+import { processConfirmedPlatformFeeCharge, ProcessPlatformFeeChargeResult } from "@/lib/paystack/reconcileOrgBilling";
 
 export type ProcessChargeResult =
   | { status: "granted"; traineeId: string; courseId: string }
   | { status: "no_metadata" }
   | { status: "invalid_course"; courseId: string }
-  | { status: "not_genuine"; detail: string; traineeId: string; courseId: string };
+  | { status: "not_genuine"; detail: string; traineeId: string; courseId: string }
+  // Direct platform-fee billing — a charge.success for a training
+  // organization's own platform fee, not a trainee/course payment at
+  // all. Delegated entirely to processConfirmedPlatformFeeCharge (see
+  // the early branch below); this variant just carries its result back
+  // through the one return type every caller of this function expects.
+  | { status: "platform_fee"; result: ProcessPlatformFeeChargeResult };
 
 type PaidCourse = {
   id: string;
@@ -186,6 +193,22 @@ export async function processConfirmedCharge(reference: string): Promise<Process
   const verified = await verifyPaystackTransaction(reference);
 
   const metadata = verified.data.metadata;
+
+  // Direct platform-fee billing — a training organization's own
+  // platform-fee charge carries a completely different metadata shape
+  // ({ trainingOrganizationId, type: "platform_fee", amountKobo }, set
+  // by initializePlatformFeePayment/orgBilling.ts) than a trainee/course
+  // payment. Checked first and delegated entirely, before any of the
+  // trainee/course logic below — including the bank-transfer metadata
+  // fallback further down, which would otherwise misinterpret this as
+  // "incomplete trainee metadata" and fail with no_metadata.
+  const metaTrainingOrgId = metadata && typeof metadata.trainingOrganizationId === "string" ? metadata.trainingOrganizationId : null;
+  if (metaTrainingOrgId) {
+    const metaFeeAmountKobo = metadata && typeof metadata.amountKobo === "number" ? metadata.amountKobo : verified.data.amount;
+    const result = await processConfirmedPlatformFeeCharge(verified, metaTrainingOrgId, metaFeeAmountKobo);
+    return { status: "platform_fee", result };
+  }
+
   const metaTraineeId = metadata && typeof metadata.traineeId === "string" ? metadata.traineeId : null;
   const metaCourseId = metadata && typeof metadata.courseId === "string" ? metadata.courseId : null;
   const metaAmountKobo = metadata && typeof metadata.amountKobo === "number" ? metadata.amountKobo : null;

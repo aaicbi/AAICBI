@@ -12,18 +12,40 @@ import { notifyByEmail, shouldNotifyTrainee } from "@/lib/notifications/log";
 import { subscriptionEndedEmail } from "@/lib/notifications/templates";
 import { isCoursePubliclyVisible } from "@/lib/courseStatus";
 import { isModuleIndexInFreePreview } from "@/lib/courseAccessCore";
+import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
+import { hasActivePlatformFeeAccess } from "@/lib/trainingOrgBilling";
 import type { CourseStatus } from "@prisma/client";
 
 /** True only when a real, unlocked, non-revoked CourseEnrollment row
  * exists for this trainee and course — the exact same condition
  * `checkInactivityForCourse` (M38) already uses to decide who counts
- * as "really" enrolled, not a new, separately-invented definition. */
+ * as "really" enrolled, not a new, separately-invented definition.
+ *
+ * Direct platform-fee billing — one additive check layered on top,
+ * deliberately placed AFTER the enrollment lookup so it only runs on
+ * the path that would otherwise grant access: an AAICBI-own course, or
+ * a trainee who's already denied for an unrelated reason, pays zero
+ * extra cost. A training organization's own SUPER_ADMIN discretion call
+ * (TrainingOrganization.suspendTraineeAccessOnLapse, off by default) —
+ * when on, trainees already enrolled in that organization's courses
+ * lose access while its own platform-fee payment is lapsed, same as the
+ * organization's own admin access already does (see requireRole's own
+ * comment). Every caller of this function (canTraineeAccessCourse,
+ * requireCourseAccess, module/lesson/material/exam access checks)
+ * inherits this for free. */
 export async function hasCourseAccess(traineeId: string, courseId: string): Promise<boolean> {
   const enrollment = await prisma.courseEnrollment.findFirst({
     where: { traineeId, courseId, unlockedAt: { not: null }, accessRevokedAt: null },
     select: { id: true },
   });
-  return enrollment !== null;
+  if (!enrollment) return false;
+
+  const course = await prisma.course.findUnique({ where: { id: courseId }, select: { createdById: true } });
+  const org = course ? await findTrainingOrgByStaffUserId(course.createdById) : null;
+  if (org?.billingModel === "DIRECT_PAYMENT" && org.suspendTraineeAccessOnLapse && !hasActivePlatformFeeAccess(org)) {
+    return false;
+  }
+  return true;
 }
 
 export type ModuleAccessLevel = "FULL" | "PREVIEW" | "NONE";

@@ -3092,9 +3092,57 @@ model TrainingOrganization {
   // never toggled by the org itself.
   brandingFooterRemoved  Boolean @default(false)
 
+  // Direct platform-fee billing — a second, mutually-exclusive revenue
+  // model picked once at registration: instead of AAICBI auto-splitting
+  // a cut of every trainee payment (REVENUE_SHARE, above), the
+  // organization pays AAICBI a recurring fee directly and keeps 100% of
+  // what their own trainees pay them. See hasActivePlatformFeeAccess
+  // (src/lib/trainingOrgBilling.ts) for the single source of truth this
+  // whole group of fields feeds into.
+  billingModel TrainingOrganizationBillingModel @default(REVENUE_SHARE)
+  // SUPER_ADMIN-negotiated rate — same "no platform-wide default, always
+  // per-org" posture as paystackSubaccountCode above. Null until set,
+  // which is itself a real, distinct "not yet configured" state (see the
+  // admin Platform Fee panel's own comment).
+  platformFeeKobo             Int?
+  platformFeeBillingInterval  BillingInterval?
+  // Lazily created, mirrors Course.paystackPlanCode exactly — reset to
+  // null whenever platformFeeKobo/platformFeeBillingInterval changes
+  // (same reset-on-pricing-change rule PUT /api/courses/[id] already
+  // applies), so the next payment attempt creates a fresh Plan matching
+  // the current terms rather than reusing a stale one.
+  platformFeePaystackPlanCode         String?
+  // Correlation fields for webhook subscription events — mirror
+  // CourseEnrollment.paystackCustomerCode/paystackSubscriptionCode
+  // exactly; see findTrainingOrgForSubscriptionEvent's own comment.
+  platformFeePaystackCustomerCode     String?
+  platformFeePaystackSubscriptionCode String? @unique
+  // The single source of truth for "is direct-payment access currently
+  // active" — set by a confirmed Paystack charge (self-service) or by
+  // SUPER_ADMIN's own "Confirm Payment Received" action (the
+  // manual/offline channel), both of which compute the same
+  // computePeriodEnd(now, platformFeeBillingInterval).
+  platformFeeCurrentPeriodEnd DateTime?
+  // Mirrors CourseEnrollment.accessRevokedAt exactly — set by the
+  // webhook's subscription.disable handler, cleared by a fresh
+  // successful charge or a manual admin grant.
+  platformFeeAccessRevokedAt  DateTime?
+  // SUPER_ADMIN's own per-organization discretion call, confirmed
+  // explicitly during planning: off (the default) means a lapsed fee
+  // only blocks this organization's OWN further admin actions; on means
+  // trainees already enrolled in this organization's courses also lose
+  // access while it's lapsed. Never a global policy — see
+  // hasCourseAccess's own comment on where this is actually enforced.
+  suspendTraineeAccessOnLapse Boolean @default(false)
+
   certificateTemplates CertificateTemplate[]
 
   @@index([approvalState])
+}
+
+enum TrainingOrganizationBillingModel {
+  REVENUE_SHARE
+  DIRECT_PAYMENT
 }
 
 // Community Showcase moderation's ProjectMedia/JobPostingMedia both

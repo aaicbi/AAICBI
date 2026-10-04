@@ -109,7 +109,13 @@ export type NotificationType =
   | "TRAINING_ORG_REJECTED"
   // A SUPER_ADMIN finished designing a certificate template and sent it
   // to the organization for review via the share link.
-  | "CERTIFICATE_TEMPLATE_READY";
+  | "CERTIFICATE_TEMPLATE_READY"
+  // Direct platform-fee billing — a training organization's own
+  // platform-fee payment succeeded, or their access was paused after a
+  // failed/cancelled renewal. Addressed to the organization (recipientType
+  // "TRAINING_ORG", same as the approval pair above), not a trainee.
+  | "PLATFORM_FEE_PAID"
+  | "PLATFORM_FEE_ACCESS_REVOKED";
 
 export interface NotifyByEmailInput {
   recipientType: "TRAINEE" | "STAFF" | "EMPLOYER" | "INVESTOR" | "TRAINING_ORG";

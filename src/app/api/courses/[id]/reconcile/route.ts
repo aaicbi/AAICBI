@@ -99,6 +99,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           { error: "We couldn't find a matching payment for that reference. Please contact support." },
           { status: 404 }
         );
+      case "platform_fee":
+        // Direct platform-fee billing — this reference belongs to a
+        // training organization's own platform-fee charge, not a
+        // trainee/course payment at all. Same honest "not yours"
+        // feedback as a mismatched `granted` result below, never a sign
+        // anything was granted incorrectly.
+        return NextResponse.json(
+          { error: "That reference doesn't match your account or this course." },
+          { status: 400 }
+        );
       case "not_genuine":
         return NextResponse.json(
           { error: "That payment doesn't appear to have succeeded. If you believe this is wrong, please contact support." },

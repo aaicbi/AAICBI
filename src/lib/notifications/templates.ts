@@ -1183,3 +1183,46 @@ export function likelyDuplicatePaymentEmail(input: LikelyDuplicatePaymentEmailIn
     text: `${input.traineeName} (${input.traineeEmail}) just paid for ${input.courseTitle}, but their existing access doesn't expire until ${input.currentPeriodEnd}.\n\nThis usually means a duplicate charge, not a genuine renewal. Reference: ${input.newReference}.\n\nWorth checking Paystack's dashboard directly and refunding if it was genuinely a duplicate.`,
   };
 }
+
+/**
+ * Direct platform-fee billing — the organization-side receipt/
+ * revoked-access pair, same shape as the trainee-facing
+ * paymentReceiptEmail/subscriptionEndedEmail above but addressed to the
+ * organization's own contact rather than a trainee.
+ */
+export interface PlatformFeeReceiptEmailInput {
+  contactName: string;
+  amountKobo: number;
+  reference: string;
+  paidAt: string;
+  nextBillingDate: string;
+  dashboardUrl: string;
+}
+export function platformFeeReceiptEmail(input: PlatformFeeReceiptEmailInput): EmailContent {
+  const amount = `₦${(input.amountKobo / 100).toLocaleString()}`;
+  return {
+    subject: "Payment received — AAICBI platform access",
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(input.contactName)},</p>
+      <p style="margin:0 0 16px;">We've received your payment of <strong>${amount}</strong> (Ref: ${escapeHtml(input.reference)}) on ${escapeHtml(input.paidAt)}. Your platform access is active until <strong>${escapeHtml(input.nextBillingDate)}</strong>.</p>
+      ${button(input.dashboardUrl, "Go to Your Dashboard")}
+    `),
+    text: `Hi ${input.contactName},\n\nWe've received your payment of ${amount} (Ref: ${input.reference}) on ${input.paidAt}. Your platform access is active until ${input.nextBillingDate}.\n\n${input.dashboardUrl}`,
+  };
+}
+
+export interface PlatformFeeAccessRevokedEmailInput {
+  contactName: string;
+  billingUrl: string;
+}
+export function platformFeeAccessRevokedEmail(input: PlatformFeeAccessRevokedEmailInput): EmailContent {
+  return {
+    subject: "Your AAICBI platform access has been paused",
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(input.contactName)},</p>
+      <p style="margin:0 0 16px;">Your organization's platform fee payment didn't go through, and your access has been paused. Renew to restore full access.</p>
+      ${button(input.billingUrl, "Renew Now")}
+    `),
+    text: `Hi ${input.contactName},\n\nYour organization's platform fee payment didn't go through, and your access has been paused. Renew to restore full access.\n\n${input.billingUrl}`,
+  };
+}

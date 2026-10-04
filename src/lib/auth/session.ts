@@ -19,6 +19,8 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
+import { hasActivePlatformFeeAccess } from "@/lib/trainingOrgBilling";
 
 const COOKIE_NAME = "lms_session";
 const secret = () => new TextEncoder().encode(requireStrongSecret("AUTH_SECRET"));
@@ -209,5 +211,26 @@ export async function requireRole(...allowed: Role[]): Promise<SessionPayload> {
     err.status = 403;
     throw err;
   }
+
+  // Direct platform-fee billing — the one shared chokepoint every admin
+  // API route already calls, so this is where a training organization
+  // that chose to pay AAICBI directly (rather than revenue-share) and
+  // hasn't paid gets blocked from every single admin action, with zero
+  // per-route changes needed. Real staff ADMIN sessions see no behavior
+  // change — findTrainingOrgByStaffUserId resolves to null for them,
+  // the same cheap, indexed-lookup-returns-null cost every other caller
+  // of this helper already pays. REVENUE_SHARE organizations are never
+  // affected (hasActivePlatformFeeAccess always returns true for them).
+  if (session.role === "ADMIN") {
+    const org = await findTrainingOrgByStaffUserId(session.userId);
+    if (org && !hasActivePlatformFeeAccess(org)) {
+      const err = new Error("Your organization's platform access is paused. Please complete payment to continue.") as Error & {
+        status?: number;
+      };
+      err.status = 403;
+      throw err;
+    }
+  }
+
   return session;
 }
