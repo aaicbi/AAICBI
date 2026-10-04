@@ -1492,11 +1492,32 @@ model Material {
   // hand-set — every write to this row updates it automatically.
   updatedAt DateTime     @updatedAt
   downloads MaterialDownload[]
+  pdfExport MaterialPdfExport?
 
   // Loop Question Bank
   bankSourceFor QuestionSourceMaterial[]
 
   @@index([lessonId])
+}
+
+// PDF export — a lazily-generated, cached PDF version of a DOCX
+// material (§"Course Material PDF Export"). One row per material,
+// upserted in place rather than kept as history, same shape as
+// PerformanceSummary/AssignmentLearningInsight's own "regenerate in
+// place" convention — just triggered on read instead of on a domain
+// event. `sourceUpdatedAt` is a snapshot of Material.updatedAt at
+// conversion time; comparing it against the material's current
+// updatedAt is what detects a stale conversion (the instructor
+// re-uploaded/edited the material) and forces a fresh regeneration,
+// same snapshot-comparison idiom MaterialDownload.materialUpdatedAt
+// already uses for its own staleness check.
+model MaterialPdfExport {
+  id              String   @id @default(cuid())
+  materialId      String   @unique
+  material        Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  pdfUrl          String
+  sourceUpdatedAt DateTime
+  convertedAt     DateTime @default(now())
 }
 
 // M40 — tracking who downloaded what, the real infrastructure this

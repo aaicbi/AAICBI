@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/trainee/LogoutButton";
 import { TRAINEE_NAV } from "@/lib/trainee/nav";
@@ -324,15 +324,34 @@ function GoogleDriveThumbnailPlayer({ fileId, title, lowBandwidthMode }: { fileI
  * back as a JSON error, not a file. A plain link would show the
  * trainee a raw JSON blob in their browser for any of those; this
  * shows a clear, readable message instead.
+ *
+ * Course Material PDF Export — a DOCX material gets an "Export ▾"
+ * control instead of the plain button, offering a choice between the
+ * original file and a converted PDF (the one material type this
+ * platform can actually convert — see docxToPdf.ts's own header
+ * comment for why PPTX isn't offered here too). Same hand-rolled
+ * anchored-popover pattern as NotificationBell.tsx/FloatingMessagesButton.tsx
+ * — there's no shared Dropdown component in this codebase yet.
  */
-function DownloadButton({ materialId, title }: { materialId: string; title: string }) {
+function DownloadButton({ materialId, title, materialType }: { materialId: string; title: string; materialType: MaterialDto["type"] }) {
   const [state, setState] = useState<"idle" | "downloading" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  async function handleDownload() {
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  async function handleDownload(format?: "pdf") {
+    setOpen(false);
     setState("downloading");
     setError(null);
-    const res = await fetch(`/api/materials/${materialId}/download`);
+    const res = await fetch(`/api/materials/${materialId}/download${format ? `?format=${format}` : ""}`);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       setError(typeof data.error === "string" ? data.error : "Could not download this material.");
@@ -343,7 +362,7 @@ function DownloadButton({ materialId, title }: { materialId: string; title: stri
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = title;
+    a.download = format === "pdf" ? `${title}.pdf` : title;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -351,16 +370,50 @@ function DownloadButton({ materialId, title }: { materialId: string; title: stri
     setState("idle");
   }
 
+  const canExportPdf = materialType === "DOCX";
+
   return (
     <div>
-      <button
-        type="button"
-        onClick={handleDownload}
-        disabled={state === "downloading"}
-        className="text-xs font-medium text-brand-teal hover:underline disabled:opacity-60"
-      >
-        {state === "downloading" ? "Downloading..." : "⬇ Download for offline"}
-      </button>
+      {canExportPdf ? (
+        <div ref={containerRef} className="relative inline-block">
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            disabled={state === "downloading"}
+            aria-expanded={open}
+            className="text-xs font-medium text-brand-teal hover:underline disabled:opacity-60"
+          >
+            {state === "downloading" ? "Downloading..." : "⬇ Export ▾"}
+          </button>
+          {open && (
+            <div className="absolute left-0 top-full z-10 mt-1 w-44 rounded-lg border border-brand-gray bg-brand-surface py-1 shadow-lg animate-[modal-in_0.15s_ease-out]">
+              <button
+                type="button"
+                onClick={() => handleDownload()}
+                className="block w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-brand-mint"
+              >
+                Original format (.docx)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDownload("pdf")}
+                className="block w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-brand-mint"
+              >
+                PDF format
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => handleDownload()}
+          disabled={state === "downloading"}
+          className="text-xs font-medium text-brand-teal hover:underline disabled:opacity-60"
+        >
+          {state === "downloading" ? "Downloading..." : "⬇ Download for offline"}
+        </button>
+      )}
       {state === "error" && error && <p className="mt-0.5 text-xs text-brand-rose">{error}</p>}
     </div>
   );
@@ -400,7 +453,7 @@ function MaterialItem({ material, lowBandwidthMode }: { material: MaterialDto; l
           <div className="aspect-video w-full overflow-hidden rounded-lg border border-brand-gray bg-black">
             <GoogleDriveThumbnailPlayer fileId={driveFileId} title={material.title} lowBandwidthMode={lowBandwidthMode} />
           </div>
-          <DownloadButton materialId={material.id} title={material.title} />
+          <DownloadButton materialId={material.id} title={material.title} materialType={material.type} />
         </div>
       );
     }
@@ -422,7 +475,7 @@ function MaterialItem({ material, lowBandwidthMode }: { material: MaterialDto; l
       >
         <MaterialTypeIcon type={material.type} /> {material.title}
       </a>
-      <DownloadButton materialId={material.id} title={material.title} />
+      <DownloadButton materialId={material.id} title={material.title} materialType={material.type} />
     </div>
   );
 }

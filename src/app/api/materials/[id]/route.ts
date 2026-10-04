@@ -7,6 +7,7 @@ import { requireOwnedMaterial } from "@/lib/courseOwnership";
 import { safeUrl, isAllowedVideoUrl } from "@/lib/materialUrl";
 import { notifyDownloadersOfMaterialChange } from "@/lib/notifications/materialChange";
 import { deleteLessonMaterialBestEffort } from "@/lib/lessonMaterial";
+import { deleteMaterialPdfBestEffort } from "@/lib/materialPdfUpload";
 
 const UpdateMaterialSchema = z.object({
   type: z.enum(["PDF", "DOCX", "PPTX", "VIDEO"]).optional(),
@@ -68,8 +69,12 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
     const existing = await requireOwnedMaterial(params.id, session.userId, session.role);
+    // Fetched before the delete below cascades this row away — cascade
+    // only removes the DB row, not the actual stored PDF blob.
+    const pdfExport = await prisma.materialPdfExport.findUnique({ where: { materialId: params.id }, select: { pdfUrl: true } });
     await prisma.material.delete({ where: { id: params.id } });
     await deleteLessonMaterialBestEffort(existing.url);
+    if (pdfExport) await deleteMaterialPdfBestEffort(pdfExport.pdfUrl);
     return NextResponse.json({ ok: true });
   });
 }

@@ -6,6 +6,7 @@ import { getModuleAccessLevel, canTraineeAccessCourse } from "@/lib/courseAccess
 import { getModuleLockStatus } from "@/lib/progress";
 import { resolveDownloadUrl } from "@/lib/materialUrl";
 import { isPubliclyFetchableUrl } from "@/lib/ssrfGuard";
+import { getOrCreateMaterialPdfUrl } from "@/lib/materialPdfExport";
 
 /**
  * M40 — the actual tracking this milestone's content-change
@@ -88,9 +89,10 @@ async function recordDownload(materialId: string, traineeId: string, materialUpd
  * rather than ever blocking a trainee's access on an unverified
  * assumption.
  */
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("TRAINEE");
+    const format = req.nextUrl.searchParams.get("format");
 
     const material = await prisma.material.findUnique({
       where: { id: params.id },
@@ -132,6 +134,43 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         { error: "This module isn't unlocked yet — complete the previous module first." },
         { status: 403 }
       );
+    }
+
+    // Course Material PDF Export — `?format=pdf` on a DOCX material is
+    // handled entirely separately from the passthrough path below: a
+    // PDF material has nothing to convert (falls through unchanged),
+    // and PPTX/VIDEO have no PDF path at all yet (see docxToPdf.ts's
+    // own header comment for why PPTX specifically is out of scope).
+    if (format === "pdf" && material.type !== "PDF") {
+      if (material.type !== "DOCX") {
+        return NextResponse.json({ error: "PDF export isn't available for this material yet." }, { status: 400 });
+      }
+      const result = await getOrCreateMaterialPdfUrl(material);
+      if (!result.ok) {
+        return NextResponse.json({ error: result.error }, { status: result.status });
+      }
+      // Proxy-fetch our own cached blob (always a safe, same-origin-
+      // trust Vercel Blob URL, never a staff-provided one) rather than
+      // redirecting, so the response keeps the material's own title as
+      // its filename — the same reason the original-format path below
+      // proxies PDF/DOCX/PPTX instead of redirecting them.
+      let pdfUpstream: Response;
+      try {
+        pdfUpstream = await fetch(result.pdfUrl);
+      } catch (e) {
+        console.error(`Failed to fetch cached PDF export for material ${material.id}:`, e);
+        return NextResponse.json({ error: "Could not download the PDF version right now." }, { status: 502 });
+      }
+      if (!pdfUpstream.ok || !pdfUpstream.body) {
+        return NextResponse.json({ error: "Could not download the PDF version right now." }, { status: 502 });
+      }
+      await recordDownload(material.id, session.userId, material.updatedAt);
+      return new NextResponse(pdfUpstream.body, {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="${material.title.replace(/[^\w\s.-]/g, "")}.pdf"`,
+        },
+      });
     }
 
     const downloadUrl = resolveDownloadUrl(material.url);
