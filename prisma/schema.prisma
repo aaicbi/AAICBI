@@ -382,6 +382,13 @@ model User {
   // personally issued (see ExamAccessGrant's own comment for why this
   // is Super-Admin-only, unlike most other exam actions).
   examAccessGrantsGiven ExamAccessGrant[]
+  // AI Assignment Engine — every assignment this staff member has
+  // authored (imported or created by hand), and every submission they've
+  // personally reviewed/overridden. Two distinct relations since a User
+  // can appear on both sides, same disambiguation reasoning as
+  // instructorAgreementsSent/instructorAgreementsOwned above.
+  assignmentsCreated           Assignment[]
+  assignmentSubmissionsReviewed AssignmentSubmission[]
 }
 
 // Real, persistent trainee account — the key M9 change. Replaces the old
@@ -672,6 +679,9 @@ model Trainee {
   availabilityTypes TraineeAvailabilityType[]
   // Pitch & Post, Phase 1 — every pitch this trainee has submitted.
   pitchSubmissions PitchSubmission[]
+  // AI Assignment Engine — every assignment submission this trainee has
+  // made, across every attempt/resubmission.
+  assignmentSubmissions AssignmentSubmission[]
 
   @@index([email])
 }
@@ -1309,6 +1319,9 @@ model Course {
   // (raw webhook audit log) and from CourseEnrollment (current-state
   // access row, still exactly one per trainee per course).
   payments Payment[]
+  // AI Assignment Engine — at most one course-wide assignment, same
+  // dual-purpose moduleId/courseId pattern as Exam's own courseExamination.
+  courseAssignment Assignment?
 
   @@index([published])
   @@index([status])
@@ -1425,6 +1438,10 @@ model Module {
 
   // Loop Question Bank
   learningObjectives ModuleLearningObjective[]
+
+  // AI Assignment Engine — at most one assignment per module, same
+  // optional/unique shape as `assessment` above.
+  assignment Assignment?
 
   @@index([courseId])
 }
@@ -3878,4 +3895,242 @@ model SuperAdminMessage {
 
   @@index([readAt])
   @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------
+// AI-Powered Assignment Generation and Assessment Engine (Phase 1)
+//
+// A brand-new, self-contained model group — deliberately NOT built on
+// top of Exam/Question/Attempt, which are entirely multiple-choice,
+// exact-match, timed/lockdown-shaped (see Exam's own fields). An
+// assignment is the opposite on every one of those axes: free-text,
+// rubric-and-understanding-scored with partial credit, untimed, and
+// resubmittable. See each model's own comment for the specific design
+// choices made to keep this buildable without a separate table for
+// every sub-concept (rubric criteria and AI criterion scores are Json;
+// the instructor's per-question override lives directly on
+// AssignmentAnswer rather than a whole separate review table).
+
+enum AssignmentQuestionType {
+  SHORT_ANSWER
+  EXPLANATION
+  LONG_ANSWER
+  ESSAY
+  SCENARIO
+  CASE_STUDY
+  PRACTICAL_TASK
+  TECHNICAL_RESPONSE
+  REFLECTION
+  MULTI_PART
+}
+
+enum AssignmentStatus {
+  DRAFT
+  PUBLISHED
+  UNPUBLISHED
+  ARCHIVED
+}
+
+enum AssignmentSubmissionStatus {
+  IN_PROGRESS
+  SUBMITTED
+  ASSESSMENT_PENDING
+  AI_ASSESSED
+  MANUAL_PENDING
+  INSTRUCTOR_REVIEWED
+  RETURNED
+  RESUBMISSION_REQUIRED
+  COMPLETED
+}
+
+enum LateSubmissionPolicy {
+  ALLOWED
+  ALLOWED_WITH_FLAG
+  NOT_ALLOWED
+}
+
+enum ResubmissionPolicy {
+  NONE
+  ONE
+  LIMITED
+  UNLIMITED
+}
+
+enum ResubmissionScope {
+  FULL_ASSIGNMENT
+  FAILED_QUESTIONS_ONLY
+}
+
+model Assignment {
+  id           String  @id @default(cuid())
+  title        String
+  description  String?
+  instructions String?
+
+  // Mirrors Exam's own dual-purpose moduleId/courseId optional-unique
+  // pattern exactly — module-scoped or course-wide, never both; an
+  // Assignment with neither set is a standalone/library assignment not
+  // yet attached anywhere.
+  moduleId String? @unique
+  module   Module? @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  courseId String? @unique
+  course   Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  status                   AssignmentStatus      @default(DRAFT)
+  dueAt                    DateTime?
+  lateSubmissionPolicy     LateSubmissionPolicy  @default(ALLOWED)
+  allowEditAfterSubmission Boolean               @default(false)
+  // The per-assignment AI-vs-manual grading trigger (settled during
+  // planning): on, every submission is AI-graded; off, every submission
+  // is packaged as a PDF and emailed to the owning instructor(s) for
+  // fully manual grading. Not tied to any AI credit balance — this is a
+  // configuration choice, not a metered feature.
+  aiAssessmentEnabled      Boolean               @default(true)
+
+  resubmissionPolicy ResubmissionPolicy @default(NONE)
+  // Only meaningful when resubmissionPolicy is LIMITED.
+  maxResubmissions   Int?
+  resubmissionScope  ResubmissionScope  @default(FULL_ASSIGNMENT)
+
+  // The original uploaded Word document, kept for audit/re-import —
+  // same URL+timestamp pairing convention as Course.flyerUrl/
+  // flyerUploadedAt.
+  sourceDocUrl        String?
+  sourceDocUploadedAt DateTime?
+
+  questions   AssignmentQuestion[]
+  submissions AssignmentSubmission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdById])
+}
+
+model AssignmentQuestion {
+  id           String     @id @default(cuid())
+  assignmentId String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  // Free-text grouping label (e.g. "Part A") — deliberately not a
+  // separate Section model; nothing here needs its own relational
+  // identity beyond a display label.
+  section          String?
+  // Preserves the original numbering exactly as the instructor wrote
+  // it, including multi-part labels like "5a"/"5b" — never
+  // renumbered by this system.
+  questionNumber   String
+  parentQuestionId String?
+  parent           AssignmentQuestion?  @relation("QuestionParts", fields: [parentQuestionId], references: [id], onDelete: Cascade)
+  parts            AssignmentQuestion[] @relation("QuestionParts")
+
+  type              AssignmentQuestionType
+  // The instructor's original question text, preserved verbatim — the
+  // AI extraction step is told explicitly never to rewrite this.
+  questionText      String
+  instructions      String?
+  referenceMaterial String?
+
+  // Never shipped to a trainee-facing response — see the hard security
+  // rule in assignmentOwnership.ts's own comment.
+  expectedAnswer    String?
+  expectedConcepts  Json? // string[]
+  keywords          Json? // string[]
+  learningObjective String?
+  difficulty        String?
+
+  maxMarks Int
+  // [{name, maxMarks, description}] — null if the source document had
+  // no rubric for this question; see this model group's own header
+  // comment for why this is Json, not a separate table.
+  rubric   Json?
+  order    Int
+
+  // Set by document validation (§22) at import/review time, or by the
+  // AI extraction step's own "couldn't confidently find X" fallback —
+  // same needsReview/reviewReason discipline as Question in the exam
+  // engine.
+  needsReview  Boolean @default(false)
+  reviewReason String?
+
+  answers AssignmentAnswer[]
+
+  @@index([assignmentId])
+}
+
+model AssignmentSubmission {
+  id           String     @id @default(cuid())
+  assignmentId String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  traineeId    String
+  trainee      Trainee    @relation(fields: [traineeId], references: [id])
+
+  // Resubmission history — 1, 2, 3... one row per attempt, never
+  // overwritten in place, so "Attempt 1: 62%, Attempt 2: 78%" is a
+  // plain query, not a reconstruction.
+  attemptNumber Int                         @default(1)
+  status        AssignmentSubmissionStatus  @default(IN_PROGRESS)
+
+  startedAt   DateTime  @default(now())
+  submittedAt DateTime?
+  isLate      Boolean   @default(false)
+
+  totalScore                 Int?
+  maxScore                   Int?
+  percentage                 Float?
+  overallFeedback            String?
+  overallStrengths           Json? // string[]
+  overallAreasForImprovement Json? // string[]
+
+  instructorReviewedById String?
+  instructorReviewedBy   User?     @relation(fields: [instructorReviewedById], references: [id])
+  instructorReviewedAt   DateTime?
+  instructorComments     String?
+  // "ACCEPTED_AI_SCORE" | "SCORE_ADJUSTED" | "RETURNED" | "RESUBMISSION_REQUIRED"
+  instructorDecision     String?
+
+  answers AssignmentAnswer[]
+
+  @@unique([assignmentId, traineeId, attemptNumber])
+  @@index([assignmentId, traineeId])
+}
+
+model AssignmentAnswer {
+  id           String               @id @default(cuid())
+  submissionId String
+  submission   AssignmentSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  questionId   String
+  question     AssignmentQuestion   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  // Autosaved as the trainee types — see the assignment workspace's
+  // own debounced-PUT autosave route.
+  answerText  String?
+  lastSavedAt DateTime?
+
+  // AI assessment — written once per answer at grading time, never
+  // overwritten in place (a resubmission creates a whole new
+  // AssignmentSubmission/AssignmentAnswer row, not a rewrite of this one).
+  aiScore                 Int?
+  aiMaxScore              Int?
+  aiPercentage            Float?
+  aiCriteriaScores        Json? // [{name, score, maximum, reason}]
+  aiStrengths             Json? // string[]
+  aiAreasForImprovement   Json? // string[]
+  aiFeedback              String?
+  aiConfidence            Float?
+  aiNeedsInstructorReview Boolean  @default(false)
+  // The full validated AI response, kept for audit — never blindly
+  // trusted on its own; see assessAssignmentAnswer.ts's own comment.
+  aiRawOutput             Json?
+  aiAssessedAt            DateTime?
+
+  // Instructor override, per question — null until explicitly set.
+  // The "final" score for a question is instructorScore ?? aiScore.
+  instructorScore    Int?
+  instructorFeedback String?
+
+  @@unique([submissionId, questionId])
 }

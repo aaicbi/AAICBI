@@ -35,6 +35,11 @@
 export const ADMIN_NAV = [
   { label: "Dashboard", href: "/admin/dashboard" },
   { label: "Examinations", href: "/admin/exams" },
+  // AI Assignment Engine — deliberately its own nav entry, not folded
+  // under Examinations: the product spec itself insists this is not an
+  // exam concept (no timer/lockdown), and course-content authors
+  // already expect "Examinations" to mean the MCQ exam engine.
+  { label: "Assignments", href: "/admin/assignments" },
   { label: "Courses", href: "/admin/courses" },
   { label: "Performance", href: "/admin/performance" },
   { label: "Analytics", href: "/admin/analytics" },
@@ -100,6 +105,13 @@ export const ADMIN_NAV_TRAINING_ORG = [
   { label: "Dashboard", href: "/admin/dashboard" },
   { label: "Courses", href: "/admin/courses" },
   { label: "Examinations", href: "/admin/exams" },
+  // AI Assignment Engine — safely scoped the same way Courses/
+  // Examinations already are: requireOwnedAssignment mirrors
+  // requireOwnedCourse's own SUPER_ADMIN-bypass/strict-ADMIN-scoping
+  // exactly, so a training-org-backed ADMIN session only ever sees its
+  // own organization's assignments here, same as every other item in
+  // this cluster.
+  { label: "Assignments", href: "/admin/assignments" },
   { label: "Performance", href: "/admin/performance" },
   { label: "Payments", href: "/admin/payments" },
   { label: "Settings", href: "/admin/settings" },

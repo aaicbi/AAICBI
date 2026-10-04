@@ -1226,3 +1226,86 @@ export function platformFeeAccessRevokedEmail(input: PlatformFeeAccessRevokedEma
     text: `Hi ${input.contactName},\n\nYour organization's platform fee payment didn't go through, and your access has been paused. Renew to restore full access.\n\n${input.billingUrl}`,
   };
 }
+
+/**
+ * AI Assignment Engine — the trainee-facing pair/trio and the
+ * instructor-facing manual-grading notice. Same plain, direct shape as
+ * every other template in this file.
+ */
+export interface AssignmentPublishedEmailInput {
+  traineeName: string;
+  assignmentTitle: string;
+  dueDateLabel: string | null;
+  assignmentUrl: string;
+}
+export function assignmentPublishedEmail(input: AssignmentPublishedEmailInput): EmailContent {
+  return {
+    subject: `New assignment: ${input.assignmentTitle}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(input.traineeName)},</p>
+      <p style="margin:0 0 16px;">A new assignment is available: <strong>${escapeHtml(input.assignmentTitle)}</strong>.${input.dueDateLabel ? ` Due: ${escapeHtml(input.dueDateLabel)}.` : ""}</p>
+      ${button(input.assignmentUrl, "Open Assignment")}
+    `),
+    text: `Hi ${input.traineeName},\n\nA new assignment is available: ${input.assignmentTitle}.${input.dueDateLabel ? ` Due: ${input.dueDateLabel}.` : ""}\n\n${input.assignmentUrl}`,
+  };
+}
+
+export interface AssignmentSubmittedToInstructorEmailInput {
+  instructorName: string;
+  traineeName: string;
+  assignmentTitle: string;
+  submissionsUrl: string;
+}
+export function assignmentSubmittedToInstructorEmail(input: AssignmentSubmittedToInstructorEmailInput): EmailContent {
+  return {
+    subject: `${input.traineeName} submitted "${input.assignmentTitle}" — manual grading needed`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(input.instructorName)},</p>
+      <p style="margin:0 0 16px;"><strong>${escapeHtml(input.traineeName)}</strong> submitted <strong>${escapeHtml(input.assignmentTitle)}</strong>. AI assessment is turned off for this assignment, so it needs your manual review — a PDF copy of their answers is attached.</p>
+      ${button(input.submissionsUrl, "Review Submissions")}
+    `),
+    text: `Hi ${input.instructorName},\n\n${input.traineeName} submitted ${input.assignmentTitle}. AI assessment is turned off for this assignment, so it needs your manual review — a PDF copy of their answers is attached.\n\n${input.submissionsUrl}`,
+  };
+}
+
+export interface AssignmentAssessedEmailInput {
+  traineeName: string;
+  assignmentTitle: string;
+  pending: boolean; // true = sent to instructor for manual grading, no score yet
+  resultUrl: string;
+}
+export function assignmentAssessedEmail(input: AssignmentAssessedEmailInput): EmailContent {
+  const body = input.pending
+    ? `Your submission for <strong>${escapeHtml(input.assignmentTitle)}</strong> has been received and is being reviewed by your instructor. You'll be notified once feedback is available.`
+    : `Your submission for <strong>${escapeHtml(input.assignmentTitle)}</strong> has been assessed. Your score and feedback are ready.`;
+  const textBody = input.pending
+    ? `Your submission for ${input.assignmentTitle} has been received and is being reviewed by your instructor. You'll be notified once feedback is available.`
+    : `Your submission for ${input.assignmentTitle} has been assessed. Your score and feedback are ready.`;
+  return {
+    subject: input.pending ? `Assignment received: ${input.assignmentTitle}` : `Assignment assessed: ${input.assignmentTitle}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(input.traineeName)},</p>
+      <p style="margin:0 0 16px;">${body}</p>
+      ${button(input.resultUrl, input.pending ? "View Submission" : "View Your Result")}
+    `),
+    text: `Hi ${input.traineeName},\n\n${textBody}\n\n${input.resultUrl}`,
+  };
+}
+
+export interface AssignmentResubmissionRequestedEmailInput {
+  traineeName: string;
+  assignmentTitle: string;
+  comments: string | null;
+  assignmentUrl: string;
+}
+export function assignmentResubmissionRequestedEmail(input: AssignmentResubmissionRequestedEmailInput): EmailContent {
+  return {
+    subject: `Resubmission requested: ${input.assignmentTitle}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(input.traineeName)},</p>
+      <p style="margin:0 0 16px;">Your instructor has asked you to resubmit <strong>${escapeHtml(input.assignmentTitle)}</strong>.${input.comments ? ` Their comments: "${escapeHtml(input.comments)}"` : ""}</p>
+      ${button(input.assignmentUrl, "Resubmit Assignment")}
+    `),
+    text: `Hi ${input.traineeName},\n\nYour instructor has asked you to resubmit ${input.assignmentTitle}.${input.comments ? ` Their comments: "${input.comments}"` : ""}\n\n${input.assignmentUrl}`,
+  };
+}

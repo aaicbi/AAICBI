@@ -115,7 +115,16 @@ export type NotificationType =
   // failed/cancelled renewal. Addressed to the organization (recipientType
   // "TRAINING_ORG", same as the approval pair above), not a trainee.
   | "PLATFORM_FEE_PAID"
-  | "PLATFORM_FEE_ACCESS_REVOKED";
+  | "PLATFORM_FEE_ACCESS_REVOKED"
+  // AI Assignment Engine — to the trainee: an assignment they can take
+  // has been published, their submission has been AI-assessed (or sent
+  // to their instructor for manual grading), or their instructor has
+  // requested a resubmission. To the instructor: a submission has come
+  // in for manual grading (aiAssessmentEnabled: false).
+  | "ASSIGNMENT_PUBLISHED"
+  | "ASSIGNMENT_SUBMITTED"
+  | "ASSIGNMENT_ASSESSED"
+  | "ASSIGNMENT_RESUBMISSION_REQUESTED";
 
 export interface NotifyByEmailInput {
   recipientType: "TRAINEE" | "STAFF" | "EMPLOYER" | "INVESTOR" | "TRAINING_ORG";

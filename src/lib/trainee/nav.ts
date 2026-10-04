@@ -19,6 +19,10 @@ export const TRAINEE_NAV = [
   { label: "Dashboard", href: "/trainee/dashboard" },
   { label: "Courses", href: "/trainee/courses" },
   { label: "Examinations", href: "/trainee/examinations" },
+  // AI Assignment Engine — a separate, adjacent concept from
+  // Examinations, same reasoning the product spec itself insists on:
+  // not an exam, no timer/lockdown, untimed write-save-submit work.
+  { label: "Assignments", href: "/trainee/assignments" },
   { label: "Certificates", href: "/trainee/certificates" },
   { label: "Analytics & Reports", href: "/trainee/my-activity" },
   { label: "Messages", href: "/trainee/messages" },
