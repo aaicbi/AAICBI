@@ -26,6 +26,8 @@ interface SubmissionAnswer {
   questionId: string;
   answerText: string | null;
   lastSavedAt: string | null;
+  aiScore: number | null;
+  instructorScore: number | null;
 }
 
 interface AssignmentDetail {
@@ -49,6 +51,7 @@ export default function AssignmentWorkspacePage({ params }: { params: { id: stri
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [saveState, setSaveState] = useState<Record<string, { status: "idle" | "saving" | "saved"; savedAt: Date | null }>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [unlockedCarryForward, setUnlockedCarryForward] = useState<Record<string, boolean>>({});
   const { confirm, modal } = useConfirmModal();
   const { showToast } = useToast();
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -136,6 +139,14 @@ export default function AssignmentWorkspacePage({ params }: { params: { id: stri
   const answeredCount = sortedQuestions.filter((q) => (answers[q.id] ?? "").trim().length > 0).length;
   const activeSave = saveState[activeQuestion.id];
 
+  // FAILED_QUESTIONS_ONLY resubmission carries a passing question's
+  // answer AND score forward onto this still-IN_PROGRESS submission —
+  // a non-null score here means "already graded," never a fresh attempt.
+  const carriedForwardQuestionIds = new Set(
+    assignment.submission.answers.filter((a) => a.aiScore !== null || a.instructorScore !== null).map((a) => a.questionId)
+  );
+  const activeIsCarriedForward = activeIndex >= 0 && carriedForwardQuestionIds.has(activeQuestion.id) && !unlockedCarryForward[activeQuestion.id];
+
   return (
     <>
       {modal}
@@ -156,13 +167,14 @@ export default function AssignmentWorkspacePage({ params }: { params: { id: stri
               )}
               {sortedQuestions.map((q, i) => {
                 const answered = (answers[q.id] ?? "").trim().length > 0;
+                const carriedForward = carriedForwardQuestionIds.has(q.id) && !unlockedCarryForward[q.id];
                 return (
                   <button
                     key={q.id}
                     onClick={() => setActiveIndex(i)}
                     className={`shrink-0 rounded-lg px-3 py-2 text-left text-sm font-semibold ${i === activeIndex ? "bg-brand-mint text-brand-teal" : "text-gray-600 hover:bg-brand-mint"}`}
                   >
-                    Q{q.questionNumber} {answered && <span className="text-brand-teal">✓</span>}
+                    Q{q.questionNumber} {carriedForward ? <span title="Already scored">🔒</span> : answered && <span className="text-brand-teal">✓</span>}
                   </button>
                 );
               })}
@@ -191,16 +203,32 @@ export default function AssignmentWorkspacePage({ params }: { params: { id: stri
                 <div className="mt-2 rounded-lg border border-brand-gray bg-gray-50 p-3 text-sm text-gray-600">{activeQuestion.referenceMaterial}</div>
               )}
 
+              {activeIsCarriedForward && (
+                <div className="mt-4 flex items-center justify-between gap-3 rounded-lg bg-brand-mint/40 p-3 text-sm text-brand-ink">
+                  <span>Already scored — no changes needed.</span>
+                  <button
+                    type="button"
+                    onClick={() => setUnlockedCarryForward((u) => ({ ...u, [activeQuestion.id]: true }))}
+                    className="shrink-0 text-xs font-semibold text-brand-teal hover:underline"
+                  >
+                    Edit anyway
+                  </button>
+                </div>
+              )}
+
               <div className="mt-4">
                 <textarea
                   value={answers[activeQuestion.id] ?? ""}
                   onChange={(e) => handleAnswerChange(activeQuestion.id, e.target.value)}
                   rows={activeQuestion.type === "TECHNICAL_RESPONSE" ? 14 : 10}
                   placeholder="Type your answer here..."
-                  className={`w-full rounded-lg border border-brand-gray px-4 py-3 text-sm outline-none focus:border-brand-teal ${activeQuestion.type === "TECHNICAL_RESPONSE" ? "font-mono" : ""}`}
+                  disabled={activeIsCarriedForward}
+                  className={`w-full rounded-lg border border-brand-gray px-4 py-3 text-sm outline-none focus:border-brand-teal disabled:bg-gray-50 disabled:text-gray-500 ${activeQuestion.type === "TECHNICAL_RESPONSE" ? "font-mono" : ""}`}
                 />
                 <p className="mt-1.5 text-xs text-gray-500">
-                  {activeSave?.status === "saving" ? "Saving..." : activeSave?.savedAt ? `Saved ${formatRelativeTime(activeSave.savedAt)}` : "Not saved yet"}
+                  {activeIsCarriedForward
+                    ? "Carried forward from your previous attempt."
+                    : activeSave?.status === "saving" ? "Saving..." : activeSave?.savedAt ? `Saved ${formatRelativeTime(activeSave.savedAt)}` : "Not saved yet"}
                 </p>
               </div>
 

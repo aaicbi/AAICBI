@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { withApiErrors } from "@/lib/apiError";
 import { expireAllLapsedEnrollments } from "@/lib/courseAccess";
 import { sendDueAccessExpiryReminders } from "@/lib/enrollmentReminders";
+import { sendDueAssignmentReminders } from "@/lib/assignmentReminders";
 
 /**
  * GET /api/cron/course-access-sweep — this project's first scheduled
@@ -14,6 +15,12 @@ import { sendDueAccessExpiryReminders } from "@/lib/enrollmentReminders";
  * apply here): a reminder has to reach a trainee BEFORE they visit, by
  * definition, and FIXED_DURATION courses have no Paystack webhook to
  * revoke lapsed access at all — this is their only real expiry path.
+ *
+ * AI Assignment Engine, Phase 2 — assignment due-date reminders
+ * (§35/§29) have the exact same "must reach a trainee before they
+ * visit" requirement, so they're folded into this same daily sweep
+ * rather than standing up a second Vercel Cron entry for one more
+ * reminder sweep with an identical shape.
  *
  * Authenticated by `CRON_SECRET`, Vercel's own documented mechanism
  * for securing a cron endpoint (Vercel automatically sends
@@ -37,7 +44,11 @@ export async function GET(req: NextRequest) {
 
     const revokedCount = await expireAllLapsedEnrollments();
     const remindersSent = await sendDueAccessExpiryReminders();
+    // AI Assignment Engine, Phase 2 — folded into this existing daily
+    // sweep rather than a new Vercel Cron entry; see
+    // assignmentReminders.ts's own comment for the full reasoning.
+    const assignmentRemindersSent = await sendDueAssignmentReminders();
 
-    return NextResponse.json({ revokedCount, remindersSent });
+    return NextResponse.json({ revokedCount, remindersSent, assignmentRemindersSent });
   });
 }

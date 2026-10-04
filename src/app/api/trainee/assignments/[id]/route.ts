@@ -68,16 +68,23 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: "You're not enrolled in this course yet." }, { status: 403 });
     }
 
+    // aiScore/instructorScore are the trainee's OWN score on their own
+    // answer — safe to show (the result page already does) — and also
+    // how the workspace tells a FAILED_QUESTIONS_ONLY carry-forward
+    // answer (already scored, still IN_PROGRESS) apart from a genuinely
+    // reopened one.
+    const ANSWER_SELECT = { id: true, questionId: true, answerText: true, lastSavedAt: true, aiScore: true, instructorScore: true } as const;
+
     let submission = await prisma.assignmentSubmission.findFirst({
       where: { assignmentId: params.id, traineeId: session.userId },
       orderBy: { attemptNumber: "desc" },
-      include: { answers: { select: { id: true, questionId: true, answerText: true, lastSavedAt: true } } },
+      include: { answers: { select: ANSWER_SELECT } },
     });
 
     if (!submission) {
       submission = await prisma.assignmentSubmission.create({
         data: { assignmentId: params.id, traineeId: session.userId, attemptNumber: 1, status: "IN_PROGRESS" },
-        include: { answers: { select: { id: true, questionId: true, answerText: true, lastSavedAt: true } } },
+        include: { answers: { select: ANSWER_SELECT } },
       });
     }
 

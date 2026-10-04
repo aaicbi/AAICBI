@@ -34,7 +34,16 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: "No submission found for this assignment yet." }, { status: 404 });
     }
 
+    // Phase 2 §resubmission-history: every prior attempt's headline score,
+    // so the trainee can see their own improvement across resubmissions.
+    const priorAttempts = await prisma.assignmentSubmission.findMany({
+      where: { assignmentId: params.id, traineeId: session.userId, status: { not: "IN_PROGRESS" } },
+      orderBy: { attemptNumber: "asc" },
+      select: { attemptNumber: true, percentage: true, submittedAt: true },
+    });
+
     return NextResponse.json({
+      attemptHistory: priorAttempts,
       assignmentTitle: assignment.title,
       status: submission.status,
       attemptNumber: submission.attemptNumber,

@@ -20,10 +20,17 @@ interface AnswerResult {
   areasForImprovement: string[] | null;
 }
 
+interface AttemptHistoryEntry {
+  attemptNumber: number;
+  percentage: number | null;
+  submittedAt: string | null;
+}
+
 interface ResultDto {
   assignmentTitle: string;
   status: string;
   attemptNumber: number;
+  attemptHistory: AttemptHistoryEntry[];
   totalScore: number | null;
   maxScore: number | null;
   percentage: number | null;
@@ -72,6 +79,18 @@ export default function AssignmentResultPage({ params }: { params: { id: string 
           </Card>
         ) : (
           <>
+            {result.attemptHistory.length > 1 && (
+              <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                {result.attemptHistory.map((h, i) => (
+                  <span key={h.attemptNumber} className="flex items-center gap-2">
+                    <span className={`rounded-full px-2 py-1 ${h.attemptNumber === result.attemptNumber ? "bg-brand-teal/10 font-semibold text-brand-teal" : "bg-gray-100"}`}>
+                      Attempt {h.attemptNumber}: {h.percentage !== null ? `${Math.round(h.percentage)}%` : "—"}
+                    </span>
+                    {i < result.attemptHistory.length - 1 && <span className="text-gray-400">→</span>}
+                  </span>
+                ))}
+              </div>
+            )}
             <Card className="mt-6 text-center">
               <p className="font-display text-3xl font-semibold text-brand-teal">
                 {result.totalScore}/{result.maxScore}

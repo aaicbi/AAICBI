@@ -14,6 +14,16 @@ const SaveSchema = z.object({ answerText: z.string().max(50_000) });
  * only while it's still IN_PROGRESS — editing after submission is
  * gated by Assignment.allowEditAfterSubmission, never silently allowed
  * just because this route was called.
+ *
+ * Phase 2 — a FAILED_QUESTIONS_ONLY resubmission carries a passing
+ * question's answer AND its score forward (see the resubmit route's
+ * own comment). If a trainee then deliberately edits that carried-
+ * forward answer anyway, its now-stale AI score is cleared here — the
+ * text changed, so the old grade no longer describes it, and
+ * assignmentGrading.ts's own "skip already-scored answers" check
+ * (which is what makes carrying forward NOT re-bill an AI call for
+ * untouched answers) correctly re-grades it on next submit instead of
+ * keeping a grade that no longer matches what's actually written.
  */
 export async function PUT(req: NextRequest, { params }: { params: { id: string; questionId: string } }) {
   return withApiErrors(async () => {
@@ -45,11 +55,24 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string; 
       return NextResponse.json({ error: "Question not found." }, { status: 404 });
     }
 
+    const existing = await prisma.assignmentAnswer.findUnique({
+      where: { submissionId_questionId: { submissionId: submission.id, questionId: params.questionId } },
+      select: { answerText: true, aiScore: true },
+    });
+    const textChanged = existing !== null && existing.answerText !== parsed.data.answerText;
+    const clearStaleScore = textChanged && existing!.aiScore !== null;
+
     const savedAt = new Date();
     const answer = await prisma.assignmentAnswer.upsert({
       where: { submissionId_questionId: { submissionId: submission.id, questionId: params.questionId } },
       create: { submissionId: submission.id, questionId: params.questionId, answerText: parsed.data.answerText, lastSavedAt: savedAt },
-      update: { answerText: parsed.data.answerText, lastSavedAt: savedAt },
+      update: {
+        answerText: parsed.data.answerText,
+        lastSavedAt: savedAt,
+        ...(clearStaleScore
+          ? { aiScore: null, aiMaxScore: null, aiPercentage: null, aiFeedback: null, instructorScore: null, instructorFeedback: null }
+          : {}),
+      },
     });
 
     return NextResponse.json({ savedAt: answer.lastSavedAt });

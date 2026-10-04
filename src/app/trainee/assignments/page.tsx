@@ -10,6 +10,13 @@ import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
 import EmptyState from "@/components/ui/EmptyState";
 
+interface LearningInsight {
+  strengths: string[];
+  weaknesses: string[];
+  narrative: string;
+  generatedAt: string;
+}
+
 interface AssignmentListItem {
   id: string;
   title: string;
@@ -34,6 +41,7 @@ const STATUS_LABEL: Record<string, string> = {
 export default function TraineeAssignmentsPage() {
   const [assignments, setAssignments] = useState<AssignmentListItem[] | null>(null);
   const [loadError, setLoadError] = useState(false);
+  const [insight, setInsight] = useState<LearningInsight | null>(null);
 
   function load() {
     setLoadError(false);
@@ -45,6 +53,10 @@ export default function TraineeAssignmentsPage() {
 
   useEffect(() => {
     load();
+    fetch("/api/trainee/assignment-insights")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data) => setInsight(data.insight))
+      .catch(() => {});
   }, []);
 
   return (
@@ -53,6 +65,19 @@ export default function TraineeAssignmentsPage() {
       <main className="mx-auto max-w-2xl px-6 py-10">
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Assignments</h1>
         <p className="mt-1 text-sm text-gray-500">Read each question, write your answer, save as you go, and submit when ready.</p>
+
+        {insight && (
+          <Card className="mt-6 bg-brand-mint/20">
+            <p className="font-display font-semibold text-brand-ink">Your Learning Insights</p>
+            <p className="mt-1 text-sm text-gray-700">{insight.narrative}</p>
+            {insight.strengths.length > 0 && (
+              <p className="mt-2 text-xs text-gray-600"><strong>Strengths:</strong> {insight.strengths.join("; ")}</p>
+            )}
+            {insight.weaknesses.length > 0 && (
+              <p className="mt-1 text-xs text-gray-600"><strong>Focus on:</strong> {insight.weaknesses.join("; ")}</p>
+            )}
+          </Card>
+        )}
 
         <div className="mt-6 space-y-3">
           {loadError ? (

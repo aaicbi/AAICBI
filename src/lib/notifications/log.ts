@@ -124,7 +124,12 @@ export type NotificationType =
   | "ASSIGNMENT_PUBLISHED"
   | "ASSIGNMENT_SUBMITTED"
   | "ASSIGNMENT_ASSESSED"
-  | "ASSIGNMENT_RESUBMISSION_REQUESTED";
+  | "ASSIGNMENT_RESUBMISSION_REQUESTED"
+  // AI Assignment Engine, Phase 2 — the due-date reminder pair, sent
+  // only to a trainee who hasn't submitted yet (see
+  // assignmentReminders.ts's own comment).
+  | "ASSIGNMENT_DUE_SOON"
+  | "ASSIGNMENT_OVERDUE";
 
 export interface NotifyByEmailInput {
   recipientType: "TRAINEE" | "STAFF" | "EMPLOYER" | "INVESTOR" | "TRAINING_ORG";

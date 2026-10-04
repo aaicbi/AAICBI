@@ -13,7 +13,9 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { assessAssignmentAnswer } from "@/lib/ai/assessAssignmentAnswer";
 import { generateAssignmentOverallFeedback, type PerQuestionResult } from "@/lib/ai/generateAssignmentOverallFeedback";
+import { analyzeAssignmentLearningPatterns } from "@/lib/ai/analyzeAssignmentLearningPatterns";
 import { renderAssignmentSubmissionPdf } from "@/lib/assignmentSubmissionPdf";
+import { aggregateLearningObjectiveStats } from "@/lib/assignmentAnalytics";
 import { notifyByEmail, shouldNotifyTrainee } from "@/lib/notifications/log";
 import {
   assignmentSubmittedToInstructorEmail,
@@ -55,6 +57,26 @@ async function runAiGrading(submission: SubmissionWithRelations): Promise<void> 
 
   for (const answer of submission.answers) {
     const q = answer.question;
+
+    // Phase 2 — a FAILED_QUESTIONS_ONLY resubmission carries a passing
+    // question's answer AND its already-valid aiScore forward (see the
+    // resubmit route's own comment). Skipping it here is what makes
+    // that carry-forward actually avoid a redundant, billed AI call —
+    // it's counted in the total below exactly as-is. The autosave
+    // route clears aiScore back to null the moment a trainee actually
+    // edits a carried-forward answer, so this check alone is enough to
+    // correctly re-grade anything genuinely changed.
+    if (answer.aiScore !== null) {
+      perQuestionResults.push({
+        questionNumber: q.questionNumber,
+        score: answer.aiScore,
+        maxScore: answer.aiMaxScore ?? q.maxMarks,
+        strengths: Array.isArray(answer.aiStrengths) ? (answer.aiStrengths as string[]) : [],
+        areasForImprovement: Array.isArray(answer.aiAreasForImprovement) ? (answer.aiAreasForImprovement as string[]) : [],
+      });
+      continue;
+    }
+
     const result = await assessAssignmentAnswer({
       questionText: q.questionText,
       questionType: q.type,
@@ -143,6 +165,54 @@ async function runAiGrading(submission: SubmissionWithRelations): Promise<void> 
       text: content.text,
     }).catch((e) => console.error(`Failed to send assignment-assessed notification for submission ${submission.id}:`, e));
   }
+
+  // Phase 2 — regenerate this trainee's cross-assignment learning
+  // insight now that new graded data exists, same trigger timing
+  // analyzePerformance.ts itself uses relative to exam grading. Wrapped
+  // so a failure here never affects the grading/notification above,
+  // which has already fully committed.
+  await regenerateLearningInsight(submission.trainee.id).catch((e) =>
+    console.error(`Failed to regenerate learning insight for trainee ${submission.trainee.id}:`, e)
+  );
+}
+
+/**
+ * Pulls every graded answer across every one of this trainee's
+ * assignment submissions (not just the one just graded) — a genuine
+ * CROSS-assignment insight, same "pattern across everything, not just
+ * the latest result" spirit as §20's own framing.
+ */
+async function regenerateLearningInsight(traineeId: string): Promise<void> {
+  const answers = await prisma.assignmentAnswer.findMany({
+    where: {
+      submission: { traineeId },
+      OR: [{ aiScore: { not: null } }, { instructorScore: { not: null } }],
+    },
+    select: {
+      aiScore: true,
+      aiMaxScore: true,
+      instructorScore: true,
+      question: { select: { learningObjective: true, maxMarks: true } },
+    },
+  });
+  if (answers.length === 0) return;
+
+  const stats = aggregateLearningObjectiveStats(
+    answers.map((a) => {
+      const finalScore = a.instructorScore ?? a.aiScore ?? 0;
+      const maxMarks = a.aiMaxScore ?? a.question.maxMarks;
+      return { learningObjective: a.question.learningObjective, score: maxMarks > 0 ? (finalScore / maxMarks) * 100 : 0 };
+    })
+  );
+
+  const insight = await analyzeAssignmentLearningPatterns(stats);
+  if (!insight) return;
+
+  await prisma.assignmentLearningInsight.upsert({
+    where: { traineeId },
+    create: { traineeId, strengths: insight.strengths, weaknesses: insight.weaknesses, narrative: insight.narrative },
+    update: { strengths: insight.strengths, weaknesses: insight.weaknesses, narrative: insight.narrative, generatedAt: new Date() },
+  });
 }
 
 async function routeToManualGrading(submission: SubmissionWithRelations): Promise<void> {

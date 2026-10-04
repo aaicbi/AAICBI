@@ -1309,3 +1309,44 @@ export function assignmentResubmissionRequestedEmail(input: AssignmentResubmissi
     text: `Hi ${input.traineeName},\n\nYour instructor has asked you to resubmit ${input.assignmentTitle}.${input.comments ? ` Their comments: "${input.comments}"` : ""}\n\n${input.assignmentUrl}`,
   };
 }
+
+/**
+ * AI Assignment Engine, Phase 2 — the due-date reminder pair, same
+ * plain/direct shape as the course access-expiry reminders
+ * (accessExpiringReminderEmail) this mirrors.
+ */
+export interface AssignmentDueSoonEmailInput {
+  traineeName: string;
+  assignmentTitle: string;
+  dueDateLabel: string;
+  assignmentUrl: string;
+}
+export function assignmentDueSoonEmail(input: AssignmentDueSoonEmailInput): EmailContent {
+  return {
+    subject: `Due soon: ${input.assignmentTitle}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(input.traineeName)},</p>
+      <p style="margin:0 0 16px;"><strong>${escapeHtml(input.assignmentTitle)}</strong> is due on ${escapeHtml(input.dueDateLabel)}. Finish it while you still have time.</p>
+      ${button(input.assignmentUrl, "Open Assignment")}
+    `),
+    text: `Hi ${input.traineeName},\n\n${input.assignmentTitle} is due on ${input.dueDateLabel}. Finish it while you still have time.\n\n${input.assignmentUrl}`,
+  };
+}
+
+export interface AssignmentOverdueEmailInput {
+  traineeName: string;
+  assignmentTitle: string;
+  dueDateLabel: string;
+  assignmentUrl: string;
+}
+export function assignmentOverdueEmail(input: AssignmentOverdueEmailInput): EmailContent {
+  return {
+    subject: `Overdue: ${input.assignmentTitle}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(input.traineeName)},</p>
+      <p style="margin:0 0 16px;"><strong>${escapeHtml(input.assignmentTitle)}</strong> was due on ${escapeHtml(input.dueDateLabel)} and hasn't been submitted yet. Submit as soon as you can.</p>
+      ${button(input.assignmentUrl, "Open Assignment")}
+    `),
+    text: `Hi ${input.traineeName},\n\n${input.assignmentTitle} was due on ${input.dueDateLabel} and hasn't been submitted yet. Submit as soon as you can.\n\n${input.assignmentUrl}`,
+  };
+}

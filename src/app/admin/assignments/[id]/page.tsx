@@ -8,7 +8,7 @@ import Icon from "@/components/ui/Icon";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
-import { AlertTriangle, Users, ChevronDown, ChevronRight } from "lucide-react";
+import { AlertTriangle, Users, ChevronDown, ChevronRight, BarChart3 } from "lucide-react";
 
 const QUESTION_TYPES = [
   "SHORT_ANSWER", "EXPLANATION", "LONG_ANSWER", "ESSAY", "SCENARIO",
@@ -51,6 +51,7 @@ interface AssignmentDto {
   resubmissionPolicy: "NONE" | "ONE" | "LIMITED" | "UNLIMITED";
   maxResubmissions: number | null;
   resubmissionScope: "FULL_ASSIGNMENT" | "FAILED_QUESTIONS_ONLY";
+  failedQuestionThresholdPercent: number;
   questions: QuestionDto[];
   _count: { submissions: number };
 }
@@ -164,6 +165,9 @@ export default function AssignmentBuilderPage({ params }: { params: { id: string
             <Link href={`/admin/assignments/${params.id}/submissions`} className="text-xs font-semibold text-brand-teal hover:underline">
               <Icon icon={Users} size="sm" className="mr-1 inline align-text-bottom" /> {assignment._count.submissions} Submission{assignment._count.submissions === 1 ? "" : "s"}
             </Link>
+            <Link href={`/admin/assignments/${params.id}/analytics`} className="text-xs font-semibold text-brand-teal hover:underline">
+              <Icon icon={BarChart3} size="sm" className="mr-1 inline align-text-bottom" /> Analytics
+            </Link>
           </div>
         </div>
       </div>
@@ -213,6 +217,8 @@ function AssignmentSettings({
   const [aiAssessmentEnabled, setAiAssessmentEnabled] = useState(assignment.aiAssessmentEnabled);
   const [resubmissionPolicy, setResubmissionPolicy] = useState(assignment.resubmissionPolicy);
   const [maxResubmissions, setMaxResubmissions] = useState(assignment.maxResubmissions?.toString() ?? "");
+  const [resubmissionScope, setResubmissionScope] = useState(assignment.resubmissionScope);
+  const [failedQuestionThresholdPercent, setFailedQuestionThresholdPercent] = useState(assignment.failedQuestionThresholdPercent.toString());
   const [saving, setSaving] = useState(false);
 
   function startEditing() {
@@ -222,6 +228,8 @@ function AssignmentSettings({
     setAiAssessmentEnabled(assignment.aiAssessmentEnabled);
     setResubmissionPolicy(assignment.resubmissionPolicy);
     setMaxResubmissions(assignment.maxResubmissions?.toString() ?? "");
+    setResubmissionScope(assignment.resubmissionScope);
+    setFailedQuestionThresholdPercent(assignment.failedQuestionThresholdPercent.toString());
     setEditing(true);
   }
 
@@ -234,6 +242,8 @@ function AssignmentSettings({
       aiAssessmentEnabled,
       resubmissionPolicy,
       maxResubmissions: resubmissionPolicy === "LIMITED" && maxResubmissions.trim() ? (Number(maxResubmissions) as unknown as number) : null,
+      resubmissionScope,
+      failedQuestionThresholdPercent: Number(failedQuestionThresholdPercent) || 50,
     });
     setSaving(false);
     if (err) {
@@ -256,6 +266,8 @@ function AssignmentSettings({
           Late submissions: {assignment.lateSubmissionPolicy.replace(/_/g, " ").toLowerCase()} ·{" "}
           AI assessment: <strong>{assignment.aiAssessmentEnabled ? "On" : "Off (manual grading)"}</strong> ·{" "}
           Resubmission: {assignment.resubmissionPolicy.toLowerCase()}
+          {assignment.resubmissionPolicy !== "NONE" &&
+            ` (${assignment.resubmissionScope === "FAILED_QUESTIONS_ONLY" ? `only questions scoring below ${assignment.failedQuestionThresholdPercent}%` : "full assignment"})`}
           {assignment.allowEditAfterSubmission && " · Editing allowed after submission"}
         </p>
       ) : (
@@ -299,6 +311,23 @@ function AssignmentSettings({
               </label>
             )}
           </div>
+          {resubmissionPolicy !== "NONE" && (
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="block text-xs text-gray-700">
+                What a trainee must redo
+                <select value={resubmissionScope} onChange={(e) => setResubmissionScope(e.target.value as AssignmentDto["resubmissionScope"])} className="mt-1 block rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal">
+                  <option value="FULL_ASSIGNMENT">Full assignment</option>
+                  <option value="FAILED_QUESTIONS_ONLY">Only questions they failed</option>
+                </select>
+              </label>
+              {resubmissionScope === "FAILED_QUESTIONS_ONLY" && (
+                <label className="block text-xs text-gray-700">
+                  Failing threshold (%)
+                  <input type="number" min={1} max={99} value={failedQuestionThresholdPercent} onChange={(e) => setFailedQuestionThresholdPercent(e.target.value)} className="mt-1 block w-24 rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal" />
+                </label>
+              )}
+            </div>
+          )}
           <div className="flex gap-2">
             <button onClick={handleSave} disabled={saving} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60">{saving ? "Saving..." : "Save"}</button>
             <button onClick={() => setEditing(false)} className="rounded-lg border border-brand-gray px-3 py-1.5 text-xs font-semibold">Cancel</button>

@@ -682,6 +682,10 @@ model Trainee {
   // AI Assignment Engine — every assignment submission this trainee has
   // made, across every attempt/resubmission.
   assignmentSubmissions AssignmentSubmission[]
+  // AI Assignment Engine, Phase 2 — this trainee's own cross-assignment
+  // learning insight, one row, regenerated in place.
+  assignmentLearningInsight AssignmentLearningInsight?
+  assignmentRemindersSent   AssignmentReminderSent[]
 
   @@index([email])
 }
@@ -3994,6 +3998,13 @@ model Assignment {
   // Only meaningful when resubmissionPolicy is LIMITED.
   maxResubmissions   Int?
   resubmissionScope  ResubmissionScope  @default(FULL_ASSIGNMENT)
+  // Only consulted when resubmissionScope is FAILED_QUESTIONS_ONLY —
+  // the instructor's own per-assignment pass mark; a question scoring
+  // at or above this percentage carries its answer and score forward
+  // unchanged on resubmission, below it is reopened blank. Deliberately
+  // per-assignment, not a platform-wide constant (confirmed during
+  // planning).
+  failedQuestionThresholdPercent Int @default(50)
 
   // The original uploaded Word document, kept for audit/re-import —
   // same URL+timestamp pairing convention as Course.flyerUrl/
@@ -4003,6 +4014,7 @@ model Assignment {
 
   questions   AssignmentQuestion[]
   submissions AssignmentSubmission[]
+  remindersSent AssignmentReminderSent[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -4133,4 +4145,36 @@ model AssignmentAnswer {
   instructorFeedback String?
 
   @@unique([submissionId, questionId])
+}
+
+// AI Assignment Engine, Phase 2 — cross-assignment learning insights.
+// Same shape and same anti-hallucination grounding discipline as the
+// exam engine's own PerformanceSummary: the AI is fed ONLY pre-
+// aggregated per-learningObjective score stats, never raw question or
+// answer text. One row per trainee, regenerated (upserted) each time
+// new assignment-grading data exists, not a growing history table.
+model AssignmentLearningInsight {
+  id          String   @id @default(cuid())
+  traineeId   String   @unique
+  trainee     Trainee  @relation(fields: [traineeId], references: [id])
+  strengths   Json // string[]
+  weaknesses  Json // string[]
+  narrative   String
+  generatedAt DateTime @default(now())
+}
+
+// AI Assignment Engine, Phase 2 — due-date reminder dedup, same
+// create-then-catch-P2002 idempotency shape as EnrollmentReminderSent:
+// a second cron run on the same day must never send the same trainee
+// the same reminder twice for the same assignment.
+model AssignmentReminderSent {
+  id           String     @id @default(cuid())
+  assignmentId String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  traineeId    String
+  trainee      Trainee    @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  type         String // "DUE_SOON" | "OVERDUE"
+  sentAt       DateTime   @default(now())
+
+  @@unique([assignmentId, traineeId, type])
 }

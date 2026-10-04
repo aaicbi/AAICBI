@@ -35,6 +35,7 @@ const UpdateSchema = z.object({
   resubmissionPolicy: z.enum(["NONE", "ONE", "LIMITED", "UNLIMITED"]).optional(),
   maxResubmissions: z.number().int().positive().nullable().optional(),
   resubmissionScope: z.enum(["FULL_ASSIGNMENT", "FAILED_QUESTIONS_ONLY"]).optional(),
+  failedQuestionThresholdPercent: z.number().int().min(1).max(99).optional(),
 });
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
