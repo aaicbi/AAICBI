@@ -3211,15 +3211,16 @@ model CertificateTemplate {
   logoUrl      String?
   primaryColor String // hex, e.g. "#016B61"
   accentColor  String // hex
-  // Custom HTML certificate design — raw template markup, sanitized
-  // before storage (and again at every render, since this is the one
-  // place admin/org-supplied content reaches the public, unauthenticated
-  // /certificate/[code] page). Null means "use the default
+  // Visual certificate design editor — a strictly-typed layout (text/
+  // image/shape elements with positions, bound either to a literal
+  // string or a DynamicField like "traineeName") built with the
+  // Konva-based drag-and-drop editor. Null means "use the default
   // CertificateCard design" — purely additive, every pre-existing
   // template keeps rendering exactly as before. See
-  // src/lib/certificateHtmlTemplate.ts for the {{token}} substitution
-  // syntax this field's content is interpreted with.
-  customHtml     String?
+  // src/lib/certificateLayout.ts for the CertificateLayout shape and
+  // its Zod schema — there is no HTML/markup here and nothing to
+  // sanitize, every value is a bounded number/string/enum.
+  layoutJson     Json?
   signatoryName  String?
   signatoryTitle String?
   // Single-use share-link review — see the public review page's own

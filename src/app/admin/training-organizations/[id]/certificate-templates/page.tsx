@@ -6,6 +6,8 @@ import Badge from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import CertificateDisplay from "@/components/CertificateDisplay";
+import CertificateCanvasEditor from "@/components/certificateEditor/CertificateCanvasEditor";
+import type { CertificateLayout } from "@/lib/certificateLayout";
 
 interface TemplateDto {
   id: string;
@@ -15,28 +17,22 @@ interface TemplateDto {
   accentColor: string;
   reviewToken: string;
   approvedAt: string | null;
-  customHtml: string | null;
+  layoutJson: CertificateLayout | null;
   signatoryName: string | null;
   signatoryTitle: string | null;
 }
 
-// Custom HTML Certificate Templates — the available {{token}} list,
-// shown to whoever is pasting in a design so they know what's
-// substitutable. Kept here, next to the form that produces the HTML,
-// rather than only in code comments.
-const AVAILABLE_TOKENS = [
-  "{{traineeName}}", "{{verb}}", "{{credentialTitle}}", "{{issuedAt}}", "{{certificateCode}}",
-  "{{organizationName}}", "{{logoUrl}}", "{{primaryColor}}", "{{accentColor}}",
-  "{{signatoryName}}", "{{signatoryTitle}}", "{{qrCodeSvg}}",
-];
-
 /**
  * Training Organizations, Phase 1 — the SUPER_ADMIN-only certificate
  * design tool: create/edit a template (locked once the organization
- * approves it), upload its logo, and send it for review. The live
- * preview reuses CertificateCard — the exact same component the real
- * issued certificate and the public review page both render, so what
- * SUPER_ADMIN sees here is what actually ships, not an approximation.
+ * approves it), upload its logo, and send it for review.
+ *
+ * Visual Certificate Design Editor — the design surface itself is now
+ * CertificateCanvasEditor (Konva-based drag-and-drop), not hand-typed
+ * HTML. The live preview on the right still reuses CertificateDisplay
+ * — the exact same component the real issued certificate and the
+ * public review page both render, so what SUPER_ADMIN sees here is
+ * what actually ships, not an approximation, same as before.
  */
 export default function CertificateTemplatesPage({ params }: { params: { id: string } }) {
   const [templates, setTemplates] = useState<TemplateDto[] | null>(null);
@@ -46,12 +42,11 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
   const [accentColor, setAccentColor] = useState("#D99A34");
   const [signatoryName, setSignatoryName] = useState("");
   const [signatoryTitle, setSignatoryTitle] = useState("");
-  const [customHtml, setCustomHtml] = useState("");
+  const [layoutJson, setLayoutJson] = useState<CertificateLayout | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const htmlFileInputRef = useRef<HTMLInputElement>(null);
   const { showToast } = useToast();
 
   const selected = templates?.find((t) => t.id === selectedId) ?? null;
@@ -78,7 +73,7 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
     setAccentColor(t.accentColor);
     setSignatoryName(t.signatoryName ?? "");
     setSignatoryTitle(t.signatoryTitle ?? "");
-    setCustomHtml(t.customHtml ?? "");
+    setLayoutJson(t.layoutJson ?? null);
   }
 
   function startNew() {
@@ -88,22 +83,13 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
     setAccentColor("#D99A34");
     setSignatoryName("");
     setSignatoryTitle("");
-    setCustomHtml("");
-  }
-
-  function loadHtmlFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setCustomHtml(typeof reader.result === "string" ? reader.result : "");
-    reader.readAsText(file);
+    setLayoutJson(null);
   }
 
   async function save() {
     if (!name.trim()) return;
     setSaving(true);
-    const payload = { name, primaryColor, accentColor, signatoryName, signatoryTitle, customHtml };
+    const payload = { name, primaryColor, accentColor, signatoryName, signatoryTitle, layoutJson };
     const res = selected
       ? await fetch(`/api/admin/certificate-templates/${selected.id}`, {
           method: "PATCH",
@@ -160,7 +146,7 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
   const isLocked = !!selected?.approvedAt;
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
+    <main className="mx-auto max-w-5xl px-6 py-10">
       <h1 className="font-display text-2xl font-semibold text-brand-ink">Certificate Templates</h1>
       <p className="mt-1 text-sm text-gray-500">Design a branded certificate, then send it to the organization for approval.</p>
 
@@ -252,33 +238,6 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
                 />
               </div>
 
-              <div>
-                <div className="mb-1.5 flex items-center justify-between">
-                  <label className="text-xs font-semibold text-gray-600">Custom HTML (optional — overrides the design below)</label>
-                  <div>
-                    <input ref={htmlFileInputRef} type="file" accept=".html,text/html" onChange={loadHtmlFile} className="hidden" />
-                    <button
-                      onClick={() => htmlFileInputRef.current?.click()}
-                      disabled={isLocked}
-                      className="rounded-lg border border-brand-gray px-2.5 py-1 text-xs font-semibold text-brand-ink disabled:opacity-60"
-                    >
-                      Load from file
-                    </button>
-                  </div>
-                </div>
-                <textarea
-                  value={customHtml}
-                  onChange={(e) => setCustomHtml(e.target.value)}
-                  placeholder="Paste or load a certificate's HTML. Leave blank to use the default design above."
-                  disabled={isLocked}
-                  rows={8}
-                  className="w-full rounded-lg border border-brand-gray px-3 py-2.5 font-mono text-xs outline-none focus:border-brand-teal disabled:opacity-60"
-                />
-                <p className="mt-1.5 text-xs text-gray-500">
-                  Available tokens: {AVAILABLE_TOKENS.join(" ")}
-                </p>
-              </div>
-
               {!isLocked && (
                 <Button onClick={save} loading={saving} disabled={!name.trim()}>
                   {selected ? "Save changes" : "Create template"}
@@ -309,9 +268,29 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
               signatoryName,
               signatoryTitle,
             }}
-            customHtml={customHtml || null}
+            layoutJson={layoutJson}
           />
         </div>
+      </div>
+
+      <div className="mt-8">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+          Custom design (optional — drag elements onto the canvas; leave empty to use the design above)
+        </p>
+        <Card>
+          <CertificateCanvasEditor
+            key={selectedId ?? "new"}
+            layout={layoutJson}
+            onChange={setLayoutJson}
+            logoUrl={selected?.logoUrl ?? null}
+            disabled={isLocked}
+          />
+          {!isLocked && layoutJson && (
+            <button onClick={() => setLayoutJson(null)} className="mt-3 text-xs font-semibold text-brand-rose hover:underline">
+              Clear custom design (use the default layout above instead)
+            </button>
+          )}
+        </Card>
       </div>
     </main>
   );

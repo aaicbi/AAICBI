@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rateLimit";
 import SiteHeader from "@/components/SiteHeader";
 import CertificateDisplay from "@/components/CertificateDisplay";
+import type { CertificateLayout } from "@/lib/certificateLayout";
 import ApproveTemplateButton from "@/components/ApproveTemplateButton";
 import { CheckCircle2 } from "lucide-react";
 import Icon from "@/components/ui/Icon";
@@ -41,7 +42,7 @@ export default async function CertificateTemplateReviewPage({ params }: { params
       primaryColor: true,
       accentColor: true,
       approvedAt: true,
-      customHtml: true,
+      layoutJson: true,
       signatoryName: true,
       signatoryTitle: true,
       trainingOrganization: { select: { name: true, contactName: true } },
@@ -88,7 +89,7 @@ export default async function CertificateTemplateReviewPage({ params }: { params
               signatoryName: template.signatoryName,
               signatoryTitle: template.signatoryTitle,
             }}
-            customHtml={template.customHtml}
+            layoutJson={template.layoutJson as unknown as CertificateLayout | null}
           />
         </div>
 

@@ -16,3 +16,17 @@ export async function certificateQrCodeSvg(verificationUrl: string): Promise<str
     color: { dark: "#016B61", light: "#00000000" }, // brand teal on transparent
   });
 }
+
+/**
+ * Visual Certificate Design Editor — a PNG data URI instead of inline
+ * SVG, so the new layout renderer's QR "image" element can be a plain
+ * `<img src>` rather than needing `dangerouslySetInnerHTML` anywhere in
+ * that rendering path. The original SVG export above is unchanged and
+ * still used by CertificateCard's own fixed default design.
+ */
+export async function certificateQrCodeDataUrl(verificationUrl: string): Promise<string> {
+  return QRCode.toDataURL(verificationUrl, {
+    margin: 1,
+    color: { dark: "#016B61", light: "#FFFFFF" },
+  });
+}

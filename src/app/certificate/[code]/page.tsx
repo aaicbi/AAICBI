@@ -1,8 +1,9 @@
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rateLimit";
-import { certificateQrCodeSvg } from "@/lib/certificateQr";
+import { certificateQrCodeSvg, certificateQrCodeDataUrl } from "@/lib/certificateQr";
 import { appUrl } from "@/lib/appUrl";
+import type { CertificateLayout } from "@/lib/certificateLayout";
 import SiteHeader from "@/components/SiteHeader";
 import PrintCertificateButton from "@/components/PrintCertificateButton";
 import CertificateDisplay from "@/components/CertificateDisplay";
@@ -80,7 +81,7 @@ export default async function CertificateVerificationPage({ params }: { params: 
               primaryColor: true,
               accentColor: true,
               approvedAt: true,
-              customHtml: true,
+              layoutJson: true,
               signatoryName: true,
               signatoryTitle: true,
               trainingOrganization: { select: { name: true, brandingFooterRemoved: true } },
@@ -135,7 +136,8 @@ export default async function CertificateVerificationPage({ params }: { params: 
           signatoryTitle: assignedTemplate.signatoryTitle,
         }
       : undefined;
-  const customHtml = assignedTemplate && assignedTemplate.approvedAt ? assignedTemplate.customHtml : null;
+  const layoutJson =
+    assignedTemplate && assignedTemplate.approvedAt ? (assignedTemplate.layoutJson as unknown as CertificateLayout | null) : null;
 
   const certificate = courseCertificate
     ? {
@@ -204,6 +206,7 @@ export default async function CertificateVerificationPage({ params }: { params: 
 
   const verificationUrl = appUrl(`/certificate/${certificate.code}`);
   const qrSvg = await certificateQrCodeSvg(verificationUrl);
+  const qrDataUrl = await certificateQrCodeDataUrl(verificationUrl);
 
   return (
     <>
@@ -216,8 +219,9 @@ export default async function CertificateVerificationPage({ params }: { params: 
           issuedAt={certificate.issuedAt}
           code={certificate.code}
           qrSvg={qrSvg}
+          qrDataUrl={qrDataUrl}
           branding={branding}
-          customHtml={customHtml}
+          layoutJson={layoutJson}
         />
 
         <p className="mt-6 text-center text-xs text-gray-400 print:hidden">

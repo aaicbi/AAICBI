@@ -1,19 +1,35 @@
 import CertificateCard, { type CertificateCardProps } from "@/components/CertificateCard";
-import CustomHtmlCertificate from "@/components/CustomHtmlCertificate";
+import CertificateLayoutRenderer from "@/components/CertificateLayoutRenderer";
+import type { CertificateLayout } from "@/lib/certificateLayout";
 
 /**
- * Custom HTML Certificate Templates — the one router the three
- * existing certificate-rendering call sites go through, so none of
- * them need their own if/else: a template with customHtml set renders
- * the imported design, everything else renders the original,
- * unchanged CertificateCard.
+ * Visual Certificate Design Editor — the one router the three
+ * certificate-rendering call sites go through, so none of them need
+ * their own if/else: a template with layoutJson set renders the
+ * designed layout, everything else renders the original, unchanged
+ * CertificateCard.
  */
 export default function CertificateDisplay({
-  customHtml,
+  layoutJson,
+  qrDataUrl,
   ...props
-}: CertificateCardProps & { customHtml?: string | null }) {
-  if (customHtml) {
-    return <CustomHtmlCertificate html={customHtml} {...props} />;
+}: CertificateCardProps & { layoutJson?: CertificateLayout | null; qrDataUrl?: string }) {
+  if (layoutJson) {
+    return (
+      <CertificateLayoutRenderer
+        layout={layoutJson}
+        logoUrl={props.branding?.logoUrl ?? null}
+        qrDataUrl={qrDataUrl}
+        traineeName={props.traineeName}
+        verb={props.verb}
+        credentialTitle={props.credentialTitle}
+        issuedAt={props.issuedAt.toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })}
+        certificateCode={props.code}
+        organizationName={props.branding?.organizationName ?? ""}
+        signatoryName={props.branding?.signatoryName ?? ""}
+        signatoryTitle={props.branding?.signatoryTitle ?? ""}
+      />
+    );
   }
   return <CertificateCard {...props} />;
 }

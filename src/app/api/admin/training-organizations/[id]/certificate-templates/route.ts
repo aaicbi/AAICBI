@@ -4,18 +4,18 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { generateTemplateReviewToken } from "@/lib/certificateTemplateReview";
-import { sanitizeCertificateHtml } from "@/lib/certificateHtmlSanitize";
+import { CertificateLayoutSchema } from "@/lib/certificateLayout";
 
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 const CreateSchema = z.object({
   name: z.string().trim().min(1).max(80),
   primaryColor: z.string().regex(HEX_COLOR, "Enter a valid hex color, e.g. #016B61."),
   accentColor: z.string().regex(HEX_COLOR, "Enter a valid hex color, e.g. #D99A34."),
-  // Custom HTML Certificate Templates — optional at creation too, so
-  // the design tool's single "Save" action works whether this is a
+  // Visual Certificate Design Editor — optional at creation too, so the
+  // design tool's single "Save" action works whether this is a
   // brand-new template or an edit (POST vs PATCH), without a confusing
-  // first save that silently drops what's in the HTML textarea.
-  customHtml: z.string().max(50_000).optional(),
+  // first save that silently drops the canvas the admin just built.
+  layoutJson: CertificateLayoutSchema.optional(),
   signatoryName: z.string().trim().max(100).optional(),
   signatoryTitle: z.string().trim().max(100).optional(),
 });
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         name: parsed.data.name,
         primaryColor: parsed.data.primaryColor,
         accentColor: parsed.data.accentColor,
-        customHtml: parsed.data.customHtml ? sanitizeCertificateHtml(parsed.data.customHtml) : null,
+        layoutJson: parsed.data.layoutJson ?? undefined,
         signatoryName: parsed.data.signatoryName || null,
         signatoryTitle: parsed.data.signatoryTitle || null,
         reviewToken: generateTemplateReviewToken(),
