@@ -1,3 +1,5 @@
+"use client";
+import { useEffect, useRef, useState } from "react";
 import type { CertificateLayout, CertificateElement, CertificateRenderData } from "@/lib/certificateLayout";
 import { resolveFieldValue } from "@/lib/certificateLayout";
 import { BUILTIN_ICON_COMPONENTS } from "@/lib/certificateIcons";
@@ -20,16 +22,41 @@ export interface CertificateLayoutRendererProps extends CertificateRenderData {
  * checked by CertificateLayoutSchema before it was ever stored. A
  * builtin icon renders the real lucide-react component directly (no
  * canvas library involved on this render path at all).
+ *
+ * Responsive scaling, fixed here as a real bug (not just a preview
+ * nuisance — this is the exact component /certificate/[code] renders
+ * too): elements use absolute px coordinates in `layout`'s own
+ * width/height space, so a narrow container needs the WHOLE inner box
+ * visually scaled down via CSS transform, not just its outer wrapper
+ * shrunk — a shrunk wrapper with untransformed absolute-positioned
+ * children just clips them, which is exactly what was happening in any
+ * container narrower than the design's own width (e.g. the admin
+ * tool's sidebar preview).
  */
 export default function CertificateLayoutRenderer({ layout, logoUrl, qrDataUrl, ...data }: CertificateLayoutRendererProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => setScale(el.clientWidth / layout.width);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [layout.width]);
+
   return (
-    <div
-      className="relative overflow-hidden rounded-2xl print:border print:shadow-none animate-[modal-in_0.4s_ease-out]"
-      style={{ width: layout.width, height: layout.height, backgroundColor: layout.backgroundColor, margin: "0 auto", maxWidth: "100%" }}
-    >
-      {layout.elements.map((el) => (
-        <ElementNode key={el.id} element={el} logoUrl={logoUrl} qrDataUrl={qrDataUrl} data={data} />
-      ))}
+    <div ref={containerRef} className="relative mx-auto w-full" style={{ maxWidth: layout.width, aspectRatio: `${layout.width} / ${layout.height}` }}>
+      <div
+        className="absolute left-0 top-0 overflow-hidden rounded-2xl print:border print:shadow-none animate-[modal-in_0.4s_ease-out]"
+        style={{ width: layout.width, height: layout.height, backgroundColor: layout.backgroundColor, transform: `scale(${scale})`, transformOrigin: "top left" }}
+      >
+        {layout.elements.map((el) => (
+          <ElementNode key={el.id} element={el} logoUrl={logoUrl} qrDataUrl={qrDataUrl} data={data} />
+        ))}
+      </div>
     </div>
   );
 }

@@ -42,6 +42,7 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
   const [signatoryTitle, setSignatoryTitle] = useState("");
   const [layoutJson, setLayoutJson] = useState<CertificateLayout | null>(null);
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -73,7 +74,10 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
     setSignatoryName(t.signatoryName ?? "");
     setSignatoryTitle(t.signatoryTitle ?? "");
     setLayoutJson(t.layoutJson ?? null);
-    setGalleryOpen(false);
+    // A template with nothing designed yet goes straight to the
+    // gallery rather than leaving an empty canvas with no obvious next
+    // step — the gallery trigger alone was easy to miss.
+    setGalleryOpen(!t.layoutJson && !t.approvedAt);
   }
 
   function startNew() {
@@ -253,6 +257,11 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
               {layoutJson ? "Start from a different template" : "Choose a starting template"}
             </button>
           )}
+          {layoutJson && (
+            <button onClick={() => setPreviewOpen(true)} className="rounded-lg border border-brand-teal px-3 py-2 text-xs font-semibold text-brand-teal">
+              Preview
+            </button>
+          )}
         </div>
       </Card>
 
@@ -266,7 +275,7 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
                 onClick={() => pickPreset(preset.layout)}
                 className="overflow-hidden rounded-lg border border-brand-gray text-left hover:border-brand-teal"
               >
-                <div style={{ transform: "scale(0.22)", transformOrigin: "top left", width: 220 }}>
+                <div className="w-full" style={{ maxWidth: 220 }}>
                   <CertificateDisplay
                     traineeName="Jane Doe"
                     verb="has successfully completed"
@@ -287,38 +296,45 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
         </Card>
       )}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Design</p>
-          <Card>
-            <CertificateCanvasEditor
-              key={selectedId ?? "new"}
-              layout={layoutJson}
-              onChange={setLayoutJson}
-              logoUrl={selected?.logoUrl ?? null}
-              disabled={isLocked}
-            />
-          </Card>
-        </div>
-
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Live preview</p>
-          <CertificateDisplay
-            traineeName="Jane Doe"
-            verb="has successfully completed"
-            credentialTitle="Sample Course"
-            issuedAt={new Date()}
-            code="SAMPLE-0000-0000"
-            branding={{
-              organizationName: name || "Organization Name",
-              logoUrl: selected?.logoUrl ?? null,
-              signatoryName,
-              signatoryTitle,
-            }}
-            layoutJson={layoutJson}
+      <div className="mt-6">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Design</p>
+        <Card>
+          <CertificateCanvasEditor
+            key={selectedId ?? "new"}
+            layout={layoutJson}
+            onChange={setLayoutJson}
+            logoUrl={selected?.logoUrl ?? null}
+            disabled={isLocked}
           />
-        </div>
+        </Card>
       </div>
+
+      {previewOpen && layoutJson && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6" onClick={() => setPreviewOpen(false)}>
+          <div className="max-h-full w-full max-w-2xl overflow-auto rounded-2xl bg-brand-surface p-6 animate-[modal-in_0.2s_ease-out]" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-semibold text-brand-ink">Preview — exactly what's on the canvas</p>
+              <button onClick={() => setPreviewOpen(false)} className="text-sm font-semibold text-gray-500 hover:text-brand-ink">
+                Close
+              </button>
+            </div>
+            <CertificateDisplay
+              traineeName="Jane Doe"
+              verb="has successfully completed"
+              credentialTitle="Sample Course"
+              issuedAt={new Date()}
+              code="SAMPLE-0000-0000"
+              branding={{
+                organizationName: name || "Organization Name",
+                logoUrl: selected?.logoUrl ?? null,
+                signatoryName,
+                signatoryTitle,
+              }}
+              layoutJson={layoutJson}
+            />
+          </div>
+        </div>
+      )}
     </main>
   );
 }
