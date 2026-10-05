@@ -122,4 +122,36 @@ describe("CertificateLayoutSchema", () => {
     expect(CertificateLayoutSchema.safeParse({ ...minimalLayout, width: 10 }).success).toBe(false);
     expect(CertificateLayoutSchema.safeParse({ ...minimalLayout, width: 100_000 }).success).toBe(false);
   });
+
+  it("accepts a valid builtin icon element", () => {
+    const layout = {
+      ...minimalLayout,
+      elements: [{ id: "a", type: "icon", x: 0, y: 0, size: 48, rotation: 0, color: "#016B61", source: { kind: "builtin", name: "GraduationCap" } }],
+    };
+    expect(CertificateLayoutSchema.safeParse(layout).success).toBe(true);
+  });
+
+  it("accepts a valid uploaded icon element", () => {
+    const layout = {
+      ...minimalLayout,
+      elements: [{ id: "a", type: "icon", x: 0, y: 0, size: 48, rotation: 0, color: "#016B61", source: { kind: "uploaded", url: "https://example.com/icon.png" } }],
+    };
+    expect(CertificateLayoutSchema.safeParse(layout).success).toBe(true);
+  });
+
+  it("rejects an icon element with an unknown builtin name", () => {
+    const layout = {
+      ...minimalLayout,
+      elements: [{ id: "a", type: "icon", x: 0, y: 0, size: 48, rotation: 0, color: "#016B61", source: { kind: "builtin", name: "NotARealIcon" } }],
+    };
+    expect(CertificateLayoutSchema.safeParse(layout).success).toBe(false);
+  });
+
+  it("rejects an icon element with a size outside the allowed range", () => {
+    const layout = {
+      ...minimalLayout,
+      elements: [{ id: "a", type: "icon", x: 0, y: 0, size: 9999, rotation: 0, color: "#016B61", source: { kind: "builtin", name: "Star" } }],
+    };
+    expect(CertificateLayoutSchema.safeParse(layout).success).toBe(false);
+  });
 });

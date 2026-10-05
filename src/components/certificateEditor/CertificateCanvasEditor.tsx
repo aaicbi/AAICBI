@@ -1,18 +1,19 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Stage, Layer, Text, Rect, Line, Image as KonvaImage, Transformer } from "react-konva";
-import type Konva from "konva";
-import useImage from "use-image";
+import { Canvas, Textbox, Rect, Line, FabricImage, FabricObject } from "fabric";
 import {
   DYNAMIC_FIELDS,
   DYNAMIC_FIELD_LABELS,
   DEFAULT_LAYOUT_WIDTH,
   DEFAULT_LAYOUT_HEIGHT,
+  PAGE_SIZE_PRESETS,
   type CertificateLayout,
   type CertificateElement,
   type TextElement,
   type DynamicField,
 } from "@/lib/certificateLayout";
+import { BUILTIN_ICONS } from "@/lib/certificateIcons";
+import { builtinIconToDataUrl } from "@/lib/certificateIconRender";
 import ElementPropertiesPanel from "@/components/certificateEditor/ElementPropertiesPanel";
 
 const DEFAULT_LAYOUT: CertificateLayout = {
@@ -22,14 +23,16 @@ const DEFAULT_LAYOUT: CertificateLayout = {
   elements: [],
 };
 
-// The editor's own design space is always DEFAULT_LAYOUT_WIDTH/HEIGHT
-// px, scaled down to fit the page — Konva's Stage scaleX/scaleY keeps
-// every element's stored x/y/width in that full-resolution coordinate
-// system regardless of how small the on-screen canvas is drawn.
 const DISPLAY_WIDTH = 640;
 
 function newId(): string {
   return Math.random().toString(36).slice(2, 10);
+}
+
+interface UploadedIcon {
+  id: string;
+  name: string;
+  url: string;
 }
 
 export interface CertificateCanvasEditorProps {
@@ -39,12 +42,29 @@ export interface CertificateCanvasEditorProps {
   disabled: boolean;
 }
 
+/**
+ * Visual Certificate Design Editor — the Fabric.js-based drag/resize/
+ * rotate canvas. Imperative, not declarative (Fabric has no official
+ * React bindings the way Konva's react-konva does): this component
+ * owns one `Canvas` instance via refs, and every add/edit calls
+ * straight into the Fabric API, mirroring the result back into the
+ * `elements` React state that `onChange` reports — that state array
+ * (never Fabric's own internal object graph) is the single source of
+ * truth persisted to the server.
+ */
 export default function CertificateCanvasEditor({ layout, onChange, logoUrl, disabled }: CertificateCanvasEditorProps) {
   const [current, setCurrent] = useState<CertificateLayout>(layout ?? DEFAULT_LAYOUT);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const transformerRef = useRef<Konva.Transformer>(null);
-  const shapeRefs = useRef<Record<string, Konva.Node>>({});
+  const [uploadedIcons, setUploadedIcons] = useState<UploadedIcon[]>([]);
+  const [uploadingIcon, setUploadingIcon] = useState(false);
+  const canvasElRef = useRef<HTMLCanvasElement>(null);
+  const fabricRef = useRef<Canvas | null>(null);
+  const objectsRef = useRef<Record<string, FabricObject>>({});
+  const currentRef = useRef(current);
+  currentRef.current = current;
   const scale = DISPLAY_WIDTH / current.width;
+  const scaleRef = useRef(scale);
+  scaleRef.current = scale;
 
   function update(next: CertificateLayout) {
     setCurrent(next);
@@ -53,75 +73,183 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
 
   function updateElement(id: string, patch: Record<string, unknown>) {
     update({
-      ...current,
-      elements: current.elements.map((el) => (el.id === id ? ({ ...el, ...patch } as CertificateElement) : el)),
+      ...currentRef.current,
+      elements: currentRef.current.elements.map((el) => (el.id === id ? ({ ...el, ...patch } as CertificateElement) : el)),
     });
   }
 
-  function addElement(el: CertificateElement) {
-    update({ ...current, elements: [...current.elements, el] });
+  // --- Icon bank: load the shared, platform-wide uploaded icons once ---
+  useEffect(() => {
+    fetch("/api/admin/certificate-icons")
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setUploadedIcons)
+      .catch(() => {});
+  }, []);
+
+  // --- Canvas lifecycle: create once, dispose on unmount ---
+  useEffect(() => {
+    if (!canvasElRef.current) return;
+    const canvas = new Canvas(canvasElRef.current, {
+      width: currentRef.current.width * scaleRef.current,
+      height: currentRef.current.height * scaleRef.current,
+      backgroundColor: currentRef.current.backgroundColor,
+      selection: !disabled,
+    });
+    canvas.setZoom(scaleRef.current);
+    fabricRef.current = canvas;
+
+    canvas.on("selection:created", (e) => setSelectedId(fabricObjectElementId(e.selected?.[0])));
+    canvas.on("selection:updated", (e) => setSelectedId(fabricObjectElementId(e.selected?.[0])));
+    canvas.on("selection:cleared", () => setSelectedId(null));
+    canvas.on("object:modified", (e) => handleModified(e.target));
+
+    loadElements(canvas, currentRef.current.elements, logoUrl).catch((err) => console.error("Failed to load certificate layout onto the canvas:", err));
+
+    return () => {
+      canvas.dispose();
+      fabricRef.current = null;
+      objectsRef.current = {};
+    };
+    // Intentionally mount-once: layout/logoUrl changes are applied via
+    // the targeted effects below, not a full re-create (which would
+    // lose selection/undo-able state on every keystroke elsewhere on
+    // the page). A template switch remounts this whole component via
+    // the parent's `key` prop instead.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep canvas size/background in sync with page-size/background changes.
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    canvas.setDimensions({ width: current.width * scale, height: current.height * scale });
+    canvas.setZoom(scale);
+    canvas.backgroundColor = current.backgroundColor;
+    canvas.requestRenderAll();
+  }, [current.width, current.height, current.backgroundColor, scale]);
+
+  function handleModified(target: FabricObject | undefined) {
+    if (!target) return;
+    const id = fabricObjectElementId(target);
+    if (!id) return;
+    const el = currentRef.current.elements.find((e) => e.id === id);
+    if (!el) return;
+
+    const x = target.left ?? el.x;
+    const y = target.top ?? el.y;
+    const rotation = target.angle ?? 0;
+
+    if (el.type === "text") {
+      const width = Math.max(20, (target.width ?? el.width) * (target.scaleX ?? 1));
+      target.set({ scaleX: 1, scaleY: 1, width });
+      updateElement(id, { x, y, width, rotation });
+    } else if (el.type === "shape" && el.shapeType === "line") {
+      const width = Math.max(1, (target.width ?? el.width) * (target.scaleX ?? 1));
+      target.set({ scaleX: 1, scaleY: 1 });
+      updateElement(id, { x, y, width, rotation });
+    } else if (el.type === "icon") {
+      const size = Math.max(8, target.getScaledWidth ? target.getScaledWidth() : el.size);
+      target.set({ scaleX: 1, scaleY: 1, width: size, height: size });
+      updateElement(id, { x, y, size, rotation });
+    } else {
+      const width = Math.max(10, target.getScaledWidth ? target.getScaledWidth() : el.width);
+      const height = Math.max(10, target.getScaledHeight ? target.getScaledHeight() : el.height);
+      target.set({ scaleX: 1, scaleY: 1, width, height });
+      updateElement(id, { x, y, width, height, rotation });
+    }
+    canvasRenderAll();
+  }
+
+  function canvasRenderAll() {
+    fabricRef.current?.requestRenderAll();
+  }
+
+  // --- Add / remove elements ---
+  async function addElement(el: CertificateElement) {
+    update({ ...currentRef.current, elements: [...currentRef.current.elements, el] });
+    const canvas = fabricRef.current;
+    if (canvas) {
+      const obj = await buildFabricObject(el, logoUrl);
+      if (obj) {
+        objectsRef.current[el.id] = obj;
+        canvas.add(obj);
+        canvas.setActiveObject(obj);
+        canvas.requestRenderAll();
+      }
+    }
     setSelectedId(el.id);
   }
 
   function removeSelected() {
     if (!selectedId) return;
-    update({ ...current, elements: current.elements.filter((el) => el.id !== selectedId) });
-    setSelectedId(null);
-  }
-
-  useEffect(() => {
-    const transformer = transformerRef.current;
-    if (!transformer) return;
-    const node = selectedId ? shapeRefs.current[selectedId] : null;
-    transformer.nodes(node ? [node] : []);
-    transformer.getLayer()?.batchDraw();
-  }, [selectedId, current.elements]);
-
-  function handleDragEnd(el: CertificateElement, target: Konva.Node) {
-    updateElement(el.id, { x: target.x(), y: target.y() });
-  }
-
-  function handleTransformEnd(el: CertificateElement, target: Konva.Node) {
-    const scaleX = target.scaleX();
-    const scaleY = target.scaleY();
-    target.scaleX(1);
-    target.scaleY(1);
-    const rotation = target.rotation();
-    if (el.type === "text") {
-      updateElement(el.id, { x: target.x(), y: target.y(), width: Math.max(20, el.width * scaleX), rotation });
-    } else {
-      updateElement(el.id, {
-        x: target.x(),
-        y: target.y(),
-        width: Math.max(10, el.width * scaleX),
-        height: Math.max(10, el.height * scaleY),
-        rotation,
-      });
+    const canvas = fabricRef.current;
+    const obj = objectsRef.current[selectedId];
+    if (canvas && obj) {
+      canvas.remove(obj);
+      delete objectsRef.current[selectedId];
+      canvas.requestRenderAll();
     }
+    update({ ...currentRef.current, elements: currentRef.current.elements.filter((el) => el.id !== selectedId) });
+    setSelectedId(null);
   }
 
   function addText(content: TextElement["content"]) {
     addElement({
-      id: newId(),
-      type: "text",
-      x: 40,
-      y: 40,
-      width: 300,
-      rotation: 0,
-      fontSize: 24,
-      fontFamily: "Georgia",
-      bold: false,
-      italic: false,
-      color: "#16302B",
-      align: "left",
-      content,
+      id: newId(), type: "text", x: 40, y: 40, width: 300, rotation: 0,
+      fontSize: 24, fontFamily: "Georgia", bold: false, italic: false,
+      color: "#16302B", align: "left", content,
     });
+  }
+
+  async function handleUploadIcon(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadingIcon(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("name", file.name);
+    const res = await fetch("/api/admin/certificate-icons", { method: "POST", body: formData });
+    setUploadingIcon(false);
+    if (!res.ok) return;
+    const icon: UploadedIcon = await res.json();
+    setUploadedIcons((icons) => [icon, ...icons]);
+  }
+
+  // --- Property panel edits apply to both state AND the live Fabric object ---
+  async function handlePanelChange(patch: Record<string, unknown>) {
+    if (!selectedId) return;
+    const el = currentRef.current.elements.find((e) => e.id === selectedId);
+    updateElement(selectedId, patch);
+    const canvas = fabricRef.current;
+    const obj = objectsRef.current[selectedId];
+    if (!canvas || !obj || !el) return;
+
+    // A builtin icon is a pre-baked raster image (its color is burned
+    // into the generated SVG data URI at build time) — unlike a vector
+    // shape's `fill`, there's no way to recolor it in place, so a
+    // color/size change rebuilds the Fabric object instead of patching it.
+    if (el.type === "icon" && ("color" in patch || "size" in patch)) {
+      const updatedEl = { ...el, ...patch } as CertificateElement;
+      canvas.remove(obj);
+      const newObj = await buildFabricObject(updatedEl, logoUrl);
+      if (newObj) {
+        objectsRef.current[selectedId] = newObj;
+        canvas.add(newObj);
+        canvas.setActiveObject(newObj);
+      }
+      canvas.requestRenderAll();
+      return;
+    }
+
+    applyPatchToFabricObject(obj, patch);
+    canvasRenderAll();
   }
 
   const selected = current.elements.find((el) => el.id === selectedId) ?? null;
 
   return (
-    <div onKeyDown={(e) => { if ((e.key === "Delete" || e.key === "Backspace") && selectedId) removeSelected(); }} tabIndex={-1}>
+    <div onKeyDown={(e) => { if ((e.key === "Delete" || e.key === "Backspace") && selectedId && !disabled) removeSelected(); }} tabIndex={-1}>
       {!disabled && (
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => addText({ kind: "literal", text: "Text" })} className="rounded-lg border border-brand-gray px-2.5 py-1 text-xs font-semibold text-brand-ink">
@@ -144,9 +272,7 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
           </button>
           <button
             type="button"
-            onClick={() =>
-              addElement({ id: newId(), type: "shape", shapeType: "rect", x: 20, y: 20, width: 200, height: 120, rotation: 0, stroke: "#D99A34", strokeWidth: 3 })
-            }
+            onClick={() => addElement({ id: newId(), type: "shape", shapeType: "rect", x: 20, y: 20, width: 200, height: 120, rotation: 0, stroke: "#D99A34", strokeWidth: 3 })}
             className="rounded-lg border border-brand-gray px-2.5 py-1 text-xs font-semibold text-brand-ink"
           >
             + Rectangle
@@ -158,6 +284,26 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
           >
             + Line
           </button>
+          <label className="text-xs font-semibold text-gray-600">
+            Page size
+            <select
+              onChange={(e) => {
+                const preset = PAGE_SIZE_PRESETS.find((p) => p.id === e.target.value);
+                if (preset) update({ ...current, width: preset.width, height: preset.height });
+              }}
+              defaultValue=""
+              className="ml-1.5 rounded-lg border border-brand-gray px-2 py-1 text-xs outline-none"
+            >
+              <option value="" disabled>
+                Choose...
+              </option>
+              {PAGE_SIZE_PRESETS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </label>
           {selectedId && (
             <button type="button" onClick={removeSelected} className="ml-auto rounded-lg border border-brand-rose px-2.5 py-1 text-xs font-semibold text-brand-rose">
               Delete selected
@@ -166,36 +312,44 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
         </div>
       )}
 
+      {!disabled && (
+        <div className="mb-3 rounded-lg border border-brand-gray p-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Icon Bank</p>
+          <div className="flex flex-wrap gap-1.5">
+            {BUILTIN_ICONS.map(({ name, label, Icon }) => (
+              <button
+                key={name}
+                type="button"
+                title={label}
+                onClick={() => addElement({ id: newId(), type: "icon", x: 40, y: 40, size: 48, rotation: 0, color: "#016B61", source: { kind: "builtin", name } })}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-brand-gray text-gray-700 hover:border-brand-teal hover:text-brand-teal"
+              >
+                <Icon size={18} />
+              </button>
+            ))}
+            {uploadedIcons.map((icon) => (
+              <button
+                key={icon.id}
+                type="button"
+                title={icon.name}
+                onClick={() => addElement({ id: newId(), type: "icon", x: 40, y: 40, size: 48, rotation: 0, color: "#016B61", source: { kind: "uploaded", url: icon.url } })}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-brand-gray p-1"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- a small icon-bank thumbnail from an already-uploaded, trusted-admin-controlled asset. */}
+                <img src={icon.url} alt={icon.name} className="h-full w-full object-contain" />
+              </button>
+            ))}
+            <label className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-dashed border-brand-gray text-xs text-gray-500">
+              {uploadingIcon ? "…" : "+"}
+              <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={handleUploadIcon} className="hidden" disabled={uploadingIcon} />
+            </label>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-start gap-4">
         <div className="overflow-hidden rounded-lg border border-brand-gray" style={{ width: DISPLAY_WIDTH, height: current.height * scale }}>
-          <Stage
-            width={current.width * scale}
-            height={current.height * scale}
-            scaleX={scale}
-            scaleY={scale}
-            onMouseDown={(e) => {
-              if (e.target === e.target.getStage()) setSelectedId(null);
-            }}
-          >
-            <Layer>
-              <Rect x={0} y={0} width={current.width} height={current.height} fill={current.backgroundColor} listening={false} />
-              {current.elements.map((el) => (
-                <ElementShape
-                  key={el.id}
-                  element={el}
-                  logoUrl={logoUrl}
-                  draggable={!disabled}
-                  registerRef={(node) => {
-                    if (node) shapeRefs.current[el.id] = node;
-                  }}
-                  onSelect={() => setSelectedId(el.id)}
-                  onDragEnd={(target) => handleDragEnd(el, target)}
-                  onTransformEnd={(target) => handleTransformEnd(el, target)}
-                />
-              ))}
-              <Transformer ref={transformerRef} rotateEnabled flipEnabled={false} />
-            </Layer>
-          </Stage>
+          <canvas ref={canvasElRef} />
         </div>
 
         {!disabled && (
@@ -209,13 +363,112 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
                 className="mt-1 h-10 w-full rounded-lg border border-brand-gray"
               />
             </label>
-            {selected && <ElementPropertiesPanel element={selected} onChange={(patch) => updateElement(selected.id, patch)} />}
+            {selected && <ElementPropertiesPanel element={selected} onChange={handlePanelChange} />}
             {!selected && <p className="mt-3 text-xs text-gray-500">Click an element on the canvas to edit it.</p>}
           </div>
         )}
       </div>
     </div>
   );
+}
+
+function fabricObjectElementId(obj: FabricObject | undefined): string | null {
+  if (!obj) return null;
+  return (obj as unknown as { elementId?: string }).elementId ?? null;
+}
+
+async function loadElements(canvas: Canvas, elements: CertificateElement[], logoUrl: string | null) {
+  for (const el of elements) {
+    const obj = await buildFabricObject(el, logoUrl);
+    if (obj) canvas.add(obj);
+  }
+  canvas.requestRenderAll();
+}
+
+async function buildFabricObject(el: CertificateElement, logoUrl: string | null): Promise<FabricObject | null> {
+  const common = { left: el.x, top: el.y, angle: el.rotation, selectable: true };
+
+  if (el.type === "text") {
+    const label = el.content.kind === "literal" ? el.content.text : `{${DYNAMIC_FIELD_LABELS[el.content.field]}}`;
+    const textbox = new Textbox(label, {
+      ...common,
+      width: el.width,
+      fontSize: el.fontSize,
+      fontFamily: el.fontFamily,
+      fontWeight: el.bold ? "bold" : "normal",
+      fontStyle: el.italic ? "italic" : "normal",
+      fill: el.color,
+      textAlign: el.align,
+      lockScalingY: true,
+    });
+    (textbox as unknown as { elementId: string }).elementId = el.id;
+    return textbox;
+  }
+
+  if (el.type === "shape") {
+    if (el.shapeType === "rect") {
+      const rect = new Rect({
+        ...common,
+        width: el.width,
+        height: el.height,
+        fill: el.fill ?? "transparent",
+        stroke: el.stroke,
+        strokeWidth: el.strokeWidth ?? (el.stroke ? 1 : 0),
+        rx: el.cornerRadius ?? 0,
+        ry: el.cornerRadius ?? 0,
+      });
+      (rect as unknown as { elementId: string }).elementId = el.id;
+      return rect;
+    }
+    const line = new Line([0, 0, el.width, 0], {
+      ...common,
+      stroke: el.stroke ?? el.fill ?? "#000000",
+      strokeWidth: el.strokeWidth ?? 2,
+    });
+    (line as unknown as { elementId: string }).elementId = el.id;
+    return line;
+  }
+
+  if (el.type === "image") {
+    const src = el.source === "logo" ? logoUrl : null; // QR has no real value at design time — shown as a placeholder
+    if (!src) {
+      const placeholder = new Rect({ ...common, width: el.width, height: el.height, fill: "#F3F4F6", stroke: "#D1D5DB", strokeWidth: 1, strokeDashArray: [4, 4] });
+      (placeholder as unknown as { elementId: string }).elementId = el.id;
+      return placeholder;
+    }
+    const img = await FabricImage.fromURL(src, { crossOrigin: "anonymous" });
+    img.set({ ...common, scaleX: el.width / (img.width || el.width), scaleY: el.height / (img.height || el.height) });
+    (img as unknown as { elementId: string }).elementId = el.id;
+    return img;
+  }
+
+  // icon
+  const src = el.source.kind === "builtin" ? builtinIconToDataUrl(el.source.name, el.color, el.size) : el.source.url;
+  const img = await FabricImage.fromURL(src, { crossOrigin: "anonymous" });
+  img.set({ ...common, scaleX: el.size / (img.width || el.size), scaleY: el.size / (img.height || el.size) });
+  (img as unknown as { elementId: string }).elementId = el.id;
+  return img;
+}
+
+function applyPatchToFabricObject(obj: FabricObject, patch: Record<string, unknown>) {
+  const mapped: Record<string, unknown> = {};
+  if ("color" in patch) mapped.fill = patch.color;
+  if ("fontSize" in patch) mapped.fontSize = patch.fontSize;
+  if ("bold" in patch) mapped.fontWeight = patch.bold ? "bold" : "normal";
+  if ("italic" in patch) mapped.fontStyle = patch.italic ? "italic" : "normal";
+  if ("align" in patch) mapped.textAlign = patch.align;
+  if ("fill" in patch) mapped.fill = patch.fill;
+  if ("stroke" in patch) mapped.stroke = patch.stroke;
+  if ("strokeWidth" in patch) mapped.strokeWidth = patch.strokeWidth;
+  if ("cornerRadius" in patch) {
+    mapped.rx = patch.cornerRadius;
+    mapped.ry = patch.cornerRadius;
+  }
+  if ("content" in patch) {
+    const content = patch.content as TextElement["content"];
+    if (content.kind === "literal" && obj instanceof Textbox) obj.set("text", content.text);
+  }
+  obj.set(mapped);
 }
 
 function AddFieldMenu({ onAdd }: { onAdd: (field: DynamicField) => void }) {
@@ -254,96 +507,4 @@ function AddFieldMenu({ onAdd }: { onAdd: (field: DynamicField) => void }) {
       )}
     </div>
   );
-}
-
-function ElementShape({
-  element,
-  logoUrl,
-  draggable,
-  registerRef,
-  onSelect,
-  onDragEnd,
-  onTransformEnd,
-}: {
-  element: CertificateElement;
-  logoUrl: string | null;
-  draggable: boolean;
-  registerRef: (node: Konva.Node | null) => void;
-  onSelect: () => void;
-  onDragEnd: (target: Konva.Node) => void;
-  onTransformEnd: (target: Konva.Node) => void;
-}) {
-  const common = {
-    id: element.id,
-    x: element.x,
-    y: element.y,
-    rotation: element.rotation,
-    draggable,
-    onClick: onSelect,
-    onTap: onSelect,
-    ref: registerRef,
-    onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => onDragEnd(e.target),
-    onTransformEnd: (e: Konva.KonvaEventObject<Event>) => onTransformEnd(e.target),
-  };
-
-  if (element.type === "text") {
-    const label = element.content.kind === "literal" ? element.content.text : `{${DYNAMIC_FIELD_LABELS[element.content.field]}}`;
-    return (
-      <Text
-        {...common}
-        text={label}
-        width={element.width}
-        fontSize={element.fontSize}
-        fontFamily={element.fontFamily}
-        fontStyle={`${element.bold ? "bold" : ""} ${element.italic ? "italic" : ""}`.trim() || "normal"}
-        fill={element.color}
-        align={element.align}
-      />
-    );
-  }
-
-  if (element.type === "image") {
-    return <ImageShape common={common} element={element} logoUrl={logoUrl} />;
-  }
-
-  if (element.shapeType === "rect") {
-    return (
-      <Rect
-        {...common}
-        width={element.width}
-        height={element.height}
-        fill={element.fill}
-        stroke={element.stroke}
-        strokeWidth={element.strokeWidth ?? (element.stroke ? 1 : 0)}
-        cornerRadius={element.cornerRadius}
-      />
-    );
-  }
-  return <Line {...common} points={[0, 0, element.width, 0]} stroke={element.stroke ?? element.fill ?? "#000000"} strokeWidth={element.strokeWidth ?? 2} />;
-}
-
-function ImageShape({
-  common,
-  element,
-  logoUrl,
-}: {
-  common: Record<string, unknown>;
-  element: Extract<CertificateElement, { type: "image" }>;
-  logoUrl: string | null;
-}) {
-  const [image] = useImage(element.source === "logo" ? logoUrl ?? "" : "", "anonymous");
-  if (element.source === "qr" || !image) {
-    return (
-      <Rect
-        {...common}
-        width={element.width}
-        height={element.height}
-        fill="#F3F4F6"
-        stroke="#D1D5DB"
-        strokeWidth={1}
-        dash={[4, 4]}
-      />
-    );
-  }
-  return <KonvaImage {...common} image={image} width={element.width} height={element.height} />;
 }

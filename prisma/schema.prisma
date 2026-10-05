@@ -3212,14 +3212,17 @@ model CertificateTemplate {
   primaryColor String // hex, e.g. "#016B61"
   accentColor  String // hex
   // Visual certificate design editor — a strictly-typed layout (text/
-  // image/shape elements with positions, bound either to a literal
-  // string or a DynamicField like "traineeName") built with the
-  // Konva-based drag-and-drop editor. Null means "use the default
-  // CertificateCard design" — purely additive, every pre-existing
-  // template keeps rendering exactly as before. See
-  // src/lib/certificateLayout.ts for the CertificateLayout shape and
-  // its Zod schema — there is no HTML/markup here and nothing to
-  // sanitize, every value is a bounded number/string/enum.
+  // image/shape/icon elements with positions, bound either to a
+  // literal string or a DynamicField like "traineeName") built with
+  // the Fabric.js-based drag-and-drop editor. Null means "use the
+  // AAICBI Classic preset" — see CertificateDisplay.tsx, which is now
+  // the ONE rendering path every certificate goes through (the old
+  // separate hardcoded CertificateCard design was removed; "AAICBI
+  // Classic" is just one of several selectable presets now, same
+  // engine as everything else). See src/lib/certificateLayout.ts for
+  // the CertificateLayout shape and its Zod schema — there is no
+  // HTML/markup here and nothing to sanitize, every value is a
+  // bounded number/string/enum.
   layoutJson     Json?
   signatoryName  String?
   signatoryTitle String?
@@ -3233,6 +3236,21 @@ model CertificateTemplate {
   courses Course[]
 
   @@index([trainingOrganizationId])
+}
+
+// Visual certificate design editor — a shared, platform-wide icon
+// bank (not scoped to one training organization, unlike
+// CertificateTemplate.logoUrl) that any template's canvas can draw
+// icon elements from. SUPER_ADMIN-managed. Deliberately the first
+// shared/platform-wide asset table in this schema — every other
+// "logo"-shaped field up to now has been scoped to one owner, but an
+// icon (a graduation cap, a star, a trophy) is generic enough that an
+// org gains nothing from re-uploading one another org already has.
+model CertificateIcon {
+  id        String   @id @default(cuid())
+  name      String
+  url       String
+  createdAt DateTime @default(now())
 }
 
 enum EmployerApprovalState {

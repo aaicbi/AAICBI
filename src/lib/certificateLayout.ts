@@ -1,14 +1,29 @@
 /**
  * Visual Certificate Design Editor — the layout data model a
- * CertificateTemplate.layoutJson column holds, built by the Konva-
+ * CertificateTemplate.layoutJson column holds, built by the Fabric.js-
  * based drag-and-drop editor (src/components/certificateEditor/) and
  * consumed by the read-only CertificateLayoutRenderer. Every value is
  * a bounded number, a short string, or one of a fixed set of enum
  * values — there is no markup anywhere in this shape, so unlike the
  * HTML-import approach this replaces, there is nothing to sanitize:
  * CertificateLayoutSchema's own Zod validation IS the safety boundary.
+ * Deliberately canvas-library-agnostic — the editor is just one
+ * producer/consumer of this shape; the read-only renderer never
+ * touches Fabric (or any canvas library) at all.
  */
 import { z } from "zod";
+
+// The built-in icon bank — see src/lib/certificateIcons.ts for the
+// actual lucide-react component each name maps to. Listed here (not
+// derived from that file) so this schema has zero dependency on React/
+// lucide-react, keeping it safely importable from a plain Node script
+// or a test file with no JSX involved.
+export const BUILTIN_ICON_NAMES = [
+  "GraduationCap", "Trophy", "Star", "Award", "BookOpen", "Medal",
+  "ShieldCheck", "Stamp", "Sparkles", "Crown", "Target", "Flag",
+  "ThumbsUp", "Gem", "ScrollText", "PenTool", "BadgeCheck", "CheckCircle2",
+] as const;
+export type BuiltinIconName = (typeof BUILTIN_ICON_NAMES)[number];
 
 export const DYNAMIC_FIELDS = [
   "traineeName", "verb", "credentialTitle", "issuedAt", "certificateCode",
@@ -67,10 +82,25 @@ export const ShapeElementSchema = BaseElementSchema.extend({
   cornerRadius: z.number().min(0).max(200).optional(),
 });
 
+export const IconElementSchema = BaseElementSchema.extend({
+  type: z.literal("icon"),
+  size: z.number().min(8).max(500),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  // An uploaded icon's url is snapshotted here at placement time, not
+  // a live lookup against CertificateIcon at render time — a
+  // certificate that already used an icon keeps rendering correctly
+  // even if that icon is later removed from the shared bank.
+  source: z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("builtin"), name: z.enum(BUILTIN_ICON_NAMES) }),
+    z.object({ kind: z.literal("uploaded"), url: z.string().url() }),
+  ]),
+});
+
 export const CertificateElementSchema = z.discriminatedUnion("type", [
   TextElementSchema,
   ImageElementSchema,
   ShapeElementSchema,
+  IconElementSchema,
 ]);
 
 export const CertificateLayoutSchema = z.object({
@@ -83,6 +113,7 @@ export const CertificateLayoutSchema = z.object({
 export type TextElement = z.infer<typeof TextElementSchema>;
 export type ImageElement = z.infer<typeof ImageElementSchema>;
 export type ShapeElement = z.infer<typeof ShapeElementSchema>;
+export type IconElement = z.infer<typeof IconElementSchema>;
 export type CertificateElement = z.infer<typeof CertificateElementSchema>;
 export type CertificateLayout = z.infer<typeof CertificateLayoutSchema>;
 
@@ -105,3 +136,21 @@ export function resolveFieldValue(field: DynamicField, data: CertificateRenderDa
 
 export const DEFAULT_LAYOUT_WIDTH = 1000;
 export const DEFAULT_LAYOUT_HEIGHT = 700;
+
+/**
+ * Page-size picker options for the editor — width/height stay the
+ * single source of truth for both size AND orientation (implied by
+ * which dimension is larger), so this is purely a UI convenience list,
+ * not a schema field. Px values at a 100px-per-inch design scale (A4:
+ * 8.27in x 11.69in -> 827x1169, rounded; Letter: 8.5in x 11in ->
+ * 850x1100) — not print-exact DPI, but this schema already isn't
+ * pixel-locked to a physical size (the renderer scales the whole
+ * canvas to fit its container), so round numbers are easier to reason
+ * about than 96dpi fractions.
+ */
+export const PAGE_SIZE_PRESETS: { id: string; label: string; width: number; height: number }[] = [
+  { id: "a4-landscape", label: "A4 Landscape", width: 1169, height: 827 },
+  { id: "a4-portrait", label: "A4 Portrait", width: 827, height: 1169 },
+  { id: "letter-landscape", label: "Letter Landscape", width: 1100, height: 850 },
+  { id: "letter-portrait", label: "Letter Portrait", width: 850, height: 1100 },
+];

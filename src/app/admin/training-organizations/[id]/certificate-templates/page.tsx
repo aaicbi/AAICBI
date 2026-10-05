@@ -4,17 +4,17 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
+import { useConfirmModal } from "@/components/ui/useConfirmModal";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import CertificateDisplay from "@/components/CertificateDisplay";
 import CertificateCanvasEditor from "@/components/certificateEditor/CertificateCanvasEditor";
+import { CERTIFICATE_PRESETS } from "@/lib/certificatePresets";
 import type { CertificateLayout } from "@/lib/certificateLayout";
 
 interface TemplateDto {
   id: string;
   name: string;
   logoUrl: string | null;
-  primaryColor: string;
-  accentColor: string;
   reviewToken: string;
   approvedAt: string | null;
   layoutJson: CertificateLayout | null;
@@ -27,27 +27,28 @@ interface TemplateDto {
  * design tool: create/edit a template (locked once the organization
  * approves it), upload its logo, and send it for review.
  *
- * Visual Certificate Design Editor — the design surface itself is now
- * CertificateCanvasEditor (Konva-based drag-and-drop), not hand-typed
- * HTML. The live preview on the right still reuses CertificateDisplay
- * — the exact same component the real issued certificate and the
- * public review page both render, so what SUPER_ADMIN sees here is
- * what actually ships, not an approximation, same as before.
+ * Visual Certificate Design Editor — the one engine every certificate
+ * now goes through: the Fabric.js canvas is the only way a design
+ * exists, seeded from a presets gallery instead of a blank page, with
+ * the live preview below reusing CertificateDisplay — the exact same
+ * component the real issued certificate and the public review page
+ * both render, so what SUPER_ADMIN sees here is what actually ships.
  */
 export default function CertificateTemplatesPage({ params }: { params: { id: string } }) {
   const [templates, setTemplates] = useState<TemplateDto[] | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [name, setName] = useState("");
-  const [primaryColor, setPrimaryColor] = useState("#016B61");
-  const [accentColor, setAccentColor] = useState("#D99A34");
   const [signatoryName, setSignatoryName] = useState("");
   const [signatoryTitle, setSignatoryTitle] = useState("");
   const [layoutJson, setLayoutJson] = useState<CertificateLayout | null>(null);
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { showToast } = useToast();
+  const { confirm, modal } = useConfirmModal();
 
   const selected = templates?.find((t) => t.id === selectedId) ?? null;
 
@@ -69,27 +70,30 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
   function selectTemplate(t: TemplateDto) {
     setSelectedId(t.id);
     setName(t.name);
-    setPrimaryColor(t.primaryColor);
-    setAccentColor(t.accentColor);
     setSignatoryName(t.signatoryName ?? "");
     setSignatoryTitle(t.signatoryTitle ?? "");
     setLayoutJson(t.layoutJson ?? null);
+    setGalleryOpen(false);
   }
 
   function startNew() {
     setSelectedId(null);
     setName("");
-    setPrimaryColor("#016B61");
-    setAccentColor("#D99A34");
     setSignatoryName("");
     setSignatoryTitle("");
     setLayoutJson(null);
+    setGalleryOpen(true);
+  }
+
+  function pickPreset(layout: CertificateLayout | null) {
+    setLayoutJson(layout);
+    setGalleryOpen(false);
   }
 
   async function save() {
     if (!name.trim()) return;
     setSaving(true);
-    const payload = { name, primaryColor, accentColor, signatoryName, signatoryTitle, layoutJson };
+    const payload = { name, primaryColor: "#016B61", accentColor: "#D99A34", signatoryName, signatoryTitle, layoutJson };
     const res = selected
       ? await fetch(`/api/admin/certificate-templates/${selected.id}`, {
           method: "PATCH",
@@ -143,112 +147,157 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
     showToast("Sent for review.");
   }
 
+  async function deleteTemplate(t: TemplateDto) {
+    const ok = await confirm({
+      title: `Delete "${t.name}"?`,
+      description: "This can't be undone. Only unapproved templates can be deleted.",
+      confirmLabel: "Delete",
+    });
+    if (!ok) return;
+    setDeleting(true);
+    const res = await fetch(`/api/admin/certificate-templates/${t.id}`, { method: "DELETE" });
+    setDeleting(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showToast(typeof data.error === "string" ? data.error : "Could not delete. Try again.", "error");
+      return;
+    }
+    showToast("Deleted.");
+    if (selectedId === t.id) startNew();
+    load();
+  }
+
   const isLocked = !!selected?.approvedAt;
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
+      {modal}
       <h1 className="font-display text-2xl font-semibold text-brand-ink">Certificate Templates</h1>
       <p className="mt-1 text-sm text-gray-500">Design a branded certificate, then send it to the organization for approval.</p>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <div>
-          {templates === null ? (
-            <SkeletonList rows={2} />
-          ) : (
-            templates.length > 0 && (
-              <div className="mb-4 flex flex-wrap gap-2">
-                {templates.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => selectTemplate(t)}
-                    className={`rounded-lg border px-3 py-1.5 text-sm font-semibold ${
-                      t.id === selectedId ? "border-brand-teal bg-brand-mint text-brand-teal" : "border-brand-gray text-gray-600"
-                    }`}
-                  >
-                    {t.name} {t.approvedAt && <Badge variant="success">Approved</Badge>}
-                  </button>
-                ))}
-                <button onClick={startNew} className="rounded-lg border border-dashed border-brand-gray px-3 py-1.5 text-sm font-semibold text-gray-500">
-                  + New
+      {templates === null ? (
+        <SkeletonList rows={2} />
+      ) : (
+        templates.length > 0 && (
+          <div className="mt-6 flex flex-wrap gap-2">
+            {templates.map((t) => (
+              <div key={t.id} className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 ${t.id === selectedId ? "border-brand-teal bg-brand-mint" : "border-brand-gray"}`}>
+                <button onClick={() => selectTemplate(t)} className={`text-sm font-semibold ${t.id === selectedId ? "text-brand-teal" : "text-gray-600"}`}>
+                  {t.name} {t.approvedAt && <Badge variant="success">Approved</Badge>}
                 </button>
-              </div>
-            )
-          )}
-
-          <Card>
-            {isLocked && <p className="mb-3 text-xs font-semibold text-brand-teal">This template is approved and locked.</p>}
-            <div className="space-y-3">
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Template name, e.g. Default"
-                disabled={isLocked}
-                className="w-full rounded-lg border border-brand-gray px-3 py-2.5 text-sm outline-none focus:border-brand-teal disabled:opacity-60"
-              />
-              <div className="flex gap-3">
-                <label className="flex-1 text-xs font-semibold text-gray-600">
-                  Primary color
-                  <input
-                    type="color"
-                    value={primaryColor}
-                    onChange={(e) => setPrimaryColor(e.target.value)}
-                    disabled={isLocked}
-                    className="mt-1 h-10 w-full rounded-lg border border-brand-gray disabled:opacity-60"
-                  />
-                </label>
-                <label className="flex-1 text-xs font-semibold text-gray-600">
-                  Accent color
-                  <input
-                    type="color"
-                    value={accentColor}
-                    onChange={(e) => setAccentColor(e.target.value)}
-                    disabled={isLocked}
-                    className="mt-1 h-10 w-full rounded-lg border border-brand-gray disabled:opacity-60"
-                  />
-                </label>
-              </div>
-
-              {selected && (
-                <div>
-                  <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadLogo} className="hidden" />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading || isLocked}
-                    className="rounded-lg border border-brand-gray px-3 py-1.5 text-xs font-semibold text-brand-ink disabled:opacity-60"
-                  >
-                    {uploading ? "Uploading..." : selected.logoUrl ? "Change logo" : "Upload logo"}
+                {!t.approvedAt && (
+                  <button onClick={() => deleteTemplate(t)} disabled={deleting} className="text-xs font-semibold text-brand-rose hover:underline" title="Delete this template">
+                    ✕
                   </button>
-                </div>
-              )}
-
-              <div className="flex gap-3">
-                <input
-                  value={signatoryName}
-                  onChange={(e) => setSignatoryName(e.target.value)}
-                  placeholder="Signatory name (optional)"
-                  disabled={isLocked}
-                  className="flex-1 rounded-lg border border-brand-gray px-3 py-2.5 text-sm outline-none focus:border-brand-teal disabled:opacity-60"
-                />
-                <input
-                  value={signatoryTitle}
-                  onChange={(e) => setSignatoryTitle(e.target.value)}
-                  placeholder="Signatory title (optional)"
-                  disabled={isLocked}
-                  className="flex-1 rounded-lg border border-brand-gray px-3 py-2.5 text-sm outline-none focus:border-brand-teal disabled:opacity-60"
-                />
+                )}
               </div>
+            ))}
+            <button onClick={startNew} className="rounded-lg border border-dashed border-brand-gray px-3 py-1.5 text-sm font-semibold text-gray-500">
+              + New
+            </button>
+          </div>
+        )
+      )}
 
-              {!isLocked && (
-                <Button onClick={save} loading={saving} disabled={!name.trim()}>
-                  {selected ? "Save changes" : "Create template"}
-                </Button>
-              )}
-              {selected && !isLocked && (
-                <Button variant="secondary" onClick={sendForReview} loading={sending} className="ml-2">
-                  Send for Review
-                </Button>
-              )}
+      <Card className="mt-4">
+        {isLocked && <p className="mb-3 text-xs font-semibold text-brand-teal">This template is approved and locked.</p>}
+        <div className="flex flex-wrap items-end gap-3">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Template name, e.g. Default"
+            disabled={isLocked}
+            className="flex-1 rounded-lg border border-brand-gray px-3 py-2.5 text-sm outline-none focus:border-brand-teal disabled:opacity-60"
+          />
+          <input
+            value={signatoryName}
+            onChange={(e) => setSignatoryName(e.target.value)}
+            placeholder="Signatory name (optional)"
+            disabled={isLocked}
+            className="flex-1 rounded-lg border border-brand-gray px-3 py-2.5 text-sm outline-none focus:border-brand-teal disabled:opacity-60"
+          />
+          <input
+            value={signatoryTitle}
+            onChange={(e) => setSignatoryTitle(e.target.value)}
+            placeholder="Signatory title (optional)"
+            disabled={isLocked}
+            className="flex-1 rounded-lg border border-brand-gray px-3 py-2.5 text-sm outline-none focus:border-brand-teal disabled:opacity-60"
+          />
+          {selected && (
+            <div>
+              <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadLogo} className="hidden" />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading || isLocked}
+                className="rounded-lg border border-brand-gray px-3 py-2 text-xs font-semibold text-brand-ink disabled:opacity-60"
+              >
+                {uploading ? "Uploading..." : selected.logoUrl ? "Change logo" : "Upload logo"}
+              </button>
             </div>
+          )}
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          {!isLocked && (
+            <Button onClick={save} loading={saving} disabled={!name.trim()}>
+              {selected ? "Save changes" : "Create template"}
+            </Button>
+          )}
+          {selected && !isLocked && (
+            <Button variant="secondary" onClick={sendForReview} loading={sending}>
+              Send for Review
+            </Button>
+          )}
+          {!isLocked && (
+            <button onClick={() => setGalleryOpen(true)} className="rounded-lg border border-brand-gray px-3 py-2 text-xs font-semibold text-brand-ink">
+              {layoutJson ? "Start from a different template" : "Choose a starting template"}
+            </button>
+          )}
+        </div>
+      </Card>
+
+      {galleryOpen && !isLocked && (
+        <Card className="mt-4">
+          <p className="mb-3 text-sm font-semibold text-brand-ink">Choose a starting template</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {CERTIFICATE_PRESETS.map((preset) => (
+              <button
+                key={preset.id}
+                onClick={() => pickPreset(preset.layout)}
+                className="overflow-hidden rounded-lg border border-brand-gray text-left hover:border-brand-teal"
+              >
+                <div style={{ transform: "scale(0.22)", transformOrigin: "top left", width: 220 }}>
+                  <CertificateDisplay
+                    traineeName="Jane Doe"
+                    verb="has successfully completed"
+                    credentialTitle="Sample Course"
+                    issuedAt={new Date()}
+                    code="SAMPLE-0000-0000"
+                    branding={{ organizationName: name || "Organization Name", logoUrl: selected?.logoUrl ?? null }}
+                    layoutJson={preset.layout}
+                  />
+                </div>
+                <p className="border-t border-brand-gray px-2 py-1.5 text-xs font-semibold text-gray-700">{preset.name}</p>
+              </button>
+            ))}
+            <button onClick={() => pickPreset(null)} className="flex flex-col items-center justify-center rounded-lg border border-dashed border-brand-gray p-4 text-xs font-semibold text-gray-500 hover:border-brand-teal">
+              Blank canvas
+            </button>
+          </div>
+        </Card>
+      )}
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Design</p>
+          <Card>
+            <CertificateCanvasEditor
+              key={selectedId ?? "new"}
+              layout={layoutJson}
+              onChange={setLayoutJson}
+              logoUrl={selected?.logoUrl ?? null}
+              disabled={isLocked}
+            />
           </Card>
         </div>
 
@@ -263,34 +312,12 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
             branding={{
               organizationName: name || "Organization Name",
               logoUrl: selected?.logoUrl ?? null,
-              primaryColor,
-              accentColor,
               signatoryName,
               signatoryTitle,
             }}
             layoutJson={layoutJson}
           />
         </div>
-      </div>
-
-      <div className="mt-8">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-          Custom design (optional — drag elements onto the canvas; leave empty to use the design above)
-        </p>
-        <Card>
-          <CertificateCanvasEditor
-            key={selectedId ?? "new"}
-            layout={layoutJson}
-            onChange={setLayoutJson}
-            logoUrl={selected?.logoUrl ?? null}
-            disabled={isLocked}
-          />
-          {!isLocked && layoutJson && (
-            <button onClick={() => setLayoutJson(null)} className="mt-3 text-xs font-semibold text-brand-rose hover:underline">
-              Clear custom design (use the default layout above instead)
-            </button>
-          )}
-        </Card>
       </div>
     </main>
   );

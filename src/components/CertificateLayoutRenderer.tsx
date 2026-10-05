@@ -1,5 +1,6 @@
 import type { CertificateLayout, CertificateElement, CertificateRenderData } from "@/lib/certificateLayout";
 import { resolveFieldValue } from "@/lib/certificateLayout";
+import { BUILTIN_ICON_COMPONENTS } from "@/lib/certificateIcons";
 
 export interface CertificateLayoutRendererProps extends CertificateRenderData {
   layout: CertificateLayout;
@@ -12,11 +13,13 @@ export interface CertificateLayoutRendererProps extends CertificateRenderData {
 
 /**
  * Visual Certificate Design Editor — the read-only counterpart to the
- * Konva-based editor. Maps a CertificateLayout's elements to plain,
- * absolutely-positioned React nodes using real style objects (never a
- * string of HTML), so there is no injection surface here even in
- * principle — every value in `layout` was already bounded/enum-checked
- * by CertificateLayoutSchema before it was ever stored.
+ * Fabric.js-based editor. Maps a CertificateLayout's elements to
+ * plain, absolutely-positioned React nodes using real style objects
+ * (never a string of HTML), so there is no injection surface here even
+ * in principle — every value in `layout` was already bounded/enum-
+ * checked by CertificateLayoutSchema before it was ever stored. A
+ * builtin icon renders the real lucide-react component directly (no
+ * canvas library involved on this render path at all).
  */
 export default function CertificateLayoutRenderer({ layout, logoUrl, qrDataUrl, ...data }: CertificateLayoutRendererProps) {
   return (
@@ -86,6 +89,19 @@ function ElementNode({
     }
     // eslint-disable-next-line @next/next/no-img-element -- a dynamically-sourced URL/data-URI, same reasoning as every other org-branded image in this app.
     return <img src={src} alt="" style={{ ...base, width: element.width, height: element.height, objectFit: "contain" }} />;
+  }
+
+  if (element.type === "icon") {
+    if (element.source.kind === "builtin") {
+      const Icon = BUILTIN_ICON_COMPONENTS[element.source.name];
+      return (
+        <div style={{ ...base, width: element.size, height: element.size }}>
+          <Icon color={element.color} size={element.size} />
+        </div>
+      );
+    }
+    // eslint-disable-next-line @next/next/no-img-element -- an uploaded icon URL, loaded as an image resource (never inlined), same reasoning as the logo/QR image elements above.
+    return <img src={element.source.url} alt="" style={{ ...base, width: element.size, height: element.size, objectFit: "contain" }} />;
   }
 
   // shape

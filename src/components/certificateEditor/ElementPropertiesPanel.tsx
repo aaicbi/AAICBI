@@ -4,7 +4,7 @@ import type { CertificateElement } from "@/lib/certificateLayout";
 /**
  * Visual Certificate Design Editor — the side panel for whichever
  * element is currently selected on the canvas. Plain HTML inputs, not
- * part of Konva — only the canvas itself is Konva-rendered.
+ * part of Fabric — only the canvas itself is Fabric-rendered.
  */
 export default function ElementPropertiesPanel({
   element,
@@ -74,6 +74,28 @@ export default function ElementPropertiesPanel({
     return (
       <div className="mt-3 rounded-lg border border-brand-gray p-3">
         <p className="text-xs text-gray-500">{element.source === "logo" ? "Organization logo" : "QR code (verification link)"} — drag the corner handles to resize.</p>
+      </div>
+    );
+  }
+
+  if (element.type === "icon") {
+    return (
+      <div className="mt-3 space-y-2.5 rounded-lg border border-brand-gray p-3">
+        <label className="block text-xs font-semibold text-gray-600">
+          Size
+          <input
+            type="number"
+            min={8}
+            max={500}
+            value={element.size}
+            onChange={(e) => onChange({ size: Number(e.target.value) || element.size })}
+            className="mt-1 w-full rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
+          />
+        </label>
+        <label className="block text-xs font-semibold text-gray-600">
+          Color
+          <input type="color" value={element.color} onChange={(e) => onChange({ color: e.target.value })} className="mt-1 h-9 w-full rounded-lg border border-brand-gray" />
+        </label>
       </div>
     );
   }

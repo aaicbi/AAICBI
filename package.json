@@ -21,8 +21,8 @@
     "@react-pdf/renderer": "^4.9.0",
     "@vercel/blob": "^2.8.0",
     "bcryptjs": "^2.4.3",
+    "fabric": "^7.4.0",
     "jose": "^5.9.6",
-    "konva": "^10.7.0",
     "lucide-react": "^1.45.0",
     "mammoth": "^1.8.0",
     "next": "^14.2.15",
@@ -30,10 +30,8 @@
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-konva": "^18.2.16",
     "recharts": "^2.12.7",
     "resend": "^6.20.0",
-    "use-image": "^1.1.4",
     "zod": "^3.23.8"
   },
   "devDependencies": {

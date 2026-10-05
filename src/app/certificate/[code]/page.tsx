@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rateLimit";
-import { certificateQrCodeSvg, certificateQrCodeDataUrl } from "@/lib/certificateQr";
+import { certificateQrCodeDataUrl } from "@/lib/certificateQr";
 import { appUrl } from "@/lib/appUrl";
 import type { CertificateLayout } from "@/lib/certificateLayout";
 import SiteHeader from "@/components/SiteHeader";
@@ -78,13 +78,11 @@ export default async function CertificateVerificationPage({ params }: { params: 
           certificateTemplate: {
             select: {
               logoUrl: true,
-              primaryColor: true,
-              accentColor: true,
               approvedAt: true,
               layoutJson: true,
               signatoryName: true,
               signatoryTitle: true,
-              trainingOrganization: { select: { name: true, brandingFooterRemoved: true } },
+              trainingOrganization: { select: { name: true } },
             },
           },
         },
@@ -129,9 +127,6 @@ export default async function CertificateVerificationPage({ params }: { params: 
       ? {
           organizationName: assignedTemplate.trainingOrganization.name,
           logoUrl: assignedTemplate.logoUrl,
-          primaryColor: assignedTemplate.primaryColor,
-          accentColor: assignedTemplate.accentColor,
-          hideFooter: assignedTemplate.trainingOrganization.brandingFooterRemoved,
           signatoryName: assignedTemplate.signatoryName,
           signatoryTitle: assignedTemplate.signatoryTitle,
         }
@@ -205,7 +200,6 @@ export default async function CertificateVerificationPage({ params }: { params: 
   }
 
   const verificationUrl = appUrl(`/certificate/${certificate.code}`);
-  const qrSvg = await certificateQrCodeSvg(verificationUrl);
   const qrDataUrl = await certificateQrCodeDataUrl(verificationUrl);
 
   return (
@@ -218,7 +212,6 @@ export default async function CertificateVerificationPage({ params }: { params: 
           credentialTitle={certificate.credentialTitle}
           issuedAt={certificate.issuedAt}
           code={certificate.code}
-          qrSvg={qrSvg}
           qrDataUrl={qrDataUrl}
           branding={branding}
           layoutJson={layoutJson}

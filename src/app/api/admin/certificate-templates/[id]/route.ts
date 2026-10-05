@@ -14,7 +14,7 @@ const UpdateSchema = z.object({
   // Visual Certificate Design Editor — CertificateLayoutSchema's own
   // parse IS the validation boundary here; there's no markup to
   // sanitize, just a bounded, enum-checked JSON shape. Null means "use
-  // the default CertificateCard design."
+  // the AAICBI Classic preset" (CertificateDisplay's own fallback).
   layoutJson: CertificateLayoutSchema.nullable().optional(),
   signatoryName: z.string().trim().max(100).nullable().optional(),
   signatoryTitle: z.string().trim().max(100).nullable().optional(),
@@ -57,5 +57,31 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       },
     });
     return NextResponse.json(updated);
+  });
+}
+
+/**
+ * DELETE /api/admin/certificate-templates/[id] — only an unapproved
+ * template can be deleted, same lock this file's own PATCH already
+ * enforces. No course-count guard needed: Course.certificateTemplateId
+ * can only ever be set to an APPROVED template (enforced in
+ * courses/[id]/route.ts's own PUT validation), so an unapproved
+ * template — the only kind this route ever deletes — can never have a
+ * course pointing at it in the first place.
+ */
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+  return withApiErrors(async () => {
+    await requireRole("SUPER_ADMIN");
+
+    const template = await prisma.certificateTemplate.findUnique({ where: { id: params.id } });
+    if (!template) {
+      return NextResponse.json({ error: "Certificate template not found." }, { status: 404 });
+    }
+    if (template.approvedAt) {
+      return NextResponse.json({ error: "This template is already approved and can't be deleted." }, { status: 400 });
+    }
+
+    await prisma.certificateTemplate.delete({ where: { id: params.id } });
+    return NextResponse.json({ ok: true });
   });
 }

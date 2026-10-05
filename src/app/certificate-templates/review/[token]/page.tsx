@@ -39,8 +39,6 @@ export default async function CertificateTemplateReviewPage({ params }: { params
       id: true,
       name: true,
       logoUrl: true,
-      primaryColor: true,
-      accentColor: true,
       approvedAt: true,
       layoutJson: true,
       signatoryName: true,
@@ -84,8 +82,6 @@ export default async function CertificateTemplateReviewPage({ params }: { params
             branding={{
               organizationName: template.trainingOrganization.name,
               logoUrl: template.logoUrl,
-              primaryColor: template.primaryColor,
-              accentColor: template.accentColor,
               signatoryName: template.signatoryName,
               signatoryTitle: template.signatoryTitle,
             }}
