@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rateLimit";
 import SiteHeader from "@/components/SiteHeader";
-import CertificateCard from "@/components/CertificateCard";
+import CertificateDisplay from "@/components/CertificateDisplay";
 import ApproveTemplateButton from "@/components/ApproveTemplateButton";
 import { CheckCircle2 } from "lucide-react";
 import Icon from "@/components/ui/Icon";
@@ -41,6 +41,9 @@ export default async function CertificateTemplateReviewPage({ params }: { params
       primaryColor: true,
       accentColor: true,
       approvedAt: true,
+      customHtml: true,
+      signatoryName: true,
+      signatoryTitle: true,
       trainingOrganization: { select: { name: true, contactName: true } },
     },
   });
@@ -71,7 +74,7 @@ export default async function CertificateTemplateReviewPage({ params }: { params
         </p>
 
         <div className="mt-6">
-          <CertificateCard
+          <CertificateDisplay
             traineeName="Jane Doe"
             verb="has successfully completed"
             credentialTitle="Sample Course"
@@ -82,7 +85,10 @@ export default async function CertificateTemplateReviewPage({ params }: { params
               logoUrl: template.logoUrl,
               primaryColor: template.primaryColor,
               accentColor: template.accentColor,
+              signatoryName: template.signatoryName,
+              signatoryTitle: template.signatoryTitle,
             }}
+            customHtml={template.customHtml}
           />
         </div>
 

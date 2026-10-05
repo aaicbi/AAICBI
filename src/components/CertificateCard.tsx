@@ -30,6 +30,11 @@ export interface CertificateCardProps {
      * premium, see TrainingOrganization.brandingFooterRemoved's own
      * schema comment), never toggled by the org itself. */
     hideFooter?: boolean;
+    /** Custom HTML Certificate Templates — optional signature line.
+     * Absent (the default for every template predating this feature)
+     * renders nothing extra, byte-identical to before. */
+    signatoryName?: string | null;
+    signatoryTitle?: string | null;
   };
 }
 
@@ -108,6 +113,13 @@ export default function CertificateCard({ traineeName, verb, credentialTitle, is
             <Icon icon={VerifiedCredentialIcon} size="sm" className="mr-1 inline align-text-bottom" /> Verified by AAICBI
           </Badge>
         </div>
+
+        {branding?.signatoryName && (
+          <div className="mx-auto mt-8 w-40 border-t border-gray-400 pt-1.5 text-center">
+            <p className="font-display text-sm font-semibold text-brand-ink">{branding.signatoryName}</p>
+            {branding.signatoryTitle && <p className="text-[11px] text-gray-500">{branding.signatoryTitle}</p>}
+          </div>
+        )}
 
         {branding && !branding.hideFooter && (
           <p className="mt-4 text-[10px] uppercase tracking-widest text-gray-400">Powered by aaicbi.org</p>

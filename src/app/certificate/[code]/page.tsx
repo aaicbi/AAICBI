@@ -5,7 +5,7 @@ import { certificateQrCodeSvg } from "@/lib/certificateQr";
 import { appUrl } from "@/lib/appUrl";
 import SiteHeader from "@/components/SiteHeader";
 import PrintCertificateButton from "@/components/PrintCertificateButton";
-import CertificateCard from "@/components/CertificateCard";
+import CertificateDisplay from "@/components/CertificateDisplay";
 import { XCircle, AlertTriangle } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 
@@ -80,6 +80,9 @@ export default async function CertificateVerificationPage({ params }: { params: 
               primaryColor: true,
               accentColor: true,
               approvedAt: true,
+              customHtml: true,
+              signatoryName: true,
+              signatoryTitle: true,
               trainingOrganization: { select: { name: true, brandingFooterRemoved: true } },
             },
           },
@@ -128,8 +131,11 @@ export default async function CertificateVerificationPage({ params }: { params: 
           primaryColor: assignedTemplate.primaryColor,
           accentColor: assignedTemplate.accentColor,
           hideFooter: assignedTemplate.trainingOrganization.brandingFooterRemoved,
+          signatoryName: assignedTemplate.signatoryName,
+          signatoryTitle: assignedTemplate.signatoryTitle,
         }
       : undefined;
+  const customHtml = assignedTemplate && assignedTemplate.approvedAt ? assignedTemplate.customHtml : null;
 
   const certificate = courseCertificate
     ? {
@@ -203,7 +209,7 @@ export default async function CertificateVerificationPage({ params }: { params: 
     <>
       <SiteHeader nav={nav} />
       <main className="mx-auto max-w-2xl px-6 py-12 print:py-4">
-        <CertificateCard
+        <CertificateDisplay
           traineeName={certificate.traineeName}
           verb={certificate.verb}
           credentialTitle={certificate.credentialTitle}
@@ -211,6 +217,7 @@ export default async function CertificateVerificationPage({ params }: { params: 
           code={certificate.code}
           qrSvg={qrSvg}
           branding={branding}
+          customHtml={customHtml}
         />
 
         <p className="mt-6 text-center text-xs text-gray-400 print:hidden">
