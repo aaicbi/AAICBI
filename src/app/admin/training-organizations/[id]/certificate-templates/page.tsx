@@ -41,6 +41,14 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
   const [signatoryName, setSignatoryName] = useState("");
   const [signatoryTitle, setSignatoryTitle] = useState("");
   const [layoutJson, setLayoutJson] = useState<CertificateLayout | null>(null);
+  // CertificateCanvasEditor only loads its `layout` prop once, at mount
+  // (so mid-edit prop churn can't stomp on in-progress canvas state) —
+  // it re-initializes only when its `key` changes. Picking a gallery
+  // preset doesn't change `selectedId` (a brand-new template has none,
+  // and "Start from a different template" deliberately keeps editing
+  // the same template), so this counter is what actually forces the
+  // remount that loads the newly-picked design onto the canvas.
+  const [designVersion, setDesignVersion] = useState(0);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -74,6 +82,7 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
     setSignatoryName(t.signatoryName ?? "");
     setSignatoryTitle(t.signatoryTitle ?? "");
     setLayoutJson(t.layoutJson ?? null);
+    setDesignVersion(0);
     // A template with nothing designed yet goes straight to the
     // gallery rather than leaving an empty canvas with no obvious next
     // step — the gallery trigger alone was easy to miss.
@@ -86,11 +95,13 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
     setSignatoryName("");
     setSignatoryTitle("");
     setLayoutJson(null);
+    setDesignVersion(0);
     setGalleryOpen(true);
   }
 
   function pickPreset(layout: CertificateLayout | null) {
     setLayoutJson(layout);
+    setDesignVersion((v) => v + 1);
     setGalleryOpen(false);
   }
 
@@ -300,7 +311,7 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Design</p>
         <Card>
           <CertificateCanvasEditor
-            key={selectedId ?? "new"}
+            key={`${selectedId ?? "new"}-${designVersion}`}
             layout={layoutJson}
             onChange={setLayoutJson}
             logoUrl={selected?.logoUrl ?? null}
