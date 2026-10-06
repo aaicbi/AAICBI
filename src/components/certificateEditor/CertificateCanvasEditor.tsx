@@ -63,8 +63,6 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
   const currentRef = useRef(current);
   currentRef.current = current;
   const scale = DISPLAY_WIDTH / current.width;
-  const scaleRef = useRef(scale);
-  scaleRef.current = scale;
 
   function update(next: CertificateLayout) {
     setCurrent(next);
@@ -89,24 +87,26 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
   // --- Canvas lifecycle: create once, dispose on unmount ---
   useEffect(() => {
     if (!canvasElRef.current) return;
-    // Backstore (Fabric's logical coordinate space, what every
-    // element's x/y/width/height is actually expressed in) stays at
-    // full design resolution — no zoom. Only the CSS *display* size is
-    // shrunk, via Fabric's own `cssOnly` dimension mode: the browser
-    // scales the rendered bitmap down visually, and Fabric's pointer-
-    // event handling already knows how to translate clicks back through
-    // that CSS-vs-backstore ratio correctly. (An earlier version of
-    // this file instead shrank the backstore AND applied canvas.setZoom
-    // on top — that double-transforms every coordinate, which is
-    // exactly the "design renders zoomed into some cropped slice"
-    // symptom this fixes.)
+    // Fabric's backstore AND its own intrinsic CSS size both stay at
+    // full design resolution — no Fabric-side shrinking at all. The
+    // visual shrink to DISPLAY_WIDTH is a plain CSS `transform: scale`
+    // on the wrapping element below (same technique already proven in
+    // CertificateLayoutRenderer). This is deliberately NOT Fabric's own
+    // `setDimensions(..., { cssOnly: true })` — that call only resizes
+    // the canvas elements themselves, correctly, but still left a
+    // horizontal offset in practice (the `canvas-container` Fabric
+    // injects has its own layout quirks once CSS-resized asymmetrically
+    // from its backstore). Fabric's pointer-event math reads
+    // `getBoundingClientRect()` (the element's actual on-screen bounds,
+    // whatever produced them) to translate clicks into logical
+    // coordinates, so it's already correct under an external CSS
+    // transform — nothing else needs to know the transform exists.
     const canvas = new Canvas(canvasElRef.current, {
       width: currentRef.current.width,
       height: currentRef.current.height,
       backgroundColor: currentRef.current.backgroundColor,
       selection: !disabled,
     });
-    canvas.setDimensions({ width: DISPLAY_WIDTH, height: currentRef.current.height * scaleRef.current }, { cssOnly: true });
     fabricRef.current = canvas;
 
     canvas.on("selection:created", (e) => setSelectedId(fabricObjectElementId(e.selected?.[0])));
@@ -130,14 +130,13 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
   }, []);
 
   // Keep canvas size/background in sync with page-size/background changes
-  // (e.g. the page-size picker). Backstore = logical design size, CSS
-  // display size set separately via cssOnly — see the mount effect's
-  // own comment for why this split matters.
+  // (e.g. the page-size picker). Full logical resolution always — the
+  // CSS transform on the wrapping element (in the JSX below) is what
+  // actually shrinks it visually.
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas) return;
     canvas.setDimensions({ width: current.width, height: current.height });
-    canvas.setDimensions({ width: DISPLAY_WIDTH, height: current.height * scale }, { cssOnly: true });
     canvas.backgroundColor = current.backgroundColor;
     canvas.requestRenderAll();
   }, [current.width, current.height, current.backgroundColor, scale]);
@@ -363,7 +362,9 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
 
       <div className="flex flex-wrap items-start gap-4">
         <div className="overflow-hidden rounded-lg border border-brand-gray" style={{ width: DISPLAY_WIDTH, height: current.height * scale }}>
-          <canvas ref={canvasElRef} />
+          <div style={{ width: current.width, height: current.height, transform: `scale(${scale})`, transformOrigin: "top left" }}>
+            <canvas ref={canvasElRef} />
+          </div>
         </div>
 
         {!disabled && (
