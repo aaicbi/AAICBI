@@ -152,7 +152,26 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
     const y = target.top ?? el.y;
     const rotation = target.angle ?? 0;
 
-    if (el.type === "text") {
+    if (target instanceof FabricImage) {
+      // A FabricImage's own width/height are a crop box relative to
+      // its natural pixel data, NOT a freely resizable box the way a
+      // Rect's are — every other branch here normalizes a resize by
+      // baking scale into width/height and resetting scale to 1, which
+      // for an image instead clips it down to (at most) its natural
+      // resolution, silently making it vanish past that point. Images
+      // — logo, QR, and both builtin and uploaded icons — read the
+      // resize purely off scaleX/scaleY via getScaledWidth/Height
+      // instead, leaving the object's own width/height (and its scale)
+      // untouched; buildFabricObject already recomputes the correct
+      // scale from stored size on every reload regardless.
+      const scaledWidth = Math.max(8, target.getScaledWidth());
+      const scaledHeight = Math.max(8, target.getScaledHeight());
+      if (el.type === "icon") {
+        updateElement(id, { x, y, size: scaledWidth, rotation });
+      } else {
+        updateElement(id, { x, y, width: scaledWidth, height: scaledHeight, rotation });
+      }
+    } else if (el.type === "text") {
       const width = Math.max(20, (target.width ?? el.width) * (target.scaleX ?? 1));
       target.set({ scaleX: 1, scaleY: 1, width });
       updateElement(id, { x, y, width, rotation });
@@ -161,6 +180,9 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
       target.set({ scaleX: 1, scaleY: 1 });
       updateElement(id, { x, y, width, rotation });
     } else if (el.type === "icon") {
+      // The dashed placeholder Rect shown when there's no real image
+      // yet (a QR code at design time, or a logo that hasn't been
+      // uploaded) — a genuine Rect, so width/height baking is correct.
       const size = Math.max(8, target.getScaledWidth ? target.getScaledWidth() : el.size);
       target.set({ scaleX: 1, scaleY: 1, width: size, height: size });
       updateElement(id, { x, y, size, rotation });
