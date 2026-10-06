@@ -401,7 +401,17 @@ async function loadElements(canvas: Canvas, elements: CertificateElement[], logo
 }
 
 async function buildFabricObject(el: CertificateElement, logoUrl: string | null): Promise<FabricObject | null> {
-  const common = { left: el.x, top: el.y, angle: el.rotation, selectable: true };
+  // Fabric v6+ changed its default object origin from top-left to
+  // center (a breaking change from v5) — explicitly pinning
+  // originX/originY back to "left"/"top" here is what makes el.x/el.y
+  // actually mean "top-left corner", matching both this schema's own
+  // intent and how CertificateLayoutRenderer already interprets the
+  // same x/y as plain CSS `left`/`top`. Without this, every element's
+  // x/y is its CENTER, silently shifting wide/centered elements far
+  // off-canvas to the left — confirmed directly via Fabric's own
+  // aCoords on a live canvas (a 968px-wide rect at x:16 was rendering
+  // with its actual left edge at x:-468, not 16).
+  const common = { left: el.x, top: el.y, angle: el.rotation, selectable: true, originX: "left" as const, originY: "top" as const };
 
   if (el.type === "text") {
     const label = el.content.kind === "literal" ? el.content.text : `{${DYNAMIC_FIELD_LABELS[el.content.field]}}`;
