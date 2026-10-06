@@ -114,7 +114,7 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
     canvas.on("selection:cleared", () => setSelectedId(null));
     canvas.on("object:modified", (e) => handleModified(e.target));
 
-    loadElements(canvas, currentRef.current.elements, logoUrl).catch((err) => console.error("Failed to load certificate layout onto the canvas:", err));
+    loadElements(canvas, currentRef.current.elements, logoUrl, objectsRef).catch((err) => console.error("Failed to load certificate layout onto the canvas:", err));
 
     return () => {
       canvas.dispose();
@@ -414,10 +414,13 @@ function fabricObjectElementId(obj: FabricObject | undefined): string | null {
   return (obj as unknown as { elementId?: string }).elementId ?? null;
 }
 
-async function loadElements(canvas: Canvas, elements: CertificateElement[], logoUrl: string | null) {
+async function loadElements(canvas: Canvas, elements: CertificateElement[], logoUrl: string | null, objectsRef: React.MutableRefObject<Record<string, FabricObject>>) {
   for (const el of elements) {
     const obj = await buildFabricObject(el, logoUrl);
-    if (obj) canvas.add(obj);
+    if (obj) {
+      objectsRef.current[el.id] = obj;
+      canvas.add(obj);
+    }
   }
   canvas.requestRenderAll();
 }
