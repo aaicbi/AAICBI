@@ -89,13 +89,24 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
   // --- Canvas lifecycle: create once, dispose on unmount ---
   useEffect(() => {
     if (!canvasElRef.current) return;
+    // Backstore (Fabric's logical coordinate space, what every
+    // element's x/y/width/height is actually expressed in) stays at
+    // full design resolution — no zoom. Only the CSS *display* size is
+    // shrunk, via Fabric's own `cssOnly` dimension mode: the browser
+    // scales the rendered bitmap down visually, and Fabric's pointer-
+    // event handling already knows how to translate clicks back through
+    // that CSS-vs-backstore ratio correctly. (An earlier version of
+    // this file instead shrank the backstore AND applied canvas.setZoom
+    // on top — that double-transforms every coordinate, which is
+    // exactly the "design renders zoomed into some cropped slice"
+    // symptom this fixes.)
     const canvas = new Canvas(canvasElRef.current, {
-      width: currentRef.current.width * scaleRef.current,
-      height: currentRef.current.height * scaleRef.current,
+      width: currentRef.current.width,
+      height: currentRef.current.height,
       backgroundColor: currentRef.current.backgroundColor,
       selection: !disabled,
     });
-    canvas.setZoom(scaleRef.current);
+    canvas.setDimensions({ width: DISPLAY_WIDTH, height: currentRef.current.height * scaleRef.current }, { cssOnly: true });
     fabricRef.current = canvas;
 
     canvas.on("selection:created", (e) => setSelectedId(fabricObjectElementId(e.selected?.[0])));
@@ -118,12 +129,15 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Keep canvas size/background in sync with page-size/background changes.
+  // Keep canvas size/background in sync with page-size/background changes
+  // (e.g. the page-size picker). Backstore = logical design size, CSS
+  // display size set separately via cssOnly — see the mount effect's
+  // own comment for why this split matters.
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas) return;
-    canvas.setDimensions({ width: current.width * scale, height: current.height * scale });
-    canvas.setZoom(scale);
+    canvas.setDimensions({ width: current.width, height: current.height });
+    canvas.setDimensions({ width: DISPLAY_WIDTH, height: current.height * scale }, { cssOnly: true });
     canvas.backgroundColor = current.backgroundColor;
     canvas.requestRenderAll();
   }, [current.width, current.height, current.backgroundColor, scale]);
