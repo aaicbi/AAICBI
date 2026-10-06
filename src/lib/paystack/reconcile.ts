@@ -35,6 +35,7 @@ import { likelyDuplicatePaymentEmail, paymentReceiptEmail } from "@/lib/notifica
 import { grantAiCreditsForPayment } from "@/lib/paystack/aiCredits";
 import { getEffectivePriceKobo } from "@/lib/coursePricing";
 import { processConfirmedPlatformFeeCharge, ProcessPlatformFeeChargeResult } from "@/lib/paystack/reconcileOrgBilling";
+import { processConfirmedCertWatermarkCharge, ProcessCertWatermarkChargeResult } from "@/lib/paystack/reconcileCertWatermarkBilling";
 
 export type ProcessChargeResult =
   | { status: "granted"; traineeId: string; courseId: string }
@@ -46,7 +47,11 @@ export type ProcessChargeResult =
   // all. Delegated entirely to processConfirmedPlatformFeeCharge (see
   // the early branch below); this variant just carries its result back
   // through the one return type every caller of this function expects.
-  | { status: "platform_fee"; result: ProcessPlatformFeeChargeResult };
+  | { status: "platform_fee"; result: ProcessPlatformFeeChargeResult }
+  // Certificate watermark removal — a second, independent org-metadata
+  // product (see the early branch below); same carry-the-result shape
+  // as "platform_fee" above.
+  | { status: "cert_watermark_fee"; result: ProcessCertWatermarkChargeResult };
 
 type PaidCourse = {
   id: string;
@@ -202,9 +207,19 @@ export async function processConfirmedCharge(reference: string): Promise<Process
   // trainee/course logic below — including the bank-transfer metadata
   // fallback further down, which would otherwise misinterpret this as
   // "incomplete trainee metadata" and fail with no_metadata.
+  //
+  // Certificate watermark removal carries the exact same
+  // trainingOrganizationId-bearing shape (initializeCertWatermarkPayment/
+  // certWatermarkBilling.ts), so `metadata.type` is what tells the two
+  // apart — without this check every watermark-removal charge would be
+  // silently misfiled as a platform-fee payment.
   const metaTrainingOrgId = metadata && typeof metadata.trainingOrganizationId === "string" ? metadata.trainingOrganizationId : null;
   if (metaTrainingOrgId) {
     const metaFeeAmountKobo = metadata && typeof metadata.amountKobo === "number" ? metadata.amountKobo : verified.data.amount;
+    if (metadata?.type === "cert_watermark_fee") {
+      const result = await processConfirmedCertWatermarkCharge(verified, metaTrainingOrgId, metaFeeAmountKobo);
+      return { status: "cert_watermark_fee", result };
+    }
     const result = await processConfirmedPlatformFeeCharge(verified, metaTrainingOrgId, metaFeeAmountKobo);
     return { status: "platform_fee", result };
   }

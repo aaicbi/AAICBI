@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
+import { requireTrainingOrgAccess } from "@/lib/trainingOrgStaff";
 import {
   validateCertificateTemplateLogoFile,
   uploadCertificateTemplateLogo,
@@ -16,12 +17,13 @@ import {
  */
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
-    await requireRole("SUPER_ADMIN");
+    const session = await requireRole("SUPER_ADMIN", "ADMIN");
 
     const existing = await prisma.certificateTemplate.findUnique({ where: { id: params.id } });
     if (!existing) {
       return NextResponse.json({ error: "Certificate template not found." }, { status: 404 });
     }
+    await requireTrainingOrgAccess(existing.trainingOrganizationId, session);
     if (existing.approvedAt) {
       return NextResponse.json({ error: "This template is already approved and can't be edited." }, { status: 400 });
     }
@@ -52,11 +54,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
-    await requireRole("SUPER_ADMIN");
+    const session = await requireRole("SUPER_ADMIN", "ADMIN");
     const existing = await prisma.certificateTemplate.findUnique({ where: { id: params.id } });
     if (!existing) {
       return NextResponse.json({ error: "Certificate template not found." }, { status: 404 });
     }
+    await requireTrainingOrgAccess(existing.trainingOrganizationId, session);
     const template = await prisma.certificateTemplate.update({
       where: { id: params.id },
       data: { logoUrl: null },

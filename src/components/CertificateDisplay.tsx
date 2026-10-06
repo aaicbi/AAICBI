@@ -21,6 +21,9 @@ export interface CertificateDisplayProps {
    * design built yet" — renders the AAICBI Classic preset, the
    * platform-wide fallback. */
   layoutJson?: CertificateLayout | null;
+  /** Required — see CertificateLayoutRenderer's own prop comment for
+   * why this is never optional/defaulted. */
+  showWatermark: boolean;
 }
 
 /**
@@ -31,13 +34,14 @@ export interface CertificateDisplayProps {
  * as every training-org-branded design, so there's no second code path
  * that could ever visually drift from what the canvas editor produces.
  */
-export default function CertificateDisplay({ layoutJson, qrDataUrl, branding, ...props }: CertificateDisplayProps) {
+export default function CertificateDisplay({ layoutJson, qrDataUrl, branding, showWatermark, ...props }: CertificateDisplayProps) {
   const layout = layoutJson ?? AAICBI_CLASSIC_PRESET.layout;
   return (
     <CertificateLayoutRenderer
       layout={layout}
       logoUrl={branding?.logoUrl ?? null}
       qrDataUrl={qrDataUrl}
+      showWatermark={showWatermark}
       traineeName={props.traineeName}
       verb={props.verb}
       credentialTitle={props.credentialTitle}

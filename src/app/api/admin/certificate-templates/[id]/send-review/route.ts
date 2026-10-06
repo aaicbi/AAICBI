@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
+import { requireTrainingOrgAccess } from "@/lib/trainingOrgStaff";
 import { notifyByEmail } from "@/lib/notifications/log";
 import { certificateTemplateReadyEmail } from "@/lib/notifications/templates";
 import { appUrl } from "@/lib/appUrl";
@@ -14,7 +15,7 @@ import { appUrl } from "@/lib/appUrl";
  */
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
-    await requireRole("SUPER_ADMIN");
+    const session = await requireRole("SUPER_ADMIN", "ADMIN");
 
     const template = await prisma.certificateTemplate.findUnique({
       where: { id: params.id },
@@ -23,6 +24,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     if (!template) {
       return NextResponse.json({ error: "Certificate template not found." }, { status: 404 });
     }
+    await requireTrainingOrgAccess(template.trainingOrganization.id, session);
     if (template.approvedAt) {
       return NextResponse.json({ error: "This template is already approved." }, { status: 400 });
     }

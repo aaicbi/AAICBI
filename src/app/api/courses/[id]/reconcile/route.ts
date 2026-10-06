@@ -100,11 +100,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           { status: 404 }
         );
       case "platform_fee":
-        // Direct platform-fee billing — this reference belongs to a
-        // training organization's own platform-fee charge, not a
-        // trainee/course payment at all. Same honest "not yours"
-        // feedback as a mismatched `granted` result below, never a sign
-        // anything was granted incorrectly.
+      case "cert_watermark_fee":
+        // Direct platform-fee billing / certificate watermark removal —
+        // this reference belongs to a training organization's own
+        // charge, not a trainee/course payment at all. Same honest
+        // "not yours" feedback as a mismatched `granted` result below,
+        // never a sign anything was granted incorrectly.
         return NextResponse.json(
           { error: "That reference doesn't match your account or this course." },
           { status: 400 }

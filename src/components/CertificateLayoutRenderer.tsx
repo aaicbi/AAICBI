@@ -11,6 +11,15 @@ export interface CertificateLayoutRendererProps extends CertificateRenderData {
    * qrSvg prop already uses) — shows a plain placeholder box instead
    * of a QR code for a certificate that doesn't exist yet. */
   qrDataUrl?: string;
+  /** Certificate watermark removal — required, not optional/defaulted,
+   * so every caller makes an explicit decision rather than silently
+   * defaulting one way. Deliberately drawn here, AFTER layout.elements,
+   * rather than as a layout element itself: this is the one and only
+   * place "Powered by AAICBI" ever gets added to a certificate, so
+   * there's nothing in layoutJson an org could strip via the editor or
+   * a raw API call to remove it — see shouldShowCertWatermark
+   * (src/lib/trainingOrgBilling.ts) for how callers compute this. */
+  showWatermark: boolean;
 }
 
 /**
@@ -33,7 +42,7 @@ export interface CertificateLayoutRendererProps extends CertificateRenderData {
  * container narrower than the design's own width (e.g. the admin
  * tool's sidebar preview).
  */
-export default function CertificateLayoutRenderer({ layout, logoUrl, qrDataUrl, ...data }: CertificateLayoutRendererProps) {
+export default function CertificateLayoutRenderer({ layout, logoUrl, qrDataUrl, showWatermark, ...data }: CertificateLayoutRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
@@ -56,6 +65,14 @@ export default function CertificateLayoutRenderer({ layout, logoUrl, qrDataUrl, 
         {layout.elements.map((el) => (
           <ElementNode key={el.id} element={el} logoUrl={logoUrl} qrDataUrl={qrDataUrl} data={data} />
         ))}
+        {showWatermark && (
+          <p
+            className="absolute bottom-0 left-0 m-0"
+            style={{ width: layout.width, textAlign: "center", fontSize: 10, fontFamily: "Georgia", color: "#9CA3AF", padding: "6px 0" }}
+          >
+            POWERED BY AAICBI.ORG
+          </p>
+        )}
       </div>
     </div>
   );

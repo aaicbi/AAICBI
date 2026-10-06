@@ -33,3 +33,42 @@ export function hasActivePlatformFeeAccess(org: {
     org.platformFeeCurrentPeriodEnd.getTime() > Date.now()
   );
 }
+
+/**
+ * Certificate watermark removal — a second, fully independent monthly
+ * subscription (see TrainingOrganization's own schema comment on the
+ * certWatermark* field group) with no relationship to billingModel at
+ * all: a REVENUE_SHARE org can hold this subscription exactly the same
+ * way a DIRECT_PAYMENT org can. Same pure/sync shape as
+ * hasActivePlatformFeeAccess, deliberately split into two functions
+ * (this one checks the live subscription; shouldShowCertWatermark below
+ * folds in the manual override) rather than one combined function, so
+ * each stays independently testable.
+ */
+export function hasActiveCertWatermarkRemoval(org: {
+  certWatermarkCurrentPeriodEnd: Date | null;
+  certWatermarkAccessRevokedAt: Date | null;
+}): boolean {
+  return (
+    org.certWatermarkAccessRevokedAt === null &&
+    !!org.certWatermarkCurrentPeriodEnd &&
+    org.certWatermarkCurrentPeriodEnd.getTime() > Date.now()
+  );
+}
+
+/**
+ * The actual question every certificate-rendering call site asks:
+ * should THIS org's certificates carry the "Powered by AAICBI" mark
+ * right now. brandingFooterRemoved is a manual SUPER_ADMIN override/
+ * waiver — same role accessBlockWaived plays for platform-fee access —
+ * checked first so a manually-arranged deal always wins regardless of
+ * subscription state.
+ */
+export function shouldShowCertWatermark(org: {
+  brandingFooterRemoved: boolean;
+  certWatermarkCurrentPeriodEnd: Date | null;
+  certWatermarkAccessRevokedAt: Date | null;
+}): boolean {
+  if (org.brandingFooterRemoved) return false;
+  return !hasActiveCertWatermarkRemoval(org);
+}

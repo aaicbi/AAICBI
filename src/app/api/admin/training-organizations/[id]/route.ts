@@ -22,6 +22,11 @@ const PatchSchema = z.object({
   // code — neither field feeds a cached external resource.
   trainingSeatCap: z.number().int().positive().nullable().optional(),
   accessBlockWaived: z.boolean().optional(),
+  // Certificate watermark removal — a second, independent monthly
+  // product, same negotiated-rate shape as platformFeeKobo above (see
+  // TrainingOrganization.certWatermarkFeeKobo's own schema comment).
+  certWatermarkFeeKobo: z.number().int().positive().nullable().optional(),
+  certWatermarkBillingInterval: z.enum(["MONTHLY", "QUARTERLY", "ANNUALLY"]).nullable().optional(),
 });
 
 /**
@@ -63,9 +68,22 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       parsed.data.platformFeeBillingInterval !== undefined ? parsed.data.platformFeeBillingInterval : org.platformFeeBillingInterval;
     const feeTermsChanged = resultingFeeKobo !== org.platformFeeKobo || resultingInterval !== org.platformFeeBillingInterval;
 
+    // Certificate watermark removal — same reset-on-pricing-change rule,
+    // for its own independent Paystack Plan code.
+    const resultingWatermarkFeeKobo =
+      parsed.data.certWatermarkFeeKobo !== undefined ? parsed.data.certWatermarkFeeKobo : org.certWatermarkFeeKobo;
+    const resultingWatermarkInterval =
+      parsed.data.certWatermarkBillingInterval !== undefined ? parsed.data.certWatermarkBillingInterval : org.certWatermarkBillingInterval;
+    const watermarkFeeTermsChanged =
+      resultingWatermarkFeeKobo !== org.certWatermarkFeeKobo || resultingWatermarkInterval !== org.certWatermarkBillingInterval;
+
     const updated = await prisma.trainingOrganization.update({
       where: { id: params.id },
-      data: feeTermsChanged ? { ...parsed.data, platformFeePaystackPlanCode: null } : parsed.data,
+      data: {
+        ...parsed.data,
+        ...(feeTermsChanged ? { platformFeePaystackPlanCode: null } : {}),
+        ...(watermarkFeeTermsChanged ? { certWatermarkPaystackPlanCode: null } : {}),
+      },
     });
     return NextResponse.json(updated);
   });

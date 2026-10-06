@@ -114,6 +114,11 @@ export const ADMIN_NAV_TRAINING_ORG = [
   { label: "Assignments", href: "/admin/assignments" },
   { label: "Performance", href: "/admin/performance" },
   { label: "Payments", href: "/admin/payments" },
+  // Training Organizations, Phase 2 — org admins can now design their
+  // own certificate templates (requireTrainingOrgAccess scopes the
+  // underlying routes to this exact org); /admin/certificate-templates
+  // is the id-less entry point that resolves to this org's own page.
+  { label: "Certificates", href: "/admin/certificate-templates" },
   { label: "Settings", href: "/admin/settings" },
 ];
 

@@ -23,16 +23,24 @@ interface TemplateDto {
 }
 
 /**
- * Training Organizations, Phase 1 — the SUPER_ADMIN-only certificate
- * design tool: create/edit a template (locked once the organization
- * approves it), upload its logo, and send it for review.
+ * Training Organizations, Phase 1 — the certificate design tool: create/
+ * edit a template (locked once the organization approves it), upload
+ * its logo, and send it for review. Originally SUPER_ADMIN-only; now
+ * also reachable by the organization's own ADMIN session for this exact
+ * org (see requireTrainingOrgAccess, src/lib/trainingOrgStaff.ts) —
+ * either way, every template still needs SUPER_ADMIN to send it for
+ * review and the organization to approve it before it's used on real
+ * certificates (unchanged). This page itself has no SUPER_ADMIN-
+ * specific UI; it's fully generic on `params.id`, so the org-facing
+ * /admin/certificate-templates redirect wrapper reuses it unchanged.
  *
  * Visual Certificate Design Editor — the one engine every certificate
  * now goes through: the Fabric.js canvas is the only way a design
  * exists, seeded from a presets gallery instead of a blank page, with
  * the live preview below reusing CertificateDisplay — the exact same
  * component the real issued certificate and the public review page
- * both render, so what SUPER_ADMIN sees here is what actually ships.
+ * both render, so what's seen here is what actually ships — including
+ * the "Powered by AAICBI" watermark, see showWatermark below.
  */
 export default function CertificateTemplatesPage({ params }: { params: { id: string } }) {
   const [templates, setTemplates] = useState<TemplateDto[] | null>(null);
@@ -56,6 +64,14 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
   const [sending, setSending] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  // Certificate watermark removal — this org's current "Powered by
+  // AAICBI" status, computed server-side by the list GET route (see
+  // that route's own comment) so the gallery thumbnails/Preview modal
+  // below show exactly what this org's real certificates would get.
+  // viewerRole drives the "go premium" banner, shown only to the org's
+  // own ADMIN, never to SUPER_ADMIN (who isn't the one who'd pay).
+  const [showWatermark, setShowWatermark] = useState(true);
+  const [viewerRole, setViewerRole] = useState<"SUPER_ADMIN" | "ADMIN" | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const savingRef = useRef(false);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -84,9 +100,11 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
   function load() {
     fetch(`/api/admin/training-organizations/${params.id}/certificate-templates`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((list: TemplateDto[]) => {
-        setTemplates(list);
-        if (!selectedId && list.length > 0) selectTemplate(list[0]);
+      .then((body: { templates: TemplateDto[]; showWatermark: boolean; viewerRole: "SUPER_ADMIN" | "ADMIN" }) => {
+        setTemplates(body.templates);
+        setShowWatermark(body.showWatermark);
+        setViewerRole(body.viewerRole);
+        if (!selectedId && body.templates.length > 0) selectTemplate(body.templates[0]);
       })
       .catch(() => setTemplates([]));
   }
@@ -366,6 +384,7 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
                     code="SAMPLE-0000-0000"
                     branding={{ organizationName: name || "Organization Name", logoUrl: selected?.logoUrl ?? null }}
                     layoutJson={preset.layout}
+                    showWatermark={showWatermark}
                   />
                 </div>
                 <p className="border-t border-brand-gray px-2 py-1.5 text-xs font-semibold text-gray-700">{preset.name}</p>
@@ -388,6 +407,18 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
             logoUrl={selected?.logoUrl ?? null}
             disabled={isLocked}
           />
+          <p className="mt-3 text-xs text-gray-500">
+            A &quot;Powered by AAICBI&quot; watermark is added automatically to every certificate and can&apos;t be removed from this editor.
+            {showWatermark && viewerRole === "ADMIN" && (
+              <>
+                {" "}
+                <a href="/org/billing" className="font-semibold text-brand-teal hover:underline">
+                  Remove it — go premium
+                </a>
+                .
+              </>
+            )}
+          </p>
         </Card>
       </div>
 
@@ -413,6 +444,7 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
                 signatoryTitle,
               }}
               layoutJson={layoutJson}
+              showWatermark={showWatermark}
             />
           </div>
         </div>

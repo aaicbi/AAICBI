@@ -5,6 +5,8 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { generateTemplateReviewToken } from "@/lib/certificateTemplateReview";
 import { CertificateLayoutSchema } from "@/lib/certificateLayout";
+import { requireTrainingOrgAccess } from "@/lib/trainingOrgStaff";
+import { shouldShowCertWatermark } from "@/lib/trainingOrgBilling";
 
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 const CreateSchema = z.object({
@@ -22,28 +24,48 @@ const CreateSchema = z.object({
 
 /**
  * GET/POST /api/admin/training-organizations/[id]/certificate-templates
- * — SUPER_ADMIN's own design tool list + create. Logo upload is a
- * separate step (POST .../certificate-templates/[id]/logo), same
- * "create first, then upload its image" shape AvatarUpload already
+ * — the design tool's list + create, now reachable by SUPER_ADMIN (any
+ * org) or an ADMIN session backed by this exact organization
+ * (requireTrainingOrgAccess — an ADMIN session for a DIFFERENT org gets
+ * a 403). Logo upload is a separate step (POST .../certificate-templates/[id]/logo),
+ * same "create first, then upload its image" shape AvatarUpload already
  * establishes. The review token is generated here, at creation, not
  * deferred to "send for review" — it's just a stable address for the
  * public preview page; nothing requires it to stay secret until the
  * template is actually emailed anywhere.
+ *
+ * GET's response carries `showWatermark` alongside the template list —
+ * this org's current "Powered by AAICBI" status, computed server-side,
+ * so the editor page's gallery thumbnails and Preview modal show
+ * exactly what this org's real certificates would get, not a generic
+ * guess. See CertificateLayoutRenderer's own showWatermark prop comment.
  */
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
-    await requireRole("SUPER_ADMIN");
-    const templates = await prisma.certificateTemplate.findMany({
-      where: { trainingOrganizationId: params.id },
-      orderBy: { createdAt: "desc" },
-    });
-    return NextResponse.json(templates);
+    const session = await requireRole("SUPER_ADMIN", "ADMIN");
+    await requireTrainingOrgAccess(params.id, session);
+
+    const [templates, org] = await Promise.all([
+      prisma.certificateTemplate.findMany({
+        where: { trainingOrganizationId: params.id },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.trainingOrganization.findUnique({
+        where: { id: params.id },
+        select: { brandingFooterRemoved: true, certWatermarkCurrentPeriodEnd: true, certWatermarkAccessRevokedAt: true },
+      }),
+    ]);
+    if (!org) {
+      return NextResponse.json({ error: "Training organization not found." }, { status: 404 });
+    }
+    return NextResponse.json({ templates, showWatermark: shouldShowCertWatermark(org), viewerRole: session.role });
   });
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
-    await requireRole("SUPER_ADMIN");
+    const session = await requireRole("SUPER_ADMIN", "ADMIN");
+    await requireTrainingOrgAccess(params.id, session);
 
     const org = await prisma.trainingOrganization.findUnique({ where: { id: params.id } });
     if (!org) {

@@ -116,6 +116,12 @@ export type NotificationType =
   // "TRAINING_ORG", same as the approval pair above), not a trainee.
   | "PLATFORM_FEE_PAID"
   | "PLATFORM_FEE_ACCESS_REVOKED"
+  // Certificate watermark removal — a second, independent subscription
+  // product (see TrainingOrganization's own certWatermark* schema
+  // comment), same pair shape as PLATFORM_FEE_PAID/
+  // PLATFORM_FEE_ACCESS_REVOKED above but for this separate product.
+  | "CERT_WATERMARK_FEE_PAID"
+  | "CERT_WATERMARK_ACCESS_REVOKED"
   // AI Assignment Engine — to the trainee: an assignment they can take
   // has been published, their submission has been AI-assessed (or sent
   // to their instructor for manual grading), or their instructor has

@@ -1228,6 +1228,48 @@ export function platformFeeAccessRevokedEmail(input: PlatformFeeAccessRevokedEma
 }
 
 /**
+ * Certificate watermark removal — the same receipt/lapsed-access pair
+ * as PlatformFeeReceiptEmailInput/PlatformFeeAccessRevokedEmailInput
+ * above, for this separate subscription product.
+ */
+export interface CertWatermarkReceiptEmailInput {
+  contactName: string;
+  amountKobo: number;
+  reference: string;
+  paidAt: string;
+  nextBillingDate: string;
+  dashboardUrl: string;
+}
+export function certWatermarkReceiptEmail(input: CertWatermarkReceiptEmailInput): EmailContent {
+  const amount = `₦${(input.amountKobo / 100).toLocaleString()}`;
+  return {
+    subject: "Payment received — certificate watermark removed",
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(input.contactName)},</p>
+      <p style="margin:0 0 16px;">We've received your payment of <strong>${amount}</strong> (Ref: ${escapeHtml(input.reference)}) on ${escapeHtml(input.paidAt)}. The "Powered by AAICBI" mark is removed from your certificates until <strong>${escapeHtml(input.nextBillingDate)}</strong>.</p>
+      ${button(input.dashboardUrl, "Go to Your Dashboard")}
+    `),
+    text: `Hi ${input.contactName},\n\nWe've received your payment of ${amount} (Ref: ${input.reference}) on ${input.paidAt}. The "Powered by AAICBI" mark is removed from your certificates until ${input.nextBillingDate}.\n\n${input.dashboardUrl}`,
+  };
+}
+
+export interface CertWatermarkAccessRevokedEmailInput {
+  contactName: string;
+  billingUrl: string;
+}
+export function certWatermarkAccessRevokedEmail(input: CertWatermarkAccessRevokedEmailInput): EmailContent {
+  return {
+    subject: "Your certificate watermark-removal subscription has lapsed",
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(input.contactName)},</p>
+      <p style="margin:0 0 16px;">Your watermark-removal payment didn't go through, so the "Powered by AAICBI" mark is back on your certificates. Renew to remove it again.</p>
+      ${button(input.billingUrl, "Renew Now")}
+    `),
+    text: `Hi ${input.contactName},\n\nYour watermark-removal payment didn't go through, so the "Powered by AAICBI" mark is back on your certificates. Renew to remove it again.\n\n${input.billingUrl}`,
+  };
+}
+
+/**
  * AI Assignment Engine — the trainee-facing pair/trio and the
  * instructor-facing manual-grading notice. Same plain, direct shape as
  * every other template in this file.

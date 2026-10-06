@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { hasActivePlatformFeeAccess } from "../src/lib/trainingOrgBilling";
+import { hasActivePlatformFeeAccess, hasActiveCertWatermarkRemoval, shouldShowCertWatermark } from "../src/lib/trainingOrgBilling";
 
 describe("hasActivePlatformFeeAccess", () => {
   it("is always active for a REVENUE_SHARE organization, regardless of the fee fields", () => {
@@ -92,5 +92,61 @@ describe("hasActivePlatformFeeAccess", () => {
         accessBlockWaived: true,
       })
     ).toBe(true);
+  });
+});
+
+describe("hasActiveCertWatermarkRemoval", () => {
+  it("is inactive with no period end set yet", () => {
+    expect(hasActiveCertWatermarkRemoval({ certWatermarkCurrentPeriodEnd: null, certWatermarkAccessRevokedAt: null })).toBe(false);
+  });
+
+  it("is active with a future period end and no revocation", () => {
+    const future = new Date(Date.now() + 1000 * 60 * 60 * 24);
+    expect(hasActiveCertWatermarkRemoval({ certWatermarkCurrentPeriodEnd: future, certWatermarkAccessRevokedAt: null })).toBe(true);
+  });
+
+  it("is inactive with a past period end", () => {
+    const past = new Date(Date.now() - 1000 * 60 * 60 * 24);
+    expect(hasActiveCertWatermarkRemoval({ certWatermarkCurrentPeriodEnd: past, certWatermarkAccessRevokedAt: null })).toBe(false);
+  });
+
+  it("is inactive when explicitly revoked, even with a future period end", () => {
+    const future = new Date(Date.now() + 1000 * 60 * 60 * 24);
+    expect(hasActiveCertWatermarkRemoval({ certWatermarkCurrentPeriodEnd: future, certWatermarkAccessRevokedAt: new Date() })).toBe(false);
+  });
+});
+
+describe("shouldShowCertWatermark", () => {
+  it("shows the watermark with no subscription and no manual waiver", () => {
+    expect(
+      shouldShowCertWatermark({ brandingFooterRemoved: false, certWatermarkCurrentPeriodEnd: null, certWatermarkAccessRevokedAt: null })
+    ).toBe(true);
+  });
+
+  it("hides the watermark with an active subscription", () => {
+    const future = new Date(Date.now() + 1000 * 60 * 60 * 24);
+    expect(
+      shouldShowCertWatermark({ brandingFooterRemoved: false, certWatermarkCurrentPeriodEnd: future, certWatermarkAccessRevokedAt: null })
+    ).toBe(false);
+  });
+
+  it("shows the watermark again once the subscription lapses", () => {
+    const future = new Date(Date.now() + 1000 * 60 * 60 * 24);
+    expect(
+      shouldShowCertWatermark({ brandingFooterRemoved: false, certWatermarkCurrentPeriodEnd: future, certWatermarkAccessRevokedAt: new Date() })
+    ).toBe(true);
+  });
+
+  it("hides the watermark via the manual override even with no subscription at all", () => {
+    expect(
+      shouldShowCertWatermark({ brandingFooterRemoved: true, certWatermarkCurrentPeriodEnd: null, certWatermarkAccessRevokedAt: null })
+    ).toBe(false);
+  });
+
+  it("the manual override wins even over a lapsed subscription", () => {
+    const past = new Date(Date.now() - 1000 * 60 * 60 * 24);
+    expect(
+      shouldShowCertWatermark({ brandingFooterRemoved: true, certWatermarkCurrentPeriodEnd: past, certWatermarkAccessRevokedAt: new Date() })
+    ).toBe(false);
   });
 });

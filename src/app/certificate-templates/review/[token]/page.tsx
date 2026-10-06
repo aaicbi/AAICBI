@@ -4,6 +4,7 @@ import { rateLimit } from "@/lib/rateLimit";
 import SiteHeader from "@/components/SiteHeader";
 import CertificateDisplay from "@/components/CertificateDisplay";
 import type { CertificateLayout } from "@/lib/certificateLayout";
+import { shouldShowCertWatermark } from "@/lib/trainingOrgBilling";
 import ApproveTemplateButton from "@/components/ApproveTemplateButton";
 import { CheckCircle2 } from "lucide-react";
 import Icon from "@/components/ui/Icon";
@@ -43,7 +44,15 @@ export default async function CertificateTemplateReviewPage({ params }: { params
       layoutJson: true,
       signatoryName: true,
       signatoryTitle: true,
-      trainingOrganization: { select: { name: true, contactName: true } },
+      trainingOrganization: {
+        select: {
+          name: true,
+          contactName: true,
+          brandingFooterRemoved: true,
+          certWatermarkCurrentPeriodEnd: true,
+          certWatermarkAccessRevokedAt: true,
+        },
+      },
     },
   });
 
@@ -86,6 +95,7 @@ export default async function CertificateTemplateReviewPage({ params }: { params
               signatoryTitle: template.signatoryTitle,
             }}
             layoutJson={template.layoutJson as unknown as CertificateLayout | null}
+            showWatermark={shouldShowCertWatermark(template.trainingOrganization)}
           />
         </div>
 

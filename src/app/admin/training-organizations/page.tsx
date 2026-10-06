@@ -31,6 +31,12 @@ interface TrainingOrgDto {
   trainingSeatCap: number | null;
   accessBlockWaived: boolean;
   activeTraineeCount: number | null;
+  // Certificate watermark removal — a second, independent subscription
+  // product, same shape as the platformFee* fields above.
+  certWatermarkFeeKobo: number | null;
+  certWatermarkBillingInterval: "MONTHLY" | "QUARTERLY" | "ANNUALLY" | null;
+  certWatermarkCurrentPeriodEnd: string | null;
+  certWatermarkAccessRevokedAt: string | null;
 }
 
 /**
@@ -147,6 +153,7 @@ export default function AdminTrainingOrganizationsPage() {
                     </a>
                     <PayoutSettings org={o} onSaved={load} showToast={showToast} />
                     <PlatformFeeSettings org={o} onSaved={load} showToast={showToast} />
+                    <CertWatermarkSettings org={o} onSaved={load} showToast={showToast} />
                   </>
                 )}
               </Card>
@@ -467,6 +474,153 @@ function PlatformFeeSettings({
               </label>
             </>
           )}
+
+          {error && <p className="text-xs text-brand-rose">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+            <button
+              onClick={() => setEditing(false)}
+              className="rounded-lg border border-brand-gray px-3 py-1.5 text-xs font-semibold"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Certificate watermark removal — a second, independent monthly
+ * product (see TrainingOrganization's own certWatermark* schema
+ * comment), same editing/status/confirm-payment shape as
+ * PlatformFeeSettings above but with nothing to do with billingModel:
+ * always editable regardless of REVENUE_SHARE/DIRECT_PAYMENT.
+ */
+function CertWatermarkSettings({
+  org,
+  onSaved,
+  showToast,
+}: {
+  org: TrainingOrgDto;
+  onSaved: () => void;
+  showToast: (message: string, variant?: "success" | "error") => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [feeNaira, setFeeNaira] = useState(org.certWatermarkFeeKobo != null ? String(org.certWatermarkFeeKobo / 100) : "");
+  const [billingInterval, setBillingInterval] = useState<"MONTHLY" | "QUARTERLY" | "ANNUALLY">(org.certWatermarkBillingInterval ?? "MONTHLY");
+  const [saving, setSaving] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function startEditing() {
+    setFeeNaira(org.certWatermarkFeeKobo != null ? String(org.certWatermarkFeeKobo / 100) : "");
+    setBillingInterval(org.certWatermarkBillingInterval ?? "MONTHLY");
+    setError(null);
+    setEditing(true);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    setError(null);
+    const certWatermarkFeeKobo = feeNaira.trim() === "" ? null : Math.round(Number(feeNaira) * 100);
+    const res = await fetch(`/api/admin/training-organizations/${org.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        certWatermarkFeeKobo,
+        certWatermarkBillingInterval: certWatermarkFeeKobo ? billingInterval : null,
+      }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      setError("Could not save. Try again.");
+      return;
+    }
+    setEditing(false);
+    showToast("Watermark-removal pricing saved.");
+    onSaved();
+  }
+
+  async function handleConfirmPayment() {
+    setConfirming(true);
+    const res = await fetch(`/api/admin/training-organizations/${org.id}/confirm-cert-watermark-fee`, { method: "POST" });
+    setConfirming(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showToast(typeof data.error === "string" ? data.error : "Could not confirm payment.", "error");
+      return;
+    }
+    showToast("Payment confirmed — watermark removed.");
+    onSaved();
+  }
+
+  const now = Date.now();
+  const periodEnd = org.certWatermarkCurrentPeriodEnd ? new Date(org.certWatermarkCurrentPeriodEnd) : null;
+  const isActive = org.certWatermarkAccessRevokedAt === null && !!periodEnd && periodEnd.getTime() > now;
+  const statusLabel = org.brandingFooterRemoved
+    ? "Waived (see Payout Settings above)"
+    : org.certWatermarkAccessRevokedAt
+      ? `Lapsed ${new Date(org.certWatermarkAccessRevokedAt).toLocaleDateString()}`
+      : isActive
+        ? `Removed until ${periodEnd!.toLocaleDateString()}`
+        : "Not paid — watermark shows";
+
+  return (
+    <div className="mt-3 rounded-lg border border-brand-gray bg-gray-50 p-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-gray-700">Certificate Watermark Removal</p>
+        {!editing && (
+          <button onClick={startEditing} className="text-xs font-semibold text-brand-teal hover:underline">
+            Edit
+          </button>
+        )}
+      </div>
+      {!editing && <p className="mt-1 text-xs text-gray-500">{statusLabel}</p>}
+      {!editing && !org.brandingFooterRemoved && !isActive && org.certWatermarkFeeKobo && (
+        <button
+          onClick={handleConfirmPayment}
+          disabled={confirming}
+          className="mt-2 rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+        >
+          {confirming ? "Confirming..." : "Confirm Payment Received"}
+        </button>
+      )}
+
+      {editing && (
+        <div className="mt-2 space-y-2">
+          <div className="flex flex-wrap gap-3">
+            <label className="block text-xs text-gray-700">
+              Watermark-removal fee (₦)
+              <input
+                type="number"
+                min={1}
+                value={feeNaira}
+                onChange={(e) => setFeeNaira(e.target.value)}
+                placeholder="e.g. 10000"
+                className="mt-1 w-full max-w-[10rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
+              />
+            </label>
+            <label className="block text-xs text-gray-700">
+              Billing interval
+              <select
+                value={billingInterval}
+                onChange={(e) => setBillingInterval(e.target.value as "MONTHLY" | "QUARTERLY" | "ANNUALLY")}
+                className="mt-1 block w-full max-w-[10rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
+              >
+                <option value="MONTHLY">Monthly</option>
+                <option value="QUARTERLY">Quarterly</option>
+                <option value="ANNUALLY">Annually</option>
+              </select>
+            </label>
+          </div>
 
           {error && <p className="text-xs text-brand-rose">{error}</p>}
           <div className="flex gap-2">

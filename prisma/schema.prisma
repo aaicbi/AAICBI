@@ -3188,6 +3188,27 @@ model TrainingOrganization {
   trainingSeatCap   Int?
   accessBlockWaived Boolean @default(false)
 
+  // Certificate watermark removal — a second, independent monthly
+  // product any org can subscribe to regardless of billingModel (a
+  // REVENUE_SHARE org pays AAICBI nothing by default, but can still pay
+  // separately to remove the "Powered by AAICBI" mark every certificate
+  // otherwise carries — see CertificateLayoutRenderer's own showWatermark
+  // prop, the one place this field group is actually read). Mirrors
+  // every platformFee* field above exactly, field for field, as its own
+  // fully independent subscription — see
+  // hasActiveCertWatermarkRemoval/shouldShowCertWatermark
+  // (src/lib/trainingOrgBilling.ts) for the source of truth this group
+  // feeds into. brandingFooterRemoved (above) is the manual override
+  // that bypasses this entirely — same role accessBlockWaived plays for
+  // platformFee* access.
+  certWatermarkFeeKobo                  Int?
+  certWatermarkBillingInterval          BillingInterval?
+  certWatermarkPaystackPlanCode         String?
+  certWatermarkPaystackCustomerCode     String?
+  certWatermarkPaystackSubscriptionCode String? @unique
+  certWatermarkCurrentPeriodEnd         DateTime?
+  certWatermarkAccessRevokedAt          DateTime?
+
   certificateTemplates CertificateTemplate[]
 
   @@index([approvalState])

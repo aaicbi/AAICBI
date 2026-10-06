@@ -4,6 +4,7 @@ import { rateLimit } from "@/lib/rateLimit";
 import { certificateQrCodeDataUrl } from "@/lib/certificateQr";
 import { appUrl } from "@/lib/appUrl";
 import type { CertificateLayout } from "@/lib/certificateLayout";
+import { shouldShowCertWatermark } from "@/lib/trainingOrgBilling";
 import SiteHeader from "@/components/SiteHeader";
 import PrintCertificateButton from "@/components/PrintCertificateButton";
 import CertificateDisplay from "@/components/CertificateDisplay";
@@ -82,7 +83,14 @@ export default async function CertificateVerificationPage({ params }: { params: 
               layoutJson: true,
               signatoryName: true,
               signatoryTitle: true,
-              trainingOrganization: { select: { name: true } },
+              trainingOrganization: {
+                select: {
+                  name: true,
+                  brandingFooterRemoved: true,
+                  certWatermarkCurrentPeriodEnd: true,
+                  certWatermarkAccessRevokedAt: true,
+                },
+              },
             },
           },
         },
@@ -133,6 +141,11 @@ export default async function CertificateVerificationPage({ params }: { params: 
       : undefined;
   const layoutJson =
     assignedTemplate && assignedTemplate.approvedAt ? (assignedTemplate.layoutJson as unknown as CertificateLayout | null) : null;
+  // No approved org template → AAICBI's own default design → always
+  // carries its own watermark. An approved org template's watermark
+  // visibility is the one thing certWatermark billing actually controls.
+  const showWatermark =
+    assignedTemplate && assignedTemplate.approvedAt ? shouldShowCertWatermark(assignedTemplate.trainingOrganization) : true;
 
   const certificate = courseCertificate
     ? {
@@ -215,6 +228,7 @@ export default async function CertificateVerificationPage({ params }: { params: 
           qrDataUrl={qrDataUrl}
           branding={branding}
           layoutJson={layoutJson}
+          showWatermark={showWatermark}
         />
 
         <p className="mt-6 text-center text-xs text-gray-400 print:hidden">

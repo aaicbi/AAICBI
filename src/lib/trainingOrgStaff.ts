@@ -18,3 +18,25 @@ import { prisma } from "@/lib/prisma";
 export function findTrainingOrgByStaffUserId(userId: string) {
   return prisma.trainingOrganization.findFirst({ where: { staffUserId: userId } });
 }
+
+/**
+ * Certificate editor opened to org admins — the same ownership-check
+ * convention as courseOwnership.ts's requireOwnedCourse/Module/Lesson/
+ * Material (resolve, 403/404 if the session doesn't own it, explicit
+ * SUPER_ADMIN bypass), applied here to "does this ADMIN session's own
+ * organization match the training org a certificate-template route is
+ * acting on." Call after requireRole("SUPER_ADMIN", "ADMIN") — this
+ * only narrows an already-authenticated ADMIN session down to its own
+ * organization; it never authenticates on its own.
+ */
+export async function requireTrainingOrgAccess(trainingOrgId: string, session: { userId: string; role: string }): Promise<void> {
+  if (session.role === "SUPER_ADMIN") return;
+  const forbidden = () => {
+    const err = new Error("Not authorized for this organization.") as Error & { status?: number };
+    err.status = 403;
+    return err;
+  };
+  if (session.role !== "ADMIN") throw forbidden();
+  const org = await findTrainingOrgByStaffUserId(session.userId);
+  if (!org || org.id !== trainingOrgId) throw forbidden();
+}

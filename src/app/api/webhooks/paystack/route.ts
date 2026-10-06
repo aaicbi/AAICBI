@@ -4,7 +4,7 @@ import { verifyPaystackSignature } from "@/lib/paystack/verifySignature";
 import { redactPaystackPayloadForStorage } from "@/lib/paystack/redact";
 import { processConfirmedCharge } from "@/lib/paystack/reconcile";
 import { findEnrollmentForSubscriptionEvent } from "@/lib/paystack/correlate";
-import { findTrainingOrgForSubscriptionEvent } from "@/lib/paystack/correlateOrgBilling";
+import { findTrainingOrgForSubscriptionEvent, findTrainingOrgForCertWatermarkSubscriptionEvent } from "@/lib/paystack/correlateOrgBilling";
 import { notifyByEmail, shouldNotifyTrainee } from "@/lib/notifications/log";
 import { notifyAllAdminStaff } from "@/lib/notifications/notifyAllAdminStaff";
 import {
@@ -12,6 +12,7 @@ import {
   subscriptionEndingEmail,
   subscriptionEndedEmail,
   platformFeeAccessRevokedEmail,
+  certWatermarkAccessRevokedEmail,
 } from "@/lib/notifications/templates";
 import { appUrl } from "@/lib/appUrl";
 
@@ -144,7 +145,17 @@ export async function POST(req: NextRequest) {
               data: { platformFeePaystackSubscriptionCode: subscriptionCode },
             });
           } else {
-            console.error(`subscription.create for reference ${reference}: no matching enrollment or training organization found to record subscription_code ${subscriptionCode} against.`);
+            // Certificate watermark removal — the same event, for this
+            // separate, independent subscription product.
+            const watermarkOrg = await findTrainingOrgForCertWatermarkSubscriptionEvent(d, false);
+            if (watermarkOrg) {
+              await prisma.trainingOrganization.update({
+                where: { id: watermarkOrg.id },
+                data: { certWatermarkPaystackSubscriptionCode: subscriptionCode },
+              });
+            } else {
+              console.error(`subscription.create for reference ${reference}: no matching enrollment or training organization found to record subscription_code ${subscriptionCode} against.`);
+            }
           }
         }
       }
@@ -174,7 +185,13 @@ export async function POST(req: NextRequest) {
         if (org) {
           console.log(`subscription.not_renew for reference ${reference}: training organization ${org.id}'s platform-fee subscription won't renew — access continues until the current period ends.`);
         } else {
-          console.error(`subscription.not_renew for reference ${reference}: no matching enrollment or training organization found.`);
+          // Certificate watermark removal — same courtesy-notice reasoning.
+          const watermarkOrg = await findTrainingOrgForCertWatermarkSubscriptionEvent(data as Record<string, unknown>, true);
+          if (watermarkOrg) {
+            console.log(`subscription.not_renew for reference ${reference}: training organization ${watermarkOrg.id}'s watermark-removal subscription won't renew — the watermark stays removed until the current period ends.`);
+          } else {
+            console.error(`subscription.not_renew for reference ${reference}: no matching enrollment or training organization found.`);
+          }
         }
       } else {
         const [trainee, course, enrollmentRow] = await Promise.all([
@@ -233,9 +250,43 @@ export async function POST(req: NextRequest) {
         // follow up — same "never a silent miss" discipline as the
         // trainee case's own comment, just for a different subject.
         const org = await findTrainingOrgForSubscriptionEvent(data as Record<string, unknown>, true);
-        if (!org) {
+        const watermarkOrg = org ? null : await findTrainingOrgForCertWatermarkSubscriptionEvent(data as Record<string, unknown>, true);
+        if (!org && !watermarkOrg) {
           console.error(`ACTION NEEDED: subscription.disable for reference ${reference} could not be correlated to any enrollment or training organization — access was NOT revoked automatically. Manual staff review required.`);
-        } else {
+        } else if (watermarkOrg) {
+          // Certificate watermark removal — the actual revoke trigger
+          // for this separate subscription: the watermark comes back.
+          const updatedOrg = await prisma.trainingOrganization.update({
+            where: { id: watermarkOrg.id },
+            data: { certWatermarkAccessRevokedAt: new Date() },
+            select: { id: true, name: true, contactName: true, email: true },
+          });
+          const content = certWatermarkAccessRevokedEmail({
+            contactName: updatedOrg.contactName,
+            billingUrl: appUrl("/org/billing"),
+          });
+          await notifyByEmail({
+            recipientType: "TRAINING_ORG",
+            recipientId: updatedOrg.id,
+            to: updatedOrg.email,
+            type: "CERT_WATERMARK_ACCESS_REVOKED",
+            url: "/org/billing",
+            subject: content.subject,
+            html: content.html,
+            text: content.text,
+          }).catch(() => {});
+          await notifyAllAdminStaff(
+            "CERT_WATERMARK_ACCESS_REVOKED",
+            updatedOrg.id,
+            {
+              subject: `Watermark Removal Lapsed: ${updatedOrg.name}`,
+              html: `<p>Training organization <strong>${updatedOrg.name}</strong>'s certificate watermark-removal subscription was disabled (reference ${reference}) — the "Powered by AAICBI" mark is back on their certificates until renewed or manually confirmed.</p>`,
+              text: `Training organization ${updatedOrg.name}'s certificate watermark-removal subscription was disabled (reference ${reference}) — the "Powered by AAICBI" mark is back on their certificates until renewed or manually confirmed.`,
+            },
+            "/admin/training-organizations"
+          ).catch(() => {});
+          console.log(`Certificate watermark removal revoked: training organization ${updatedOrg.id}, reference ${reference}.`);
+        } else if (org) {
           const updatedOrg = await prisma.trainingOrganization.update({
             where: { id: org.id },
             data: { platformFeeAccessRevokedAt: new Date() },
@@ -338,7 +389,13 @@ export async function POST(req: NextRequest) {
         if (org) {
           console.log(`invoice.payment_failed for reference ${reference}: training organization ${org.id}'s platform-fee renewal attempt failed — Paystack will retry automatically.`);
         } else {
-          console.error(`invoice.payment_failed for reference ${reference}: no matching enrollment or training organization found — no notification sent.`);
+          // Certificate watermark removal — same courtesy-only reasoning.
+          const watermarkOrg = await findTrainingOrgForCertWatermarkSubscriptionEvent(data as Record<string, unknown>, false);
+          if (watermarkOrg) {
+            console.log(`invoice.payment_failed for reference ${reference}: training organization ${watermarkOrg.id}'s watermark-removal renewal attempt failed — Paystack will retry automatically.`);
+          } else {
+            console.error(`invoice.payment_failed for reference ${reference}: no matching enrollment or training organization found — no notification sent.`);
+          }
         }
       } else {
         const [trainee, course] = await Promise.all([

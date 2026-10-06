@@ -53,8 +53,12 @@ const AAICBI_CLASSIC: CertificateLayout = {
       content: { kind: "field", field: "signatoryName" } },
     { id: "signatoryTitle", type: "text", x: 600, y: 562, width: 300, rotation: 0, fontSize: 11, fontFamily: "Georgia", bold: false, italic: false, color: GRAY, align: "center",
       content: { kind: "field", field: "signatoryTitle" } },
-    { id: "footer", type: "text", x: 0, y: 650, width: 1000, rotation: 0, fontSize: 10, fontFamily: "Georgia", bold: false, italic: false, color: "#9CA3AF", align: "center",
-      content: { kind: "literal", text: "POWERED BY AAICBI.ORG" } },
+    // No hand-authored "Powered by AAICBI" element here anymore — that
+    // text is now drawn structurally by CertificateLayoutRenderer itself
+    // (its own showWatermark prop), never as a regular, deletable layout
+    // element, so it can't be stripped from this preset (or any
+    // template) via the editor or a raw API call. See that component's
+    // own prop comment.
   ],
 };
 
