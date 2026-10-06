@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Canvas, Textbox, Rect, Line, FabricImage, FabricObject } from "fabric";
+import { Canvas, Textbox, Rect, Line, FabricImage, FabricObject, ActiveSelection, util } from "fabric";
+import type { TPointerEvent } from "fabric";
 import {
   DYNAMIC_FIELDS,
   DYNAMIC_FIELD_LABELS,
@@ -55,11 +56,14 @@ export interface CertificateCanvasEditorProps {
 export default function CertificateCanvasEditor({ layout, onChange, logoUrl, disabled }: CertificateCanvasEditorProps) {
   const [current, setCurrent] = useState<CertificateLayout>(layout ?? DEFAULT_LAYOUT);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [multiCount, setMultiCount] = useState(0);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [uploadedIcons, setUploadedIcons] = useState<UploadedIcon[]>([]);
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const canvasElRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<Canvas | null>(null);
   const objectsRef = useRef<Record<string, FabricObject>>({});
+  const guideLinesRef = useRef<{ v: Line | null; h: Line | null }>({ v: null, h: null });
   const currentRef = useRef(current);
   currentRef.current = current;
   const scale = DISPLAY_WIDTH / current.width;
@@ -195,14 +199,52 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
     });
     fabricRef.current = canvas;
 
-    canvas.on("selection:created", (e) => setSelectedId(fabricObjectElementId(e.selected?.[0])));
-    canvas.on("selection:updated", (e) => setSelectedId(fabricObjectElementId(e.selected?.[0])));
-    canvas.on("selection:cleared", () => setSelectedId(null));
-    canvas.on("object:modified", (e) => handleModified(e.target));
+    function handleSelection(e: { selected?: FabricObject[] }) {
+      const sel = e.selected ?? [];
+      if (sel.length > 1) {
+        setSelectedId(null);
+        setMultiCount(sel.length);
+      } else {
+        setSelectedId(fabricObjectElementId(sel[0]));
+        setMultiCount(0);
+      }
+    }
+    canvas.on("selection:created", handleSelection);
+    canvas.on("selection:updated", handleSelection);
+    canvas.on("selection:cleared", () => {
+      setSelectedId(null);
+      setMultiCount(0);
+    });
+    canvas.on("object:modified", (e) => {
+      hideGuides();
+      handleModified(e.target);
+    });
+    canvas.on("object:moving", (e) => handleObjectMoving(e.target));
+    canvas.on("mouse:up", hideGuides);
+
+    // Right-click to duplicate — Fabric has no built-in context menu, and
+    // leaving the browser's own menu up over the canvas isn't useful here,
+    // so this both suppresses it and selects whatever's under the pointer
+    // (unless it's already part of the current selection, e.g. right-
+    // clicking one member of a multiselect shouldn't collapse it to one).
+    const upperCanvasEl = canvas.upperCanvasEl;
+    function handleContextMenu(domEvent: MouseEvent) {
+      domEvent.preventDefault();
+      const { target } = canvas.findTarget(domEvent as unknown as TPointerEvent) ?? {};
+      if (target && !canvas.getActiveObjects().includes(target)) {
+        canvas.setActiveObject(target);
+        canvas.requestRenderAll();
+      }
+      if (canvas.getActiveObjects().length > 0) {
+        setContextMenu({ x: domEvent.clientX, y: domEvent.clientY });
+      }
+    }
+    upperCanvasEl.addEventListener("contextmenu", handleContextMenu);
 
     loadElements(canvas, currentRef.current.elements, logoUrl, objectsRef).catch((err) => console.error("Failed to load certificate layout onto the canvas:", err));
 
     return () => {
+      upperCanvasEl.removeEventListener("contextmenu", handleContextMenu);
       canvas.dispose();
       fabricRef.current = null;
       objectsRef.current = {};
@@ -229,6 +271,10 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
 
   function handleModified(target: FabricObject | undefined) {
     if (!target) return;
+    if (target instanceof ActiveSelection) {
+      handleMultiModified(target);
+      return;
+    }
     const id = fabricObjectElementId(target);
     if (!id) return;
     const el = currentRef.current.elements.find((e) => e.id === id);
@@ -281,6 +327,160 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
     canvasRenderAll();
   }
 
+  // A multi-selection drag only ever translates members (resizing/rotating
+  // the whole selection is out of scope for now — the ask was moving a
+  // group as a unit, not group-transform) — just re-read each member's own
+  // position afterward.
+  //
+  // This does NOT use getBoundingRect()/.left/.top directly: while an
+  // object is still part of an active ActiveSelection (i.e. exactly when
+  // this handler runs — "object:modified" fires before the user deselects),
+  // Fabric has already rewritten that object's own left/top into the
+  // selection's LOCAL coordinate space (ActiveSelection extends Group, and
+  // Group._enterGroup applies that rewrite on every member the moment it's
+  // added to the selection) — confirmed live: reading .left/.top here gave
+  // wildly wrong, sometimes negative, canvas positions, which only became
+  // correct again once the user deselected and Fabric converted them back.
+  // calcTransformMatrix() is the one API documented to always return an
+  // object's FULL transform chain regardless of group nesting, so
+  // qrDecompose() on it gives the object's true absolute center — the
+  // standard Fabric pattern for exactly this "object inside an active
+  // selection" case.
+  function handleMultiModified(selection: ActiveSelection) {
+    // One atomic update() for every member, not updateElement() per member
+    // in a loop — update() derives its next state from currentRef.current,
+    // which only advances on the next render, so N calls in the same tick
+    // each compute from the same stale base and only the last one's change
+    // survives, silently dropping every earlier member's new position.
+    // Confirmed live: a 2-object group move left the first-processed
+    // object's position completely unchanged in the saved state despite
+    // moving correctly on screen.
+    const patches = new Map<string, { x: number; y: number }>();
+    for (const obj of selection.getObjects()) {
+      const id = fabricObjectElementId(obj);
+      if (!id || !currentRef.current.elements.some((e) => e.id === id)) continue;
+      const { translateX: centerX, translateY: centerY } = util.qrDecompose(obj.calcTransformMatrix());
+      const w = obj.getScaledWidth();
+      const h = obj.getScaledHeight();
+      patches.set(id, { x: centerX - w / 2, y: centerY - h / 2 });
+    }
+    if (patches.size === 0) return;
+    update({
+      ...currentRef.current,
+      elements: currentRef.current.elements.map((el) => (patches.has(el.id) ? ({ ...el, ...patches.get(el.id)! } as CertificateElement) : el)),
+    });
+    canvasRenderAll();
+  }
+
+  const SNAP_THRESHOLD = 6; // logical px, independent of display zoom
+
+  // Smart alignment guides — snaps the object being dragged to the edges/
+  // centers of other elements and to the page's own center, same category
+  // of feature as every mainstream design tool's canvas. Fabric has no
+  // built-in version of this; it's computed by hand on every "object:moving"
+  // tick against the other objects' current bounding boxes.
+  function handleObjectMoving(target: FabricObject | undefined) {
+    const canvas = fabricRef.current;
+    if (!target || !canvas) return;
+
+    const excludeIds = new Set<string | null>();
+    if (target instanceof ActiveSelection) {
+      for (const obj of target.getObjects()) excludeIds.add(fabricObjectElementId(obj));
+    } else {
+      excludeIds.add(fabricObjectElementId(target));
+    }
+
+    const pageWidth = currentRef.current.width;
+    const pageHeight = currentRef.current.height;
+    const xs: number[] = [pageWidth / 2];
+    const ys: number[] = [pageHeight / 2];
+    for (const obj of canvas.getObjects()) {
+      const id = fabricObjectElementId(obj);
+      if (!id || excludeIds.has(id)) continue; // skip guide lines (no id) and the object(s) being moved
+      const rect = obj.getBoundingRect();
+      xs.push(rect.left, rect.left + rect.width / 2, rect.left + rect.width);
+      ys.push(rect.top, rect.top + rect.height / 2, rect.top + rect.height);
+    }
+
+    const w = target.getScaledWidth();
+    const h = target.getScaledHeight();
+    const left = target.left ?? 0;
+    const top = target.top ?? 0;
+    const movingXs = [left, left + w / 2, left + w];
+    const movingYs = [top, top + h / 2, top + h];
+
+    let snappedLeft: number | null = null;
+    let guideX: number | null = null;
+    let bestDx = SNAP_THRESHOLD;
+    for (const mv of movingXs) {
+      for (const sx of xs) {
+        const d = Math.abs(mv - sx);
+        if (d < bestDx) {
+          bestDx = d;
+          snappedLeft = left + (sx - mv);
+          guideX = sx;
+        }
+      }
+    }
+
+    let snappedTop: number | null = null;
+    let guideY: number | null = null;
+    let bestDy = SNAP_THRESHOLD;
+    for (const mv of movingYs) {
+      for (const sy of ys) {
+        const d = Math.abs(mv - sy);
+        if (d < bestDy) {
+          bestDy = d;
+          snappedTop = top + (sy - mv);
+          guideY = sy;
+        }
+      }
+    }
+
+    if (snappedLeft !== null || snappedTop !== null) {
+      target.set({ left: snappedLeft ?? left, top: snappedTop ?? top });
+      target.setCoords();
+    }
+    showGuides(canvas, guideX, guideY);
+  }
+
+  function showGuides(canvas: Canvas, x: number | null, y: number | null) {
+    const pageWidth = currentRef.current.width;
+    const pageHeight = currentRef.current.height;
+    const guides = guideLinesRef.current;
+
+    if (x !== null) {
+      if (!guides.v) {
+        guides.v = new Line([x, 0, x, pageHeight], { stroke: "#FF3B9A", strokeWidth: 1, strokeDashArray: [4, 4], selectable: false, evented: false, excludeFromExport: true });
+        canvas.add(guides.v);
+      }
+      guides.v.set({ x1: x, x2: x, y1: 0, y2: pageHeight, visible: true });
+      canvas.bringObjectToFront(guides.v);
+    } else {
+      guides.v?.set({ visible: false });
+    }
+
+    if (y !== null) {
+      if (!guides.h) {
+        guides.h = new Line([0, y, pageWidth, y], { stroke: "#FF3B9A", strokeWidth: 1, strokeDashArray: [4, 4], selectable: false, evented: false, excludeFromExport: true });
+        canvas.add(guides.h);
+      }
+      guides.h.set({ x1: 0, x2: pageWidth, y1: y, y2: y, visible: true });
+      canvas.bringObjectToFront(guides.h);
+    } else {
+      guides.h?.set({ visible: false });
+    }
+
+    canvas.requestRenderAll();
+  }
+
+  function hideGuides() {
+    const guides = guideLinesRef.current;
+    guides.v?.set({ visible: false });
+    guides.h?.set({ visible: false });
+    fabricRef.current?.requestRenderAll();
+  }
+
   function canvasRenderAll() {
     fabricRef.current?.requestRenderAll();
   }
@@ -301,17 +501,65 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
     setSelectedId(el.id);
   }
 
+  // Handles one selected element or a whole multiselect — getActiveObjects()
+  // returns both the same way, so there's no need to branch on selectedId
+  // vs. multiCount here.
   function removeSelected() {
-    if (!selectedId) return;
     const canvas = fabricRef.current;
-    const obj = objectsRef.current[selectedId];
-    if (canvas && obj) {
-      canvas.remove(obj);
-      delete objectsRef.current[selectedId];
-      canvas.requestRenderAll();
-    }
-    update({ ...currentRef.current, elements: currentRef.current.elements.filter((el) => el.id !== selectedId) });
+    if (!canvas) return;
+    const active = canvas.getActiveObjects();
+    if (active.length === 0) return;
+    const ids = active.map(fabricObjectElementId).filter((id): id is string => !!id);
+    if (ids.length === 0) return;
+    canvas.discardActiveObject();
+    for (const obj of active) canvas.remove(obj);
+    for (const id of ids) delete objectsRef.current[id];
+    canvas.requestRenderAll();
+    update({ ...currentRef.current, elements: currentRef.current.elements.filter((el) => !ids.includes(el.id)) });
     setSelectedId(null);
+    setMultiCount(0);
+  }
+
+  // Right-click → Duplicate, for one selected element or a whole
+  // multiselect alike — clones each into a new element with a fresh id,
+  // offset slightly so the copy isn't hidden directly under the original,
+  // and leaves the new copy(ies) selected.
+  async function duplicateSelected() {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    const active = canvas.getActiveObjects();
+    if (active.length === 0) return;
+    const ids = active.map(fabricObjectElementId).filter((id): id is string => !!id);
+    const clones: CertificateElement[] = [];
+    for (const id of ids) {
+      const el = currentRef.current.elements.find((e) => e.id === id);
+      if (!el) continue;
+      clones.push({ ...el, id: newId(), x: el.x + 20, y: el.y + 20 } as CertificateElement);
+    }
+    if (clones.length === 0) return;
+
+    update({ ...currentRef.current, elements: [...currentRef.current.elements, ...clones] });
+
+    const newObjs: FabricObject[] = [];
+    for (const el of clones) {
+      const obj = await buildFabricObject(el, logoUrl);
+      if (obj) {
+        objectsRef.current[el.id] = obj;
+        canvas.add(obj);
+        newObjs.push(obj);
+      }
+    }
+    canvas.discardActiveObject();
+    if (newObjs.length === 1) {
+      canvas.setActiveObject(newObjs[0]);
+      setSelectedId(clones[0].id);
+      setMultiCount(0);
+    } else if (newObjs.length > 1) {
+      canvas.setActiveObject(new ActiveSelection(newObjs, { canvas }));
+      setSelectedId(null);
+      setMultiCount(newObjs.length);
+    }
+    canvas.requestRenderAll();
   }
 
   function addText(content: TextElement["content"]) {
@@ -370,7 +618,7 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
   const selected = current.elements.find((el) => el.id === selectedId) ?? null;
 
   return (
-    <div onKeyDown={(e) => { if ((e.key === "Delete" || e.key === "Backspace") && selectedId && !disabled) removeSelected(); }} tabIndex={-1}>
+    <div onKeyDown={(e) => { if ((e.key === "Delete" || e.key === "Backspace") && (selectedId || multiCount > 0) && !disabled) removeSelected(); }} tabIndex={-1}>
       {!disabled && (
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => addText({ kind: "literal", text: "Text" })} className="rounded-lg border border-brand-gray px-2.5 py-1 text-xs font-semibold text-brand-ink">
@@ -443,9 +691,9 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
           >
             Redo
           </button>
-          {selectedId && (
+          {(selectedId || multiCount > 0) && (
             <button type="button" onClick={removeSelected} className="ml-auto rounded-lg border border-brand-rose px-2.5 py-1 text-xs font-semibold text-brand-rose">
-              Delete selected
+              {multiCount > 0 ? `Delete ${multiCount} selected` : "Delete selected"}
             </button>
           )}
         </div>
@@ -505,10 +753,58 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
               />
             </label>
             {selected && <ElementPropertiesPanel element={selected} onChange={handlePanelChange} />}
-            {!selected && <p className="mt-3 text-xs text-gray-500">Click an element on the canvas to edit it.</p>}
+            {!selected && multiCount > 1 && (
+              <p className="mt-3 text-xs text-gray-500">
+                {multiCount} elements selected — drag any of them to move the group together, or right-click for more options.
+              </p>
+            )}
+            {!selected && multiCount <= 1 && <p className="mt-3 text-xs text-gray-500">Click an element on the canvas to edit it. Shift-click or drag a box to select several.</p>}
           </div>
         )}
       </div>
+
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          onDuplicate={() => {
+            duplicateSelected();
+            setContextMenu(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ContextMenu({ x, y, onClose, onDuplicate }: { x: number; y: number; onClose: () => void; onDuplicate: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    }
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      ref={ref}
+      style={{ position: "fixed", left: x, top: y, zIndex: 50 }}
+      className="w-40 rounded-lg border border-brand-gray bg-brand-surface py-1 shadow-lg animate-[modal-in_0.15s_ease-out]"
+    >
+      <button type="button" onClick={onDuplicate} className="block w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-brand-mint">
+        Duplicate
+      </button>
     </div>
   );
 }

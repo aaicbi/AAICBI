@@ -55,11 +55,31 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const savingRef = useRef(false);
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Loading a template (or starting a new one) sets name/signatoryName/
+  // signatoryTitle/layoutJson programmatically — the same state an actual
+  // edit touches — so the autosave effect below needs a way to tell "just
+  // switched templates" apart from "the admin changed something." A
+  // snapshot of the just-loaded (unedited) values, compared against the
+  // live state on every effect run: a plain "skip the next effect run"
+  // flag doesn't work here, because React can batch the template-load's
+  // state updates together with an immediate follow-up edit (e.g. picking
+  // a preset right after selecting a template with no design yet — a very
+  // natural, fast sequence, since that auto-opens the gallery) into ONE
+  // combined render, which would silently skip that first real edit too.
+  // A baseline diff is immune to how renders get batched: it just asks
+  // "does the current state differ from what was loaded," however many
+  // renders it took to get here.
+  // merely opening a template would immediately queue a pointless autosave.
+  const autosaveBaselineRef = useRef<string>(JSON.stringify({ name: "", signatoryName: "", signatoryTitle: "", layoutJson: null }));
   const { showToast } = useToast();
   const { confirm, modal } = useConfirmModal();
 
   const selected = templates?.find((t) => t.id === selectedId) ?? null;
+  const isLocked = !!selected?.approvedAt;
 
   function load() {
     fetch(`/api/admin/training-organizations/${params.id}/certificate-templates`)
@@ -77,6 +97,8 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
   }, []);
 
   function selectTemplate(t: TemplateDto) {
+    autosaveBaselineRef.current = JSON.stringify({ name: t.name, signatoryName: t.signatoryName ?? "", signatoryTitle: t.signatoryTitle ?? "", layoutJson: t.layoutJson ?? null });
+    setAutosaveStatus("idle");
     setSelectedId(t.id);
     setName(t.name);
     setSignatoryName(t.signatoryName ?? "");
@@ -90,6 +112,8 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
   }
 
   function startNew() {
+    autosaveBaselineRef.current = JSON.stringify({ name: "", signatoryName: "", signatoryTitle: "", layoutJson: null });
+    setAutosaveStatus("idle");
     setSelectedId(null);
     setName("");
     setSignatoryName("");
@@ -105,9 +129,16 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
     setGalleryOpen(false);
   }
 
-  async function save() {
+  async function save(opts?: { silent?: boolean }) {
     if (!name.trim()) return;
-    setSaving(true);
+    // Autosave and a manual "Save changes" click can otherwise race (e.g.
+    // the debounce timer fires the instant after the admin clicks Save) —
+    // whichever got here first wins, the other is just skipped rather than
+    // sending a duplicate PATCH/POST.
+    if (savingRef.current) return;
+    savingRef.current = true;
+    if (opts?.silent) setAutosaveStatus("saving");
+    else setSaving(true);
     const payload = { name, primaryColor: "#016B61", accentColor: "#D99A34", signatoryName, signatoryTitle, layoutJson };
     const res = selected
       ? await fetch(`/api/admin/certificate-templates/${selected.id}`, {
@@ -120,17 +151,52 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-    setSaving(false);
+    savingRef.current = false;
+    if (!opts?.silent) setSaving(false);
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      showToast(typeof data.error === "string" ? data.error : "Could not save. Try again.", "error");
+      if (opts?.silent) {
+        setAutosaveStatus("error");
+      } else {
+        const data = await res.json().catch(() => ({}));
+        showToast(typeof data.error === "string" ? data.error : "Could not save. Try again.", "error");
+      }
       return;
     }
     const saved: TemplateDto = await res.json();
     setSelectedId(saved.id);
-    showToast("Saved.");
+    // Whatever was just sent is now the clean baseline — otherwise the
+    // next autosave-effect run would still see a "diff" against the OLD
+    // pre-save baseline and immediately queue a redundant autosave for
+    // content that's already saved.
+    autosaveBaselineRef.current = JSON.stringify({ name, signatoryName, signatoryTitle, layoutJson });
+    if (opts?.silent) setAutosaveStatus("saved");
+    else {
+      setAutosaveStatus("idle");
+      showToast("Saved.");
+    }
     load();
   }
+
+  // Debounced autosave — fires ~2s after the admin stops editing the name,
+  // signatory fields, or the canvas design, so work survives a crash or an
+  // accidental navigation without waiting on an explicit "Save changes"
+  // click. Silent (no toast) — the small status line next to the Save
+  // button is the only feedback, so steady background saves during active
+  // editing don't turn into a stream of toasts.
+  useEffect(() => {
+    if (isLocked) return;
+    const snapshot = JSON.stringify({ name, signatoryName, signatoryTitle, layoutJson });
+    if (snapshot === autosaveBaselineRef.current) return; // nothing has actually changed since the last load/save
+    if (!name.trim()) return; // nothing to identify the draft by yet
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = setTimeout(() => {
+      save({ silent: true });
+    }, 2000);
+    return () => {
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name, signatoryName, signatoryTitle, layoutJson, isLocked]);
 
   async function uploadLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -181,8 +247,6 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
     if (selectedId === t.id) startNew();
     load();
   }
-
-  const isLocked = !!selected?.approvedAt;
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
@@ -252,9 +316,9 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
           )}
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           {!isLocked && (
-            <Button onClick={save} loading={saving} disabled={!name.trim()}>
+            <Button onClick={() => save()} loading={saving} disabled={!name.trim()}>
               {selected ? "Save changes" : "Create template"}
             </Button>
           )}
@@ -272,6 +336,13 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
             <button onClick={() => setPreviewOpen(true)} className="rounded-lg border border-brand-teal px-3 py-2 text-xs font-semibold text-brand-teal">
               Preview
             </button>
+          )}
+          {!isLocked && !saving && autosaveStatus !== "idle" && (
+            <span className="text-xs text-gray-400">
+              {autosaveStatus === "saving" && "Saving draft…"}
+              {autosaveStatus === "saved" && "Draft saved"}
+              {autosaveStatus === "error" && "Could not autosave — try Save changes"}
+            </span>
           )}
         </div>
       </Card>
