@@ -64,10 +64,96 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
   currentRef.current = current;
   const scale = DISPLAY_WIDTH / current.width;
 
+  // --- Undo/redo: a plain snapshot stack, scoped to this editing session
+  // only (not persisted) — same convention as the rest of this component,
+  // where `elements` state is the single source of truth and the canvas is
+  // just kept in sync with it. `update()` is the one chokepoint every edit
+  // already goes through (property-panel changes, drag/resize/rotate,
+  // add/delete, background, page size), so it's the one place a history
+  // entry needs to be pushed.
+  const undoStackRef = useRef<CertificateLayout[]>([]);
+  const redoStackRef = useRef<CertificateLayout[]>([]);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
   function update(next: CertificateLayout) {
+    undoStackRef.current.push(structuredClone(currentRef.current));
+    if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+    redoStackRef.current = [];
+    setCanUndo(true);
+    setCanRedo(false);
     setCurrent(next);
     onChange(next);
   }
+
+  // Re-syncs the canvas's actual Fabric objects to a snapshot — used by
+  // undo/redo only. Full reload rather than a diff/patch: undo can jump
+  // back across an add/delete/preset-pick, not just a property tweak, so
+  // there's no single object to patch in the general case.
+  function applySnapshot(target: CertificateLayout) {
+    const canvas = fabricRef.current;
+    const reselectId = selectedId && target.elements.some((el) => el.id === selectedId) ? selectedId : null;
+    if (canvas) {
+      canvas.remove(...canvas.getObjects());
+      objectsRef.current = {};
+      loadElements(canvas, target.elements, logoUrl, objectsRef)
+        .then(() => {
+          // Keep the same element selected across undo/redo when it still
+          // exists in the restored snapshot, rather than forcing the user
+          // to re-click it after every step back/forward.
+          const obj = reselectId ? objectsRef.current[reselectId] : null;
+          if (obj) canvas.setActiveObject(obj);
+          canvas.requestRenderAll();
+        })
+        .catch((err) => console.error("Failed to reload certificate layout for undo/redo:", err));
+    }
+    setSelectedId(reselectId);
+    setCurrent(target);
+    onChange(target);
+  }
+
+  function undo() {
+    const prev = undoStackRef.current.pop();
+    if (!prev) return;
+    redoStackRef.current.push(structuredClone(currentRef.current));
+    setCanUndo(undoStackRef.current.length > 0);
+    setCanRedo(true);
+    applySnapshot(prev);
+  }
+
+  function redo() {
+    const next = redoStackRef.current.pop();
+    if (!next) return;
+    undoStackRef.current.push(structuredClone(currentRef.current));
+    setCanRedo(redoStackRef.current.length > 0);
+    setCanUndo(true);
+    applySnapshot(next);
+  }
+
+  // Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z (also Ctrl/Cmd+Y) — skipped while an
+  // input/textarea/contentEditable has focus so native text-field undo
+  // (including Fabric's own hidden textarea it uses for inline text
+  // editing) isn't hijacked.
+  useEffect(() => {
+    if (disabled) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const key = e.key.toLowerCase();
+      if (key === "z") {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+      } else if (key === "y") {
+        e.preventDefault();
+        redo();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [disabled]);
 
   function updateElement(id: string, patch: Record<string, unknown>) {
     update({
@@ -339,6 +425,24 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
               ))}
             </select>
           </label>
+          <button
+            type="button"
+            onClick={undo}
+            disabled={!canUndo}
+            title="Undo (Ctrl+Z)"
+            className="rounded-lg border border-brand-gray px-2.5 py-1 text-xs font-semibold text-brand-ink disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Undo
+          </button>
+          <button
+            type="button"
+            onClick={redo}
+            disabled={!canRedo}
+            title="Redo (Ctrl+Shift+Z)"
+            className="rounded-lg border border-brand-gray px-2.5 py-1 text-xs font-semibold text-brand-ink disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Redo
+          </button>
           {selectedId && (
             <button type="button" onClick={removeSelected} className="ml-auto rounded-lg border border-brand-rose px-2.5 py-1 text-xs font-semibold text-brand-rose">
               Delete selected
