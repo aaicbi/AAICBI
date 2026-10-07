@@ -6,7 +6,7 @@ import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 import { countActiveTrainingOrgTrainees } from "@/lib/trainingOrgSeatCap";
 import { shouldShowCertWatermark } from "@/lib/trainingOrgBilling";
 import Card from "@/components/ui/Card";
-import Badge from "@/components/ui/Badge";
+import { CourseProgressTable, RecentTraineesTable, CohortsTable } from "@/components/org/OrgOverviewTables";
 import EmptyState from "@/components/ui/EmptyState";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 
@@ -34,7 +34,7 @@ export default async function OrganizationOverviewPage() {
   const createdById = session.userId;
   const owned = { course: { createdById }, unlockedAt: { not: null } } as const;
 
-  const [courses, enrolledByCourse, completedByCourse, recent, certificatesIssued, activeTrainees] = await Promise.all([
+  const [courses, enrolledByCourse, completedByCourse, recent, certificatesIssued, activeTrainees, cohorts, memberCount] = await Promise.all([
     prisma.course.findMany({
       where: { createdById },
       select: { id: true, title: true, published: true },
@@ -61,6 +61,19 @@ export default async function OrganizationOverviewPage() {
     }),
     prisma.certificate.count({ where: { course: { createdById }, revokedAt: null } }),
     countActiveTrainingOrgTrainees(createdById),
+    prisma.cohort.findMany({
+      where: { course: { createdById } },
+      orderBy: [{ startDate: "desc" }, { name: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        startDate: true,
+        endDate: true,
+        course: { select: { title: true } },
+        _count: { select: { enrollments: true } },
+      },
+    }),
+    prisma.trainingOrganizationMember.count({ where: { trainingOrganizationId: org.id, disabledAt: null } }),
   ]);
 
   const enrolled = new Map(enrolledByCourse.map((r) => [r.courseId, r._count._all]));
@@ -134,40 +147,10 @@ export default async function OrganizationOverviewPage() {
             />
           </div>
         ) : (
-          <div className="mt-3 overflow-x-auto rounded-xl border border-brand-gray bg-brand-surface">
-            <table className="w-full min-w-[520px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-brand-gray text-xs uppercase tracking-wide text-gray-600">
-                  <th scope="col" className="px-4 py-3 font-semibold">Course</th>
-                  <th scope="col" className="px-4 py-3 text-right font-semibold">Enrolled</th>
-                  <th scope="col" className="px-4 py-3 text-right font-semibold">Completed</th>
-                  <th scope="col" className="px-4 py-3 text-right font-semibold">Rate</th>
-                </tr>
-              </thead>
-              <tbody>
-                {courses.map((c) => {
-                  const e = enrolled.get(c.id) ?? 0;
-                  const d = completed.get(c.id) ?? 0;
-                  return (
-                    <tr key={c.id} className="border-b border-brand-gray last:border-0">
-                      <td className="px-4 py-3">
-                        <Link href={`/admin/courses/${c.id}`} className="font-semibold text-brand-ink hover:text-brand-teal">
-                          {c.title}
-                        </Link>
-                        {!c.published && (
-                          <span className="ml-2">
-                            <Badge variant="neutral">Draft</Badge>
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums">{e}</td>
-                      <td className="px-4 py-3 text-right tabular-nums">{d}</td>
-                      <td className="px-4 py-3 text-right tabular-nums">{e ? `${percent(d, e)}%` : "None yet"}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="mt-3 rounded-xl border border-brand-gray bg-brand-surface p-4">
+            <CourseProgressTable
+              rows={courses.map((c) => ({ id: c.id, title: c.title, published: c.published, enrolled: enrolled.get(c.id) ?? 0, completed: completed.get(c.id) ?? 0 }))}
+            />
           </div>
         )}
       </section>
@@ -179,40 +162,78 @@ export default async function OrganizationOverviewPage() {
         {recent.length === 0 ? (
           <p className="mt-3 text-sm text-gray-600">No one has enrolled in your courses yet.</p>
         ) : (
-          <div className="mt-3 overflow-x-auto rounded-xl border border-brand-gray bg-brand-surface">
-            <table className="w-full min-w-[520px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-brand-gray text-xs uppercase tracking-wide text-gray-600">
-                  <th scope="col" className="px-4 py-3 font-semibold">Trainee</th>
-                  <th scope="col" className="px-4 py-3 font-semibold">Course</th>
-                  <th scope="col" className="px-4 py-3 font-semibold">Status</th>
-                  <th scope="col" className="px-4 py-3 text-right font-semibold">Enrolled</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recent.map((r) => (
-                  <tr key={r.id} className="border-b border-brand-gray last:border-0">
-                    <td className="px-4 py-3 font-semibold text-brand-ink">{r.trainee.name}</td>
-                    <td className="px-4 py-3">{r.course.title}</td>
-                    <td className="px-4 py-3">
-                      {r.completedAt ? (
-                        <Badge variant="success">Completed</Badge>
-                      ) : r.accessRevokedAt ? (
-                        <Badge variant="neutral">Access ended</Badge>
-                      ) : (
-                        <Badge variant="warning">In progress</Badge>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums">{r.enrolledAt.toLocaleDateString("en-GB")}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="mt-3 rounded-xl border border-brand-gray bg-brand-surface p-4">
+            <RecentTraineesTable
+              rows={recent.map((r) => ({
+                id: r.id,
+                name: r.trainee.name,
+                course: r.course.title,
+                status: r.completedAt ? "completed" : r.accessRevokedAt ? "ended" : "progress",
+                enrolledAt: r.enrolledAt.toISOString(),
+              }))}
+            />
           </div>
         )}
       </section>
 
-      <Card className="mt-8">
+      <section className="mt-8" aria-labelledby="cohorts">
+        <h2 id="cohorts" className="font-display text-lg font-semibold text-brand-ink">
+          Cohorts
+        </h2>
+        {cohorts.length === 0 ? (
+          <p className="mt-3 text-sm text-gray-600">
+            You have no cohorts yet. Open a course and choose Cohorts to group trainees who start together.
+          </p>
+        ) : (
+          <div className="mt-3 rounded-xl border border-brand-gray bg-brand-surface p-4">
+            <CohortsTable
+              rows={cohorts.map((c) => ({
+                id: c.id,
+                name: c.name,
+                course: c.course.title,
+                startDate: c.startDate ? c.startDate.toISOString() : null,
+                endDate: c.endDate ? c.endDate.toISOString() : null,
+                members: c._count.enrollments,
+              }))}
+            />
+          </div>
+        )}
+      </section>
+
+      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        <Card>
+          <h2 className="font-display text-base font-semibold text-brand-ink">Reports</h2>
+          <p className="mt-1 text-sm text-gray-600">Download your data as spreadsheets (CSV).</p>
+          <ul className="mt-3 space-y-1.5 text-sm font-semibold">
+            <li>
+              <a href="/api/org/reports/enrollments" className="text-brand-teal hover:underline">
+                Trainees and their progress
+              </a>
+            </li>
+            <li>
+              <a href="/api/org/reports/courses" className="text-brand-teal hover:underline">
+                Completion by course
+              </a>
+            </li>
+            <li>
+              <a href="/api/org/reports/cohorts" className="text-brand-teal hover:underline">
+                Cohort rosters
+              </a>
+            </li>
+          </ul>
+        </Card>
+        <Card>
+          <h2 className="font-display text-base font-semibold text-brand-ink">Team</h2>
+          <p className="mt-1 text-sm text-gray-600">
+            {memberCount === 0 ? "Only you can sign in to this account." : `${memberCount} teammate${memberCount === 1 ? "" : "s"} can sign in alongside you.`}
+          </p>
+          <Link href="/admin/organization/team" className="mt-3 inline-block text-sm font-semibold text-brand-teal hover:underline">
+            Manage your team
+          </Link>
+        </Card>
+      </div>
+
+      <Card className="mt-4">
         <h2 className="font-display text-base font-semibold text-brand-ink">Certificates and plan</h2>
         <p className="mt-1 text-sm text-gray-600">
           {watermarkOn

@@ -4,7 +4,7 @@ import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
-import { SkeletonTableRows } from "@/components/ui/Skeleton";
+import DataTable from "@/components/ui/DataTable";
 import { ADMIN_NAV_PITCH } from "@/lib/admin/nav";
 
 interface PitchRow {
@@ -83,48 +83,43 @@ export default function AdminPitchesPage() {
               ))}
         </div>
 
-        <div className="mt-6 overflow-x-auto">
-          <table className="w-full min-w-[560px] text-left text-sm">
-            <thead>
-              <tr className="border-b border-brand-gray text-gray-500">
-                <th className="py-2">Founder</th>
-                <th>Pitch</th>
-                <th>Funding</th>
-                <th>Cohort</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {!data ? (
-                <SkeletonTableRows rows={5} cols={5} />
-              ) : data.pitches.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-6 text-center text-gray-500">
-                    No pitches yet.
-                  </td>
-                </tr>
-              ) : (
-                data.pitches.map((p) => (
-                  <tr
-                    key={p.id}
-                    className="cursor-pointer border-b border-gray-100 hover:bg-gray-50"
-                    onClick={() => (window.location.href = `/admin/pitches/${p.id}`)}
-                  >
-                    <td className="py-2">
-                      <div className="font-medium text-brand-ink">{p.trainee.name}</div>
-                      <div className="text-xs text-gray-500">{p.trainee.email}</div>
-                    </td>
-                    <td>{p.startupName}</td>
-                    <td>{p.fundingAmountKobo != null ? `₦${(p.fundingAmountKobo / 100).toLocaleString()}` : "—"}</td>
-                    <td className="text-xs text-gray-500">{p.cohort?.name ?? "—"}</td>
-                    <td>
-                      <Badge variant={STATUS_VARIANT[p.status]}>{STATUS_LABEL[p.status]}</Badge>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="mt-6">
+          <DataTable
+            caption="Submitted pitches"
+            rows={data ? data.pitches : null}
+            rowKey={(p) => p.id}
+            onRowClick={(p) => (window.location.href = `/admin/pitches/${p.id}`)}
+            searchLabel="Search founders or pitches"
+            searchText={(p) => `${p.trainee.name} ${p.trainee.email} ${p.startupName}`}
+            empty={<p className="py-6 text-center text-gray-600">No pitches yet.</p>}
+            columns={[
+              {
+                key: "founder",
+                header: "Founder",
+                sortValue: (p) => p.trainee.name,
+                render: (p) => (
+                  <div>
+                    <div className="font-medium text-brand-ink">{p.trainee.name}</div>
+                    <div className="text-xs font-normal text-gray-600">{p.trainee.email}</div>
+                  </div>
+                ),
+              },
+              { key: "pitch", header: "Pitch", sortValue: (p) => p.startupName, render: (p) => p.startupName },
+              {
+                key: "funding",
+                header: "Funding",
+                sortValue: (p) => p.fundingAmountKobo,
+                render: (p) => (p.fundingAmountKobo != null ? `₦${(p.fundingAmountKobo / 100).toLocaleString()}` : "—"),
+              },
+              { key: "cohort", header: "Cohort", className: "text-xs text-gray-600", sortValue: (p) => p.cohort?.name ?? null, render: (p) => p.cohort?.name ?? "—" },
+              {
+                key: "status",
+                header: "Status",
+                sortValue: (p) => STATUS_LABEL[p.status],
+                render: (p) => <Badge variant={STATUS_VARIANT[p.status]}>{STATUS_LABEL[p.status]}</Badge>,
+              },
+            ]}
+          />
         </div>
       </main>
     </>

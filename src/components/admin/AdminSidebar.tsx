@@ -86,6 +86,13 @@ export default function AdminSidebar({
   function isActive(href: string) {
     return pathname === href || pathname.startsWith(href + "/");
   }
+  // Highlight only the most specific match, so /admin/organization/team
+  // lights up Team and not Overview as well.
+  const activeHref =
+    navGroups
+      .flatMap((g) => g.items)
+      .filter((i) => isActive(i.href))
+      .sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
 
   const sidebarBody = (
     <div className="flex h-full flex-col">
@@ -136,9 +143,9 @@ export default function AdminSidebar({
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                aria-current={isActive(item.href) ? "page" : undefined}
+                aria-current={item.href === activeHref ? "page" : undefined}
                 className={`block rounded-lg px-3 py-2 text-sm font-semibold ${
-                  isActive(item.href)
+                  item.href === activeHref
                     ? "bg-brand-mint text-brand-teal"
                     : "text-gray-600 hover:bg-brand-mint hover:text-brand-teal"
                 }`}

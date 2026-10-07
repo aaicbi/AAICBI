@@ -10,6 +10,7 @@ describe("getAdminNavGroups", () => {
     expect(l).toContain("Staff");
     expect(l).toContain("Training Organizations");
     expect(l).not.toContain("Overview");
+    expect(l).not.toContain("Team");
     expect(l).not.toContain("Certificates");
   });
 
@@ -32,7 +33,7 @@ describe("getAdminNavGroups", () => {
   it("shows a training organization only its own scoped sections", () => {
     const l = labels("ADMIN", true);
     expect(l).toEqual(
-      expect.arrayContaining(["Dashboard", "Courses", "Examinations", "Assignments", "Certificates", "Overview", "Performance", "Payments", "Settings"])
+      expect.arrayContaining(["Dashboard", "Courses", "Examinations", "Assignments", "Certificates", "Overview", "Team", "Performance", "Payments", "Settings"])
     );
     for (const hidden of ["Analytics", "Messages", "Showcase", "Training Organizations", "Instructors", "Staff", "Command Center", "Pitches", "Investors"]) {
       expect(l).not.toContain(hidden);

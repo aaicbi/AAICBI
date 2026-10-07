@@ -1,6 +1,6 @@
 "use client";
-import { useId, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react";
+import { Fragment, useId, useMemo, useState } from "react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronRight, Search } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import { SkeletonList, SkeletonTableRows } from "@/components/ui/Skeleton";
 
@@ -37,6 +37,18 @@ interface DataTableProps<T> {
   pageSize?: number;
   /** Shown when `rows` is an empty array. */
   empty?: React.ReactNode;
+  /** Makes a row open something (a detail panel, a page). The row
+   * becomes keyboard reachable: Tab to it, Enter or Space to open. */
+  onRowClick?: (row: T) => void;
+  /** Rows that can expand in place (for example to show an AI
+   * analysis). Return null for rows with nothing to show. */
+  expand?: {
+    render: (row: T) => React.ReactNode | null;
+    /** The text of the toggle button for a row. */
+    label: (open: boolean) => string;
+  };
+  /** Start in the unsorted order, or sort by a column key. */
+  defaultSort?: { key: string; dir: "asc" | "desc" };
 }
 
 type SortDir = "asc" | "desc";
@@ -50,10 +62,14 @@ export default function DataTable<T>({
   searchLabel = "Search",
   pageSize = 15,
   empty,
+  onRowClick,
+  expand,
+  defaultSort,
 }: DataTableProps<T>) {
   const searchId = useId();
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<{ key: string; dir: SortDir } | null>(null);
+  const [sort, setSort] = useState<{ key: string; dir: SortDir } | null>(defaultSort ?? null);
+  const [open, setOpen] = useState<string | null>(null);
   const [page, setPage] = useState(0);
 
   const visible = useMemo(() => {
@@ -150,21 +166,69 @@ export default function DataTable<T>({
                   </th>
                 );
               })}
+              {expand && (
+                <th scope="col" className="py-2 pr-4">
+                  <span className="sr-only">Details</span>
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
             {rows === null ? (
               <SkeletonTableRows rows={4} cols={columns.length} />
             ) : (
-              pageRows.map((row) => (
-                <tr key={rowKey(row)} className="border-b border-gray-100 align-top">
-                  {columns.map((c) => (
-                    <td key={c.key} className={`py-2.5 pr-4 ${c.align === "right" ? "text-right" : ""} ${c.className ?? ""}`}>
-                      {c.render(row)}
-                    </td>
-                  ))}
-                </tr>
-              ))
+              pageRows.map((row) => {
+                const key = rowKey(row);
+                const expandedNode = expand ? expand.render(row) : null;
+                const isOpen = open === key && expandedNode !== null;
+                return (
+                  <Fragment key={key}>
+                    <tr
+                      className={`border-b border-gray-100 align-top ${onRowClick ? "cursor-pointer hover:bg-brand-mint/30" : ""}`}
+                      onClick={onRowClick ? () => onRowClick(row) : undefined}
+                      onKeyDown={
+                        onRowClick
+                          ? (e) => {
+                              if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
+                                e.preventDefault();
+                                onRowClick(row);
+                              }
+                            }
+                          : undefined
+                      }
+                      tabIndex={onRowClick ? 0 : undefined}
+                    >
+                      {columns.map((c) => (
+                        <td key={c.key} className={`py-2.5 pr-4 ${c.align === "right" ? "text-right" : ""} ${c.className ?? ""}`}>
+                          {c.render(row)}
+                        </td>
+                      ))}
+                      {expand && (
+                        <td className="py-2.5 pr-4 text-right" onClick={(e) => e.stopPropagation()}>
+                          {expandedNode !== null && (
+                            <button
+                              type="button"
+                              aria-expanded={isOpen}
+                              onClick={() => setOpen(isOpen ? null : key)}
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-brand-teal hover:underline"
+                            >
+                              <Icon icon={isOpen ? ChevronDown : ChevronRight} size="sm" />
+                              {expand.label(isOpen)}
+                            </button>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                    {isOpen && (
+                      <tr className="border-b border-gray-100 bg-brand-mint/30">
+                        <td colSpan={columns.length + 1} className="px-2 py-3">
+                          {expandedNode}
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -179,7 +243,11 @@ export default function DataTable<T>({
             {pageRows.map((row) => {
               const [titleCol, ...rest] = columns;
               return (
-                <li key={rowKey(row)} className="rounded-xl border border-brand-gray bg-brand-surface p-4">
+                <li
+                  key={rowKey(row)}
+                  className={`rounded-xl border border-brand-gray bg-brand-surface p-4 ${onRowClick ? "cursor-pointer" : ""}`}
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                >
                   <div className="font-semibold text-brand-ink">{titleCol.render(row)}</div>
                   <dl className="mt-2 space-y-1.5 text-sm">
                     {rest.map((c) =>
@@ -195,6 +263,20 @@ export default function DataTable<T>({
                       )
                     )}
                   </dl>
+                  {expand && expand.render(row) !== null && (
+                    <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        aria-expanded={open === rowKey(row)}
+                        onClick={() => setOpen(open === rowKey(row) ? null : rowKey(row))}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-brand-teal hover:underline"
+                      >
+                        <Icon icon={open === rowKey(row) ? ChevronDown : ChevronRight} size="sm" />
+                        {expand.label(open === rowKey(row))}
+                      </button>
+                      {open === rowKey(row) && <div className="mt-2 rounded-lg bg-brand-mint/30 p-3">{expand.render(row)}</div>}
+                    </div>
+                  )}
                 </li>
               );
             })}
