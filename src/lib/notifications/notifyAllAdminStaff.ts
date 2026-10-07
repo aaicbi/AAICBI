@@ -37,8 +37,18 @@ export async function notifyAllAdminStaff(
   attachments?: { filename: string; content: Buffer }[]
 ): Promise<void> {
   try {
+    // Training Organizations, Phase 2 — a training org's own shadow
+    // staff account (TrainingOrganization.staffUserId) is, in this
+    // table, just another User with role "ADMIN"; nothing here
+    // distinguishes it from real AAICBI staff. Confirmed real bug: a
+    // training org's own ADMIN session was seeing other training
+    // organizations' "awaiting review" notifications in its bell,
+    // because this fan-out was broadcasting them straight into that
+    // row's "STAFF"-addressed inbox. trainingOrgAsStaffUser: null (the
+    // reverse of TrainingOrganization.staffUserId) excludes every such
+    // shadow account, leaving only genuine staff.
     const staff = await prisma.user.findMany({
-      where: { role: { in: ["SUPER_ADMIN", "ADMIN"] } },
+      where: { role: { in: ["SUPER_ADMIN", "ADMIN"] }, trainingOrgAsStaffUser: null },
       select: { id: true, email: true },
     });
     for (const s of staff) {
