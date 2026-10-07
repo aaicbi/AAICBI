@@ -9,6 +9,8 @@ import VerifiedBadge from "@/components/ecosystem/VerifiedBadge";
 import EducationVideoCard from "@/components/ecosystem/EducationVideoCard";
 import { prisma } from "@/lib/prisma";
 import { getEcosystemFlags } from "@/lib/ecosystem/flags";
+import OrgBadges from "@/components/ecosystem/OrgBadges";
+import { rateOrganizations } from "@/lib/ecosystem/visibility";
 import { listPublicVideos } from "@/lib/ecosystem/queries";
 import { getSession } from "@/lib/auth/session";
 import { FollowButton } from "@/components/ecosystem/EngageButtons";
@@ -46,6 +48,7 @@ export default async function OrganizationPage({ params, searchParams }: { param
   const org = await loadOrg(params.slug);
   if (!org?.publicProfile) notFound();
   const profile = org.publicProfile;
+  const badges = (await rateOrganizations().catch(() => [])).find((r) => r.id === org.id)?.badges ?? [];
   const tab: Tab = (TABS as readonly string[]).includes(searchParams.tab ?? "") ? (searchParams.tab as Tab) : "home";
 
   const session = await getSession();
@@ -101,6 +104,7 @@ export default async function OrganizationPage({ params, searchParams }: { param
               <div>
                 <h1 className="font-display text-xl font-semibold text-brand-ink">{org.name}</h1>
                 {profile.verified && <VerifiedBadge />}
+                <OrgBadges badges={badges} />
                 {profile.location && <p className="text-sm text-gray-600">{profile.location}</p>}
               </div>
             </div>

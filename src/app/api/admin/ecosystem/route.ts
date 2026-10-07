@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiErrors } from "@/lib/apiError";
 import { requireRole } from "@/lib/auth/session";
+import { getRankingConfig, rateOrganizations } from "@/lib/ecosystem/visibility";
+import { RankingConfigSchema, pickFeatured } from "@/lib/ecosystem/visibilityCore";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +12,7 @@ const FlagsSchema = z.object({
   ecosystemOrgPagesEnabled: z.boolean().optional(),
   ecosystemEducationEnabled: z.boolean().optional(),
   ecosystemFeedEnabled: z.boolean().optional(),
+  rankingConfig: RankingConfigSchema.optional(),
 });
 
 /**
@@ -20,7 +23,8 @@ const FlagsSchema = z.object({
 export async function GET() {
   return withApiErrors(async () => {
     await requireRole("SUPER_ADMIN");
-    const [settings, orgs, posts] = await Promise.all([
+    const config = await getRankingConfig();
+    const [settings, orgs, posts, rated] = await Promise.all([
       prisma.platformSettings.findUnique({
         where: { id: "singleton" },
         select: { ecosystemOrgPagesEnabled: true, ecosystemEducationEnabled: true, ecosystemFeedEnabled: true },
@@ -40,8 +44,12 @@ export async function GET() {
           trainingOrganization: { select: { name: true } },
         },
       }),
+      rateOrganizations(config),
     ]);
+    const featuredIds = new Set(pickFeatured(rated, config).map((r) => r.id));
     return NextResponse.json({
+      rankingConfig: config,
+      ratings: rated.map((r) => ({ id: r.id, name: r.name, score: r.score, components: r.result.components, publishedVideos: r.publishedVideos, badges: r.badges, featured: featuredIds.has(r.id) })).sort((a, b) => b.score - a.score),
       flags: {
         ecosystemOrgPagesEnabled: settings?.ecosystemOrgPagesEnabled ?? false,
         ecosystemEducationEnabled: settings?.ecosystemEducationEnabled ?? false,
@@ -58,10 +66,12 @@ export async function PUT(req: NextRequest) {
     await requireRole("SUPER_ADMIN");
     const parsed = FlagsSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Invalid settings." }, { status: 400 });
+    const { rankingConfig, ...flagData } = parsed.data;
+    const data = { ...flagData, ...(rankingConfig ? { ecosystemRankingConfig: rankingConfig } : {}) };
     const settings = await prisma.platformSettings.upsert({
       where: { id: "singleton" },
-      create: { id: "singleton", ...parsed.data },
-      update: parsed.data,
+      create: { id: "singleton", ...data },
+      update: data,
       select: { ecosystemOrgPagesEnabled: true, ecosystemEducationEnabled: true, ecosystemFeedEnabled: true },
     });
     return NextResponse.json({ flags: settings });

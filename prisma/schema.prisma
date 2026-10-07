@@ -2899,6 +2899,9 @@ model PlatformSettings {
   ecosystemOrgPagesEnabled  Boolean  @default(false)
   ecosystemEducationEnabled Boolean  @default(false)
   ecosystemFeedEnabled      Boolean  @default(false)
+  // Visibility-score weights and Featured criteria (JSON, validated by
+  // parseRankingConfig; null = built-in defaults). See visibilityCore.ts.
+  ecosystemRankingConfig    Json?
   updatedAt                DateTime @updatedAt
 }
 

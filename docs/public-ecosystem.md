@@ -1,10 +1,10 @@
-# Public ecosystem (phases 0 to 4)
+# Public ecosystem (phases 0 to 5)
 
 Organization public pages, trainee education videos, the community feed, and a demo world to try them with. Everything ships **off**.
 
 ## Rolling out
 
-1. Run `prisma migrate deploy` (migrations `20261009090000_public_ecosystem`, `20261009100000_ecosystem_feed` and `20261009110000_course_skills`). It only adds tables and columns with defaults, so the current site is unaffected.
+1. Run `prisma migrate deploy` (migrations `20261009090000_public_ecosystem`, `20261009100000_ecosystem_feed` and `20261009110000_course_skills` and `20261009120000_ranking_config`). It only adds tables and columns with defaults, so the current site is unaffected.
 2. Deploy the code. Nothing public changes yet: `/organizations` and `/learn` return 404.
 3. As SUPER_ADMIN open **Platform > Ecosystem** and switch on public organization pages, education videos and/or the community feed. Switching them off again hides the pages at once; no data is deleted.
 
@@ -29,6 +29,13 @@ Organization public pages, trainee education videos, the community feed, and a d
 - **Program skills**: under *Organization > Program skills* an organization says which skills each of its programs teaches. This reuses the shared skill list that trainee profiles and job postings already use (matched ignoring case).
 - **Under a video** (`/learn/[id]`): *Interested in learning this?* suggests up to two published programs from organizations with a public page. Relevance comes only from shared skills, the same category, and the program the organization tagged the video with; the publishing organization gets a small nudge, and nothing about size, activity or payment counts. At most one program per organization. Below that: *More on these skills* (similar videos), *Jobs that use these skills* (signed-in discoverable trainees only) and, for a signed-in employer, *Find similar talent*, which opens the employer Discover page filtered to that skill.
 
+## Visibility score and Featured (phase 5)
+
+- **Score (0 to 100), computed on demand** from existing data; no job or snapshot table. Six parts, each weighted by SUPER_ADMIN under *Ecosystem > Organization visibility score*: content quality (description, skill tags, linked program), engagement (unique signed-in people, views, followers), consistency (distinct weeks with a video), trainee participation (distinct trainees), verified achievements (certificates issued) and program readiness (programs with skills).
+- **Rises with activity, not volume**: only published videos count, at most the weekly cap (default 2) per week, an organization's own trainees never lift its score, and engagement is log-saturated, so posting more can't be spammed upward.
+- **Never shown publicly.** Organizations see badges (Consistent educator, Active this month, Trainee-led learning, plus Verified). **Featured** organizations (shown first on `/organizations`) must meet the published criteria: minimum score, minimum recent videos, optionally verified, capped in number.
+- Defaults apply until the config is saved (`PlatformSettings.ecosystemRankingConfig`, nullable JSON).
+
 ## Demo accounts
 
 ```
@@ -49,4 +56,4 @@ Demo rows are flagged `isDemo` or use the `.invalid` domain (cannot receive emai
 
 ## Not in this change
 
-Comments, achievements and events in the feed, employer and investor feed views, the visibility score, employer and investor discovery, events and global search (later phases).
+Comments, achievements and events in the feed, employer and investor feed views, employer and investor discovery, events and global search (later phases).

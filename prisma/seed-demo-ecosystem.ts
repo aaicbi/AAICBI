@@ -133,7 +133,7 @@ async function main() {
         traineeId: trainees[v.trainee].id,
         courseId: course.id,
         title: v.title,
-        description: "Placeholder video for the demo organization.",
+        description: "Placeholder video for the demo organization: a short walkthrough recorded by a trainee.",
         youtubeUrl: `https://www.youtube.com/watch?v=${v.id}`,
         youtubeId: v.id,
         thumbnailUrl: `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`,
@@ -204,6 +204,19 @@ async function main() {
         youtubeUrl: `https://www.youtube.com/watch?v=${v.id}`, youtubeId: v.id, thumbnailUrl: `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`,
         category: "Cloud", topic: v.title, status: "PUBLISHED", consentRespondedAt: new Date(), publishedAt: new Date(Date.now() - 2 * 86_400_000),
         viewCount: 40, isDemo: true, skills: { create: skillRows.map((x) => ({ skillId: x.id })) },
+      },
+    });
+  }
+
+  // Spread the demo organization's videos over several weeks so the visibility
+  // score has a realistic, steady history to show (safe to repeat).
+  const demoOrgPosts = await prisma.educationPost.findMany({ where: { trainingOrganizationId: org.id, isDemo: true }, orderBy: { createdAt: "asc" }, select: { id: true } });
+  for (const [i, post] of demoOrgPosts.entries()) {
+    await prisma.educationPost.update({
+      where: { id: post.id },
+      data: {
+        publishedAt: new Date(Date.now() - [1, 9, 22, 36][i % 4] * 86_400_000),
+        description: "Placeholder video for the demo organization: a short walkthrough recorded by a trainee.",
       },
     });
   }

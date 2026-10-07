@@ -7,6 +7,8 @@ import EmptyState from "@/components/ui/EmptyState";
 import VerifiedBadge from "@/components/ecosystem/VerifiedBadge";
 import { prisma } from "@/lib/prisma";
 import { getEcosystemFlags } from "@/lib/ecosystem/flags";
+import OrgBadges from "@/components/ecosystem/OrgBadges";
+import { featuredOrganizations } from "@/lib/ecosystem/visibility";
 import EcosystemSubnav from "@/components/ecosystem/EcosystemSubnav";
 
 export const dynamic = "force-dynamic";
@@ -24,8 +26,16 @@ export default async function OrganizationsPage() {
     where: { approvalState: "APPROVED", publicProfile: { is: { publicEnabled: true } } },
     select: { id: true, name: true, logoUrl: true, publicProfile: { select: { slug: true, tagline: true, location: true, verified: true } } },
   });
-  // Verified organizations first, then alphabetical — no engagement ranking yet.
-  orgs.sort((a, b) => Number(!!b.publicProfile?.verified) - Number(!!a.publicProfile?.verified) || a.name.localeCompare(b.name));
+  // Featured (public criteria set by SUPER_ADMIN) first, then verified, then alphabetical.
+  const { featured, all } = await featuredOrganizations().catch(() => ({ featured: [], all: [] }));
+  const featuredIds = new Set(featured.map((f) => f.id));
+  const badgesById = new Map(all.map((r) => [r.id, r.badges]));
+  orgs.sort(
+    (a, b) =>
+      Number(featuredIds.has(b.id)) - Number(featuredIds.has(a.id)) ||
+      Number(!!b.publicProfile?.verified) - Number(!!a.publicProfile?.verified) ||
+      a.name.localeCompare(b.name),
+  );
 
   return (
     <>
@@ -52,11 +62,13 @@ export default async function OrganizationsPage() {
                   )}
                   <div>
                     <p className="font-display font-semibold text-brand-ink">{o.name}</p>
+                    {featuredIds.has(o.id) && <p className="text-xs font-semibold uppercase tracking-wide text-brand-teal">Featured</p>}
                     {o.publicProfile?.verified && <VerifiedBadge />}
                   </div>
                 </div>
                 {o.publicProfile?.tagline && <p className="mt-3 text-sm text-gray-700">{o.publicProfile.tagline}</p>}
                 {o.publicProfile?.location && <p className="mt-2 text-xs text-gray-500">{o.publicProfile.location}</p>}
+                <div className="mt-2"><OrgBadges badges={badgesById.get(o.id) ?? []} /></div>
               </Card>
             </Link>
           ))}
