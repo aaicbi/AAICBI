@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 export interface EcosystemFlags {
   orgPages: boolean;
   education: boolean;
+  feed: boolean;
 }
 
 /**
@@ -16,10 +17,14 @@ export async function getEcosystemFlags(): Promise<EcosystemFlags> {
   try {
     const row = await prisma.platformSettings.findUnique({
       where: { id: "singleton" },
-      select: { ecosystemOrgPagesEnabled: true, ecosystemEducationEnabled: true },
+      select: { ecosystemOrgPagesEnabled: true, ecosystemEducationEnabled: true, ecosystemFeedEnabled: true },
     });
-    return { orgPages: !!row?.ecosystemOrgPagesEnabled, education: !!row?.ecosystemEducationEnabled };
+    return {
+      orgPages: !!row?.ecosystemOrgPagesEnabled,
+      education: !!row?.ecosystemEducationEnabled,
+      feed: !!row?.ecosystemFeedEnabled,
+    };
   } catch {
-    return { orgPages: false, education: false };
+    return { orgPages: false, education: false, feed: false };
   }
 }

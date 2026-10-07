@@ -9,6 +9,8 @@ import ViewBeacon from "@/components/ecosystem/ViewBeacon";
 import { prisma } from "@/lib/prisma";
 import { getEcosystemFlags } from "@/lib/ecosystem/flags";
 import { PUBLIC_POST_WHERE } from "@/lib/ecosystem/queries";
+import { getSession } from "@/lib/auth/session";
+import { ReactionButtons } from "@/components/ecosystem/EngageButtons";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +19,7 @@ async function loadPost(id: string) {
     where: { id, ...PUBLIC_POST_WHERE },
     select: {
       id: true, title: true, description: true, youtubeId: true, thumbnailUrl: true, category: true, moduleName: true, viewCount: true, publishedAt: true,
+      _count: { select: { reactions: { where: { kind: "LIKE" } } } },
       trainee: { select: { name: true } },
       course: { select: { id: true, title: true } },
       skills: { select: { skill: { select: { name: true } } } },
@@ -45,6 +48,9 @@ export default async function WatchPage({ params }: { params: { id: string } }) 
   if (!post) notFound();
 
   const org = post.trainingOrganization;
+  const session = await getSession();
+  const traineeId = session?.role === "TRAINEE" ? session.userId : null;
+  const mine = traineeId ? await prisma.educationPostReaction.findMany({ where: { postId: post.id, traineeId }, select: { kind: true } }) : [];
   // Prefer the course the video was tagged with; otherwise the
   // organization's newest published course in the same category.
   const programSelect = { id: true, title: true, durationDisplay: true } as const;
@@ -79,6 +85,9 @@ export default async function WatchPage({ params }: { params: { id: string } }) 
 
         <h1 className="mt-5 font-display text-2xl font-semibold text-brand-ink">{post.title}</h1>
         <p className="mt-1 text-xs text-gray-500">{post.viewCount.toLocaleString("en")} views</p>
+        <div className="mt-3">
+          <ReactionButtons postId={post.id} initialLiked={mine.some((m) => m.kind === "LIKE")} initialSaved={mine.some((m) => m.kind === "SAVE")} initialLikeCount={post._count.reactions} signedIn={!!traineeId} nextPath={`/learn/${post.id}`} />
+        </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <Card>

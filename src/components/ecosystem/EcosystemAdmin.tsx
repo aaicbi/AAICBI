@@ -9,7 +9,7 @@ import { SkeletonList } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 
 interface Payload {
-  flags: { ecosystemOrgPagesEnabled: boolean; ecosystemEducationEnabled: boolean };
+  flags: { ecosystemOrgPagesEnabled: boolean; ecosystemEducationEnabled: boolean; ecosystemFeedEnabled: boolean };
   organizations: Array<{ id: string; name: string; isDemo: boolean; publicProfile: { slug: string; publicEnabled: boolean; verified: boolean } | null }>;
   posts: Array<{ id: string; title: string; status: string; youtubeUrl: string; thumbnailUrl: string; traineeName: string; organizationName: string; isDemo: boolean }>;
 }
@@ -42,6 +42,7 @@ export default function EcosystemAdmin() {
         <p className="text-sm text-gray-600">Both are off until you turn them on. Turning one off hides the public pages again immediately; no data is deleted.</p>
         <Row label="Public organization pages (/organizations)" checked={data.flags.ecosystemOrgPagesEnabled} onChange={(v) => call("/api/admin/ecosystem", "PUT", { ecosystemOrgPagesEnabled: v })} />
         <Row label="Trainee education videos (/learn)" checked={data.flags.ecosystemEducationEnabled} onChange={(v) => call("/api/admin/ecosystem", "PUT", { ecosystemEducationEnabled: v })} />
+        <Row label="Community feed (/feed)" checked={data.flags.ecosystemFeedEnabled} onChange={(v) => call("/api/admin/ecosystem", "PUT", { ecosystemFeedEnabled: v })} />
       </Card>
 
       <section aria-labelledby="orgs">

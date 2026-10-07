@@ -10,6 +10,8 @@ import EducationVideoCard from "@/components/ecosystem/EducationVideoCard";
 import { prisma } from "@/lib/prisma";
 import { getEcosystemFlags } from "@/lib/ecosystem/flags";
 import { listPublicVideos } from "@/lib/ecosystem/queries";
+import { getSession } from "@/lib/auth/session";
+import { FollowButton } from "@/components/ecosystem/EngageButtons";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +25,7 @@ async function loadOrg(slug: string) {
     where: { approvalState: "APPROVED", publicProfile: { is: { slug, publicEnabled: true } } },
     select: {
       id: true, name: true, logoUrl: true, website: true, staffUserId: true,
+      _count: { select: { followers: true } },
       publicProfile: { select: { slug: true, tagline: true, description: true, location: true, coverUrl: true, verified: true } },
     },
   });
@@ -45,6 +48,11 @@ export default async function OrganizationPage({ params, searchParams }: { param
   const profile = org.publicProfile;
   const tab: Tab = (TABS as readonly string[]).includes(searchParams.tab ?? "") ? (searchParams.tab as Tab) : "home";
 
+  const session = await getSession();
+  const traineeId = session?.role === "TRAINEE" ? session.userId : null;
+  const alreadyFollowing = traineeId
+    ? !!(await prisma.organizationFollow.findUnique({ where: { traineeId_trainingOrganizationId: { traineeId, trainingOrganizationId: org.id } }, select: { traineeId: true } }))
+    : false;
   const [courses, videos, traineeCount] = await Promise.all([
     org.staffUserId
       ? prisma.course.findMany({
@@ -99,10 +107,14 @@ export default async function OrganizationPage({ params, searchParams }: { param
             <div className="flex gap-6 text-center text-sm">
               <div><p className="font-semibold text-brand-ink">{courses.length}</p><p className="text-gray-600">Programs</p></div>
               <div><p className="font-semibold text-brand-ink">{traineeCount}</p><p className="text-gray-600">Trainees</p></div>
+              <div><p className="font-semibold text-brand-ink">{org._count.followers}</p><p className="text-gray-600">Followers</p></div>
               {flags.education && <div><p className="font-semibold text-brand-ink">{videos.length}</p><p className="text-gray-600">Videos</p></div>}
             </div>
           </div>
-          {profile.tagline && <p className="px-5 pb-4 text-sm text-gray-700">{profile.tagline}</p>}
+          <div className="flex flex-wrap items-center gap-3 px-5 pb-4">
+            {profile.tagline && <p className="text-sm text-gray-700">{profile.tagline}</p>}
+            <FollowButton orgId={org.id} initialFollowing={alreadyFollowing} signedIn={!!traineeId} nextPath={`/organizations/${profile.slug}`} />
+          </div>
           <nav aria-label="Organization sections" className="flex gap-1 overflow-x-auto border-t border-brand-gray px-3">
             {TABS.filter((t) => t !== "education" || flags.education).map((t) => (
               <Link

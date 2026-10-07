@@ -10,6 +10,7 @@ export interface EducationVideoCardData {
   thumbnailUrl: string;
   category: string | null;
   viewCount: number;
+  likeCount: number;
   skills: string[];
   traineeName: string;
   programLabel: string | null;
@@ -60,7 +61,7 @@ export default function EducationVideoCard({ post, hideOrganizationLink = false 
         {(post.category || post.skills.length > 0) && (
           <p className="text-xs text-gray-600">{[post.category, ...post.skills.slice(0, 3)].filter(Boolean).join(" • ")}</p>
         )}
-        <p className="mt-auto pt-2 text-xs text-gray-500">{post.viewCount.toLocaleString("en")} views</p>
+        <p className="mt-auto pt-2 text-xs text-gray-500">{post.viewCount.toLocaleString("en")} views{post.likeCount > 0 ? ` • ${post.likeCount.toLocaleString("en")} likes` : ""}</p>
       </div>
     </Card>
   );

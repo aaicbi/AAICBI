@@ -400,6 +400,8 @@ model Trainee {
   // Public ecosystem — seeded demo rows only; see prisma/seed-demo-ecosystem.ts.
   isDemo         Boolean  @default(false)
   educationPosts EducationPost[]
+  orgFollows     OrganizationFollow[]
+  postReactions  EducationPostReaction[]
   name          String
   email         String    @unique
   // Google sign-in — widened from required to optional. A trainee who
@@ -2894,6 +2896,7 @@ model PlatformSettings {
   // nothing visible. See src/lib/ecosystem/flags.ts.
   ecosystemOrgPagesEnabled  Boolean  @default(false)
   ecosystemEducationEnabled Boolean  @default(false)
+  ecosystemFeedEnabled      Boolean  @default(false)
   updatedAt                DateTime @updatedAt
 }
 
@@ -3235,6 +3238,7 @@ model TrainingOrganization {
   isDemo         Boolean                    @default(false)
   publicProfile  OrganizationPublicProfile?
   educationPosts EducationPost[]
+  followers      OrganizationFollow[]
 
   // Teammates the organization has invited. They sign in with their own
   // email and password but receive the same session as the organization's
@@ -4375,7 +4379,8 @@ model EducationPost {
   createdAt              DateTime             @default(now())
   updatedAt              DateTime             @updatedAt
 
-  skills EducationPostSkill[]
+  skills    EducationPostSkill[]
+  reactions EducationPostReaction[]
 
   @@index([trainingOrganizationId, status])
   @@index([traineeId, status])
@@ -4390,4 +4395,35 @@ model EducationPostSkill {
 
   @@id([postId, skillId])
   @@index([skillId])
+}
+
+// Phase 3 — lightweight engagement. Trainees follow organizations and
+// like or save published education videos. One row per (who, what, kind),
+// so repeating a tap can never inflate a count.
+model OrganizationFollow {
+  traineeId              String
+  trainee                Trainee              @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  trainingOrganizationId String
+  trainingOrganization   TrainingOrganization @relation(fields: [trainingOrganizationId], references: [id], onDelete: Cascade)
+  createdAt              DateTime             @default(now())
+
+  @@id([traineeId, trainingOrganizationId])
+  @@index([trainingOrganizationId])
+}
+
+enum EducationReactionKind {
+  LIKE
+  SAVE
+}
+
+model EducationPostReaction {
+  postId    String
+  post      EducationPost         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  traineeId String
+  trainee   Trainee               @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  kind      EducationReactionKind
+  createdAt DateTime              @default(now())
+
+  @@id([postId, traineeId, kind])
+  @@index([traineeId, kind])
 }

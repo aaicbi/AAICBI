@@ -149,6 +149,97 @@ async function main() {
     });
   }
 
+  // A second, unverified organization so the feed has variety and the
+  // "one organization cannot dominate" rule is visible.
+  let org2 = await prisma.trainingOrganization.findUnique({ where: { email: `demo-org2@${DOMAIN}` } });
+  if (!org2) {
+    const staff2 = await prisma.user.create({
+      data: { name: "Demo Cloud Collective", email: `training-org-demo2@${DOMAIN}`, passwordHash: await bcrypt.hash(`${Math.random()}`, 10), role: "ADMIN" },
+    });
+    org2 = await prisma.trainingOrganization.create({
+      data: { name: "Demo Cloud Collective", contactName: "Demo Admin 2", email: `demo-org2@${DOMAIN}`, passwordHash, approvalState: "APPROVED", approvedAt: new Date(), staffUserId: staff2.id, isDemo: true },
+    });
+  }
+  await prisma.organizationPublicProfile.upsert({
+    where: { trainingOrganizationId: org2.id },
+    update: {},
+    create: {
+      trainingOrganizationId: org2.id,
+      slug: "demo-cloud-collective",
+      tagline: "Placeholder organization: cloud and DevOps for beginners.",
+      description: "A second demo organization with placeholder content. Nothing here is real.",
+      location: "Abuja, Nigeria (placeholder)",
+      publicEnabled: true,
+      verified: false,
+      isDemo: true,
+    },
+  });
+  let cloudCourse = await prisma.course.findFirst({ where: { title: "Cloud Fundamentals (demo)", createdById: org2.staffUserId! } });
+  if (!cloudCourse) {
+    cloudCourse = await prisma.course.create({
+      data: { title: "Cloud Fundamentals (demo)", description: "Placeholder program.", category: "Cloud", durationDisplay: "8 weeks", status: "PUBLISHED", published: true, isFree: true, createdById: org2.staffUserId!, isDemo: true },
+    });
+  }
+  const cloudTrainee = await prisma.trainee.upsert({
+    where: { email: DEMO_EMAILS.trainee("trainee5") },
+    update: {},
+    create: { name: "Demo Ngozi Eze", email: DEMO_EMAILS.trainee("trainee5"), passwordHash, emailVerified: true, isDemo: true },
+  });
+  await prisma.courseEnrollment.upsert({
+    where: { traineeId_courseId: { traineeId: cloudTrainee.id, courseId: cloudCourse.id } },
+    update: {},
+    create: { traineeId: cloudTrainee.id, courseId: cloudCourse.id, source: "ADMIN_GRANTED" },
+  });
+  for (const v of [
+    { id: "ua-CiDNNj30", title: "What Is Cloud Computing?", skills: ["Cloud"] },
+    { id: "3c-iBn73dDE", title: "Docker in One Hour", skills: ["Docker", "DevOps"] },
+  ]) {
+    if (await prisma.educationPost.findFirst({ where: { trainingOrganizationId: org2.id, youtubeId: v.id } })) continue;
+    const skillRows = [];
+    for (const name of v.skills) skillRows.push(await prisma.skill.upsert({ where: { name }, update: {}, create: { name } }));
+    await prisma.educationPost.create({
+      data: {
+        trainingOrganizationId: org2.id, traineeId: cloudTrainee.id, courseId: cloudCourse.id, title: v.title,
+        description: "Placeholder video for the second demo organization.",
+        youtubeUrl: `https://www.youtube.com/watch?v=${v.id}`, youtubeId: v.id, thumbnailUrl: `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`,
+        category: "Cloud", topic: v.title, status: "PUBLISHED", consentRespondedAt: new Date(), publishedAt: new Date(Date.now() - 2 * 86_400_000),
+        viewCount: 40, isDemo: true, skills: { create: skillRows.map((x) => ({ skillId: x.id })) },
+      },
+    });
+  }
+
+  // Engagement: a few likes, saves and follows from demo trainees.
+  const allPosts = await prisma.educationPost.findMany({ where: { isDemo: true }, select: { id: true } });
+  for (const [i, t] of trainees.entries()) {
+    for (const [j, post] of allPosts.entries()) {
+      if ((i + j) % 2 === 0) {
+        await prisma.educationPostReaction.upsert({
+          where: { postId_traineeId_kind: { postId: post.id, traineeId: t.id, kind: "LIKE" } }, update: {}, create: { postId: post.id, traineeId: t.id, kind: "LIKE" },
+        });
+      }
+      if ((i + j) % 5 === 0) {
+        await prisma.educationPostReaction.upsert({
+          where: { postId_traineeId_kind: { postId: post.id, traineeId: t.id, kind: "SAVE" } }, update: {}, create: { postId: post.id, traineeId: t.id, kind: "SAVE" },
+        });
+      }
+    }
+  }
+  await prisma.organizationFollow.upsert({
+    where: { traineeId_trainingOrganizationId: { traineeId: trainees[0].id, trainingOrganizationId: org2.id } }, update: {}, create: { traineeId: trainees[0].id, trainingOrganizationId: org2.id },
+  });
+  // The demo trainee is discoverable so the feed shows them the demo job.
+  await prisma.trainee.update({ where: { id: trainees[0].id }, data: { publiclyDiscoverable: true } });
+
+  // One approved showcase project.
+  if (!(await prisma.project.findFirst({ where: { traineeId: trainees[1].id, title: "Sales Dashboard (demo)" } }))) {
+    await prisma.project.create({
+      data: {
+        traineeId: trainees[1].id, title: "Sales Dashboard (demo)", description: "Placeholder project: a Power BI sales dashboard.",
+        listedInShowcase: true, showcaseStatus: "APPROVED", reviewedAt: new Date(),
+      },
+    });
+  }
+
   // Demo employer with one approved job, and a demo investor.
   const employer = await prisma.employer.upsert({
     where: { email: DEMO_EMAILS.employer },
@@ -190,10 +281,10 @@ async function main() {
 
   console.log("Demo ecosystem ready. Sign in with password:", inProd ? "(your DEMO_PASSWORD)" : password);
   console.log(`  Organization (/org/login):   ${DEMO_EMAILS.organization}`);
-  console.log(`  Trainee (/trainee/login):    ${DEMO_EMAILS.trainee("trainee1")} (trainee1..4)`);
+  console.log(`  Trainee (/trainee/login):    ${DEMO_EMAILS.trainee("trainee1")} (trainee1..5)`);
   console.log(`  Employer (/employer/login):  ${DEMO_EMAILS.employer}`);
   console.log(`  Investor (/investor/login):  ${DEMO_EMAILS.investor}`);
-  console.log("Then turn the public pages on in /admin/ecosystem and visit /organizations/demo-tech-academy and /learn.");
+  console.log("Then turn the public pages on in /admin/ecosystem and visit /feed, /learn and /organizations/demo-tech-academy.");
 }
 
 main()

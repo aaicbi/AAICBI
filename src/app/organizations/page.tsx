@@ -7,6 +7,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import VerifiedBadge from "@/components/ecosystem/VerifiedBadge";
 import { prisma } from "@/lib/prisma";
 import { getEcosystemFlags } from "@/lib/ecosystem/flags";
+import EcosystemSubnav from "@/components/ecosystem/EcosystemSubnav";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -29,6 +30,7 @@ export default async function OrganizationsPage() {
   return (
     <>
       <SiteHeader nav={[{ label: "Learn", href: "/learn" }, { label: "Courses", href: "/courses" }]} />
+      <EcosystemSubnav active="organizations" feedEnabled={flags.feed} />
       <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Training organizations</h1>
         <p className="mt-1 text-sm text-gray-600">Organizations training people, and the trainees building real things.</p>

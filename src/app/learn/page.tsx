@@ -6,7 +6,8 @@ import EmptyState from "@/components/ui/EmptyState";
 import EducationVideoCard from "@/components/ecosystem/EducationVideoCard";
 import { prisma } from "@/lib/prisma";
 import { getEcosystemFlags } from "@/lib/ecosystem/flags";
-import { PUBLIC_POST_WHERE, listPublicVideos } from "@/lib/ecosystem/queries";
+import EcosystemSubnav from "@/components/ecosystem/EcosystemSubnav";
+import { PUBLIC_POST_WHERE, listPublicVideos, listTrendingVideos } from "@/lib/ecosystem/queries";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -20,8 +21,9 @@ export default async function LearnPage({ searchParams }: { searchParams: { cate
   if (!flags.education || !flags.orgPages) notFound();
 
   const category = searchParams.category?.trim() || undefined;
-  const [videos, categoryRows] = await Promise.all([
+  const [videos, trending, categoryRows] = await Promise.all([
     listPublicVideos(category ? { category } : {}),
+    category ? Promise.resolve([]) : listTrendingVideos(3),
     prisma.educationPost.findMany({ where: { ...PUBLIC_POST_WHERE, category: { not: null } }, distinct: ["category"], select: { category: true }, take: 20 }),
   ]);
   const categories = categoryRows.map((c) => c.category!).sort();
@@ -29,6 +31,7 @@ export default async function LearnPage({ searchParams }: { searchParams: { cate
   return (
     <>
       <SiteHeader nav={[{ label: "Organizations", href: "/organizations" }, { label: "Courses", href: "/courses" }]} />
+      <EcosystemSubnav active="learn" feedEnabled={flags.feed} />
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Learn from the people building real projects</h1>
         <p className="mt-1 text-sm text-gray-600">Educational videos presented by trainees and published by their training organizations.</p>
@@ -46,7 +49,17 @@ export default async function LearnPage({ searchParams }: { searchParams: { cate
           </nav>
         )}
 
-        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {trending.length > 0 && (
+          <section aria-labelledby="trending" className="mt-8">
+            <h2 id="trending" className="font-display text-lg font-semibold text-brand-ink">Trending education</h2>
+            <div className="mt-3 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {trending.map((v) => <EducationVideoCard key={v.id} post={v} />)}
+            </div>
+          </section>
+        )}
+
+        <h2 className="mt-10 font-display text-lg font-semibold text-brand-ink">{category ? category : "Latest"}</h2>
+        <div className="mt-3 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {videos.length === 0 ? (
             <div className="sm:col-span-2 lg:col-span-3">
               <EmptyState title="No videos here yet" description="Check back soon." />

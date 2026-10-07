@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 const FlagsSchema = z.object({
   ecosystemOrgPagesEnabled: z.boolean().optional(),
   ecosystemEducationEnabled: z.boolean().optional(),
+  ecosystemFeedEnabled: z.boolean().optional(),
 });
 
 /**
@@ -22,7 +23,7 @@ export async function GET() {
     const [settings, orgs, posts] = await Promise.all([
       prisma.platformSettings.findUnique({
         where: { id: "singleton" },
-        select: { ecosystemOrgPagesEnabled: true, ecosystemEducationEnabled: true },
+        select: { ecosystemOrgPagesEnabled: true, ecosystemEducationEnabled: true, ecosystemFeedEnabled: true },
       }),
       prisma.trainingOrganization.findMany({
         where: { approvalState: "APPROVED" },
@@ -44,6 +45,7 @@ export async function GET() {
       flags: {
         ecosystemOrgPagesEnabled: settings?.ecosystemOrgPagesEnabled ?? false,
         ecosystemEducationEnabled: settings?.ecosystemEducationEnabled ?? false,
+        ecosystemFeedEnabled: settings?.ecosystemFeedEnabled ?? false,
       },
       organizations: orgs,
       posts: posts.map((p) => ({ ...p, traineeName: p.trainee.name, organizationName: p.trainingOrganization.name, trainee: undefined, trainingOrganization: undefined })),
@@ -60,7 +62,7 @@ export async function PUT(req: NextRequest) {
       where: { id: "singleton" },
       create: { id: "singleton", ...parsed.data },
       update: parsed.data,
-      select: { ecosystemOrgPagesEnabled: true, ecosystemEducationEnabled: true },
+      select: { ecosystemOrgPagesEnabled: true, ecosystemEducationEnabled: true, ecosystemFeedEnabled: true },
     });
     return NextResponse.json({ flags: settings });
   });
