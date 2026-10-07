@@ -10,6 +10,7 @@ import ErrorState from "@/components/ui/ErrorState";
 import EmptyState from "@/components/ui/EmptyState";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 
+import { Input, Select, Textarea } from "@/components/ui/Field";
 interface TraineeListing {
   id: string;
   name: string;
@@ -136,41 +137,23 @@ export default function EmployerDiscoverPage() {
         <Card className="mt-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Filter</p>
           <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <input
-              value={filters.skill}
-              onChange={(e) => setFilters((f) => ({ ...f, skill: e.target.value }))}
-              placeholder="Skill, e.g. React"
-              className="rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
-            <input
-              value={filters.location}
-              onChange={(e) => setFilters((f) => ({ ...f, location: e.target.value }))}
-              placeholder="Location"
-              className="rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
-            <select
-              value={filters.availability}
-              onChange={(e) => setFilters((f) => ({ ...f, availability: e.target.value }))}
-              className="rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            >
+            <Input label="Skill, e.g. React" hideLabel compact value={filters.skill} onChange={(e) => setFilters((f) => ({ ...f, skill: e.target.value }))} placeholder="Skill, e.g. React" />
+            <Input label="Location" hideLabel compact value={filters.location} onChange={(e) => setFilters((f) => ({ ...f, location: e.target.value }))} placeholder="Location" />
+            <Select label="Availability" hideLabel compact value={filters.availability} onChange={(e) => setFilters((f) => ({ ...f, availability: e.target.value }))}>
               <option value="">Any availability</option>
               {Object.entries(AVAILABILITY_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
                 </option>
               ))}
-            </select>
-            <select
-              value={filters.employmentStatus}
-              onChange={(e) => setFilters((f) => ({ ...f, employmentStatus: e.target.value }))}
-              className="rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            >
+            </Select>
+            <Select label="Employment status" hideLabel compact value={filters.employmentStatus} onChange={(e) => setFilters((f) => ({ ...f, employmentStatus: e.target.value }))}>
               <option value="">Any employment status</option>
               <option value="STUDENT">Student</option>
               <option value="EMPLOYED">Employed</option>
               <option value="UNEMPLOYED">Unemployed</option>
               <option value="SELF_EMPLOYED">Self-employed</option>
-            </select>
+            </Select>
           </div>
           <div className="mt-3 flex gap-2">
             <Button size="sm" onClick={applyFilters}>
@@ -230,14 +213,7 @@ export default function EmployerDiscoverPage() {
                     ))}
                   </ul>
                 )}
-                <textarea
-                  value={message[t.id] ?? ""}
-                  onChange={(e) => setMessage((m) => ({ ...m, [t.id]: e.target.value }))}
-                  placeholder="Add a short note (optional)"
-                  aria-label="Note to trainee (optional)"
-                  rows={2}
-                  className="mt-3 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                />
+                <Textarea label="Note to trainee (optional)" hideLabel compact value={message[t.id] ?? ""} onChange={(e) => setMessage((m) => ({ ...m, [t.id]: e.target.value }))} placeholder="Add a short note (optional)" rows={2} />
                 <Button size="sm" onClick={() => sendIntroduction(t.id)} loading={sendingTo === t.id} className="mt-2">
                   Express Interest
                 </Button>

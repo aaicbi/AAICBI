@@ -14,6 +14,7 @@ import ProfileCompletionBanner from "@/components/ui/ProfileCompletionBanner";
 import { computeEmployerCompletion } from "@/lib/profileCompletion";
 import AvatarUpload from "@/components/AvatarUpload";
 
+import { Input, Select, Textarea } from "@/components/ui/Field";
 const NAV = [
   { label: "Dashboard", href: "/employer/dashboard" },
   { label: "Discover", href: "/employer/discover" },
@@ -174,42 +175,10 @@ export default function EmployerProfilePage() {
             <Card className="mt-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Company Details</p>
               <div className="mt-3 space-y-3">
-                <div>
-                  <label className="text-sm font-semibold text-brand-ink">Industry</label>
-                  <input
-                    value={form.industry}
-                    onChange={(e) => setForm((f) => ({ ...f, industry: e.target.value }))}
-                    placeholder="e.g. Financial Services"
-                    className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-brand-ink">Company size</label>
-                  <input
-                    value={form.companySize}
-                    onChange={(e) => setForm((f) => ({ ...f, companySize: e.target.value }))}
-                    placeholder="e.g. 11-50 employees"
-                    className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-brand-ink">Location</label>
-                  <input
-                    value={form.location}
-                    onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
-                    placeholder="e.g. Lagos, Nigeria"
-                    className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-brand-ink">About the company</label>
-                  <textarea
-                    value={form.description}
-                    onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                    rows={4}
-                    className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                </div>
+                <Input label="Industry" value={form.industry} onChange={(e) => setForm((f) => ({ ...f, industry: e.target.value }))} placeholder="e.g. Financial Services" />
+                <Input label="Company size" value={form.companySize} onChange={(e) => setForm((f) => ({ ...f, companySize: e.target.value }))} placeholder="e.g. 11-50 employees" />
+                <Input label="Location" value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} placeholder="e.g. Lagos, Nigeria" />
+                <Textarea label="About the company" compact value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={4} />
               </div>
               <div className="mt-4">
                 <Button size="sm" onClick={save} loading={saving}>
@@ -223,17 +192,13 @@ export default function EmployerProfilePage() {
               <p className="mt-1 text-xs text-gray-500">
                 Who can view this company profile. Independent of your job postings and Discover listing.
               </p>
-              <select
-                value={form.profileVisibility}
-                onChange={(e) => setForm((f) => ({ ...f, profileVisibility: e.target.value }))}
-                className="mt-2 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-              >
+              <Select label="Profile visibility" hideLabel compact value={form.profileVisibility} onChange={(e) => setForm((f) => ({ ...f, profileVisibility: e.target.value }))}>
                 {Object.entries(VISIBILITY_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
                   </option>
                 ))}
-              </select>
+              </Select>
               <div className="mt-3">
                 <Button size="sm" onClick={save} loading={saving}>
                   Save

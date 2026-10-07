@@ -14,6 +14,7 @@ import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 import JobPostingMediaPicker, { StagedMedia } from "@/components/jobPostings/JobPostingMediaPicker";
 import JobPostingMediaGallery, { JobPostingMediaItem } from "@/components/jobPostings/JobPostingMediaGallery";
 
+import { Input, Textarea } from "@/components/ui/Field";
 interface JobPostingDto {
   id: string;
   title: string;
@@ -169,42 +170,10 @@ export default function EmployerJobPostingsPage() {
         <Card className="mt-4">
           <p className="font-display font-semibold text-brand-ink">Post a Vacancy</p>
           <form onSubmit={submit} className="mt-3 space-y-3">
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Job title"
-              aria-label="Job title"
-              required
-              className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Job description"
-              aria-label="Job description"
-              rows={4}
-              required
-              className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
-            <div>
-              <label className="text-xs font-semibold text-gray-600">Skills you're hiring for (comma-separated, optional)</label>
-              <input
-                value={skills}
-                onChange={(e) => setSkills(e.target.value)}
-                placeholder="e.g. React, SQL, Data Analysis"
-                className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-600">Closing date</label>
-              <input
-                type="date"
-                value={closingDate}
-                onChange={(e) => setClosingDate(e.target.value)}
-                required
-                className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-              />
-            </div>
+            <Input label="Job title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+            <Textarea label="Job description" hideLabel compact value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Job description" rows={4} required />
+            <Input label="Skills you're hiring for (comma-separated, optional)" value={skills} onChange={(e) => setSkills(e.target.value)} placeholder="e.g. React, SQL, Data Analysis" />
+            <Input label="Closing date" compact type="date" value={closingDate} onChange={(e) => setClosingDate(e.target.value)} required />
             <JobPostingMediaPicker staged={stagedMedia} onChange={setStagedMedia} />
             {error && <p className="text-sm text-brand-rose">{error}</p>}
             <Button type="submit" loading={posting}>

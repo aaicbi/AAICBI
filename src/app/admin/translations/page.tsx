@@ -12,6 +12,7 @@ import { Globe } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
+import { Input } from "@/components/ui/Field";
 interface TranslationRow {
   id: string;
   sourceText: string;
@@ -134,11 +135,7 @@ export default function TranslationsAdminPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
                         <p className="text-xs text-gray-500">{row.sourceText}</p>
-                        <input
-                          value={edits[row.id] ?? row.translatedText}
-                          onChange={(e) => setEdits({ ...edits, [row.id]: e.target.value })}
-                          className="mt-1 w-full rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-                        />
+                        <Input label="Translation" hideLabel compact value={edits[row.id] ?? row.translatedText} onChange={(e) => setEdits({ ...edits, [row.id]: e.target.value })} />
                       </div>
                       <Badge variant={row.approved ? "success" : "warning"}>
                         {row.approved ? "Approved" : "Needs review"}

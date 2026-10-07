@@ -11,6 +11,7 @@ import { CheckCircle2 } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
+import { Checkbox } from "@/components/ui/Field";
 interface AssessmentMeta {
   title: string;
   instructions: string | null;
@@ -139,15 +140,7 @@ Do not refresh or close the browser during the assessment.`}
           </div>
         ) : (
           <>
-            <label className="mt-5 flex items-center gap-2 text-sm text-brand-ink">
-              <input
-                type="checkbox"
-                checked={confirmed}
-                onChange={(e) => setConfirmed(e.target.checked)}
-                className="h-4 w-4 accent-brand-teal"
-              />
-              I have read the instructions
-            </label>
+            <Checkbox label="I have read the instructions" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
 
             {error && <p className="mt-3 text-sm text-brand-rose">{error}</p>}
 

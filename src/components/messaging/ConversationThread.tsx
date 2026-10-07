@@ -10,6 +10,7 @@ import { MoreVertical } from "lucide-react";
 import ReportModal from "./ReportModal";
 import SuspendReasonModal from "./SuspendReasonModal";
 
+import { Textarea } from "@/components/ui/Field";
 interface MessageDto {
   id: string;
   authorType: "TRAINEE" | "STAFF";
@@ -244,19 +245,12 @@ export default function ConversationThread({ conversationId }: { conversationId:
             <p className="text-center text-xs text-gray-500">Viewing as an observer — this conversation doesn&apos;t include you.</p>
           ) : (
             <div className="flex gap-2">
-              <textarea
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                onKeyDown={(e) => {
+              <Textarea label="Write a message…" hideLabel compact wrapperClassName="flex-1" value={body} onChange={(e) => setBody(e.target.value)} onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     send();
                   }
-                }}
-                placeholder="Write a message…"
-                rows={2}
-                className="flex-1 rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-              />
+                }} placeholder="Write a message…" rows={2} />
               <Button onClick={send} loading={sending} disabled={!body.trim()}>
                 Send
               </Button>

@@ -97,20 +97,20 @@ export default function TraineeCoursesPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-display text-base font-semibold text-brand-ink">{course.title}</span>
                     {course.isPaid && course.isEnrolled ? (
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-brand-mint px-2 py-0.5 text-[10px] font-semibold text-brand-teal">
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-brand-mint px-2 py-0.5 text-xs font-semibold text-brand-teal">
                         PAID <CorrectnessMark state="correct" label={undefined} />
                       </span>
                     ) : course.isExpired ? (
-                      <span className="rounded-full bg-brand-roseLight px-2 py-0.5 text-[10px] font-semibold text-brand-rose">
+                      <span className="rounded-full bg-brand-roseLight px-2 py-0.5 text-xs font-semibold text-brand-rose">
                         EXPIRED
                       </span>
                     ) : course.isFree ? (
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600">
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">
                         FREE
                       </span>
                     ) : null}
                     {course.level && (
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600">
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">
                         {LEVEL_LABEL[course.level]}
                       </span>
                     )}

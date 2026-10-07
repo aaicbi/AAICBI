@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 
+import { Input } from "@/components/ui/Field";
 export interface PitchDraft {
   startupName?: string;
   industry?: string;
@@ -136,12 +137,12 @@ export default function PitchLoopPanel({ draft }: { draft: PitchDraft }) {
         {messages.map((m) =>
           m.role === "trainee" ? (
             <div key={m.id} className="flex justify-end">
-              <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-brand-teal px-3 py-2 text-xs font-medium text-white">{m.text}</div>
+              <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-brand-teal px-3 py-2 text-xs font-medium text-brand-onAccent">{m.text}</div>
             </div>
           ) : (
             <div key={m.id} className="flex justify-start">
               <div className="max-w-[90%]">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-brand-tealDeep">Loop</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-brand-tealDeep">Loop</p>
                 <p className="whitespace-pre-line text-xs leading-relaxed text-brand-ink">{m.text}</p>
               </div>
             </div>
@@ -161,13 +162,7 @@ export default function PitchLoopPanel({ draft }: { draft: PitchDraft }) {
 
       <div className="border-t border-brand-gray p-3">
         <div className="flex gap-2">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder="Ask about your pitch…"
-            className="flex-1 rounded-lg border border-brand-gray px-3 py-2 text-xs outline-none focus:border-brand-teal"
-          />
+          <Input label="Ask about your pitch…" hideLabel compact wrapperClassName="flex-1" controlClassName="text-xs" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Ask about your pitch…" />
           <Button size="sm" onClick={() => send()} disabled={asking || !input.trim()}>
             Ask
           </Button>

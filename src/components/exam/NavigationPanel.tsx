@@ -24,17 +24,17 @@ function stateFor(
 
 const STATE_STYLES: Record<QuestionState, string> = {
   unanswered: "bg-gray-100 text-gray-500 border border-brand-gray",
-  answered: "bg-brand-teal text-white",
+  answered: "bg-brand-teal text-brand-onAccent",
   // Contrast/consistency fix — this used an off-palette bg-blue-600 and
   // bg-amber-400 (the latter a real WCAG failure: white text on a
   // light amber has nowhere near enough contrast), neither of which
   // adapts for dark mode the way every brand-* token does. "current"
   // now uses the app's own darker teal shade to stay visually distinct
   // from "answered"'s brand-teal; "review" matches Badge.tsx's already-
-  // established "gold" variant (bg-brand-gold text-white) instead of
+  // established "gold" variant (bg-brand-gold text-brand-onGold) instead of
   // inventing a third, inconsistent gold.
-  current: "bg-brand-tealDeep text-white ring-2 ring-offset-1 ring-brand-mint",
-  review: "bg-brand-gold text-white",
+  current: "bg-brand-tealDeep text-brand-onAccent ring-2 ring-offset-1 ring-brand-mint",
+  review: "bg-brand-gold text-brand-onGold",
 };
 
 export function NavigationGrid({ total, currentIndex, answeredIndices, markedIndices, onJump }: NavigationPanelProps) {

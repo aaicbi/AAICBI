@@ -8,6 +8,7 @@ import { SkeletonList } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { Sparkles } from "lucide-react";
 
+import { Input, Textarea } from "@/components/ui/Field";
 interface CriterionScore {
   name: string;
   score: number;
@@ -156,35 +157,15 @@ export default function SubmissionReviewPage({ params }: { params: { id: string;
             )}
 
             <div className="mt-3 flex flex-wrap items-end gap-3">
-              <label className="block text-xs text-gray-700">
-                Final score (max {a.question.maxMarks})
-                <input
-                  type="number"
-                  min={0}
-                  max={a.question.maxMarks}
-                  value={overrides[a.id]?.score ?? ""}
-                  onChange={(e) => setOverrides({ ...overrides, [a.id]: { ...overrides[a.id], score: e.target.value } })}
-                  className="mt-1 block w-24 rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-                />
-              </label>
-              <label className="block min-w-[14rem] flex-1 text-xs text-gray-700">
-                Instructor feedback (optional — overrides AI feedback for this question)
-                <input
-                  value={overrides[a.id]?.feedback ?? ""}
-                  onChange={(e) => setOverrides({ ...overrides, [a.id]: { ...overrides[a.id], feedback: e.target.value } })}
-                  className="mt-1 w-full rounded-lg border border-brand-gray px-2.5 py-1.5 text-sm outline-none focus:border-brand-teal"
-                />
-              </label>
+              <Input label={`Final score (max ${a.question.maxMarks})`} compact wrapperClassName="w-24" type="number" min={0} max={a.question.maxMarks} value={overrides[a.id]?.score ?? ""} onChange={(e) => setOverrides({ ...overrides, [a.id]: { ...overrides[a.id], score: e.target.value } })} />
+              <Input label="Instructor feedback (optional — overrides AI feedback for this question)" compact wrapperClassName="min-w-[14rem] flex-1" value={overrides[a.id]?.feedback ?? ""} onChange={(e) => setOverrides({ ...overrides, [a.id]: { ...overrides[a.id], feedback: e.target.value } })} />
             </div>
           </Card>
         ))}
       </div>
 
       <Card className="mt-4">
-        <label className="block text-sm font-semibold text-gray-900">
-          Overall comments to the trainee (optional)
-          <textarea value={comments} onChange={(e) => setComments(e.target.value)} rows={3} className="mt-2 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal" />
-        </label>
+        <Textarea label="Overall comments to the trainee (optional)" compact value={comments} onChange={(e) => setComments(e.target.value)} rows={3} />
         <div className="mt-4 flex flex-wrap gap-2">
           <Button onClick={() => submitDecision("ACCEPTED_AI_SCORE")} loading={saving} size="sm">Accept AI Score</Button>
           <Button onClick={() => submitDecision("SCORE_ADJUSTED")} loading={saving} variant="secondary" size="sm">Save Adjusted Scores</Button>

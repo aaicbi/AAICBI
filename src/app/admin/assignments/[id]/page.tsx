@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
 import { AlertTriangle, Users, ChevronDown, ChevronRight, BarChart3 } from "lucide-react";
 
+import { Checkbox, Input, Select, Textarea } from "@/components/ui/Field";
 const QUESTION_TYPES = [
   "SHORT_ANSWER", "EXPLANATION", "LONG_ANSWER", "ESSAY", "SCENARIO",
   "CASE_STUDY", "PRACTICAL_TASK", "TECHNICAL_RESPONSE", "REFLECTION", "MULTI_PART",
@@ -273,63 +274,39 @@ function AssignmentSettings({
       ) : (
         <div className="mt-3 space-y-3">
           <div className="flex flex-wrap gap-3">
-            <label className="block text-xs text-gray-700">
-              Due date (optional)
-              <input type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} className="mt-1 block rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal" />
-            </label>
-            <label className="block text-xs text-gray-700">
-              Late submissions
-              <select value={lateSubmissionPolicy} onChange={(e) => setLateSubmissionPolicy(e.target.value as AssignmentDto["lateSubmissionPolicy"])} className="mt-1 block rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal">
+            <Input label="Due date (optional)" compact type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
+            <Select label="Late submissions" compact value={lateSubmissionPolicy} onChange={(e) => setLateSubmissionPolicy(e.target.value as AssignmentDto["lateSubmissionPolicy"])}>
                 <option value="ALLOWED">Allowed</option>
                 <option value="ALLOWED_WITH_FLAG">Allowed, flagged as late</option>
                 <option value="NOT_ALLOWED">Not allowed</option>
-              </select>
-            </label>
+              </Select>
           </div>
-          <label className="flex items-center gap-2 text-xs text-gray-700">
-            <input type="checkbox" checked={allowEditAfterSubmission} onChange={(e) => setAllowEditAfterSubmission(e.target.checked)} />
-            Allow trainees to keep editing after submitting
-          </label>
-          <label className="flex items-center gap-2 text-xs text-gray-700">
-            <input type="checkbox" checked={aiAssessmentEnabled} onChange={(e) => setAiAssessmentEnabled(e.target.checked)} />
-            AI grades submissions automatically (unchecked: every submission is emailed to you as a PDF for manual grading)
-          </label>
+          <Checkbox label="Allow trainees to keep editing after submitting" checked={allowEditAfterSubmission} onChange={(e) => setAllowEditAfterSubmission(e.target.checked)} />
+          <Checkbox label="AI grades submissions automatically (unchecked: every submission is emailed to you as a PDF for manual grading)" checked={aiAssessmentEnabled} onChange={(e) => setAiAssessmentEnabled(e.target.checked)} />
           <div className="flex flex-wrap items-end gap-3">
-            <label className="block text-xs text-gray-700">
-              Resubmission policy
-              <select value={resubmissionPolicy} onChange={(e) => setResubmissionPolicy(e.target.value as AssignmentDto["resubmissionPolicy"])} className="mt-1 block rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal">
+            <Select label="Resubmission policy" compact value={resubmissionPolicy} onChange={(e) => setResubmissionPolicy(e.target.value as AssignmentDto["resubmissionPolicy"])}>
                 <option value="NONE">No resubmission</option>
                 <option value="ONE">One resubmission</option>
                 <option value="LIMITED">Limited number</option>
                 <option value="UNLIMITED">Unlimited</option>
-              </select>
-            </label>
+              </Select>
             {resubmissionPolicy === "LIMITED" && (
-              <label className="block text-xs text-gray-700">
-                Max resubmissions
-                <input type="number" min={1} value={maxResubmissions} onChange={(e) => setMaxResubmissions(e.target.value)} className="mt-1 block w-24 rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal" />
-              </label>
+              <Input label="Max resubmissions" compact wrapperClassName="w-24" type="number" min={1} value={maxResubmissions} onChange={(e) => setMaxResubmissions(e.target.value)} />
             )}
           </div>
           {resubmissionPolicy !== "NONE" && (
             <div className="flex flex-wrap items-end gap-3">
-              <label className="block text-xs text-gray-700">
-                What a trainee must redo
-                <select value={resubmissionScope} onChange={(e) => setResubmissionScope(e.target.value as AssignmentDto["resubmissionScope"])} className="mt-1 block rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal">
+              <Select label="What a trainee must redo" compact value={resubmissionScope} onChange={(e) => setResubmissionScope(e.target.value as AssignmentDto["resubmissionScope"])}>
                   <option value="FULL_ASSIGNMENT">Full assignment</option>
                   <option value="FAILED_QUESTIONS_ONLY">Only questions they failed</option>
-                </select>
-              </label>
+                </Select>
               {resubmissionScope === "FAILED_QUESTIONS_ONLY" && (
-                <label className="block text-xs text-gray-700">
-                  Failing threshold (%)
-                  <input type="number" min={1} max={99} value={failedQuestionThresholdPercent} onChange={(e) => setFailedQuestionThresholdPercent(e.target.value)} className="mt-1 block w-24 rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal" />
-                </label>
+                <Input label="Failing threshold (%)" compact wrapperClassName="w-24" type="number" min={1} max={99} value={failedQuestionThresholdPercent} onChange={(e) => setFailedQuestionThresholdPercent(e.target.value)} />
               )}
             </div>
           )}
           <div className="flex gap-2">
-            <button onClick={handleSave} disabled={saving} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60">{saving ? "Saving..." : "Save"}</button>
+            <button onClick={handleSave} disabled={saving} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60">{saving ? "Saving..." : "Save"}</button>
             <button onClick={() => setEditing(false)} className="rounded-lg border border-brand-gray px-3 py-1.5 text-xs font-semibold">Cancel</button>
           </div>
         </div>
@@ -489,43 +466,19 @@ function QuestionEditForm({
   return (
     <div className="space-y-3">
       <div className="flex gap-3">
-        <label className="block text-xs text-gray-700">
-          Question number
-          <input value={form.questionNumber} onChange={(e) => setForm({ ...form, questionNumber: e.target.value })} className="mt-1 w-24 rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal" />
-        </label>
-        <label className="block text-xs text-gray-700">
-          Type
-          <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as QuestionType })} className="mt-1 rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal">
+        <Input label="Question number" compact wrapperClassName="w-24" value={form.questionNumber} onChange={(e) => setForm({ ...form, questionNumber: e.target.value })} />
+        <Select label="Type" compact value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as QuestionType })}>
             {QUESTION_TYPES.map((t) => <option key={t} value={t}>{t.replace(/_/g, " ")}</option>)}
-          </select>
-        </label>
-        <label className="block text-xs text-gray-700">
-          Marks
-          <input type="number" min={1} value={form.maxMarks} onChange={(e) => setForm({ ...form, maxMarks: e.target.value })} className="mt-1 w-20 rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal" />
-        </label>
+          </Select>
+        <Input label="Marks" compact wrapperClassName="w-20" type="number" min={1} value={form.maxMarks} onChange={(e) => setForm({ ...form, maxMarks: e.target.value })} />
       </div>
-      <label className="block text-xs text-gray-700">
-        Question text
-        <textarea value={form.questionText} onChange={(e) => setForm({ ...form, questionText: e.target.value })} rows={3} className="mt-1 w-full rounded-lg border border-brand-gray px-2.5 py-1.5 text-sm outline-none focus:border-brand-teal" />
-      </label>
-      <label className="block text-xs text-gray-700">
-        Instructions (optional)
-        <input value={form.instructions} onChange={(e) => setForm({ ...form, instructions: e.target.value })} className="mt-1 w-full rounded-lg border border-brand-gray px-2.5 py-1.5 text-sm outline-none focus:border-brand-teal" />
-      </label>
-      <label className="block text-xs text-gray-700">
-        Expected answer (optional — grading is understanding-based, not exact-match)
-        <textarea value={form.expectedAnswer} onChange={(e) => setForm({ ...form, expectedAnswer: e.target.value })} rows={2} className="mt-1 w-full rounded-lg border border-brand-gray px-2.5 py-1.5 text-sm outline-none focus:border-brand-teal" />
-      </label>
-      <label className="block text-xs text-gray-700">
-        Expected concepts (comma-separated, optional)
-        <input value={form.expectedConcepts} onChange={(e) => setForm({ ...form, expectedConcepts: e.target.value })} placeholder="missing data, consistency, reliable analysis" className="mt-1 w-full rounded-lg border border-brand-gray px-2.5 py-1.5 text-sm outline-none focus:border-brand-teal" />
-      </label>
-      <label className="block text-xs text-gray-700">
-        Rubric (optional — one criterion per line, &quot;Name — marks&quot;)
-        <textarea value={form.rubricText} onChange={(e) => setForm({ ...form, rubricText: e.target.value })} rows={3} placeholder={"Understanding — 3\nAccuracy — 3\nApplication — 2\nExplanation — 2"} className="mt-1 w-full rounded-lg border border-brand-gray px-2.5 py-1.5 text-sm font-mono outline-none focus:border-brand-teal" />
-      </label>
+      <Textarea label="Question text" compact value={form.questionText} onChange={(e) => setForm({ ...form, questionText: e.target.value })} rows={3} />
+      <Input label="Instructions (optional)" compact value={form.instructions} onChange={(e) => setForm({ ...form, instructions: e.target.value })} />
+      <Textarea label="Expected answer (optional — grading is understanding-based, not exact-match)" compact value={form.expectedAnswer} onChange={(e) => setForm({ ...form, expectedAnswer: e.target.value })} rows={2} />
+      <Input label="Expected concepts (comma-separated, optional)" compact value={form.expectedConcepts} onChange={(e) => setForm({ ...form, expectedConcepts: e.target.value })} placeholder="missing data, consistency, reliable analysis" />
+      <Textarea label="Rubric (optional — one criterion per line, &quot;Name — marks&quot;)" compact controlClassName="font-mono" value={form.rubricText} onChange={(e) => setForm({ ...form, rubricText: e.target.value })} rows={3} placeholder={"Understanding — 3\nAccuracy — 3\nApplication — 2\nExplanation — 2"} />
       <div className="flex gap-2">
-        <button onClick={onSave} disabled={saving} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60">{saving ? "Saving..." : "Save"}</button>
+        <button onClick={onSave} disabled={saving} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60">{saving ? "Saving..." : "Save"}</button>
         <button onClick={onCancel} className="rounded-lg border border-brand-gray px-3 py-1.5 text-xs font-semibold">Cancel</button>
       </div>
     </div>

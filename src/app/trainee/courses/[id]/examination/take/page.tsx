@@ -7,6 +7,8 @@ import Logo from "@/components/Logo";
 import Button from "@/components/ui/Button";
 import Icon from "@/components/ui/Icon";
 import { Star, ChevronLeft, ChevronRight, X } from "lucide-react";
+import Modal from "@/components/ui/Modal";
+import { useDialog } from "@/components/ui/useDialog";
 
 interface AttemptData {
   attemptId: string;
@@ -31,6 +33,8 @@ export default function TakeCourseExaminationPage({ params }: { params: { id: st
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [marked, setMarked] = useState<Set<number>>(new Set());
   const [navOpen, setNavOpen] = useState(false);
+  const navPanelRef = useRef<HTMLDivElement>(null);
+  useDialog(navOpen, () => setNavOpen(false), navPanelRef);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const clientStartedAtRef = useRef<number>(0);
@@ -159,7 +163,7 @@ export default function TakeCourseExaminationPage({ params }: { params: { id: st
             <span>
               Question {current + 1} of {attempt.questions.length}
             </span>
-            <button onClick={() => toggleMark(current)} className="inline-flex items-center gap-1 font-semibold text-brand-gold">
+            <button onClick={() => toggleMark(current)} className="inline-flex items-center gap-1 font-semibold text-brand-goldText">
               <Icon icon={Star} size="sm" className={marked.has(current) ? "fill-current" : "fill-none"} />
               {marked.has(current) ? "Marked for review" : "Mark for review"}
             </button>
@@ -225,7 +229,7 @@ export default function TakeCourseExaminationPage({ params }: { params: { id: st
             />
             <button
               onClick={() => setConfirmSubmit(true)}
-              className="mt-4 w-full rounded-lg bg-brand-teal py-2.5 text-sm font-semibold text-white hover:bg-brand-tealDeep"
+              className="mt-4 w-full rounded-lg bg-brand-teal py-2.5 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep"
             >
               Submit Examination
             </button>
@@ -236,7 +240,7 @@ export default function TakeCourseExaminationPage({ params }: { params: { id: st
       {/* Mobile nav sheet */}
       {navOpen && (
         <div className="fixed inset-0 z-20 flex justify-end bg-black/30 lg:hidden" onClick={() => setNavOpen(false)}>
-          <div className="h-full w-72 overflow-y-auto bg-white dark:bg-brand-surface p-4" onClick={(e) => e.stopPropagation()}>
+          <div ref={navPanelRef} role="dialog" aria-modal="true" aria-label="Question navigation" tabIndex={-1} className="h-full w-72 overflow-y-auto bg-white dark:bg-brand-surface p-4" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4 flex items-center justify-between">
               <span className="font-display font-semibold text-brand-ink">Questions</span>
               <button onClick={() => setNavOpen(false)} aria-label="Close navigation" className="text-gray-500">
@@ -258,7 +262,7 @@ export default function TakeCourseExaminationPage({ params }: { params: { id: st
                 setNavOpen(false);
                 setConfirmSubmit(true);
               }}
-              className="mt-4 w-full rounded-lg bg-brand-teal py-2.5 text-sm font-semibold text-white"
+              className="mt-4 w-full rounded-lg bg-brand-teal py-2.5 text-sm font-semibold text-brand-onAccent"
             >
               Submit Examination
             </button>
@@ -270,10 +274,7 @@ export default function TakeCourseExaminationPage({ params }: { params: { id: st
           the module assessment take page, same reasoning: needs live
           answered/unanswered counts the shared ConfirmModal isn't
           built to lay out. */}
-      {confirmSubmit && (
-        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-sm rounded-xl bg-white dark:bg-brand-surface p-6 animate-[modal-in_0.15s_ease-out]">
-            <p className="font-display font-semibold text-brand-ink">Are you sure you want to submit your examination?</p>
+      <Modal open={confirmSubmit} onClose={() => setConfirmSubmit(false)} title="Are you sure you want to submit your examination?" size="sm">
             <div className="mt-3 flex justify-between text-sm text-gray-600">
               <span>Answered: {answeredIndices.size}</span>
               <span>Unanswered: {unansweredCount}</span>
@@ -286,9 +287,7 @@ export default function TakeCourseExaminationPage({ params }: { params: { id: st
                 {submitting ? "Submitting..." : "Submit"}
               </Button>
             </div>
-          </div>
-        </div>
-      )}
+          </Modal>
     </div>
   );
 }

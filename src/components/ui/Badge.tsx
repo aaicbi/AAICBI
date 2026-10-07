@@ -25,7 +25,7 @@ const VARIANT_CLASSES: Record<BadgeVariant, string> = {
   warning: "bg-brand-goldLight text-brand-goldText",
   danger: "bg-brand-roseLight text-brand-rose",
   neutral: "bg-brand-gray/40 text-brand-ink",
-  gold: "bg-brand-gold text-white",
+  gold: "bg-brand-gold text-brand-onGold",
 };
 
 export default function Badge({ variant = "neutral", children }: BadgeProps) {

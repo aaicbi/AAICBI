@@ -3,6 +3,7 @@ import { useState } from "react";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 
+import { Input, Textarea } from "@/components/ui/Field";
 interface ReportModalProps {
   open: boolean;
   reportedType: "TRAINEE" | "STAFF";
@@ -49,19 +50,8 @@ export default function ReportModal({ open, reportedType, reportedId, reportedNa
       <div className="w-full max-w-sm rounded-2xl bg-brand-surface p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <h2 className="font-display text-lg font-semibold text-brand-ink">Report {reportedName}</h2>
         <p className="mt-1 text-xs text-gray-500">Staff will review this. This does not notify {reportedName}.</p>
-        <input
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          placeholder="Reason (e.g. harassment, spam)"
-          className="mt-4 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-        />
-        <textarea
-          value={details}
-          onChange={(e) => setDetails(e.target.value)}
-          placeholder="Additional details (optional)"
-          rows={3}
-          className="mt-2 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-        />
+        <Input label="Reason (e.g. harassment, spam)" hideLabel compact value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (e.g. harassment, spam)" />
+        <Textarea label="Additional details (optional)" hideLabel compact value={details} onChange={(e) => setDetails(e.target.value)} placeholder="Additional details (optional)" rows={3} />
         <div className="mt-4 flex gap-2">
           <Button variant="secondary" onClick={onClose} className="flex-1">
             Cancel

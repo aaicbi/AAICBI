@@ -5,6 +5,7 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Icon from "@/components/ui/Icon";
+import DataTable from "@/components/ui/DataTable";
 import EmptyState from "@/components/ui/EmptyState";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
@@ -13,6 +14,7 @@ import { TrendingUp, TrendingDown, Minus, Download, AlertTriangle, X, MessageCir
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer } from "recharts";
 import SuspendReasonModal from "@/components/messaging/SuspendReasonModal";
 
+import { Input, Select } from "@/components/ui/Field";
 type Trend = "improving" | "declining" | "flat" | "insufficient-data";
 type CertificationStatus = "ISSUED" | "REVOKED" | "NOT_YET";
 type OverallStatus = "ON_TRACK" | "AT_RISK" | "COMPLETED";
@@ -75,7 +77,6 @@ interface TraineePerformanceDetail {
   attempts: TraineePerformanceAttemptPoint[];
 }
 
-type SortKey = "name" | "completionPct" | "firstScore" | "bestScore" | "latestScore" | "averageScore" | "totalAttempts" | "passedOnAttempt";
 
 const TREND_ICON: Record<Trend, typeof TrendingUp> = { improving: TrendingUp, declining: TrendingDown, flat: Minus, "insufficient-data": Minus };
 const TREND_COLOR: Record<Trend, string> = {
@@ -118,8 +119,6 @@ export default function PerformanceDashboard({ courseId }: { courseId: string })
   const [cohortFilter, setCohortFilter] = useState("");
   const [moduleFilter, setModuleFilter] = useState("");
   const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState<SortKey>("name");
-  const [sortDir, setSortDir] = useState<1 | -1>(1);
 
   const [selectedTraineeId, setSelectedTraineeId] = useState<string | null>(null);
   const [detail, setDetail] = useState<TraineePerformanceDetail | null>(null);
@@ -224,29 +223,10 @@ export default function PerformanceDashboard({ courseId }: { courseId: string })
   const filteredRows = useMemo(() => {
     if (!rows) return [];
     const q = search.trim().toLowerCase();
-    const filtered = q ? rows.filter((r) => r.name.toLowerCase().includes(q) || r.email.toLowerCase().includes(q)) : rows;
-    const sorted = [...filtered].sort((a, b) => {
-      const av = a[sortKey];
-      const bv = b[sortKey];
-      if (av == null && bv == null) return 0;
-      if (av == null) return 1;
-      if (bv == null) return -1;
-      if (typeof av === "string" && typeof bv === "string") return sortDir * av.localeCompare(bv);
-      return sortDir * ((av as number) - (bv as number));
-    });
-    return sorted;
-  }, [rows, search, sortKey, sortDir]);
+    return q ? rows.filter((r) => r.name.toLowerCase().includes(q) || r.email.toLowerCase().includes(q)) : rows;
+  }, [rows, search]);
 
   const atRiskRows = useMemo(() => (rows ?? []).filter((r) => r.isAtRisk), [rows]);
-
-  function toggleSort(key: SortKey) {
-    if (sortKey === key) {
-      setSortDir((d) => (d === 1 ? -1 : 1));
-    } else {
-      setSortKey(key);
-      setSortDir(1);
-    }
-  }
 
   // Every hook must run on every render regardless of notFound/loading —
   // both chartData and referenceMark are computed here, above any early
@@ -314,36 +294,23 @@ export default function PerformanceDashboard({ courseId }: { courseId: string })
 
       {/* Filter bar */}
       <div className="mt-6 flex flex-wrap items-center gap-3">
-        <select
-          value={cohortFilter}
-          onChange={(e) => setCohortFilter(e.target.value)}
-          className="rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-        >
+        <Select label="Cohort" hideLabel compact value={cohortFilter} onChange={(e) => setCohortFilter(e.target.value)}>
           <option value="">All cohorts</option>
           {cohorts.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
             </option>
           ))}
-        </select>
-        <select
-          value={moduleFilter}
-          onChange={(e) => setModuleFilter(e.target.value)}
-          className="rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-        >
+        </Select>
+        <Select label="Module" hideLabel compact value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)}>
           <option value="">All modules</option>
           {modules.map((m) => (
             <option key={m.id} value={m.id}>
               {m.title}
             </option>
           ))}
-        </select>
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search trainees…"
-          className="flex-1 min-w-[160px] rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-        />
+        </Select>
+        <Input label="Search trainees…" hideLabel compact wrapperClassName="flex-1 min-w-[160px]" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search trainees…" />
       </div>
 
       {/* Trainee table */}
@@ -351,59 +318,62 @@ export default function PerformanceDashboard({ courseId }: { courseId: string })
         {filteredRows.length === 0 ? (
           <EmptyState illustration={<GrowthPathDoodle className="h-full w-full" />} title="No trainees match" description="Adjust the filters or search above." />
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-brand-gray bg-brand-surface">
-            <table className="w-full min-w-[900px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-brand-gray text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  <SortableHeader label="Trainee" sortKey="name" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
-                  <SortableHeader label="Progress" sortKey="completionPct" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
-                  <SortableHeader label="First" sortKey="firstScore" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
-                  <SortableHeader label="Best" sortKey="bestScore" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
-                  <SortableHeader label="Latest" sortKey="latestScore" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
-                  <SortableHeader label="Average" sortKey="averageScore" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
-                  <SortableHeader label="Attempts" sortKey="totalAttempts" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
-                  <SortableHeader label="Passed On" sortKey="passedOnAttempt" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
-                  <th className="px-4 py-3">Trend</th>
-                  <th className="px-4 py-3">Certification</th>
-                  <th className="px-4 py-3">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRows.map((r) => {
-                  const TrendIcon = TREND_ICON[r.trend];
-                  return (
-                    <tr
-                      key={r.traineeId}
-                      onClick={() => setSelectedTraineeId(r.traineeId)}
-                      className="cursor-pointer border-b border-gray-100 last:border-0 hover:bg-brand-mint/30"
-                    >
-                      <td className="px-4 py-3">
-                        <p className="font-semibold text-brand-ink">{r.name}</p>
-                        <p className="text-xs text-gray-500">{r.email}</p>
-                      </td>
-                      <td className="px-4 py-3">
-                        {r.completedModules}/{r.totalModules} <span className="text-xs text-gray-500">({r.completionPct}%)</span>
-                      </td>
-                      <td className="px-4 py-3">{pct(r.firstScore)}</td>
-                      <td className="px-4 py-3">{pct(r.bestScore)}</td>
-                      <td className="px-4 py-3">{pct(r.latestScore)}</td>
-                      <td className="px-4 py-3">{pct(r.averageScore)}</td>
-                      <td className="px-4 py-3">{r.totalAttempts}</td>
-                      <td className="px-4 py-3">{r.passedOnAttempt ?? "—"}</td>
-                      <td className="px-4 py-3">
-                        <Icon icon={TrendIcon} size="sm" className={TREND_COLOR[r.trend]} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant={CERT_BADGE[r.certificationStatus].variant}>{CERT_BADGE[r.certificationStatus].label}</Badge>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant={STATUS_BADGE[r.overallStatus].variant}>{STATUS_BADGE[r.overallStatus].label}</Badge>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="rounded-xl border border-brand-gray bg-brand-surface p-4">
+            <DataTable
+              caption="Trainee performance"
+              rows={filteredRows}
+              rowKey={(r) => r.traineeId}
+              onRowClick={(r) => setSelectedTraineeId(r.traineeId)}
+              defaultSort={{ key: "name", dir: "asc" }}
+              pageSize={20}
+              columns={[
+                {
+                  key: "name",
+                  header: "Trainee",
+                  sortValue: (r) => r.name,
+                  render: (r) => (
+                    <div>
+                      <p className="font-semibold text-brand-ink">{r.name}</p>
+                      <p className="text-xs font-normal text-gray-600">{r.email}</p>
+                    </div>
+                  ),
+                },
+                {
+                  key: "completionPct",
+                  header: "Progress",
+                  sortValue: (r) => r.completionPct,
+                  render: (r) => (
+                    <>
+                      {r.completedModules}/{r.totalModules} <span className="text-xs text-gray-600">({r.completionPct}%)</span>
+                    </>
+                  ),
+                },
+                { key: "first", header: "First", sortValue: (r) => r.firstScore, render: (r) => pct(r.firstScore) },
+                { key: "best", header: "Best", sortValue: (r) => r.bestScore, render: (r) => pct(r.bestScore) },
+                { key: "latest", header: "Latest", sortValue: (r) => r.latestScore, render: (r) => pct(r.latestScore) },
+                { key: "avg", header: "Average", sortValue: (r) => r.averageScore, render: (r) => pct(r.averageScore) },
+                { key: "attempts", header: "Attempts", sortValue: (r) => r.totalAttempts, render: (r) => r.totalAttempts },
+                { key: "passedOn", header: "Passed On", sortValue: (r) => r.passedOnAttempt, render: (r) => r.passedOnAttempt ?? "—" },
+                {
+                  key: "trend",
+                  header: "Trend",
+                  render: (r) => {
+                    const TrendIcon = TREND_ICON[r.trend];
+                    return <Icon icon={TrendIcon} size="sm" className={TREND_COLOR[r.trend]} label={r.trend.replace("-", " ")} />;
+                  },
+                },
+                {
+                  key: "cert",
+                  header: "Certification",
+                  render: (r) => <Badge variant={CERT_BADGE[r.certificationStatus].variant}>{CERT_BADGE[r.certificationStatus].label}</Badge>,
+                },
+                {
+                  key: "status",
+                  header: "Status",
+                  render: (r) => <Badge variant={STATUS_BADGE[r.overallStatus].variant}>{STATUS_BADGE[r.overallStatus].label}</Badge>,
+                },
+              ]}
+            />
           </div>
         )}
       </section>
@@ -417,31 +387,24 @@ export default function PerformanceDashboard({ courseId }: { courseId: string })
             <SkeletonList rows={2} />
           </div>
         ) : (
-          <div className="mt-3 overflow-x-auto rounded-xl border border-brand-gray bg-brand-surface">
-            <table className="w-full min-w-[600px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-brand-gray text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  <th className="px-4 py-3">Module</th>
-                  <th className="px-4 py-3">Assessment</th>
-                  <th className="px-4 py-3">Trainees Attempted</th>
-                  <th className="px-4 py-3">Total Attempts</th>
-                  <th className="px-4 py-3">Avg. Score</th>
-                  <th className="px-4 py-3">Pass Rate</th>
-                </tr>
-              </thead>
-              <tbody>
-                {moduleStats.map((m) => (
-                  <tr key={m.moduleId} className="border-b border-gray-100 last:border-0">
-                    <td className="px-4 py-3 font-semibold text-brand-ink">{m.moduleTitle}</td>
-                    <td className="px-4 py-3">{m.hasAssessment ? <Badge variant="neutral">Configured</Badge> : <Badge variant="warning">Not configured</Badge>}</td>
-                    <td className="px-4 py-3">{m.hasAssessment ? m.distinctTraineesAttempted : "—"}</td>
-                    <td className="px-4 py-3">{m.hasAssessment ? m.totalAttempts : "—"}</td>
-                    <td className="px-4 py-3">{m.hasAssessment ? pct(m.averagePercentage) : "—"}</td>
-                    <td className="px-4 py-3">{m.hasAssessment ? pct(m.passRate) : "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="mt-3 rounded-xl border border-brand-gray bg-brand-surface p-4">
+            <DataTable
+              caption="Module assessment statistics"
+              rows={moduleStats}
+              rowKey={(m) => m.moduleId}
+              columns={[
+                { key: "module", header: "Module", className: "font-semibold text-brand-ink", sortValue: (m) => m.moduleTitle, render: (m) => m.moduleTitle },
+                {
+                  key: "assessment",
+                  header: "Assessment",
+                  render: (m) => (m.hasAssessment ? <Badge variant="neutral">Configured</Badge> : <Badge variant="warning">Not configured</Badge>),
+                },
+                { key: "trainees", header: "Trainees Attempted", sortValue: (m) => (m.hasAssessment ? m.distinctTraineesAttempted : null), render: (m) => (m.hasAssessment ? m.distinctTraineesAttempted : "—") },
+                { key: "attempts", header: "Total Attempts", sortValue: (m) => (m.hasAssessment ? m.totalAttempts : null), render: (m) => (m.hasAssessment ? m.totalAttempts : "—") },
+                { key: "avg", header: "Avg. Score", sortValue: (m) => (m.hasAssessment ? m.averagePercentage : null), render: (m) => (m.hasAssessment ? pct(m.averagePercentage) : "—") },
+                { key: "pass", header: "Pass Rate", sortValue: (m) => (m.hasAssessment ? m.passRate : null), render: (m) => (m.hasAssessment ? pct(m.passRate) : "—") },
+              ]}
+            />
           </div>
         )}
       </section>
@@ -541,29 +504,25 @@ export default function PerformanceDashboard({ courseId }: { courseId: string })
                       </ResponsiveContainer>
                     </div>
 
-                    <div className="mt-4 overflow-x-auto">
-                      <table className="w-full text-left text-xs">
-                        <thead>
-                          <tr className="border-b border-brand-gray font-semibold uppercase tracking-wide text-gray-500">
-                            <th className="py-2 pr-3">Assessment</th>
-                            <th className="py-2 pr-3">Attempt</th>
-                            <th className="py-2 pr-3">Score</th>
-                            <th className="py-2 pr-3">Result</th>
-                            <th className="py-2 pr-3">Submitted</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {detail.attempts.map((a, i) => (
-                            <tr key={i} className="border-b border-gray-100 last:border-0">
-                              <td className="py-2 pr-3">{a.examTitle}</td>
-                              <td className="py-2 pr-3">{a.attemptNumber}</td>
-                              <td className="py-2 pr-3">{pct(a.percentage)}</td>
-                              <td className="py-2 pr-3">{a.passed ? "Pass" : "Fail"}</td>
-                              <td className="py-2 pr-3">{a.submittedAt ? new Date(a.submittedAt).toLocaleDateString() : "—"}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                    <div className="mt-4 text-xs">
+                      <DataTable
+                        caption="This trainee's attempts"
+                        rows={detail.attempts}
+                        rowKey={(a) => `${a.examTitle}-${a.attemptNumber}-${a.submittedAt ?? ""}`}
+                        pageSize={10}
+                        columns={[
+                          { key: "exam", header: "Assessment", sortValue: (a) => a.examTitle, render: (a) => a.examTitle },
+                          { key: "attempt", header: "Attempt", sortValue: (a) => a.attemptNumber, render: (a) => a.attemptNumber },
+                          { key: "score", header: "Score", sortValue: (a) => a.percentage, render: (a) => pct(a.percentage) },
+                          { key: "result", header: "Result", sortValue: (a) => (a.passed ? 1 : 0), render: (a) => (a.passed ? "Pass" : "Fail") },
+                          {
+                            key: "submitted",
+                            header: "Submitted",
+                            sortValue: (a) => (a.submittedAt ? new Date(a.submittedAt).getTime() : null),
+                            render: (a) => (a.submittedAt ? new Date(a.submittedAt).toLocaleDateString() : "—"),
+                          },
+                        ]}
+                      />
                     </div>
                   </>
                 )}
@@ -579,26 +538,5 @@ export default function PerformanceDashboard({ courseId }: { courseId: string })
         <SuspendReasonModal open={suspendModalOpen} traineeName={detail.name} onCancel={() => setSuspendModalOpen(false)} onConfirm={confirmSuspendTrainee} />
       )}
     </>
-  );
-}
-
-function SortableHeader({
-  label,
-  sortKey,
-  activeKey,
-  dir,
-  onClick,
-}: {
-  label: string;
-  sortKey: SortKey;
-  activeKey: SortKey;
-  dir: 1 | -1;
-  onClick: (key: SortKey) => void;
-}) {
-  const active = activeKey === sortKey;
-  return (
-    <th className="cursor-pointer select-none px-4 py-3 hover:text-brand-teal" onClick={() => onClick(sortKey)}>
-      {label} {active && (dir === 1 ? "↑" : "↓")}
-    </th>
   );
 }

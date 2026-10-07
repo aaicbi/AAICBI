@@ -46,8 +46,19 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const org = await prisma.trainingOrganization.findUnique({ where: { email: parsed.data.email } });
-  if (!org || !(await verifyPassword(parsed.data.password, org.passwordHash))) {
+  // The organization's own login, or one of its invited teammates. Both
+  // end in the same session (the organization's shadow staff account).
+  const owner = await prisma.trainingOrganization.findUnique({ where: { email: parsed.data.email } });
+  const member = owner
+    ? null
+    : await prisma.trainingOrganizationMember.findUnique({
+        where: { email: parsed.data.email },
+        include: { trainingOrganization: true },
+      });
+  const org = owner ?? member?.trainingOrganization ?? null;
+  const passwordHash = owner?.passwordHash ?? member?.passwordHash ?? null;
+  // A disabled teammate gets the same answer as a wrong password.
+  if (!org || !passwordHash || member?.disabledAt || !(await verifyPassword(parsed.data.password, passwordHash))) {
     return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
   }
 
@@ -63,10 +74,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Your account isn't fully set up yet. Please contact AAICBI." }, { status: 500 });
   }
 
-  await createSession({ userId: org.staffUserId, email: org.email, role: "ADMIN" });
-  await prisma.trainingOrganization.update({
-    where: { id: org.id },
-    data: { previousLoginAt: org.lastLoginAt, lastLoginAt: new Date() },
-  });
+  await createSession({ userId: org.staffUserId, email: parsed.data.email, role: "ADMIN" });
+  if (member) {
+    await prisma.trainingOrganizationMember.update({ where: { id: member.id }, data: { lastLoginAt: new Date() } });
+  } else {
+    await prisma.trainingOrganization.update({
+      where: { id: org.id },
+      data: { previousLoginAt: org.lastLoginAt, lastLoginAt: new Date() },
+    });
+  }
   return NextResponse.json({ id: org.id, name: org.name, approvalState: org.approvalState });
 }

@@ -12,6 +12,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
 import { ADMIN_NAV_STAFF } from "@/lib/admin/nav";
 
+import { Input, Select } from "@/components/ui/Field";
 interface AgreementDto {
   id: string;
   status: "PENDING" | "ACCEPTED";
@@ -274,20 +275,14 @@ export default function InstructorDetailPage({ params }: { params: { id: string 
             <Card className="mt-3">
               <form onSubmit={sendAgreement} className="space-y-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-600">Template</label>
-                  <select
-                    required
-                    value={form.templateId}
-                    onChange={(e) => setForm((f) => ({ ...f, templateId: e.target.value }))}
-                    className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  >
+                  <Select label="Template" compact required value={form.templateId} onChange={(e) => setForm((f) => ({ ...f, templateId: e.target.value }))}>
                     <option value="">Select a template…</option>
                     {templates.map((t) => (
                       <option key={t.id} value={t.id}>
                         {t.name}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                   {templates.length === 0 && (
                     <p className="mt-1 text-xs text-brand-rose">
                       No active templates yet — create one at{" "}
@@ -307,18 +302,11 @@ export default function InstructorDetailPage({ params }: { params: { id: string 
                   <Field label="Expected Start Date" type="date" value={form.effectiveDate} onChange={(v) => setForm((f) => ({ ...f, effectiveDate: v }))} required />
                   <Field label="Expected End Date" type="date" value={form.endDate} onChange={(v) => setForm((f) => ({ ...f, endDate: v }))} />
                   <Field label="Remuneration (₦)" type="number" value={form.monthlyCompensationNaira} onChange={(v) => setForm((f) => ({ ...f, monthlyCompensationNaira: v }))} placeholder="100000" />
-                  <div>
-                    <label className="text-xs font-semibold text-gray-600">Payment Schedule</label>
-                    <select
-                      value={form.paymentFrequency}
-                      onChange={(e) => setForm((f) => ({ ...f, paymentFrequency: e.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                    >
+                  <Select label="Payment Schedule" compact value={form.paymentFrequency} onChange={(e) => setForm((f) => ({ ...f, paymentFrequency: e.target.value }))}>
                       <option value="Monthly">Monthly</option>
                       <option value="Milestone">Milestone</option>
                       <option value="Other">Other</option>
-                    </select>
-                  </div>
+                    </Select>
                   <Field label="Payment Date / Arrangement" value={form.paymentDate} onChange={(v) => setForm((f) => ({ ...f, paymentDate: v }))} placeholder="e.g. 5th of every month" />
                   <Field label="Live Session Day" value={form.liveSessionDay} onChange={(v) => setForm((f) => ({ ...f, liveSessionDay: v }))} placeholder="e.g. Saturday" />
                   <Field label="Live Session Time" value={form.liveSessionTime} onChange={(v) => setForm((f) => ({ ...f, liveSessionTime: v }))} placeholder="e.g. 4:00 PM WAT" />
@@ -381,18 +369,14 @@ export default function InstructorDetailPage({ params }: { params: { id: string 
 
           <Card className="mt-3">
             <div className="flex gap-2">
-              <select
-                value={courseToAssign}
-                onChange={(e) => setCourseToAssign(e.target.value)}
-                className="flex-1 rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-              >
+              <Select label="Course to assign" hideLabel compact wrapperClassName="flex-1" value={courseToAssign} onChange={(e) => setCourseToAssign(e.target.value)}>
                 <option value="">Select a course to assign…</option>
                 {unassignedCourses.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.title}
                   </option>
                 ))}
-              </select>
+              </Select>
               <Button size="sm" onClick={assignCourse} loading={assigning} disabled={!courseToAssign}>
                 Assign
               </Button>
@@ -411,19 +395,12 @@ export default function InstructorDetailPage({ params }: { params: { id: string 
                 <Card key={c.id}>
                   <p className="font-semibold text-brand-ink">{c.title}</p>
                   <div className="mt-3 grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-semibold text-gray-600">Payout Type</label>
-                      <select
-                        value={f.payoutType}
-                        onChange={(e) =>
+                    <Select label="Payout Type" compact value={f.payoutType} onChange={(e) =>
                           setPayoutForm((p) => ({ ...p, [c.id]: { ...p[c.id], payoutType: e.target.value as typeof f.payoutType } }))
-                        }
-                        className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                      >
+                        }>
                         <option value="PERCENTAGE_OF_REVENUE">Percentage of Revenue</option>
                         <option value="FLAT_PER_SUBSCRIBER">Flat Rate per Subscriber</option>
-                      </select>
-                    </div>
+                      </Select>
                     {f.payoutType === "PERCENTAGE_OF_REVENUE" ? (
                       <Field
                         label="Percentage (%)"
@@ -472,16 +449,13 @@ function Field({
   required?: boolean;
 }) {
   return (
-    <div>
-      <label className="text-xs font-semibold text-gray-600">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        required={required}
-        className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-      />
-    </div>
+    <Input
+      label={label}
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      required={required}
+    />
   );
 }

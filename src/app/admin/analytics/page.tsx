@@ -12,8 +12,10 @@ import { BarChart3, Download, Mail } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import LiveActivityCard from "@/components/analytics/LiveActivityCard";
 import { useToast } from "@/components/ui/Toast";
+import DataTable from "@/components/ui/DataTable";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
+import { Input } from "@/components/ui/Field";
 interface PlatformOverview {
   registeredUsers: number | null;
   newRegistrations: number | null;
@@ -179,7 +181,7 @@ export default function AdminAnalyticsPage() {
                 <button
                   key={d}
                   onClick={() => setDays(d)}
-                  className={`px-3 py-1.5 text-sm font-semibold ${d === days ? "bg-brand-teal text-white" : "bg-brand-surface text-brand-ink hover:bg-gray-50"}`}
+                  className={`px-3 py-1.5 text-sm font-semibold ${d === days ? "bg-brand-teal text-brand-onAccent" : "bg-brand-surface text-brand-ink hover:bg-gray-50"}`}
                 >
                   {d}d
                 </button>
@@ -207,15 +209,7 @@ export default function AdminAnalyticsPage() {
             weekly cron's fixed SUPER_ADMIN/ADMIN staff list. */}
         {showSendForm && (
           <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-brand-gray bg-brand-surface px-4 py-3">
-            <input
-              type="email"
-              value={sendEmail}
-              onChange={(e) => setSendEmail(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submitSend()}
-              placeholder="recipient@example.com"
-              className="min-w-[220px] flex-1 rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-              autoFocus
-            />
+            <Input label="recipient@example.com" hideLabel compact wrapperClassName="min-w-[220px] flex-1" type="email" value={sendEmail} onChange={(e) => setSendEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submitSend()} placeholder="recipient@example.com" autoFocus />
             <Button onClick={submitSend} loading={sending} disabled={!sendEmail.trim()} size="sm">
               Send ({days}d report)
             </Button>
@@ -358,33 +352,23 @@ export default function AdminAnalyticsPage() {
               {data.coursePerformance.length === 0 ? (
                 <p className="mt-2 text-sm text-gray-500">No course activity in this period yet.</p>
               ) : (
-                <div className="mt-3 overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-brand-gray text-left text-xs uppercase tracking-wide text-gray-500">
-                        <th className="pb-2 pr-4">Course</th>
-                        <th className="pb-2 pr-4 text-right">Views</th>
-                        <th className="pb-2 pr-4 text-right">Unique Viewers</th>
-                        <th className="pb-2 pr-4 text-right">Anonymous Views</th>
-                        <th className="pb-2 pr-4 text-right">Enrollments</th>
-                        <th className="pb-2 pr-4 text-right">Completions</th>
-                        <th className="pb-2 text-right">Completion Rate</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.coursePerformance.map((row) => (
-                        <tr key={row.courseId} className="border-b border-gray-100">
-                          <td className="py-2 pr-4 font-medium text-brand-ink">{row.title}</td>
-                          <td className="py-2 pr-4 text-right">{row.views}</td>
-                          <td className="py-2 pr-4 text-right">{row.uniqueViewers}</td>
-                          <td className="py-2 pr-4 text-right">{row.anonymousViews}</td>
-                          <td className="py-2 pr-4 text-right">{row.enrollments}</td>
-                          <td className="py-2 pr-4 text-right">{row.completions}</td>
-                          <td className="py-2 text-right">{row.completionRate != null ? `${row.completionRate}%` : "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="mt-3">
+                  <DataTable
+                    caption="Course performance"
+                    rows={data.coursePerformance}
+                    rowKey={(r) => r.courseId}
+                    pageSize={25}
+                    defaultSort={{ key: "views", dir: "desc" }}
+                    columns={[
+                      { key: "title", header: "Course", sortValue: (r) => r.title, className: "font-medium text-brand-ink", render: (r) => r.title },
+                      { key: "views", header: "Views", align: "right", sortValue: (r) => r.views, render: (r) => r.views },
+                      { key: "unique", header: "Unique Viewers", align: "right", sortValue: (r) => r.uniqueViewers, render: (r) => r.uniqueViewers },
+                      { key: "anon", header: "Anonymous Views", align: "right", sortValue: (r) => r.anonymousViews, render: (r) => r.anonymousViews },
+                      { key: "enrol", header: "Enrollments", align: "right", sortValue: (r) => r.enrollments, render: (r) => r.enrollments },
+                      { key: "comp", header: "Completions", align: "right", sortValue: (r) => r.completions, render: (r) => r.completions },
+                      { key: "rate", header: "Completion Rate", align: "right", sortValue: (r) => r.completionRate, render: (r) => (r.completionRate != null ? `${r.completionRate}%` : "—") },
+                    ]}
+                  />
                 </div>
               )}
             </Card>
@@ -392,25 +376,19 @@ export default function AdminAnalyticsPage() {
             {/* Feature usage */}
             <Card className="mt-6">
               <p className="text-sm font-semibold text-brand-ink">Feature Usage</p>
-              <div className="mt-3 overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-brand-gray text-left text-xs uppercase tracking-wide text-gray-500">
-                      <th className="pb-2 pr-4">Feature</th>
-                      <th className="pb-2 pr-4 text-right">Total Uses</th>
-                      <th className="pb-2 text-right">Unique Users</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.featureUsage.map((row) => (
-                      <tr key={row.feature} className="border-b border-gray-100">
-                        <td className="py-2 pr-4 font-medium text-brand-ink">{row.feature}</td>
-                        <td className="py-2 pr-4 text-right">{row.totalUses}</td>
-                        <td className="py-2 text-right">{row.uniqueUsers}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="mt-3">
+                <DataTable
+                  caption="Feature usage"
+                  rows={data.featureUsage}
+                  rowKey={(r) => r.feature}
+                  pageSize={25}
+                  defaultSort={{ key: "uses", dir: "desc" }}
+                  columns={[
+                    { key: "feature", header: "Feature", sortValue: (r) => r.feature, className: "font-medium text-brand-ink", render: (r) => r.feature },
+                    { key: "uses", header: "Total Uses", align: "right", sortValue: (r) => r.totalUses, render: (r) => r.totalUses },
+                    { key: "users", header: "Unique Users", align: "right", sortValue: (r) => r.uniqueUsers, render: (r) => r.uniqueUsers },
+                  ]}
+                />
               </div>
             </Card>
 
@@ -579,31 +557,21 @@ export default function AdminAnalyticsPage() {
             {data.cohorts && data.cohorts.length > 0 && (
               <Card className="mt-6">
                 <p className="text-sm font-semibold text-brand-ink">Cohorts — by registration week</p>
-                <div className="mt-3 overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-brand-gray text-left text-xs uppercase tracking-wide text-gray-500">
-                        <th className="pb-2 pr-4">Week</th>
-                        <th className="pb-2 pr-4 text-right">Size</th>
-                        <th className="pb-2 pr-4 text-right">Active</th>
-                        <th className="pb-2 pr-4 text-right">Completed</th>
-                        <th className="pb-2 pr-4 text-right">Completion Rate</th>
-                        <th className="pb-2 text-right">Top Source</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.cohorts.map((c) => (
-                        <tr key={c.weekStart} className="border-b border-gray-100">
-                          <td className="py-2 pr-4 font-medium text-brand-ink">{c.weekStart}</td>
-                          <td className="py-2 pr-4 text-right">{c.size}</td>
-                          <td className="py-2 pr-4 text-right">{c.activeCount}</td>
-                          <td className="py-2 pr-4 text-right">{c.completedCount}</td>
-                          <td className="py-2 pr-4 text-right">{c.completionRate != null ? `${c.completionRate}%` : "—"}</td>
-                          <td className="py-2 text-right capitalize">{c.topReferrerSource ?? "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="mt-3">
+                  <DataTable
+                    caption="Cohorts by registration week"
+                    rows={data.cohorts}
+                    rowKey={(c) => c.weekStart}
+                    pageSize={26}
+                    columns={[
+                      { key: "week", header: "Week", sortValue: (c) => c.weekStart, className: "font-medium text-brand-ink", render: (c) => c.weekStart },
+                      { key: "size", header: "Size", align: "right", sortValue: (c) => c.size, render: (c) => c.size },
+                      { key: "active", header: "Active", align: "right", sortValue: (c) => c.activeCount, render: (c) => c.activeCount },
+                      { key: "done", header: "Completed", align: "right", sortValue: (c) => c.completedCount, render: (c) => c.completedCount },
+                      { key: "rate", header: "Completion Rate", align: "right", sortValue: (c) => c.completionRate, render: (c) => (c.completionRate != null ? `${c.completionRate}%` : "—") },
+                      { key: "source", header: "Top Source", align: "right", className: "capitalize", sortValue: (c) => c.topReferrerSource ?? null, render: (c) => c.topReferrerSource ?? "—" },
+                    ]}
+                  />
                 </div>
               </Card>
             )}

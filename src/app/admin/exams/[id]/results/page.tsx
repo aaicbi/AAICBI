@@ -1,15 +1,16 @@
 "use client";
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
-import { SkeletonTableRows } from "@/components/ui/Skeleton";
+import DataTable from "@/components/ui/DataTable";
 import { useToast } from "@/components/ui/Toast";
-import { ChevronDown, ChevronRight, Clock, Award } from "lucide-react";
+import { Clock, Award } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
+import { Input } from "@/components/ui/Field";
 interface PerformanceSummaryDto {
   strengths: string[];
   weaknesses: string[];
@@ -46,7 +47,6 @@ interface ResultsResponse {
 export default function ExamResultsPage({ params }: { params: { id: string } }) {
   const [data, setData] = useState<ResultsResponse | null>(null);
   const [search, setSearch] = useState("");
-  const [expanded, setExpanded] = useState<string | null>(null);
   const [waiving, setWaiving] = useState<string | null>(null);
   const { showToast } = useToast();
 
@@ -113,124 +113,104 @@ export default function ExamResultsPage({ params }: { params: { id: string } }) 
               ))}
         </div>
 
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name or email..."
-          aria-label="Search by name or email"
-          className="mt-6 w-full rounded-lg border border-brand-gray px-4 py-2.5 outline-none focus:border-brand-teal"
-        />
+        <Input label="Search by name or email" hideLabel wrapperClassName="mt-4" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or email..." />
 
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[520px] text-left text-sm">
-            <thead>
-              <tr className="border-b border-brand-gray text-gray-500">
-                <th className="py-2">Trainee</th>
-                <th>Score</th>
-                <th>Status</th>
-                <th>Submitted</th>
-                <th></th>
-                <th></th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {!data ? (
-                <SkeletonTableRows rows={5} cols={7} />
-              ) : (
-                <>
-                  {data.attempts.map((a) => (
-                    <Fragment key={a.id}>
-                      <tr
-                        className={`border-b border-gray-100 ${a.performanceSummary ? "cursor-pointer hover:bg-gray-50" : ""}`}
-                        onClick={() => a.performanceSummary && setExpanded(expanded === a.id ? null : a.id)}
-                      >
-                        <td className="py-2">
-                          <div className="font-medium text-brand-ink">{a.trainee.name}</div>
-                          <div className="text-xs text-gray-500">{a.trainee.email}</div>
-                        </td>
-                        <td>
-                          {a.score}/{a.totalQuestions} ({Math.round(a.percentage ?? 0)}%)
-                        </td>
-                        <td>
-                          <Badge variant={a.passed ? "success" : "danger"}>{a.passed ? "PASS" : "FAIL"}</Badge>
-                        </td>
-                        <td className="text-xs text-gray-500">
-                          {a.submittedAt ? new Date(a.submittedAt).toLocaleString() : "—"}
-                        </td>
-                        <td className="text-xs text-brand-teal">
-                          {/* M13 — not every attempt has a summary (best-effort
-                              generation, see the schema comment on
-                              PerformanceSummary); this cell is just silent for
-                              those rather than showing a broken/empty link. */}
-                          {a.performanceSummary && (
-                            <span className="inline-flex items-center gap-1">
-                              <Icon icon={expanded === a.id ? ChevronDown : ChevronRight} size="sm" /> {expanded === a.id ? "Hide analysis" : "AI analysis"}
-                            </span>
-                          )}
-                        </td>
-                        <td onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => waiveCooldown(a.traineeId, a.trainee.name)}
-                            disabled={waiving === a.traineeId}
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-brand-teal disabled:opacity-50"
-                            title="Let this trainee retake the exam right away, bypassing the retake cooldown."
-                          >
-                            <Icon icon={Clock} size="sm" /> {waiving === a.traineeId ? "Waiving…" : "Waive cooldown"}
-                          </button>
-                        </td>
-                        <td onClick={(e) => e.stopPropagation()}>
-                          {a.earnedExamCertificate && !a.earnedExamCertificate.revokedAt && (
-                            <a
-                              href={`/certificate/${a.earnedExamCertificate.code}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-xs font-semibold text-brand-gold hover:underline"
-                            >
-                              <Icon icon={Award} size="sm" /> Certificate Issued
-                            </a>
-                          )}
-                        </td>
-                      </tr>
-                      {expanded === a.id && a.performanceSummary && (
-                        <tr className="border-b border-gray-100 bg-brand-mint/30">
-                          <td colSpan={7} className="px-2 py-3">
-                            <p className="text-sm text-gray-700">{a.performanceSummary.narrative}</p>
-                            {(a.performanceSummary.strengths.length > 0 ||
-                              a.performanceSummary.weaknesses.length > 0) && (
-                              <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                {a.performanceSummary.strengths.length > 0 && (
-                                  <div>
-                                    <p className="text-xs font-semibold text-brand-teal">Strong in</p>
-                                    <p className="text-sm text-gray-800">{a.performanceSummary.strengths.join(", ")}</p>
-                                  </div>
-                                )}
-                                {a.performanceSummary.weaknesses.length > 0 && (
-                                  <div>
-                                    <p className="text-xs font-semibold text-brand-gold">Needs improvement</p>
-                                    <p className="text-sm text-gray-800">
-                                      {a.performanceSummary.weaknesses.join(", ")}
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
-                  ))}
-                  {data.attempts.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="py-6 text-center text-gray-500">
-                        No submitted attempts yet.
-                      </td>
-                    </tr>
-                  )}
-                </>
-              )}
-            </tbody>
-          </table>
+        <div className="mt-4">
+          <DataTable
+            caption="Submitted attempts for this examination"
+            rows={data ? data.attempts : null}
+            rowKey={(a) => a.id}
+            empty={<p className="py-6 text-center text-gray-600">No submitted attempts yet.</p>}
+            columns={[
+              {
+                key: "trainee",
+                header: "Trainee",
+                sortValue: (a) => a.trainee.name,
+                render: (a) => (
+                  <div>
+                    <div className="font-medium text-brand-ink">{a.trainee.name}</div>
+                    <div className="text-xs font-normal text-gray-600">{a.trainee.email}</div>
+                  </div>
+                ),
+              },
+              {
+                key: "score",
+                header: "Score",
+                sortValue: (a) => a.percentage,
+                render: (a) => `${a.score}/${a.totalQuestions} (${Math.round(a.percentage ?? 0)}%)`,
+              },
+              {
+                key: "status",
+                header: "Status",
+                sortValue: (a) => (a.passed ? 1 : 0),
+                render: (a) => <Badge variant={a.passed ? "success" : "danger"}>{a.passed ? "PASS" : "FAIL"}</Badge>,
+              },
+              {
+                key: "submitted",
+                header: "Submitted",
+                className: "text-xs text-gray-600",
+                sortValue: (a) => (a.submittedAt ? new Date(a.submittedAt).getTime() : null),
+                render: (a) => (a.submittedAt ? new Date(a.submittedAt).toLocaleString() : "—"),
+              },
+              {
+                key: "cooldown",
+                header: "",
+                render: (a) => (
+                  <button
+                    onClick={() => waiveCooldown(a.traineeId, a.trainee.name)}
+                    disabled={waiving === a.traineeId}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-gray-600 hover:text-brand-teal disabled:opacity-50"
+                    title="Let this trainee retake the exam right away, bypassing the retake cooldown."
+                  >
+                    <Icon icon={Clock} size="sm" /> {waiving === a.traineeId ? "Waiving…" : "Waive cooldown"}
+                  </button>
+                ),
+              },
+              {
+                key: "certificate",
+                header: "",
+                render: (a) =>
+                  a.earnedExamCertificate && !a.earnedExamCertificate.revokedAt ? (
+                    <a
+                      href={`/certificate/${a.earnedExamCertificate.code}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-brand-goldText hover:underline"
+                    >
+                      <Icon icon={Award} size="sm" /> Certificate Issued
+                    </a>
+                  ) : null,
+              },
+            ]}
+            expand={{
+              // Not every attempt has a summary (best-effort generation,
+              // see the schema comment on PerformanceSummary); rows
+              // without one simply show no toggle.
+              label: (open) => (open ? "Hide analysis" : "AI analysis"),
+              render: (a) =>
+                a.performanceSummary ? (
+                  <div>
+                    <p className="text-sm text-gray-700">{a.performanceSummary.narrative}</p>
+                    {(a.performanceSummary.strengths.length > 0 || a.performanceSummary.weaknesses.length > 0) && (
+                      <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {a.performanceSummary.strengths.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-brand-teal">Strong in</p>
+                            <p className="text-sm text-gray-800">{a.performanceSummary.strengths.join(", ")}</p>
+                          </div>
+                        )}
+                        {a.performanceSummary.weaknesses.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-brand-goldText">Needs improvement</p>
+                            <p className="text-sm text-gray-800">{a.performanceSummary.weaknesses.join(", ")}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : null,
+            }}
+          />
         </div>
       </main>
     </>

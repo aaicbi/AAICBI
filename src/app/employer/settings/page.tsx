@@ -6,6 +6,7 @@ import Card from "@/components/ui/Card";
 import ContactAdminCard from "@/components/ContactAdminCard";
 import { useToast } from "@/components/ui/Toast";
 
+import Toggle from "@/components/ui/Toggle";
 const NAV = [
   { label: "Dashboard", href: "/employer/dashboard" },
   { label: "Discover", href: "/employer/discover" },
@@ -109,21 +110,7 @@ export default function EmployerSettingsPage() {
               <p className="mt-1 text-sm text-gray-600">Switch to a dark theme. This follows you across devices.</p>
             </div>
             {darkMode !== null && (
-              <button
-                onClick={toggleDarkMode}
-                disabled={saving}
-                role="switch"
-                aria-checked={darkMode}
-                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                  darkMode ? "bg-brand-teal" : "bg-gray-300"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                    darkMode ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
+              <Toggle checked={darkMode} onChange={() => toggleDarkMode()} disabled={saving} label="Dark mode" />
             )}
           </div>
         </Card>

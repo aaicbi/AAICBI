@@ -3220,7 +3220,38 @@ model TrainingOrganization {
 
   certificateTemplates CertificateTemplate[]
 
+  // Teammates the organization has invited. They sign in with their own
+  // email and password but receive the same session as the organization's
+  // own login (its shadow staff account), so every existing ownership
+  // check keeps working unchanged. See TrainingOrganizationMember.
+  members TrainingOrganizationMember[]
+
   @@index([approvalState])
+}
+
+// A teammate on a training organization's account. Deliberately NOT a
+// User: the organization's courses, templates and billing are all keyed
+// to its single shadow staff account, so a member's login issues that
+// account's session (see training-org-login) rather than a new identity.
+// Consequences, accepted on purpose: members are interchangeable inside
+// the organization (the session carries no member id), and disabling a
+// member stops new sign-ins but does not end a session already open.
+model TrainingOrganizationMember {
+  id                     String               @id @default(cuid())
+  trainingOrganizationId String
+  trainingOrganization   TrainingOrganization @relation(fields: [trainingOrganizationId], references: [id], onDelete: Cascade)
+  name                   String
+  email                  String               @unique
+  // Unusable random value until the member sets their own password
+  // through the emailed link (same invite pattern as AAICBI staff).
+  passwordHash           String
+  setupToken             String?              @unique
+  setupTokenExpiresAt    DateTime?
+  disabledAt             DateTime?
+  lastLoginAt            DateTime?
+  createdAt              DateTime             @default(now())
+
+  @@index([trainingOrganizationId])
 }
 
 enum TrainingOrganizationBillingModel {

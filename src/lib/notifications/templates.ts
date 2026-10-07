@@ -1036,6 +1036,23 @@ export function staffWelcomeEmail(name: string, roleLabel: string, setupUrl: str
 }
 
 /**
+ * A training organization invited a teammate. Same setup-link pattern
+ * as staffWelcomeEmail, addressed in the organization's name.
+ */
+export function trainingOrgMemberInviteEmail(name: string, organizationName: string, setupUrl: string): EmailContent {
+  return {
+    subject: `You've been invited to ${organizationName} on AAICBI`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(name)},</p>
+      <p style="margin:0 0 16px;"><strong>${escapeHtml(organizationName)}</strong> has added you to their AAICBI account. Set your password to start managing their courses and trainees.</p>
+      ${button(setupUrl, "Set Your Password")}
+      <p style="margin:0;font-size:13px;color:#666;">This link expires in 48 hours.</p>
+    `),
+    text: `Hi ${name},\n\n${organizationName} has added you to their AAICBI account. Set your password to start managing their courses and trainees.\n\n${setupUrl}\n\nThis link expires in 48 hours.`,
+  };
+}
+
+/**
  * Pitch & Post, Phase 1 — the investor-account counterpart to
  * staffWelcomeEmail above, same setup-link mechanism (reuses the
  * password-reset token, not a separate "set initial password" flow).

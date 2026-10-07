@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
@@ -38,13 +39,39 @@ export default async function EmployerDashboardPage() {
   if (!employer) redirect("/employer/login");
   if (employer.approvalState !== "APPROVED") redirect("/employer/status");
 
-  const [notifications, unreadCount, sinceLastVisit, pendingIntroductions, activeVacancies] = await Promise.all([
+  const [
+    notifications,
+    unreadCount,
+    sinceLastVisit,
+    pendingIntroductions,
+    activeVacancies,
+    acceptedIntroductions,
+    postingsInReview,
+    applicationsReceived,
+  ] = await Promise.all([
     getRecentNotifications("EMPLOYER", session.userId, 5),
     getUnreadNotificationCount("EMPLOYER", session.userId),
     getEventsSinceLastVisit("EMPLOYER", session.userId, employer.previousLoginAt, 10),
     prisma.introductionRequest.count({ where: { employerId: session.userId, status: "PENDING" } }),
     prisma.jobPosting.count({ where: { employerId: session.userId, status: "APPROVED" } }),
+    prisma.introductionRequest.count({ where: { employerId: session.userId, status: "ACCEPTED" } }),
+    prisma.jobPosting.count({ where: { employerId: session.userId, status: "PENDING_REVIEW" } }),
+    prisma.jobApplication.count({ where: { jobPosting: { employerId: session.userId } } }),
   ]);
+
+  // One suggested next step, chosen from the real state of the pipeline,
+  // so the dashboard answers "what should I do now" and not only "what
+  // are the numbers".
+  const nextStep =
+    acceptedIntroductions > 0
+      ? { text: `${acceptedIntroductions} trainee${acceptedIntroductions === 1 ? " has" : "s have"} accepted your introduction. Follow up with them.`, label: "Open introductions", href: "/employer/introductions" }
+      : applicationsReceived > 0
+        ? { text: `You have ${applicationsReceived} application${applicationsReceived === 1 ? "" : "s"} to review.`, label: "Review postings", href: "/employer/job-postings" }
+        : activeVacancies === 0 && postingsInReview === 0
+          ? { text: "You have no job postings yet. Post a vacancy to start receiving applications.", label: "Post a vacancy", href: "/employer/job-postings" }
+          : pendingIntroductions === 0
+            ? { text: "Browse trainees with verified certificates and send an introduction.", label: "Discover trainees", href: "/employer/discover" }
+            : { text: "Your introductions are waiting for trainees to reply.", label: "View introductions", href: "/employer/introductions" };
 
   const quickActions = [
     { label: "Discover Trainees", href: "/employer/discover" },
@@ -68,18 +95,28 @@ export default async function EmployerDashboardPage() {
           profileHref="/employer/profile"
         />
 
-        {(pendingIntroductions > 0 || activeVacancies > 0) && (
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <Card>
-              <p className="text-2xl font-semibold text-brand-ink">{pendingIntroductions}</p>
-              <p className="text-xs text-gray-500">Pending introduction{pendingIntroductions === 1 ? "" : "s"}</p>
-            </Card>
-            <Card>
-              <p className="text-2xl font-semibold text-brand-ink">{activeVacancies}</p>
-              <p className="text-xs text-gray-500">Active job posting{activeVacancies === 1 ? "" : "s"}</p>
-            </Card>
+        <section aria-labelledby="pipeline" className="mt-6">
+          <h2 id="pipeline" className="font-display text-base font-semibold text-brand-ink">
+            Your hiring pipeline
+          </h2>
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Tile value={pendingIntroductions} label="Introductions awaiting reply" href="/employer/introductions" />
+            <Tile value={acceptedIntroductions} label="Introductions accepted" href="/employer/introductions" />
+            <Tile value={activeVacancies} label={`Active posting${activeVacancies === 1 ? "" : "s"}`} href="/employer/job-postings" />
+            <Tile value={applicationsReceived} label={`Application${applicationsReceived === 1 ? "" : "s"} received`} href="/employer/job-postings" />
           </div>
-        )}
+          {postingsInReview > 0 && (
+            <p className="mt-2 text-xs text-gray-600">
+              {postingsInReview} posting{postingsInReview === 1 ? " is" : "s are"} waiting for AAICBI review.
+            </p>
+          )}
+          <Card variant="highlighted" className="mt-3">
+            <p className="text-sm text-brand-ink">{nextStep.text}</p>
+            <Link href={nextStep.href} className="mt-2 inline-block text-sm font-semibold text-brand-teal hover:underline">
+              {nextStep.label}
+            </Link>
+          </Card>
+        </section>
 
         <NotificationSummaryCard notifications={notifications} unreadCount={unreadCount} />
         <ActivityFeed
@@ -89,5 +126,14 @@ export default async function EmployerDashboardPage() {
         <QuickActionsCard actions={quickActions} />
       </main>
     </>
+  );
+}
+
+function Tile({ value, label, href }: { value: number; label: string; href: string }) {
+  return (
+    <Link href={href} className="block rounded-xl border border-brand-gray bg-brand-surface p-4 hover:border-brand-teal">
+      <p className="font-display text-3xl font-semibold tabular-nums text-brand-ink">{value}</p>
+      <p className="mt-0.5 text-xs text-gray-600">{label}</p>
+    </Link>
   );
 }

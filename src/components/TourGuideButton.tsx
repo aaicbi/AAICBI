@@ -6,6 +6,7 @@ import Icon from "@/components/ui/Icon";
 import { getTourGuideContent } from "@/lib/tourGuideContent";
 import { pageHasSidebar } from "@/lib/sidebarRoutes";
 
+import { ABOVE_BANNER, FAB_FOOTPRINT_PX, setFloatingOffset } from "@/lib/floatingLayers";
 /**
  * A persistent, platform-wide "page help" button — fixed bottom-right
  * on every page (mounted once in src/app/layout.tsx, same pattern as
@@ -55,10 +56,17 @@ export default function TourGuideButton() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Tell the other floating layers this button is on screen.
+  useEffect(() => {
+    if (hasSidebar) return;
+    setFloatingOffset("fab", FAB_FOOTPRINT_PX);
+    return () => setFloatingOffset("fab", 0);
+  }, [hasSidebar]);
+
   if (hasSidebar) return null;
 
   return (
-    <div ref={containerRef} className="fixed bottom-6 right-6 z-40">
+    <div ref={containerRef} className="fixed right-6 z-40" style={{ bottom: ABOVE_BANNER }}>
       {open && (
         <div className="absolute bottom-14 right-0 w-72 max-w-[85vw] rounded-xl border border-brand-gray bg-brand-surface p-4 shadow-lg animate-[modal-in_0.15s_ease-out]">
           <div className="flex items-start justify-between gap-2">
@@ -86,7 +94,7 @@ export default function TourGuideButton() {
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-label={open ? "Close page help" : "Open page help"}
-        className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-teal text-white shadow-lg transition-transform hover:scale-105 hover:bg-brand-tealDeep"
+        className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-teal text-brand-onAccent shadow-lg transition-transform hover:scale-105 hover:bg-brand-tealDeep"
       >
         <Icon icon={open ? X : HelpCircle} size="md" />
       </button>

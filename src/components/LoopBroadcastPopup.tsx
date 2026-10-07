@@ -1,6 +1,7 @@
 "use client";
 import { X } from "lucide-react";
 import Icon from "@/components/ui/Icon";
+import { ABOVE_BANNER_AND_FAB } from "@/lib/floatingLayers";
 
 interface NotificationDto {
   id: string;
@@ -47,14 +48,14 @@ export default function LoopBroadcastPopup({ notifications, onClose }: LoopBroad
   if (unreadBroadcasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-[100] flex w-80 max-w-[92vw] flex-col-reverse gap-3">
+    <div className="fixed right-4 z-[100] flex w-80 max-w-[92vw] flex-col-reverse gap-3" style={{ bottom: ABOVE_BANNER_AND_FAB }}>
       {unreadBroadcasts.map((n) => (
         <div
           key={n.id}
           className="animate-[modal-in_0.15s_ease-out] rounded-xl border border-brand-teal/40 bg-brand-surface p-4 shadow-lg"
         >
           <div className="flex items-start justify-between gap-3">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-brand-tealDeep">
+            <p className="text-xs font-bold uppercase tracking-wide text-brand-tealDeep">
               {n.senderLabel ?? "Loop — Systems Manager"}
             </p>
             <button

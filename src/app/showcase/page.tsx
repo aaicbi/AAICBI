@@ -80,7 +80,7 @@ export default function CommunityShowcasePage() {
                     // eslint-disable-next-line @next/next/no-img-element -- a real, dynamically-uploaded external URL.
                     <img src={p.founderAvatarUrl} alt="" className="h-6 w-6 rounded-full object-cover" />
                   ) : (
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-mint text-[10px] font-semibold text-brand-teal">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-mint text-xs font-semibold text-brand-teal">
                       {p.founderName.slice(0, 1).toUpperCase()}
                     </span>
                   )}

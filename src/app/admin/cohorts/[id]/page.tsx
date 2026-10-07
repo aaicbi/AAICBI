@@ -4,7 +4,7 @@ import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
-import { SkeletonTableRows } from "@/components/ui/Skeleton";
+import DataTable from "@/components/ui/DataTable";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
 import { useToast } from "@/components/ui/Toast";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
@@ -13,6 +13,7 @@ import Icon from "@/components/ui/Icon";
 import { AchievementIcon } from "@/components/icons/brand";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
+import { Input } from "@/components/ui/Field";
 interface RosterEntry {
   trainee: { id: string; name: string; email: string };
   enrolledAt: string;
@@ -127,15 +128,7 @@ export default function CohortDetailPage({ params }: { params: { id: string } })
         )}
 
         <form onSubmit={enrollTrainee} className="mt-6 flex gap-2">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="trainee@example.com"
-            aria-label="Trainee email"
-            required
-            className="flex-1 rounded-lg border border-brand-gray px-3 py-2 text-sm focus:border-brand-teal focus:outline-none"
-          />
+          <Input label="Trainee email" hideLabel compact wrapperClassName="flex-1" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="trainee@example.com" required />
           <Button type="submit" loading={enrolling}>
             Enroll
           </Button>
@@ -151,66 +144,82 @@ export default function CohortDetailPage({ params }: { params: { id: string } })
             />
           </div>
         ) : (
-          <div className="mt-6 overflow-x-auto">
-            <table className="w-full min-w-[480px] text-left text-sm">
-            <thead>
-              <tr className="border-b border-brand-gray text-gray-500">
-                <th className="py-2">Trainee</th>
-                <th>Progress</th>
-                <th>Certificate</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {!cohort ? (
-                <SkeletonTableRows rows={4} cols={4} />
-              ) : (
-                cohort.roster.map((r) => {
-                  const pct = r.totalModules === 0 ? 0 : Math.round((r.completedModules / r.totalModules) * 100);
-                  return (
-                    <tr key={r.trainee.id} className="border-b border-gray-100">
-                      <td className="py-2">
-                        <div className="font-medium text-brand-ink">{r.trainee.name}</div>
-                        <div className="text-xs text-gray-500">{r.trainee.email}</div>
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-2">
-                          <div className="h-1.5 w-20 overflow-hidden rounded-full bg-brand-gray/50">
-                            <div className="h-full rounded-full bg-brand-teal transition-all" style={{ width: `${pct}%` }} />
-                          </div>
-                          <span className="text-xs text-gray-500">
-                            {r.completedModules}/{r.totalModules}
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        {r.hasCertificate && r.certificateCode ? (
-                          <a
-                            href={`/certificate/${r.certificateCode}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs font-semibold text-brand-gold hover:underline"
-                          >
-                            <Icon icon={AchievementIcon} size="sm" className="mr-1 inline align-text-bottom" /> View
-                          </a>
-                        ) : (
-                          <span className="text-xs text-gray-400">Not yet</span>
-                        )}
-                      </td>
-                      <td>
-                        <button
-                          onClick={() => removeTrainee(r.trainee.id, r.trainee.name)}
-                          className="text-xs font-semibold text-brand-rose hover:underline"
+          <div className="mt-6">
+            <DataTable
+              caption="Trainees in this cohort"
+              rows={cohort ? cohort.roster : null}
+              rowKey={(r) => r.trainee.id}
+              searchLabel="Search trainees"
+              searchText={(r) => `${r.trainee.name} ${r.trainee.email}`}
+              columns={[
+                {
+                  key: "trainee",
+                  header: "Trainee",
+                  sortValue: (r) => r.trainee.name,
+                  render: (r) => (
+                    <div>
+                      <div className="font-medium text-brand-ink">{r.trainee.name}</div>
+                      <div className="text-xs font-normal text-gray-600">{r.trainee.email}</div>
+                    </div>
+                  ),
+                },
+                {
+                  key: "progress",
+                  header: "Progress",
+                  sortValue: (r) => (r.totalModules === 0 ? 0 : r.completedModules / r.totalModules),
+                  render: (r) => {
+                    const pct = r.totalModules === 0 ? 0 : Math.round((r.completedModules / r.totalModules) * 100);
+                    return (
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="h-1.5 w-20 overflow-hidden rounded-full bg-brand-gray/50"
+                          role="progressbar"
+                          aria-label={`${r.trainee.name} progress`}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-valuenow={pct}
                         >
-                          Remove
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-            </table>
+                          <div className="h-full rounded-full bg-brand-teal transition-all" style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="text-xs text-gray-600">
+                          {r.completedModules}/{r.totalModules}
+                        </span>
+                      </div>
+                    );
+                  },
+                },
+                {
+                  key: "certificate",
+                  header: "Certificate",
+                  sortValue: (r) => (r.hasCertificate ? 1 : 0),
+                  render: (r) =>
+                    r.hasCertificate && r.certificateCode ? (
+                      <a
+                        href={`/certificate/${r.certificateCode}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-semibold text-brand-goldText hover:underline"
+                      >
+                        <Icon icon={AchievementIcon} size="sm" className="mr-1 inline align-text-bottom" /> View
+                      </a>
+                    ) : (
+                      <span className="text-xs text-gray-600">Not yet</span>
+                    ),
+                },
+                {
+                  key: "actions",
+                  header: "",
+                  render: (r) => (
+                    <button
+                      onClick={() => removeTrainee(r.trainee.id, r.trainee.name)}
+                      className="text-xs font-semibold text-brand-rose hover:underline"
+                    >
+                      Remove
+                    </button>
+                  ),
+                },
+              ]}
+            />
           </div>
         )}
       </main>

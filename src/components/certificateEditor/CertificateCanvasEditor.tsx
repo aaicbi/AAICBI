@@ -17,6 +17,7 @@ import { BUILTIN_ICONS } from "@/lib/certificateIcons";
 import { builtinIconToDataUrl } from "@/lib/certificateIconRender";
 import ElementPropertiesPanel from "@/components/certificateEditor/ElementPropertiesPanel";
 
+import { Select } from "@/components/ui/Field";
 const DEFAULT_LAYOUT: CertificateLayout = {
   width: DEFAULT_LAYOUT_WIDTH,
   height: DEFAULT_LAYOUT_HEIGHT,
@@ -653,16 +654,10 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
           >
             + Line
           </button>
-          <label className="text-xs font-semibold text-gray-600">
-            Page size
-            <select
-              onChange={(e) => {
+          <Select label="Page size" compact controlClassName="ml-1.5 text-xs" onChange={(e) => {
                 const preset = PAGE_SIZE_PRESETS.find((p) => p.id === e.target.value);
                 if (preset) update({ ...current, width: preset.width, height: preset.height });
-              }}
-              defaultValue=""
-              className="ml-1.5 rounded-lg border border-brand-gray px-2 py-1 text-xs outline-none"
-            >
+              }} defaultValue="">
               <option value="" disabled>
                 Choose...
               </option>
@@ -671,8 +666,7 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
                   {p.label}
                 </option>
               ))}
-            </select>
-          </label>
+            </Select>
           <button
             type="button"
             onClick={undo}

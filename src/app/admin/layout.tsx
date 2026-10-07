@@ -14,6 +14,8 @@ import { hasActivePlatformFeeAccess } from "@/lib/trainingOrgBilling";
 // boundary), it only decides sidebar-vs-not for this request.
 const ALLOWED_ROLES = ["SUPER_ADMIN", "ADMIN", "INSTRUCTOR"];
 
+export const metadata = { title: { default: "Admin", template: "%s · Admin · AAICBI" } };
+
 /**
  * Admin sidebar pilot — the one place a persistent left sidebar is
  * rendered for every authenticated admin page, replacing the old
@@ -86,7 +88,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           role={session.role}
           isTrainingOrg={!!trainingOrg}
         />
-        <div className="sm:pl-64">{children}</div>
+        <div className="lg:pl-64">{children}</div>
       </div>
     </SidebarActiveProvider>
   );

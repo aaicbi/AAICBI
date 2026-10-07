@@ -328,11 +328,11 @@ export default async function TraineeDashboardPage() {
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold uppercase tracking-wide text-brand-teal">Continue Learning</p>
               {topCourse.isPaid ? (
-                <span className="inline-flex items-center gap-0.5 rounded-full bg-brand-mint px-2 py-0.5 text-[10px] font-semibold text-brand-teal">
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-brand-mint px-2 py-0.5 text-xs font-semibold text-brand-teal">
                   PAID <CorrectnessMark state="correct" label={undefined} />
                 </span>
               ) : topCourse.isExpired ? (
-                <span className="rounded-full bg-brand-roseLight px-2 py-0.5 text-[10px] font-semibold text-brand-rose">
+                <span className="rounded-full bg-brand-roseLight px-2 py-0.5 text-xs font-semibold text-brand-rose">
                   EXPIRED
                 </span>
               ) : null}
@@ -449,11 +449,11 @@ export default async function TraineeDashboardPage() {
                       <div className="flex items-center gap-2">
                         <span className="font-display text-sm font-semibold text-brand-ink">{c.courseTitle}</span>
                         {c.isPaid ? (
-                          <span className="inline-flex items-center gap-0.5 rounded-full bg-brand-mint px-2 py-0.5 text-[10px] font-semibold text-brand-teal">
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-brand-mint px-2 py-0.5 text-xs font-semibold text-brand-teal">
                             PAID <CorrectnessMark state="correct" label={undefined} />
                           </span>
                         ) : c.isExpired ? (
-                          <span className="rounded-full bg-brand-roseLight px-2 py-0.5 text-[10px] font-semibold text-brand-rose">
+                          <span className="rounded-full bg-brand-roseLight px-2 py-0.5 text-xs font-semibold text-brand-rose">
                             EXPIRED
                           </span>
                         ) : null}

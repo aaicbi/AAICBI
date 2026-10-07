@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { ADMIN_NAV_PITCH } from "@/lib/admin/nav";
 
+import { Input } from "@/components/ui/Field";
 interface CohortDto {
   id: string;
   name: string;
@@ -80,18 +81,8 @@ export default function AdminPitchCohortsPage() {
         <Card className="mt-6">
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">New Cohort</p>
           <div className="mt-3 space-y-2">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Venture Track — Cohort 3"
-              className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
-            <input
-              type="date"
-              value={deadline}
-              onChange={(e) => setDeadline(e.target.value)}
-              className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
+            <Input label="e.g. Venture Track — Cohort 3" hideLabel compact value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Venture Track — Cohort 3" />
+            <Input label="Application deadline" hideLabel compact type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
             <Button size="sm" onClick={create} loading={creating}>
               Create Cohort
             </Button>

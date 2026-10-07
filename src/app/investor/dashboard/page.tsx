@@ -8,6 +8,7 @@ import Badge from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
 import { SkeletonList } from "@/components/ui/Skeleton";
 
+import { Select } from "@/components/ui/Field";
 interface PitchTeaser {
   id: string;
   startupName: string;
@@ -90,30 +91,22 @@ export default function InvestorDashboardPage() {
 
         {pitches !== null && pitches.length > 0 && (
           <div className="mt-6 flex flex-wrap items-center gap-2">
-            <select
-              value={sector}
-              onChange={(e) => setSector(e.target.value)}
-              className="rounded-lg border border-brand-gray px-3 py-2 text-xs font-semibold outline-none focus:border-brand-teal"
-            >
+            <Select label="Sector" hideLabel compact controlClassName="text-xs font-semibold" value={sector} onChange={(e) => setSector(e.target.value)}>
               <option value="">All Sectors</option>
               {sectors.map((s) => (
                 <option key={s} value={s}>
                   {s}
                 </option>
               ))}
-            </select>
-            <select
-              value={stage}
-              onChange={(e) => setStage(e.target.value)}
-              className="rounded-lg border border-brand-gray px-3 py-2 text-xs font-semibold outline-none focus:border-brand-teal"
-            >
+            </Select>
+            <Select label="Stage" hideLabel compact controlClassName="text-xs font-semibold" value={stage} onChange={(e) => setStage(e.target.value)}>
               <option value="">All Stages</option>
               {stages.map((s) => (
                 <option key={s} value={s}>
                   {s}
                 </option>
               ))}
-            </select>
+            </Select>
             <div className="flex gap-1">
               {(["GRANT", "DEBT"] as const).map((ft) => (
                 <button
@@ -121,7 +114,7 @@ export default function InvestorDashboardPage() {
                   type="button"
                   onClick={() => setFundingType(fundingType === ft ? "" : ft)}
                   className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-                    fundingType === ft ? "bg-brand-teal text-white" : "border border-brand-gray text-brand-ink"
+                    fundingType === ft ? "bg-brand-teal text-brand-onAccent" : "border border-brand-gray text-brand-ink"
                   }`}
                 >
                   {ft === "GRANT" ? "Grant" : "Debt"}
@@ -132,7 +125,7 @@ export default function InvestorDashboardPage() {
               type="button"
               onClick={() => setWatchlistOnly((v) => !v)}
               className={`ml-auto rounded-full px-3 py-1.5 text-xs font-semibold ${
-                watchlistOnly ? "bg-brand-gold text-white" : "border border-brand-gray text-brand-ink"
+                watchlistOnly ? "bg-brand-gold text-brand-onGold" : "border border-brand-gray text-brand-ink"
               }`}
             >
               ★ Watchlist only
@@ -176,7 +169,7 @@ export default function InvestorDashboardPage() {
                 </div>
                 <p className="mt-2 font-display text-lg font-semibold text-brand-ink">{p.startupName}</p>
                 {p.founderReadiness && (
-                  <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-brand-goldLight px-2 py-0.5 text-[11px] font-bold text-brand-goldText">
+                  <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-brand-goldLight px-2 py-0.5 text-xs font-bold text-brand-goldText">
                     ⭐{p.founderReadiness.topPercent != null && ` Top ${p.founderReadiness.topPercent}% ·`}
                     {p.founderReadiness.percentage != null && ` ${Math.round(p.founderReadiness.percentage)}% ·`} Certified: {p.founderReadiness.courseTitle}
                   </p>

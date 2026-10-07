@@ -11,6 +11,7 @@ import { Heart } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
+import { Textarea } from "@/components/ui/Field";
 interface PostDto {
   id: string;
   authorType: "TRAINEE" | "STAFF";
@@ -125,14 +126,7 @@ export default function QaThreadPage({ params }: { params: { id: string; threadI
             </div>
 
             <Card className="mt-4">
-              <textarea
-                value={reply}
-                onChange={(e) => setReply(e.target.value)}
-                placeholder="Write a reply..."
-                aria-label="Write a reply"
-                rows={3}
-                className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-              />
+              <Textarea label="Write a reply" hideLabel compact value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Write a reply..." rows={3} />
               {error && <p className="mt-2 text-xs text-brand-rose">{error}</p>}
               <Button onClick={postReply} loading={posting} disabled={!reply.trim()} className="mt-2">
                 Reply

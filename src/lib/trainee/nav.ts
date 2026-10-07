@@ -24,6 +24,7 @@ export const TRAINEE_NAV = [
   // not an exam, no timer/lockdown, untimed write-save-submit work.
   { label: "Assignments", href: "/trainee/assignments" },
   { label: "Certificates", href: "/trainee/certificates" },
+  { label: "My Progress", href: "/trainee/progress" },
   { label: "Analytics & Reports", href: "/trainee/my-activity" },
   { label: "Messages", href: "/trainee/messages" },
   { label: "Ask Loop", href: "/trainee/buddy" },

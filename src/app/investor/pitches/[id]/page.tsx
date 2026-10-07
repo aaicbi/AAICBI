@@ -8,6 +8,7 @@ import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 
+import { Input, Textarea } from "@/components/ui/Field";
 interface PitchDetail {
   id: string;
   startupName: string;
@@ -182,21 +183,8 @@ export default function InvestorPitchDetailPage({ params }: { params: { id: stri
               ) : (
                 <>
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Express Interest</p>
-                  <textarea
-                    value={interestMessage}
-                    onChange={(e) => setInterestMessage(e.target.value)}
-                    rows={3}
-                    placeholder="Message"
-                    className="mt-2 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    value={investmentRange}
-                    onChange={(e) => setInvestmentRange(e.target.value)}
-                    placeholder="Investment range (₦, optional)"
-                    className="mt-2 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
+                  <Textarea label="Message" hideLabel compact value={interestMessage} onChange={(e) => setInterestMessage(e.target.value)} rows={3} placeholder="Message" />
+                  <Input label="Investment range (₦, optional)" hideLabel compact type="number" min="0" value={investmentRange} onChange={(e) => setInvestmentRange(e.target.value)} placeholder="Investment range (₦, optional)" />
                   <Button size="sm" className="mt-3" onClick={expressInterest} loading={busy === "interest"}>
                     Submit Interest
                   </Button>
@@ -215,13 +203,7 @@ export default function InvestorPitchDetailPage({ params }: { params: { id: stri
         ) : (
           <Card className="mt-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Request Full Pitch</p>
-            <textarea
-              value={requestMessage}
-              onChange={(e) => setRequestMessage(e.target.value)}
-              rows={3}
-              placeholder="A short note to the founder (optional)"
-              className="mt-2 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
+            <Textarea label="A short note to the founder (optional)" hideLabel compact value={requestMessage} onChange={(e) => setRequestMessage(e.target.value)} rows={3} placeholder="A short note to the founder (optional)" />
             <Button size="sm" className="mt-3" onClick={requestDisclosure} loading={busy === "request"}>
               Request Full Pitch
             </Button>

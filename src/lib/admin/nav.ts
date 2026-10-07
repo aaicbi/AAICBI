@@ -164,3 +164,123 @@ export function getSidebarNavForPath(pathname: string, isTrainingOrg?: boolean) 
   }
   return ADMIN_NAV;
 }
+
+/* -------------------------------------------------------------------------
+ * One grouped admin sidebar.
+ *
+ * The four path-based lists above made the sidebar swap its contents as
+ * a user moved between pages (Courses → Instructors dropped Payments and
+ * added Staff), so nobody could build a spatial memory of the menu. The
+ * sidebar now renders ONE structure, grouped by task, and each item
+ * declares who it is for. The constants above remain only because every
+ * page still passes one to SiteHeader, which renders nothing while the
+ * sidebar is active.
+ *
+ * Visibility here is a usability filter, not the security boundary: each
+ * route and API enforces its own role check (requireRole), which is what
+ * actually protects the page.
+ * ---------------------------------------------------------------------- */
+
+export interface AdminNavItem {
+  label: string;
+  href: string;
+}
+
+export interface AdminNavGroup {
+  /** null renders the group without a heading (used for the lone Dashboard link). */
+  label: string | null;
+  items: AdminNavItem[];
+}
+
+/**
+ * Who sees an item. "staff" is every AAICBI staff role; the roles
+ * narrow it. "org" is a training organization's own admin session.
+ */
+type Audience = "staff" | "admins" | "superadmin" | "org" | "staffAndOrg";
+
+interface DefinedItem extends AdminNavItem {
+  audience: Audience;
+}
+
+const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
+  { label: null, items: [{ label: "Dashboard", href: "/admin/dashboard", audience: "staffAndOrg" }] },
+  {
+    label: "Teaching",
+    items: [
+      { label: "Courses", href: "/admin/courses", audience: "staffAndOrg" },
+      { label: "Examinations", href: "/admin/exams", audience: "staffAndOrg" },
+      { label: "Assignments", href: "/admin/assignments", audience: "staffAndOrg" },
+      { label: "Certificates", href: "/admin/certificate-templates", audience: "org" },
+    ],
+  },
+  {
+    label: "Organization",
+    items: [
+      { label: "Overview", href: "/admin/organization", audience: "org" },
+      { label: "Team", href: "/admin/organization/team", audience: "org" },
+    ],
+  },
+  {
+    label: "People",
+    items: [
+      { label: "Training Organizations", href: "/admin/training-organizations", audience: "admins" },
+      { label: "Instructors", href: "/admin/instructors", audience: "admins" },
+      { label: "Agreement Templates", href: "/admin/agreement-templates", audience: "admins" },
+      { label: "Staff", href: "/admin/staff", audience: "superadmin" },
+    ],
+  },
+  {
+    label: "Insight",
+    items: [
+      { label: "Performance", href: "/admin/performance", audience: "staffAndOrg" },
+      { label: "Analytics", href: "/admin/analytics", audience: "staff" },
+      { label: "Messages", href: "/admin/messages", audience: "staff" },
+    ],
+  },
+  {
+    label: "Money",
+    items: [{ label: "Payments", href: "/admin/payments", audience: "staffAndOrg" }],
+  },
+  {
+    label: "Community and pitching",
+    items: [
+      { label: "Showcase", href: "/admin/showcase", audience: "admins" },
+      { label: "Pitches", href: "/admin/pitches", audience: "staff" },
+      { label: "Pitch Cohorts", href: "/admin/pitch-cohorts", audience: "staff" },
+      { label: "Investors", href: "/admin/investors", audience: "admins" },
+    ],
+  },
+  {
+    label: "Platform",
+    items: [
+      { label: "Command Center", href: "/admin/command", audience: "superadmin" },
+      { label: "Design System", href: "/admin/design-system", audience: "admins" },
+      { label: "Settings", href: "/admin/settings", audience: "staffAndOrg" },
+    ],
+  },
+];
+
+function isVisible(audience: Audience, role: string, isTrainingOrg: boolean): boolean {
+  if (isTrainingOrg) return audience === "org" || audience === "staffAndOrg";
+  switch (audience) {
+    case "org":
+      return false;
+    case "staff":
+    case "staffAndOrg":
+      return true;
+    case "admins":
+      return role === "SUPER_ADMIN" || role === "ADMIN";
+    case "superadmin":
+      return role === "SUPER_ADMIN";
+  }
+}
+
+/** The grouped sidebar structure for a session, empty groups removed. */
+export function getAdminNavGroups(role: string, isTrainingOrg = false): AdminNavGroup[] {
+  return GROUPS.map((g) => ({
+    label: g.label,
+    items: g.items
+      .filter((i) => isVisible(i.audience, role, isTrainingOrg))
+      .map(({ label, href }) => ({ label, href })),
+  })).filter((g) => g.items.length > 0);
+}

@@ -7,6 +7,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
+import { Checkbox, Input, Select, Textarea } from "@/components/ui/Field";
 export default function NewCoursePage() {
   const router = useRouter();
   const [title, setTitle] = useState("");
@@ -101,61 +102,17 @@ export default function NewCoursePage() {
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Create Course</h1>
         <Card className="mt-6">
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label htmlFor="new-course-title" className="mb-1 block text-sm font-semibold text-brand-ink">
-                Course Title
-              </label>
-              <input
-                id="new-course-title"
-                required
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Excel for Data Analytics"
-                className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-brand-ink">Description</label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-              />
-            </div>
+            <Input label="Course Title" id="new-course-title" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Excel for Data Analytics" />
+            <Textarea label="Description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
 
             <div className="rounded-lg border border-brand-gray bg-gray-50 p-4">
-              <label className="flex items-center gap-2 text-sm font-semibold text-brand-ink">
-                <input type="checkbox" checked={isFree} onChange={(e) => setIsFree(e.target.checked)} />
-                This course is free (lifetime access, no payment)
-              </label>
+              <Checkbox label="This course is free (lifetime access, no payment)" checked={isFree} onChange={(e) => setIsFree(e.target.checked)} />
 
               {!isFree && (
                 <div className="mt-3 space-y-3">
                   <div className="flex flex-wrap gap-3">
-                    <label className="block text-sm text-brand-ink">
-                      Price (₦)
-                      <input
-                        type="number"
-                        min={1}
-                        value={priceNaira}
-                        onChange={(e) => setPriceNaira(e.target.value)}
-                        placeholder="e.g. 50000"
-                        className="mt-1 w-full max-w-[10rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-                      />
-                    </label>
-                    <label className="block text-sm text-brand-ink">
-                      Discount (%, optional)
-                      <input
-                        type="number"
-                        min={1}
-                        max={99}
-                        value={discountPercent}
-                        onChange={(e) => setDiscountPercent(e.target.value)}
-                        placeholder="e.g. 20"
-                        className="mt-1 w-full max-w-[8rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-                      />
-                    </label>
+                    <Input label="Price (₦)" compact wrapperClassName="max-w-[10rem]" type="number" min={1} value={priceNaira} onChange={(e) => setPriceNaira(e.target.value)} placeholder="e.g. 50000" />
+                    <Input label="Discount (%, optional)" compact wrapperClassName="max-w-[8rem]" type="number" min={1} max={99} value={discountPercent} onChange={(e) => setDiscountPercent(e.target.value)} placeholder="e.g. 20" />
                   </div>
                   {priceNaira.trim() !== "" && discountPercent.trim() !== "" && Number(discountPercent) > 0 && (
                     <p className="text-xs text-gray-500">
@@ -188,66 +145,34 @@ export default function NewCoursePage() {
                   </div>
 
                   {accessModel === "RECURRING_SUBSCRIPTION" ? (
-                    <label className="block text-sm text-brand-ink">
-                      Billing interval
-                      <select
-                        value={billingInterval}
-                        onChange={(e) => setBillingInterval(e.target.value as "MONTHLY" | "QUARTERLY" | "ANNUALLY")}
-                        className="mt-1 block w-full max-w-[10rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-                      >
+                    <Select label="Billing interval" compact wrapperClassName="max-w-[10rem]" value={billingInterval} onChange={(e) => setBillingInterval(e.target.value as "MONTHLY" | "QUARTERLY" | "ANNUALLY")}>
                         <option value="MONTHLY">Monthly</option>
                         <option value="QUARTERLY">Quarterly</option>
                         <option value="ANNUALLY">Annually</option>
-                      </select>
-                    </label>
+                      </Select>
                   ) : (
                     <>
                       <div className="flex items-end gap-2">
                         {durationUnit !== "LIFETIME" && (
-                          <label className="block text-sm text-brand-ink">
-                            Duration
-                            <input
-                              type="number"
-                              min={1}
-                              value={durationValue}
-                              onChange={(e) => setDurationValue(e.target.value)}
-                              placeholder="e.g. 90"
-                              className="mt-1 w-full max-w-[8rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-                            />
-                          </label>
+                          <Input label="Duration" compact wrapperClassName="max-w-[8rem]" type="number" min={1} value={durationValue} onChange={(e) => setDurationValue(e.target.value)} placeholder="e.g. 90" />
                         )}
-                        <label className="block text-sm text-brand-ink">
-                          Unit
-                          <select
-                            value={durationUnit}
-                            onChange={(e) => setDurationUnit(e.target.value as "DAYS" | "MONTHS" | "LIFETIME")}
-                            className="mt-1 block w-full max-w-[9rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-                          >
+                        <Select label="Unit" compact wrapperClassName="max-w-[9rem]" value={durationUnit} onChange={(e) => setDurationUnit(e.target.value as "DAYS" | "MONTHS" | "LIFETIME")}>
                             <option value="DAYS">Days</option>
                             <option value="MONTHS">Months</option>
                             <option value="LIFETIME">Lifetime</option>
-                          </select>
-                        </label>
+                          </Select>
                       </div>
 
                     </>
                   )}
 
-                  <label className="flex items-center gap-2 text-sm text-brand-ink">
-                    <input type="checkbox" checked={reminderEnabled} onChange={(e) => setReminderEnabled(e.target.checked)} />
-                    {accessModel === "RECURRING_SUBSCRIPTION"
+                  <Checkbox label={<>{accessModel === "RECURRING_SUBSCRIPTION"
                       ? "Email trainees before their subscription automatically renews"
-                      : "Email trainees before their access expires"}
-                  </label>
+                      : "Email trainees before their access expires"}</>} checked={reminderEnabled} onChange={(e) => setReminderEnabled(e.target.checked)} />
                   {reminderEnabled && (
                     <label className="block text-sm text-brand-ink">
                       Days before {accessModel === "RECURRING_SUBSCRIPTION" ? "renewal" : "expiry"} to remind (comma-separated)
-                      <input
-                        value={reminderDays}
-                        onChange={(e) => setReminderDays(e.target.value)}
-                        placeholder="e.g. 14, 7, 1"
-                        className="mt-1 w-full max-w-[16rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-                      />
+                      <Input label="e.g. 14, 7, 1" hideLabel compact wrapperClassName="max-w-[16rem]" value={reminderDays} onChange={(e) => setReminderDays(e.target.value)} placeholder="e.g. 14, 7, 1" />
                     </label>
                   )}
                 </div>

@@ -6,6 +6,7 @@ import Button from "@/components/ui/Button";
 import Icon from "@/components/ui/Icon";
 import { Upload, FileText } from "lucide-react";
 
+import { Input, Textarea } from "@/components/ui/Field";
 async function readApiError(res: Response, fallback: string): Promise<string> {
   try {
     const body = await res.json();
@@ -137,25 +138,8 @@ function ManualPanel({ onCreated }: { onCreated: (id: string) => void }) {
 
   return (
     <form onSubmit={handleCreate} className="space-y-3">
-      <div>
-        <label className="text-sm font-semibold text-brand-ink">Title</label>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-          minLength={3}
-          className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-        />
-      </div>
-      <div>
-        <label className="text-sm font-semibold text-brand-ink">Description (optional)</label>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={3}
-          className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-        />
-      </div>
+      <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)} required minLength={3} />
+      <Textarea label="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
       {error && <p className="text-sm text-brand-rose">{error}</p>}
       <Button type="submit" loading={saving} className="w-full">
         Create Assignment

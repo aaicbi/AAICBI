@@ -3,7 +3,7 @@ import { useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-
+import { Input } from "@/components/ui/Field";
 /**
  * Pitch & Post, Phase 2 — mirrors /employer/register's exact shape:
  * no "check your email" step, since approval (not email verification)
@@ -63,60 +63,16 @@ export default function InvestorRegisterPage() {
         <p className="mt-1 text-sm text-gray-500">Every investor account is reviewed before it can browse pitches.</p>
         <Card className="mt-6">
           <form onSubmit={handleSubmit} className="space-y-3">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
-              aria-label="Your name"
-              required
-              className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-            />
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
-              aria-label="Email"
-              required
-              className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-            />
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              aria-label="Password"
-              required
-              className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-            />
-            <input
-              value={organization}
-              onChange={(e) => setOrganization(e.target.value)}
-              placeholder="Organization"
-              aria-label="Organization"
-              required
-              className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-            />
+            <Input label="Your name" value={name} onChange={(e) => setName(e.target.value)} required />
+            <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <Input label="Organization" value={organization} onChange={(e) => setOrganization(e.target.value)} required />
 
             <p className="pt-2 text-xs font-semibold text-gray-400">Optional — strengthens your review, not required</p>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="Phone (optional)"
-              aria-label="Phone (optional)"
-              className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-            />
-            <input
-              type="url"
-              value={linkedinUrl}
-              onChange={(e) => setLinkedinUrl(e.target.value)}
-              placeholder="LinkedIn URL (optional)"
-              aria-label="LinkedIn URL (optional)"
-              className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-            />
+            <Input label="Phone (optional)" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <Input label="LinkedIn URL (optional)" type="url" value={linkedinUrl} onChange={(e) => setLinkedinUrl(e.target.value)} />
 
-            {error && <p className="text-sm text-brand-rose">{error}</p>}
+            {error && <p role="alert" className="text-sm text-brand-rose">{error}</p>}
             <Button type="submit" loading={loading} className="w-full">
               Register
             </Button>

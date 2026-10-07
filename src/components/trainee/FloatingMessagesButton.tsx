@@ -6,6 +6,8 @@ import Icon from "@/components/ui/Icon";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 
+import { Input, Select, Textarea } from "@/components/ui/Field";
+import { ABOVE_BANNER, FAB_FOOTPRINT_PX, setFloatingOffset } from "@/lib/floatingLayers";
 interface ConversationRow {
   id: string;
   type: "DIRECT" | "COHORT";
@@ -174,10 +176,18 @@ export default function FloatingMessagesButton() {
   }
 
   const isLiveExamOrAssessment = pathname?.endsWith("/examination/take") || pathname?.endsWith("/assessment/take");
+
+  // Tell the other floating layers this button is on screen.
+  useEffect(() => {
+    if (isLiveExamOrAssessment) return;
+    setFloatingOffset("fab", FAB_FOOTPRINT_PX);
+    return () => setFloatingOffset("fab", 0);
+  }, [isLiveExamOrAssessment]);
+
   if (isLiveExamOrAssessment) return null;
 
   return (
-    <div ref={containerRef} className="fixed bottom-6 right-6 z-40">
+    <div ref={containerRef} className="fixed right-6 z-40" style={{ bottom: ABOVE_BANNER }}>
       {open && (
         <div className="absolute bottom-14 right-0 w-80 max-w-[90vw] rounded-xl border border-brand-gray bg-brand-surface shadow-lg animate-[modal-in_0.15s_ease-out] sm:w-96">
           <div className="flex items-center justify-between border-b border-brand-gray px-4 py-3">
@@ -210,32 +220,15 @@ export default function FloatingMessagesButton() {
 
           {tab === "message" ? (
             <div className="space-y-3 p-4">
-              <div>
-                <label htmlFor="composer-target" className="text-xs font-semibold text-gray-600">
-                  Send to
-                </label>
-                <select
-                  id="composer-target"
-                  value={target}
-                  onChange={(e) => setTarget(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                >
+              <Select label="Send to" compact id="composer-target" value={target} onChange={(e) => setTarget(e.target.value)}>
                   <option value="ADMIN">Admin</option>
                   {cohortConversations.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.title}
                     </option>
                   ))}
-                </select>
-              </div>
-              <textarea
-                value={messageBody}
-                onChange={(e) => setMessageBody(e.target.value)}
-                placeholder="Type your message…"
-                rows={4}
-                maxLength={5000}
-                className="w-full resize-none rounded-lg border border-brand-gray px-3 py-2.5 text-sm outline-none focus:border-brand-teal"
-              />
+                </Select>
+              <Textarea label="Type your message…" hideLabel controlClassName="resize-none" value={messageBody} onChange={(e) => setMessageBody(e.target.value)} placeholder="Type your message…" rows={4} maxLength={5000} />
               <div className="flex justify-end">
                 <Button size="sm" onClick={sendMessage} disabled={sending || !messageBody.trim()}>
                   {sending ? "Sending…" : "Send"}
@@ -244,27 +237,9 @@ export default function FloatingMessagesButton() {
             </div>
           ) : (
             <div className="space-y-3 p-4">
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Project title"
-                maxLength={160}
-                className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-              />
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="What did you build? (optional)"
-                rows={3}
-                maxLength={2000}
-                className="w-full resize-none rounded-lg border border-brand-gray px-3 py-2.5 text-sm outline-none focus:border-brand-teal"
-              />
-              <input
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="Project link (optional)"
-                className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-              />
+              <Input label="Project title" hideLabel compact value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Project title" maxLength={160} />
+              <Textarea label="What did you build? (optional)" hideLabel controlClassName="resize-none" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What did you build? (optional)" rows={3} maxLength={2000} />
+              <Input label="Project link (optional)" hideLabel compact value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Project link (optional)" />
               <div>
                 <input ref={fileInputRef} type="file" accept={ACCEPT} multiple onChange={(e) => addFiles(e.target.files)} className="hidden" />
                 <button
@@ -303,11 +278,11 @@ export default function FloatingMessagesButton() {
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-label={unreadCount > 0 ? `Messages, ${unreadCount} unread` : "Messages"}
-        className="relative flex h-12 w-12 items-center justify-center rounded-full bg-brand-teal text-white shadow-lg transition-transform hover:scale-105 hover:bg-brand-tealDeep"
+        className="relative flex h-12 w-12 items-center justify-center rounded-full bg-brand-teal text-brand-onAccent shadow-lg transition-transform hover:scale-105 hover:bg-brand-tealDeep"
       >
         <Icon icon={open ? X : MessageSquare} size="md" />
         {!open && unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-rose px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-rose px-1 text-[10px] font-bold text-brand-onAccent">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}

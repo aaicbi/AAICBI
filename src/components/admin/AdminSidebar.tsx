@@ -6,9 +6,12 @@ import { Menu, X, HelpCircle } from "lucide-react";
 import Logo from "@/components/Logo";
 import LogoutButton from "@/components/admin/LogoutButton";
 import Icon from "@/components/ui/Icon";
+import { getNavIcon } from "@/components/icons/navIcons";
+import MobileDrawer from "@/components/ui/MobileDrawer";
+import CommandPalette, { PaletteTrigger } from "@/components/ui/CommandPalette";
 import AvatarFallback from "@/components/ui/AvatarFallback";
 import Badge from "@/components/ui/Badge";
-import { getSidebarNavForPath } from "@/lib/admin/nav";
+import { getAdminNavGroups } from "@/lib/admin/nav";
 import { getSidebarTourGuideContent } from "@/lib/tourGuideContent";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -63,7 +66,7 @@ export default function AdminSidebar({
   const [helpOpen, setHelpOpen] = useState(false);
   const helpRef = useRef<HTMLDivElement>(null);
 
-  const navItems = getSidebarNavForPath(pathname, isTrainingOrg);
+  const navGroups = getAdminNavGroups(role, isTrainingOrg);
   const tourEntry = getSidebarTourGuideContent(pathname);
 
   useEffect(() => {
@@ -84,6 +87,13 @@ export default function AdminSidebar({
   function isActive(href: string) {
     return pathname === href || pathname.startsWith(href + "/");
   }
+  // Highlight only the most specific match, so /admin/organization/team
+  // lights up Team and not Overview as well.
+  const activeHref =
+    navGroups
+      .flatMap((g) => g.items)
+      .filter((i) => isActive(i.href))
+      .sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
 
   const sidebarBody = (
     <div className="flex h-full flex-col">
@@ -118,20 +128,34 @@ export default function AdminSidebar({
         <LogoutButton />
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-3">
-        {navItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={() => setMobileOpen(false)}
-            className={`block rounded-lg px-3 py-2.5 text-sm font-semibold ${
-              isActive(item.href)
-                ? "bg-brand-mint text-brand-teal"
-                : "text-gray-600 hover:bg-brand-mint hover:text-brand-teal"
-            }`}
-          >
-            {item.label}
-          </Link>
+      <div className="px-3 pt-3">
+        <PaletteTrigger onOpen={() => setMobileOpen(false)} />
+      </div>
+      <nav aria-label="Admin" className="flex-1 overflow-y-auto px-3 py-3">
+        {navGroups.map((group, gi) => (
+          <div key={group.label ?? `group-${gi}`} className={gi === 0 ? "" : "mt-4"}>
+            {group.label && (
+              <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-gray-600">
+                {group.label}
+              </p>
+            )}
+            {group.items.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileOpen(false)}
+                aria-current={item.href === activeHref ? "page" : undefined}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold ${
+                  item.href === activeHref
+                    ? "bg-brand-mint text-brand-teal"
+                    : "text-gray-600 hover:bg-brand-mint hover:text-brand-teal"
+                }`}
+              >
+                <Icon icon={getNavIcon(item.href)} size="md" />
+                {item.label}
+              </Link>
+            ))}
+          </div>
         ))}
       </nav>
 
@@ -176,7 +200,7 @@ export default function AdminSidebar({
       {/* Mobile top bar — the sidebar itself is hidden below sm:, so this
           is the only way to reach it on a small screen. Same hamburger
           pattern SiteHeader already proves. */}
-      <div className="flex items-center justify-between border-b border-brand-gray bg-brand-surface px-4 py-3 sm:hidden">
+      <div className="flex items-center justify-between border-b border-brand-gray bg-brand-surface px-4 py-3 lg:hidden">
         <Logo />
         <button
           onClick={() => setMobileOpen((o) => !o)}
@@ -188,14 +212,12 @@ export default function AdminSidebar({
         </button>
       </div>
 
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 sm:hidden">
-          <div className="absolute inset-0 bg-black/30" onClick={() => setMobileOpen(false)} />
-          <div className="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-brand-surface shadow-lg">{sidebarBody}</div>
-        </div>
-      )}
+      <CommandPalette items={navGroups.flatMap((g) => g.items.map((i) => ({ ...i, group: g.label })))} />
+      <MobileDrawer open={mobileOpen} onClose={() => setMobileOpen(false)}>
+        {sidebarBody}
+      </MobileDrawer>
 
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-brand-gray bg-brand-surface sm:block">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-brand-gray bg-brand-surface lg:block">
         {sidebarBody}
       </aside>
     </>

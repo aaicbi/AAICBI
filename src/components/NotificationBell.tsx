@@ -96,7 +96,7 @@ export default function NotificationBell({ align = "right" }: { align?: "left" |
       >
         <Icon icon={Bell} size="md" />
         {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-rose px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-rose px-1 text-[10px] font-bold text-brand-onAccent">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -143,11 +143,11 @@ export default function NotificationBell({ align = "right" }: { align?: "left" |
                   </span>
                   <span className="min-w-0 flex-1">
                     {n.senderLabel && (
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-brand-tealDeep">{n.senderLabel}</p>
+                      <p className="text-xs font-bold uppercase tracking-wide text-brand-tealDeep">{n.senderLabel}</p>
                     )}
                     <p className="text-sm font-semibold text-brand-ink">{n.title}</p>
                     <p className="mt-0.5 line-clamp-2 text-xs text-gray-600">{n.body}</p>
-                    <p className="mt-1 text-[11px] text-gray-400">{new Date(n.createdAt).toLocaleDateString()}</p>
+                    <p className="mt-1 text-xs text-gray-400">{new Date(n.createdAt).toLocaleDateString()}</p>
                   </span>
                 </button>
               ))

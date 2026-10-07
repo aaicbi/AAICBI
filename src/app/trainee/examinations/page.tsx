@@ -1,26 +1,15 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
-import { getTraineeExaminationOverview, type ExamOverviewStatus } from "@/lib/trainee/examinationsOverview";
+import { getTraineeExaminationOverview } from "@/lib/trainee/examinationsOverview";
 import { TRAINEE_NAV } from "@/lib/trainee/nav";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/trainee/LogoutButton";
 import Card from "@/components/ui/Card";
-import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import Icon from "@/components/ui/Icon";
 import { ClipboardCheck } from "lucide-react";
-import ExaminationRow from "@/components/trainee/ExaminationRow";
-
-const STATUS_LABEL: Record<ExamOverviewStatus, string> = {
-  LOCKED: "Locked",
-  AVAILABLE: "Available",
-  IN_PROGRESS: "In Progress",
-  COOLDOWN: "Cooldown",
-  PASSED: "Passed",
-  RETAKE_AVAILABLE: "Retake Available",
-  ATTEMPTS_EXHAUSTED: "Attempts Exhausted",
-};
+import ExaminationsTable from "@/components/trainee/ExaminationsTable";
 
 /**
  * Dashboard/Examination redesign — one table view of every examination
@@ -63,28 +52,7 @@ export default async function TraineeExaminationsPage() {
           </div>
         ) : (
           <Card className="mt-6">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-brand-gray text-left text-xs uppercase tracking-wide text-gray-500">
-                    <th className="pb-2 pr-4">Examination</th>
-                    <th className="pb-2 pr-4">Course / Module</th>
-                    <th className="pb-2 pr-4">Type</th>
-                    <th className="pb-2 pr-4 text-right">Questions</th>
-                    <th className="pb-2 pr-4 text-right">Duration</th>
-                    <th className="pb-2 pr-4 text-right">Attempts</th>
-                    <th className="pb-2 pr-4 text-right">Pass Mark</th>
-                    <th className="pb-2 pr-4">Status</th>
-                    <th className="pb-2 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <ExaminationRow key={row.examId} row={row} statusLabel={STATUS_LABEL[row.status]} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ExaminationsTable rows={rows} />
           </Card>
         )}
       </main>

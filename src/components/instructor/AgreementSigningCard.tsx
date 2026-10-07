@@ -4,6 +4,7 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 
+import { Checkbox, Input } from "@/components/ui/Field";
 interface Agreement {
   id: string;
   content: string;
@@ -72,25 +73,9 @@ export default function AgreementSigningCard({ agreement, onAccepted }: { agreem
       {!scrolledToEnd && <p className="mt-2 text-xs text-gray-500">Scroll to the end of the agreement to continue.</p>}
 
       <div className="mt-5 space-y-3 border-t border-brand-gray pt-4">
-        <label className="flex items-start gap-2 text-sm text-brand-ink">
-          <input type="checkbox" disabled={!scrolledToEnd} checked={readConfirmed} onChange={(e) => setReadConfirmed(e.target.checked)} className="mt-0.5" />
-          I confirm that I have read and understood this agreement in full.
-        </label>
-        <label className="flex items-start gap-2 text-sm text-brand-ink">
-          <input type="checkbox" disabled={!scrolledToEnd} checked={bindingConfirmed} onChange={(e) => setBindingConfirmed(e.target.checked)} className="mt-0.5" />
-          I agree that accepting below constitutes a legally binding electronic signature.
-        </label>
-        <div>
-          <label className="text-sm font-semibold text-brand-ink">Type your full name to sign</label>
-          <input
-            type="text"
-            value={typedName}
-            onChange={(e) => setTypedName(e.target.value)}
-            disabled={!scrolledToEnd}
-            placeholder="Full name"
-            className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal disabled:opacity-50"
-          />
-        </div>
+        <Checkbox label="I confirm that I have read and understood this agreement in full." disabled={!scrolledToEnd} checked={readConfirmed} onChange={(e) => setReadConfirmed(e.target.checked)} />
+        <Checkbox label="I agree that accepting below constitutes a legally binding electronic signature." disabled={!scrolledToEnd} checked={bindingConfirmed} onChange={(e) => setBindingConfirmed(e.target.checked)} />
+        <Input label="Type your full name to sign" controlClassName="disabled:opacity-50" type="text" value={typedName} onChange={(e) => setTypedName(e.target.value)} disabled={!scrolledToEnd} placeholder="Full name" />
         {error && <p className="text-sm text-brand-rose">{error}</p>}
         <Button onClick={handleAccept} disabled={!canAccept} loading={submitting} className="w-full">
           {submitting ? "Signing..." : "Accept and Sign Agreement"}

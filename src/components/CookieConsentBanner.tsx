@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 
+import { setFloatingOffset } from "@/lib/floatingLayers";
 const CONSENT_COOKIE = "aaicbi_cookie_consent";
 
 function readConsentCookie(): string | null {
@@ -27,6 +28,7 @@ function readConsentCookie(): string | null {
 export default function CookieConsentBanner() {
   const [visible, setVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setVisible(readConsentCookie() === null);
@@ -34,6 +36,21 @@ export default function CookieConsentBanner() {
     window.addEventListener("aaicbi:reopen-cookie-banner", reopen);
     return () => window.removeEventListener("aaicbi:reopen-cookie-banner", reopen);
   }, []);
+
+  // Tell the other floating layers how much room the banner takes, so
+  // they sit above it instead of underneath it.
+  useEffect(() => {
+    const el = ref.current;
+    if (!visible || !el) return;
+    const report = () => setFloatingOffset("banner", el.offsetHeight);
+    report();
+    const observer = new ResizeObserver(report);
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      setFloatingOffset("banner", 0);
+    };
+  }, [visible]);
 
   async function decide(decision: "accepted" | "declined") {
     setSubmitting(true);
@@ -54,12 +71,12 @@ export default function CookieConsentBanner() {
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-brand-gray bg-brand-surface px-4 py-4 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] sm:px-6">
+    <div ref={ref} className="fixed inset-x-0 bottom-0 z-40 border-t border-brand-gray bg-brand-surface px-4 py-4 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] sm:px-6">
       <div className="mx-auto flex max-w-5xl flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-gray-600">
           We&apos;d like to use a cookie to understand how visitors use this site — which pages and courses get
           looked at, nothing that identifies you personally. It&apos;s only on with your OK.{" "}
-          <Link href="/privacy-policy" className="font-semibold text-brand-teal hover:underline">
+          <Link href="/privacy-policy" className="font-semibold text-brand-teal underline">
             Learn more
           </Link>
         </p>

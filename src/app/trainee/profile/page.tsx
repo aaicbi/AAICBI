@@ -17,6 +17,7 @@ import { computeTraineeCompletion } from "@/lib/profileCompletion";
 import ResumeUpload from "@/components/ResumeUpload";
 import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
+import { Checkbox, Input, Select, Textarea } from "@/components/ui/Field";
 const EMPLOYMENT_STATUS_LABELS: Record<string, string> = {
   STUDENT: "Student",
   EMPLOYED: "Employed",
@@ -303,51 +304,11 @@ export default function TraineeProfilePage() {
             <Card className="mt-6">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Basic Info</p>
               <div className="mt-3 space-y-3">
-                <div>
-                  <label className="text-sm font-semibold text-brand-ink">Username</label>
-                  <input
-                    value={coreForm.username}
-                    onChange={(e) => setCoreForm((f) => ({ ...f, username: e.target.value }))}
-                    placeholder="e.g. ada-lovelace"
-                    className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-brand-ink">Location</label>
-                  <input
-                    value={coreForm.location}
-                    onChange={(e) => setCoreForm((f) => ({ ...f, location: e.target.value }))}
-                    placeholder="e.g. Lagos, Nigeria"
-                    className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-brand-ink">LinkedIn</label>
-                  <input
-                    value={coreForm.linkedinUrl}
-                    onChange={(e) => setCoreForm((f) => ({ ...f, linkedinUrl: e.target.value }))}
-                    placeholder="https://linkedin.com/in/..."
-                    className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-brand-ink">GitHub</label>
-                  <input
-                    value={coreForm.githubUrl}
-                    onChange={(e) => setCoreForm((f) => ({ ...f, githubUrl: e.target.value }))}
-                    placeholder="https://github.com/..."
-                    className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-brand-ink">Portfolio website</label>
-                  <input
-                    value={coreForm.portfolioUrl}
-                    onChange={(e) => setCoreForm((f) => ({ ...f, portfolioUrl: e.target.value }))}
-                    placeholder="https://..."
-                    className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                </div>
+                <Input label="Username" value={coreForm.username} onChange={(e) => setCoreForm((f) => ({ ...f, username: e.target.value }))} placeholder="e.g. ada-lovelace" />
+                <Input label="Location" value={coreForm.location} onChange={(e) => setCoreForm((f) => ({ ...f, location: e.target.value }))} placeholder="e.g. Lagos, Nigeria" />
+                <Input label="LinkedIn" value={coreForm.linkedinUrl} onChange={(e) => setCoreForm((f) => ({ ...f, linkedinUrl: e.target.value }))} placeholder="https://linkedin.com/in/..." />
+                <Input label="GitHub" value={coreForm.githubUrl} onChange={(e) => setCoreForm((f) => ({ ...f, githubUrl: e.target.value }))} placeholder="https://github.com/..." />
+                <Input label="Portfolio website" value={coreForm.portfolioUrl} onChange={(e) => setCoreForm((f) => ({ ...f, portfolioUrl: e.target.value }))} placeholder="https://..." />
               </div>
             </Card>
 
@@ -355,21 +316,14 @@ export default function TraineeProfilePage() {
             <Card className="mt-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Employment &amp; Availability</p>
               <div className="mt-3 space-y-3">
-                <div>
-                  <label className="text-sm font-semibold text-brand-ink">Current employment status</label>
-                  <select
-                    value={coreForm.currentEmploymentStatus}
-                    onChange={(e) => setCoreForm((f) => ({ ...f, currentEmploymentStatus: e.target.value }))}
-                    className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  >
+                <Select label="Current employment status" compact value={coreForm.currentEmploymentStatus} onChange={(e) => setCoreForm((f) => ({ ...f, currentEmploymentStatus: e.target.value }))}>
                     <option value="">Prefer not to say</option>
                     {Object.entries(EMPLOYMENT_STATUS_LABELS).map(([value, label]) => (
                       <option key={value} value={value}>
                         {label}
                       </option>
                     ))}
-                  </select>
-                </div>
+                  </Select>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold text-brand-ink">Open to work</span>
                   <Toggle
@@ -383,14 +337,7 @@ export default function TraineeProfilePage() {
                     <p className="text-xs font-semibold text-gray-600">Open to</p>
                     <div className="mt-1 space-y-1">
                       {Object.entries(AVAILABILITY_LABELS).map(([value, label]) => (
-                        <label key={value} className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={coreForm.availabilityTypes.includes(value)}
-                            onChange={() => toggleAvailability(value)}
-                          />
-                          {label}
-                        </label>
+                        <Checkbox key={value} label={<>{label}</>} checked={coreForm.availabilityTypes.includes(value)} onChange={() => toggleAvailability(value)} />
                       ))}
                     </div>
                   </div>
@@ -417,17 +364,13 @@ export default function TraineeProfilePage() {
                 )}
                 . This is separate from the Employer Discoverability setting in Settings.
               </p>
-              <select
-                value={coreForm.profileVisibility}
-                onChange={(e) => setCoreForm((f) => ({ ...f, profileVisibility: e.target.value }))}
-                className="mt-2 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-              >
+              <Select label="Profile visibility" hideLabel compact value={coreForm.profileVisibility} onChange={(e) => setCoreForm((f) => ({ ...f, profileVisibility: e.target.value }))}>
                 {Object.entries(VISIBILITY_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
                   </option>
                 ))}
-              </select>
+              </Select>
               <div className="mt-3">
                 <Button size="sm" onClick={saveCore} loading={savingCore}>
                   Save
@@ -473,22 +416,13 @@ export default function TraineeProfilePage() {
                 </ul>
               )}
               <div className="mt-3 flex flex-wrap gap-2">
-                <input
-                  value={newSkillName}
-                  onChange={(e) => setNewSkillName(e.target.value)}
-                  placeholder="Add a skill, e.g. Python"
-                  className="min-w-0 flex-1 rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                />
-                <select
-                  value={newSkillProficiency}
-                  onChange={(e) => setNewSkillProficiency(e.target.value)}
-                  className="rounded-lg border border-brand-gray px-2 py-2 text-sm outline-none focus:border-brand-teal"
-                >
+                <Input label="Add a skill, e.g. Python" hideLabel compact wrapperClassName="min-w-0 flex-1" value={newSkillName} onChange={(e) => setNewSkillName(e.target.value)} placeholder="Add a skill, e.g. Python" />
+                <Select label="Skill level" hideLabel compact value={newSkillProficiency} onChange={(e) => setNewSkillProficiency(e.target.value)}>
                   <option value="BEGINNER">Beginner</option>
                   <option value="INTERMEDIATE">Intermediate</option>
                   <option value="ADVANCED">Advanced</option>
                   <option value="EXPERT">Expert</option>
-                </select>
+                </Select>
                 <Button size="sm" onClick={addSkill} loading={addingSkill}>
                   Add
                 </Button>
@@ -577,43 +511,14 @@ function EducationSection({
         </ul>
       )}
       <div className="mt-3 space-y-2 border-t border-brand-gray pt-3">
-        <input
-          value={form.institution}
-          onChange={(e) => setForm((f) => ({ ...f, institution: e.target.value }))}
-          placeholder="Institution"
-          className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-        />
-        <input
-          value={form.fieldOfStudy}
-          onChange={(e) => setForm((f) => ({ ...f, fieldOfStudy: e.target.value }))}
-          placeholder="Field of study (optional)"
-          className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-        />
-        <input
-          value={form.credential}
-          onChange={(e) => setForm((f) => ({ ...f, credential: e.target.value }))}
-          placeholder="Credential, e.g. B.Sc. Computer Science (optional)"
-          className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-        />
+        <Input label="Institution" hideLabel compact value={form.institution} onChange={(e) => setForm((f) => ({ ...f, institution: e.target.value }))} placeholder="Institution" />
+        <Input label="Field of study (optional)" hideLabel compact value={form.fieldOfStudy} onChange={(e) => setForm((f) => ({ ...f, fieldOfStudy: e.target.value }))} placeholder="Field of study (optional)" />
+        <Input label="Credential, e.g. B.Sc. Computer Science (optional)" hideLabel compact value={form.credential} onChange={(e) => setForm((f) => ({ ...f, credential: e.target.value }))} placeholder="Credential, e.g. B.Sc. Computer Science (optional)" />
         <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="date"
-            value={form.startDate}
-            onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
-            className="rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-          />
+          <Input label="Start date" hideLabel compact type="date" value={form.startDate} onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))} />
           <span className="text-xs text-gray-500">to</span>
-          <input
-            type="date"
-            value={form.endDate}
-            disabled={form.current}
-            onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
-            className="rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal disabled:opacity-50"
-          />
-          <label className="flex items-center gap-1.5 text-xs">
-            <input type="checkbox" checked={form.current} onChange={(e) => setForm((f) => ({ ...f, current: e.target.checked }))} />
-            Currently studying here
-          </label>
+          <Input label="End date" hideLabel compact controlClassName="disabled:opacity-50" type="date" value={form.endDate} disabled={form.current} onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))} />
+          <Checkbox label="Currently studying here" checked={form.current} onChange={(e) => setForm((f) => ({ ...f, current: e.target.checked }))} />
         </div>
         <Button size="sm" onClick={add} loading={saving}>
           Add Education
@@ -691,44 +596,14 @@ function ExperienceSection({
         </ul>
       )}
       <div className="mt-3 space-y-2 border-t border-brand-gray pt-3">
-        <input
-          value={form.title}
-          onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-          placeholder="Job title"
-          className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-        />
-        <input
-          value={form.employerName}
-          onChange={(e) => setForm((f) => ({ ...f, employerName: e.target.value }))}
-          placeholder="Employer"
-          className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-        />
-        <textarea
-          value={form.description}
-          onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-          placeholder="Description (optional)"
-          rows={2}
-          className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-        />
+        <Input label="Job title" hideLabel compact value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="Job title" />
+        <Input label="Employer" hideLabel compact value={form.employerName} onChange={(e) => setForm((f) => ({ ...f, employerName: e.target.value }))} placeholder="Employer" />
+        <Textarea label="Description (optional)" hideLabel compact value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} placeholder="Description (optional)" rows={2} />
         <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="date"
-            value={form.startDate}
-            onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
-            className="rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-          />
+          <Input label="Start date" hideLabel compact type="date" value={form.startDate} onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))} />
           <span className="text-xs text-gray-500">to</span>
-          <input
-            type="date"
-            value={form.endDate}
-            disabled={form.current}
-            onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
-            className="rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal disabled:opacity-50"
-          />
-          <label className="flex items-center gap-1.5 text-xs">
-            <input type="checkbox" checked={form.current} onChange={(e) => setForm((f) => ({ ...f, current: e.target.checked }))} />
-            Current role
-          </label>
+          <Input label="End date" hideLabel compact controlClassName="disabled:opacity-50" type="date" value={form.endDate} disabled={form.current} onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))} />
+          <Checkbox label="Current role" checked={form.current} onChange={(e) => setForm((f) => ({ ...f, current: e.target.checked }))} />
         </div>
         <Button size="sm" onClick={add} loading={saving}>
           Add Experience
@@ -827,53 +702,20 @@ function ProjectsSection({
                   Remove
                 </button>
               </div>
-              <label className="mt-2 flex items-center gap-2 text-xs text-gray-600">
-                <input
-                  type="checkbox"
-                  checked={p.listedInShowcase}
-                  disabled={togglingId === p.id}
-                  onChange={() => toggleShowcase(p)}
-                  className="h-3.5 w-3.5 rounded border-brand-gray text-brand-teal focus:ring-brand-teal"
-                />
-                {p.listedInShowcase ? (
+              <Checkbox label={<>{p.listedInShowcase ? (
                   <span className="font-semibold text-brand-teal">Listed in the Community Showcase</span>
                 ) : (
                   "List in Community Showcase"
-                )}
-              </label>
+                )}</>} checked={p.listedInShowcase} disabled={togglingId === p.id} onChange={() => toggleShowcase(p)} />
             </li>
           ))}
         </ul>
       )}
       <div className="mt-3 space-y-2 border-t border-brand-gray pt-3">
-        <input
-          value={form.title}
-          onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-          placeholder="Project title"
-          className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-        />
-        <textarea
-          value={form.description}
-          onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-          placeholder="Description (optional)"
-          rows={2}
-          className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-        />
-        <input
-          value={form.url}
-          onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
-          placeholder="Link (optional)"
-          className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-        />
-        <label className="flex items-center gap-2 text-xs text-gray-600">
-          <input
-            type="checkbox"
-            checked={form.listedInShowcase}
-            onChange={(e) => setForm((f) => ({ ...f, listedInShowcase: e.target.checked }))}
-            className="h-3.5 w-3.5 rounded border-brand-gray text-brand-teal focus:ring-brand-teal"
-          />
-          List in Community Showcase
-        </label>
+        <Input label="Project title" hideLabel compact value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="Project title" />
+        <Textarea label="Description (optional)" hideLabel compact value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} placeholder="Description (optional)" rows={2} />
+        <Input label="Link (optional)" hideLabel compact value={form.url} onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))} placeholder="Link (optional)" />
+        <Checkbox label="List in Community Showcase" checked={form.listedInShowcase} onChange={(e) => setForm((f) => ({ ...f, listedInShowcase: e.target.checked }))} />
         <Button size="sm" onClick={add} loading={saving}>
           Add Project
         </Button>

@@ -43,6 +43,10 @@ import Icon from "@/components/ui/Icon";
  * makes blind guessing impractical; this is defense in depth, the same
  * posture every other public-facing endpoint in this project takes.
  */
+export function generateMetadata({ params }: { params: { code: string } }) {
+  return { title: `Certificate ${params.code.toUpperCase()}` };
+}
+
 export default async function CertificateVerificationPage({ params }: { params: { code: string } }) {
   const headerList = await headers();
   const ip = headerList.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";

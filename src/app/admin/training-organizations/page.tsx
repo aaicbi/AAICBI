@@ -6,6 +6,7 @@ import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
 
+import { Checkbox, Input, Select } from "@/components/ui/Field";
 interface TrainingOrgDto {
   id: string;
   name: string;
@@ -237,30 +238,14 @@ function PayoutSettings({
       )}
       {editing && (
         <div className="mt-2 space-y-2">
-          <label className="block text-xs text-gray-700">
-            Paystack Subaccount code
-            <input
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="ACCT_xxxxxxxxxxxx"
-              className="mt-1 w-full rounded-lg border border-brand-gray px-2.5 py-1.5 text-sm outline-none focus:border-brand-teal"
-            />
-            <span className="mt-1 block text-[11px] font-normal text-gray-500">
-              Create the Subaccount in Paystack&apos;s own dashboard first (that&apos;s also where its split
-              percentage is set), then paste its code here. Blank means trainee payments for this organization&apos;s
-              courses land entirely with AAICBI, same as any other course.
-            </span>
-          </label>
-          <label className="flex items-center gap-2 text-xs text-gray-700">
-            <input type="checkbox" checked={footerRemoved} onChange={(e) => setFooterRemoved(e.target.checked)} />
-            Remove &quot;Powered by aaicbi.org&quot; from this organization&apos;s certificates (premium)
-          </label>
+          <Input label="Paystack Subaccount code" compact hint={<>Create the Subaccount in Paystack&apos;s own dashboard first (that&apos;s also where its split percentage is set), then paste its code here. Blank means trainee payments for this organization&apos;s courses land entirely with AAICBI, same as any other course.</>} value={code} onChange={(e) => setCode(e.target.value)} placeholder="ACCT_xxxxxxxxxxxx" />
+          <Checkbox label="Remove &quot;Powered by aaicbi.org&quot; from this organization&apos;s certificates (premium)" checked={footerRemoved} onChange={(e) => setFooterRemoved(e.target.checked)} />
           {error && <p className="text-xs text-brand-rose">{error}</p>}
           <div className="flex gap-2">
             <button
               onClick={handleSave}
               disabled={saving}
-              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
             >
               {saving ? "Saving..." : "Save"}
             </button>
@@ -400,7 +385,7 @@ function PlatformFeeSettings({
         <button
           onClick={handleConfirmPayment}
           disabled={confirming}
-          className="mt-2 rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+          className="mt-2 rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
         >
           {confirming ? "Confirming..." : "Confirm Payment Received"}
         </button>
@@ -422,56 +407,18 @@ function PlatformFeeSettings({
           {billingModel === "DIRECT_PAYMENT" && (
             <>
               <div className="flex flex-wrap gap-3">
-                <label className="block text-xs text-gray-700">
-                  Platform fee (₦)
-                  <input
-                    type="number"
-                    min={1}
-                    value={feeNaira}
-                    onChange={(e) => setFeeNaira(e.target.value)}
-                    placeholder="e.g. 50000"
-                    className="mt-1 w-full max-w-[10rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-                  />
-                </label>
-                <label className="block text-xs text-gray-700">
-                  Billing interval
-                  <select
-                    value={billingInterval}
-                    onChange={(e) => setBillingInterval(e.target.value as "MONTHLY" | "QUARTERLY" | "ANNUALLY")}
-                    className="mt-1 block w-full max-w-[10rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-                  >
+                <Input label="Platform fee (₦)" compact wrapperClassName="max-w-[10rem]" type="number" min={1} value={feeNaira} onChange={(e) => setFeeNaira(e.target.value)} placeholder="e.g. 50000" />
+                <Select label="Billing interval" compact wrapperClassName="max-w-[10rem]" value={billingInterval} onChange={(e) => setBillingInterval(e.target.value as "MONTHLY" | "QUARTERLY" | "ANNUALLY")}>
                     <option value="MONTHLY">Monthly</option>
                     <option value="QUARTERLY">Quarterly</option>
                     <option value="ANNUALLY">Annually</option>
-                  </select>
-                </label>
+                  </Select>
               </div>
-              <label className="flex items-center gap-2 text-xs text-gray-700">
-                <input type="checkbox" checked={suspendOnLapse} onChange={(e) => setSuspendOnLapse(e.target.checked)} />
-                If payment lapses, also block trainees already enrolled in this organization&apos;s courses
-              </label>
+              <Checkbox label="If payment lapses, also block trainees already enrolled in this organization&apos;s courses" checked={suspendOnLapse} onChange={(e) => setSuspendOnLapse(e.target.checked)} />
 
-              <label className="block text-xs text-gray-700">
-                Trainee seat cap (blank = unlimited)
-                <input
-                  type="number"
-                  min={1}
-                  value={seatCap}
-                  onChange={(e) => setSeatCap(e.target.value)}
-                  placeholder="e.g. 50"
-                  className="mt-1 w-full max-w-[8rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-                />
-                <span className="mt-1 block text-[11px] font-normal text-gray-500">
-                  Total trainees this organization can give access to, across all of its courses combined. Can be
-                  raised at any time, including mid-training.
-                </span>
-              </label>
+              <Input label="Trainee seat cap (blank = unlimited)" compact controlClassName="max-w-[8rem]" hint={<>Total trainees this organization can give access to, across all of its courses combined. Can be raised at any time, including mid-training.</>} type="number" min={1} value={seatCap} onChange={(e) => setSeatCap(e.target.value)} placeholder="e.g. 50" />
 
-              <label className="flex items-center gap-2 text-xs text-gray-700">
-                <input type="checkbox" checked={waived} onChange={(e) => setWaived(e.target.checked)} />
-                Waive access blocking for this organization (permits training to continue regardless of payment or
-                seat-cap status)
-              </label>
+              <Checkbox label="Waive access blocking for this organization (permits training to continue regardless of payment or seat-cap status)" checked={waived} onChange={(e) => setWaived(e.target.checked)} />
             </>
           )}
 
@@ -480,7 +427,7 @@ function PlatformFeeSettings({
             <button
               onClick={handleSave}
               disabled={saving}
-              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
             >
               {saving ? "Saving..." : "Save"}
             </button>
@@ -588,7 +535,7 @@ function CertWatermarkSettings({
         <button
           onClick={handleConfirmPayment}
           disabled={confirming}
-          className="mt-2 rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+          className="mt-2 rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
         >
           {confirming ? "Confirming..." : "Confirm Payment Received"}
         </button>
@@ -597,29 +544,12 @@ function CertWatermarkSettings({
       {editing && (
         <div className="mt-2 space-y-2">
           <div className="flex flex-wrap gap-3">
-            <label className="block text-xs text-gray-700">
-              Watermark-removal fee (₦)
-              <input
-                type="number"
-                min={1}
-                value={feeNaira}
-                onChange={(e) => setFeeNaira(e.target.value)}
-                placeholder="e.g. 10000"
-                className="mt-1 w-full max-w-[10rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-              />
-            </label>
-            <label className="block text-xs text-gray-700">
-              Billing interval
-              <select
-                value={billingInterval}
-                onChange={(e) => setBillingInterval(e.target.value as "MONTHLY" | "QUARTERLY" | "ANNUALLY")}
-                className="mt-1 block w-full max-w-[10rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-              >
+            <Input label="Watermark-removal fee (₦)" compact wrapperClassName="max-w-[10rem]" type="number" min={1} value={feeNaira} onChange={(e) => setFeeNaira(e.target.value)} placeholder="e.g. 10000" />
+            <Select label="Billing interval" compact wrapperClassName="max-w-[10rem]" value={billingInterval} onChange={(e) => setBillingInterval(e.target.value as "MONTHLY" | "QUARTERLY" | "ANNUALLY")}>
                 <option value="MONTHLY">Monthly</option>
                 <option value="QUARTERLY">Quarterly</option>
                 <option value="ANNUALLY">Annually</option>
-              </select>
-            </label>
+              </Select>
           </div>
 
           {error && <p className="text-xs text-brand-rose">{error}</p>}
@@ -627,7 +557,7 @@ function CertWatermarkSettings({
             <button
               onClick={handleSave}
               disabled={saving}
-              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
             >
               {saving ? "Saving..." : "Save"}
             </button>

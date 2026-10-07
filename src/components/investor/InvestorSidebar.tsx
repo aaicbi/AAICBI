@@ -6,6 +6,9 @@ import { Menu, X, HelpCircle } from "lucide-react";
 import Logo from "@/components/Logo";
 import LogoutButton from "@/components/investor/LogoutButton";
 import Icon from "@/components/ui/Icon";
+import { getNavIcon } from "@/components/icons/navIcons";
+import MobileDrawer from "@/components/ui/MobileDrawer";
+import CommandPalette, { PaletteTrigger } from "@/components/ui/CommandPalette";
 import { INVESTOR_NAV } from "@/lib/investor/nav";
 import { getSidebarTourGuideContent } from "@/lib/tourGuideContent";
 
@@ -56,18 +59,22 @@ export default function InvestorSidebar() {
         <LogoutButton />
       </div>
 
+      <div className="px-3 pt-3">
+        <PaletteTrigger onOpen={() => setMobileOpen(false)} />
+      </div>
       <nav className="flex-1 overflow-y-auto px-3 py-3">
         {INVESTOR_NAV.map((item) => (
           <Link
             key={item.href}
             href={item.href}
             onClick={() => setMobileOpen(false)}
-            className={`block rounded-lg px-3 py-2.5 text-sm font-semibold ${
+            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold ${
               isActive(item.href)
                 ? "bg-brand-mint text-brand-teal"
                 : "text-gray-600 hover:bg-brand-mint hover:text-brand-teal"
             }`}
           >
+            <Icon icon={getNavIcon(item.href)} size="md" />
             {item.label}
           </Link>
         ))}
@@ -111,7 +118,7 @@ export default function InvestorSidebar() {
 
   return (
     <>
-      <div className="flex items-center justify-between border-b border-brand-gray bg-brand-surface px-4 py-3 sm:hidden">
+      <div className="flex items-center justify-between border-b border-brand-gray bg-brand-surface px-4 py-3 lg:hidden">
         <Logo />
         <button
           onClick={() => setMobileOpen((o) => !o)}
@@ -123,14 +130,12 @@ export default function InvestorSidebar() {
         </button>
       </div>
 
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 sm:hidden">
-          <div className="absolute inset-0 bg-black/30" onClick={() => setMobileOpen(false)} />
-          <div className="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-brand-surface shadow-lg">{sidebarBody}</div>
-        </div>
-      )}
+      <CommandPalette items={INVESTOR_NAV} />
+      <MobileDrawer open={mobileOpen} onClose={() => setMobileOpen(false)}>
+        {sidebarBody}
+      </MobileDrawer>
 
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-brand-gray bg-brand-surface sm:block">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-brand-gray bg-brand-surface lg:block">
         {sidebarBody}
       </aside>
     </>

@@ -12,6 +12,8 @@ import CorrectnessMark from "@/components/ui/CorrectnessMark";
 
 import { SUPPORTED_LANGUAGES, LANGUAGE_LABELS, t, type LanguageCode } from "@/lib/i18n";
 
+import { Checkbox, Input, Textarea } from "@/components/ui/Field";
+import Toggle from "@/components/ui/Toggle";
 /**
  * The self-service side of the notification-preference gap flagged
  * across the M14/M15 audits, joined by M39's low-bandwidth toggle on
@@ -248,21 +250,7 @@ export default function TraineeSettingsPage() {
                 </p>
               </div>
               {notificationsEnabled !== null && (
-                <button
-                  onClick={() => toggle("notificationsEnabled")}
-                  disabled={saving}
-                  role="switch"
-                  aria-checked={notificationsEnabled}
-                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                    notificationsEnabled ? "bg-brand-teal" : "bg-gray-300"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                      notificationsEnabled ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
+                <Toggle checked={notificationsEnabled} onChange={() => toggle("notificationsEnabled")} disabled={saving} label="Progress notifications" />
               )}
             </div>
           </Card>
@@ -287,21 +275,7 @@ export default function TraineeSettingsPage() {
                 </p>
               </div>
               {lowBandwidthMode !== null && (
-                <button
-                  onClick={() => toggle("lowBandwidthMode")}
-                  disabled={saving}
-                  role="switch"
-                  aria-checked={lowBandwidthMode}
-                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                    lowBandwidthMode ? "bg-brand-teal" : "bg-gray-300"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                      lowBandwidthMode ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
+                <Toggle checked={lowBandwidthMode} onChange={() => toggle("lowBandwidthMode")} disabled={saving} label="Low-bandwidth mode" />
               )}
             </div>
           </Card>
@@ -349,21 +323,7 @@ export default function TraineeSettingsPage() {
                 )}
               </div>
               {aiStudyBuddyEnabled !== null && (
-                <button
-                  onClick={() => toggle("aiStudyBuddyEnabled")}
-                  disabled={saving}
-                  role="switch"
-                  aria-checked={aiStudyBuddyEnabled}
-                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                    aiStudyBuddyEnabled ? "bg-brand-teal" : "bg-gray-300"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                      aiStudyBuddyEnabled ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
+                <Toggle checked={aiStudyBuddyEnabled} onChange={() => toggle("aiStudyBuddyEnabled")} disabled={saving} label="AI study buddy" />
               )}
             </div>
           </Card>
@@ -375,21 +335,7 @@ export default function TraineeSettingsPage() {
                 <p className="mt-1 text-sm text-gray-600">Switch to a dark theme. This follows you across devices.</p>
               </div>
               {darkMode !== null && (
-                <button
-                  onClick={() => toggle("darkMode")}
-                  disabled={saving}
-                  role="switch"
-                  aria-checked={darkMode}
-                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                    darkMode ? "bg-brand-teal" : "bg-gray-300"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                      darkMode ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
+                <Toggle checked={darkMode} onChange={() => toggle("darkMode")} disabled={saving} label="Dark mode" />
               )}
             </div>
           </Card>
@@ -507,22 +453,13 @@ function WhatsAppSettings({
       ) : optedIn ? (
         <div className="mt-3 space-y-2">
           {pendingNote && <p className="text-xs text-brand-goldText">{pendingNote}</p>}
-          <input
-            type="text"
-            inputMode="numeric"
-            maxLength={6}
-            value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-            placeholder="Enter the 6-digit code"
-            aria-label="6-digit verification code"
-            className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-          />
+          <Input label="6-digit verification code" type="text" inputMode="numeric" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} placeholder="Enter the 6-digit code" />
           {error && <p className="text-xs text-brand-rose">{error}</p>}
           <div className="flex gap-2">
             <button
               onClick={verifyCode}
               disabled={busy || code.length !== 6}
-              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
             >
               Verify
             </button>
@@ -533,19 +470,12 @@ function WhatsAppSettings({
         </div>
       ) : (
         <div className="mt-3 space-y-2">
-          <input
-            type="tel"
-            value={phoneInput}
-            onChange={(e) => setPhoneInput(e.target.value)}
-            placeholder="+2348012345678"
-            aria-label="WhatsApp phone number"
-            className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-          />
+          <Input label="WhatsApp phone number" type="tel" value={phoneInput} onChange={(e) => setPhoneInput(e.target.value)} placeholder="+2348012345678" />
           {error && <p className="text-xs text-brand-rose">{error}</p>}
           <button
             onClick={requestCode}
             disabled={busy || !phoneInput.trim()}
-            className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+            className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
           >
             Enable WhatsApp Notifications
           </button>
@@ -632,47 +562,13 @@ function DiscoverabilitySettings() {
             until you accept a specific introduction — turning this on only makes your listing visible.
           </p>
         </div>
-        <button
-          role="switch"
-          aria-checked={discoverable}
-          onClick={() => setDiscoverable((v) => !v)}
-          className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${discoverable ? "bg-brand-teal" : "bg-brand-gray"}`}
-        >
-          <span
-            className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${discoverable ? "translate-x-5" : "translate-x-0"}`}
-          />
-        </button>
+        <Toggle checked={discoverable} onChange={() => setDiscoverable((v) => !v)} label="Employer discoverability" />
       </div>
 
       {discoverable && (
         <div className="mt-4 space-y-3 border-t border-brand-gray pt-4">
-          <div>
-            <label htmlFor="discoverable-headline" className="text-xs font-semibold text-gray-600">
-              Headline (optional)
-            </label>
-            <input
-              id="discoverable-headline"
-              value={headline}
-              onChange={(e) => setHeadline(e.target.value)}
-              maxLength={120}
-              placeholder="Full-stack developer, AAICBI Cohort 2026"
-              className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
-          </div>
-          <div>
-            <label htmlFor="discoverable-bio" className="text-xs font-semibold text-gray-600">
-              About you (optional)
-            </label>
-            <textarea
-              id="discoverable-bio"
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              maxLength={1000}
-              rows={3}
-              placeholder="A short note about what you're looking for..."
-              className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
-          </div>
+          <Input label="Headline (optional)" id="discoverable-headline" value={headline} onChange={(e) => setHeadline(e.target.value)} maxLength={120} placeholder="Full-stack developer, AAICBI Cohort 2026" />
+          <Textarea label="About you (optional)" compact id="discoverable-bio" value={bio} onChange={(e) => setBio(e.target.value)} maxLength={1000} rows={3} placeholder="A short note about what you're looking for..." />
           <div>
             <p className="text-xs font-semibold text-gray-600">Certificates to include</p>
             {certificates.filter((c) => !c.revoked).length === 0 ? (
@@ -682,10 +578,7 @@ function DiscoverabilitySettings() {
                 {certificates
                   .filter((c) => !c.revoked)
                   .map((c) => (
-                    <label key={c.id} className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" checked={c.included} onChange={() => toggleCertificate(c.id)} />
-                      {c.courseTitle}
-                    </label>
+                    <Checkbox key={c.id} label={<>{c.courseTitle}</>} checked={c.included} onChange={() => toggleCertificate(c.id)} />
                   ))}
               </div>
             )}
@@ -753,11 +646,7 @@ function PublicProfileSettings() {
 
       {url && (
         <div className="mt-3 flex items-center gap-2">
-          <input
-            readOnly
-            value={url}
-            className="w-full rounded-lg border border-brand-gray bg-gray-50 px-3 py-2 text-sm text-gray-600"
-          />
+          <Input label="Your public profile link" hideLabel wrapperClassName="min-w-0 flex-1" controlClassName="bg-gray-50 text-gray-600" readOnly value={url} />
           <button onClick={copy} className="shrink-0 text-xs font-semibold text-brand-teal hover:underline">
             Copy
           </button>

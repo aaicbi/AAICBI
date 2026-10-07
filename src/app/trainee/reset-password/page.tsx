@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-
+import { Input } from "@/components/ui/Field";
 export default function TraineeResetPasswordPage() {
   return (
     <Suspense fallback={null}>
@@ -60,18 +60,8 @@ function TraineeResetPasswordForm() {
         ) : (
           <Card className="mt-6">
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="text-sm font-semibold text-brand-ink">New password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={8}
-                  className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-                />
-              </div>
-              {error && <p className="text-sm text-brand-rose">{error}</p>}
+              <Input label="New password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
+              {error && <p role="alert" className="text-sm text-brand-rose">{error}</p>}
               <Button type="submit" loading={loading} className="w-full">
                 {loading ? "Saving..." : "Reset Password"}
               </Button>

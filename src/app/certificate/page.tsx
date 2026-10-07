@@ -6,6 +6,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import AchievementDoodle from "@/components/doodles/AchievementDoodle";
 
+import { Input } from "@/components/ui/Field";
 /** M15 — the entry point for someone who has a certificate code but
  * not a direct link (e.g. typed it in from a printed certificate,
  * rather than scanning a QR or clicking an email link). Just a lookup
@@ -32,13 +33,7 @@ export default function CertificateLookupPage() {
         </p>
         <Card className="mt-6 w-full text-left">
           <form onSubmit={handleSubmit} className="flex gap-2">
-            <input
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="AAICBI-XXXX-XXXX"
-              aria-label="Certificate code"
-              className="flex-1 rounded-lg border border-brand-gray px-3 py-2.5 text-sm uppercase tracking-wide focus:border-brand-teal focus:outline-none"
-            />
+            <Input label="Certificate code" hideLabel wrapperClassName="flex-1" controlClassName="uppercase tracking-wide" value={code} onChange={(e) => setCode(e.target.value)} placeholder="AAICBI-XXXX-XXXX" />
             <Button type="submit" disabled={!code.trim()}>
               Verify
             </Button>

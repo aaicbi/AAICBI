@@ -9,6 +9,7 @@ import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
 import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
+import { Input, Textarea } from "@/components/ui/Field";
 interface ThreadDto {
   id: string;
   title: string;
@@ -82,21 +83,8 @@ export default function LessonQaPage({ params }: { params: { id: string } }) {
 
         {showForm && (
           <Card className="mt-4">
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Question title"
-              aria-label="Question title"
-              className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="What's your question?"
-              aria-label="What's your question?"
-              rows={3}
-              className="mt-2 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
+            <Input label="Question title" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <Textarea label="What's your question?" hideLabel compact value={content} onChange={(e) => setContent(e.target.value)} placeholder="What's your question?" rows={3} />
             {error && <p className="mt-2 text-xs text-brand-rose">{error}</p>}
             <div className="mt-2 flex gap-2">
               <Button onClick={createThread} loading={posting} disabled={title.trim().length < 3 || !content.trim()}>

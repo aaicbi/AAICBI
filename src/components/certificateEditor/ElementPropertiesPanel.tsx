@@ -1,6 +1,7 @@
 "use client";
 import type { CertificateElement } from "@/lib/certificateLayout";
 
+import { Checkbox, Input, Select } from "@/components/ui/Field";
 /**
  * Visual Certificate Design Editor — the side panel for whichever
  * element is currently selected on the canvas. Plain HTML inputs, not
@@ -18,54 +19,26 @@ export default function ElementPropertiesPanel({
     return (
       <div className="mt-3 space-y-2.5 rounded-lg border border-brand-gray p-3">
         {isLiteral ? (
-          <label className="block text-xs font-semibold text-gray-600">
-            Text
-            <input
-              value={element.content.kind === "literal" ? element.content.text : ""}
-              onChange={(e) => onChange({ content: { kind: "literal", text: e.target.value } })}
-              className="mt-1 w-full rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-            />
-          </label>
+          <Input label="Text" compact value={element.content.kind === "literal" ? element.content.text : ""} onChange={(e) => onChange({ content: { kind: "literal", text: e.target.value } })} />
         ) : (
           <p className="text-xs text-gray-500">Bound to a dynamic field — its real value fills in automatically.</p>
         )}
         <div className="flex gap-2">
-          <label className="flex-1 text-xs font-semibold text-gray-600">
-            Size
-            <input
-              type="number"
-              min={6}
-              max={200}
-              value={element.fontSize}
-              onChange={(e) => onChange({ fontSize: Number(e.target.value) || element.fontSize })}
-              className="mt-1 w-full rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-            />
-          </label>
+          <Input label="Size" compact wrapperClassName="flex-1" type="number" min={6} max={200} value={element.fontSize} onChange={(e) => onChange({ fontSize: Number(e.target.value) || element.fontSize })} />
           <label className="flex-1 text-xs font-semibold text-gray-600">
             Color
             <input type="color" value={element.color} onChange={(e) => onChange({ color: e.target.value })} className="mt-1 h-9 w-full rounded-lg border border-brand-gray" />
           </label>
         </div>
         <div className="flex gap-3">
-          <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
-            <input type="checkbox" checked={element.bold} onChange={(e) => onChange({ bold: e.target.checked })} /> Bold
-          </label>
-          <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
-            <input type="checkbox" checked={element.italic} onChange={(e) => onChange({ italic: e.target.checked })} /> Italic
-          </label>
+          <Checkbox label="Bold" checked={element.bold} onChange={(e) => onChange({ bold: e.target.checked })} />
+          <Checkbox label="Italic" checked={element.italic} onChange={(e) => onChange({ italic: e.target.checked })} />
         </div>
-        <label className="block text-xs font-semibold text-gray-600">
-          Align
-          <select
-            value={element.align}
-            onChange={(e) => onChange({ align: e.target.value })}
-            className="mt-1 w-full rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-          >
+        <Select label="Align" compact value={element.align} onChange={(e) => onChange({ align: e.target.value })}>
             <option value="left">Left</option>
             <option value="center">Center</option>
             <option value="right">Right</option>
-          </select>
-        </label>
+          </Select>
       </div>
     );
   }
@@ -81,17 +54,7 @@ export default function ElementPropertiesPanel({
   if (element.type === "icon") {
     return (
       <div className="mt-3 space-y-2.5 rounded-lg border border-brand-gray p-3">
-        <label className="block text-xs font-semibold text-gray-600">
-          Size
-          <input
-            type="number"
-            min={8}
-            max={500}
-            value={element.size}
-            onChange={(e) => onChange({ size: Number(e.target.value) || element.size })}
-            className="mt-1 w-full rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-          />
-        </label>
+        <Input label="Size" compact type="number" min={8} max={500} value={element.size} onChange={(e) => onChange({ size: Number(e.target.value) || element.size })} />
         <label className="block text-xs font-semibold text-gray-600">
           Color
           <input type="color" value={element.color} onChange={(e) => onChange({ color: e.target.value })} className="mt-1 h-9 w-full rounded-lg border border-brand-gray" />
@@ -125,29 +88,9 @@ export default function ElementPropertiesPanel({
           />
         </label>
       </div>
-      <label className="block text-xs font-semibold text-gray-600">
-        Stroke width
-        <input
-          type="number"
-          min={0}
-          max={40}
-          value={element.strokeWidth ?? 1}
-          onChange={(e) => onChange({ strokeWidth: Number(e.target.value) || 0 })}
-          className="mt-1 w-full rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-        />
-      </label>
+      <Input label="Stroke width" compact type="number" min={0} max={40} value={element.strokeWidth ?? 1} onChange={(e) => onChange({ strokeWidth: Number(e.target.value) || 0 })} />
       {element.shapeType === "rect" && (
-        <label className="block text-xs font-semibold text-gray-600">
-          Corner radius
-          <input
-            type="number"
-            min={0}
-            max={200}
-            value={element.cornerRadius ?? 0}
-            onChange={(e) => onChange({ cornerRadius: Number(e.target.value) || 0 })}
-            className="mt-1 w-full rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-          />
-        </label>
+        <Input label="Corner radius" compact type="number" min={0} max={200} value={element.cornerRadius ?? 0} onChange={(e) => onChange({ cornerRadius: Number(e.target.value) || 0 })} />
       )}
     </div>
   );

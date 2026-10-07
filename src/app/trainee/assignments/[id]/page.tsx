@@ -1,4 +1,5 @@
 "use client";
+import { Textarea } from "@/components/ui/Field";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
@@ -217,13 +218,15 @@ export default function AssignmentWorkspacePage({ params }: { params: { id: stri
               )}
 
               <div className="mt-4">
-                <textarea
+                <Textarea
+                  label="Your answer"
+                  hideLabel
                   value={answers[activeQuestion.id] ?? ""}
                   onChange={(e) => handleAnswerChange(activeQuestion.id, e.target.value)}
                   rows={activeQuestion.type === "TECHNICAL_RESPONSE" ? 14 : 10}
                   placeholder="Type your answer here..."
                   disabled={activeIsCarriedForward}
-                  className={`w-full rounded-lg border border-brand-gray px-4 py-3 text-sm outline-none focus:border-brand-teal disabled:bg-gray-50 disabled:text-gray-500 ${activeQuestion.type === "TECHNICAL_RESPONSE" ? "font-mono" : ""}`}
+                  controlClassName={`px-4 py-3 ${activeQuestion.type === "TECHNICAL_RESPONSE" ? "font-mono" : ""}`}
                 />
                 <p className="mt-1.5 text-xs text-gray-500">
                   {activeIsCarriedForward

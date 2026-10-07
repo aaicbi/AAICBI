@@ -1,3 +1,5 @@
+export const metadata = { title: { default: "Organization", template: "%s · Organization · AAICBI" } };
+
 /**
  * Training Organizations — /org/register and /org/login are the only
  * routes left under /org/* (Phase 2 retired the bespoke /org/dashboard

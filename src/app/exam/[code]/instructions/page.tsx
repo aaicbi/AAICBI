@@ -5,6 +5,7 @@ import SiteHeader from "@/components/SiteHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 
+import { Checkbox, Input } from "@/components/ui/Field";
 interface ExamMeta {
   title: string;
   instructions: string | null;
@@ -110,27 +111,12 @@ Your score will be calculated automatically.`}
 
         {exam.certificateEnabled && (
           <div className="mt-5">
-            <label className="text-sm font-semibold text-brand-ink">Name on your certificate</label>
-            <input
-              type="text"
-              value={certificateName}
-              onChange={(e) => setCertificateName(e.target.value)}
-              placeholder="Full name as you'd like it printed"
-              className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-            />
+            <Input label="Name on your certificate" type="text" value={certificateName} onChange={(e) => setCertificateName(e.target.value)} placeholder="Full name as you'd like it printed" />
             <p className="mt-1 text-xs text-gray-500">Passing this exam earns a certificate — this is the name that will appear on it.</p>
           </div>
         )}
 
-        <label className="mt-5 flex items-center gap-2 text-sm text-brand-ink">
-          <input
-            type="checkbox"
-            checked={confirmed}
-            onChange={(e) => setConfirmed(e.target.checked)}
-            className="h-4 w-4 accent-brand-teal"
-          />
-          I have read the instructions
-        </label>
+        <Checkbox label="I have read the instructions" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
 
         {error && <p className="mt-3 text-sm text-brand-rose">{error}</p>}
 

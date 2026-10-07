@@ -30,6 +30,7 @@ import type { CourseStatus } from "@prisma/client";
 import CourseMarketingSettings, { type CourseMarketingFields } from "./CourseMarketingSettings";
 import CourseScheduleSettings, { type CourseScheduleFields } from "./CourseScheduleSettings";
 
+import { Checkbox, Input, Select } from "@/components/ui/Field";
 interface MaterialDto {
   id: string;
   type: "PDF" | "DOCX" | "PPTX" | "VIDEO";
@@ -515,18 +516,13 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
             >
               <Icon icon={Eye} size="sm" className="mr-1 inline align-text-bottom" /> Preview as Trainee
             </a>
-            <label className="mb-1 block text-xs font-semibold text-gray-500">Status</label>
-            <select
-              value={course.status}
-              onChange={(e) => changeStatus(e.target.value as CourseStatus)}
-              className="rounded-lg border border-brand-gray px-3 py-2 text-sm font-semibold"
-            >
+            <Select label="Status" compact controlClassName="font-semibold" value={course.status} onChange={(e) => changeStatus(e.target.value as CourseStatus)}>
               {COURSE_STATUS_VALUES.map((s) => (
                 <option key={s} value={s}>
                   {COURSE_STATUS_LABEL[s]}
                 </option>
               ))}
-            </select>
+            </Select>
             {course.status === "UNLISTED" && (
               <p className="mt-1 max-w-[16rem] text-xs text-gray-500">
                 Hidden from the public catalog. Only trainees you grant access to (via Enrollments, below) can reach it.
@@ -672,34 +668,14 @@ function EarlyWarningSettings({
 
       {editing && (
         <div className="mt-3 space-y-3">
-          <label className="block text-xs text-gray-700">
-            Flag a trainee after this many days with no login (blank = off)
-            <input
-              type="number"
-              min={1}
-              value={inactivityDays}
-              onChange={(e) => setInactivityDays(e.target.value)}
-              placeholder="e.g. 7"
-              className="mt-1 w-full max-w-[10rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-            />
-          </label>
-          <label className="block text-xs text-gray-700">
-            Flag a trainee after this many failed attempts on one module assessment (blank = off)
-            <input
-              type="number"
-              min={1}
-              value={failedAttempts}
-              onChange={(e) => setFailedAttempts(e.target.value)}
-              placeholder="e.g. 3"
-              className="mt-1 w-full max-w-[10rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-            />
-          </label>
+          <Input label="Flag a trainee after this many days with no login (blank = off)" compact wrapperClassName="max-w-[10rem]" type="number" min={1} value={inactivityDays} onChange={(e) => setInactivityDays(e.target.value)} placeholder="e.g. 7" />
+          <Input label="Flag a trainee after this many failed attempts on one module assessment (blank = off)" compact wrapperClassName="max-w-[10rem]" type="number" min={1} value={failedAttempts} onChange={(e) => setFailedAttempts(e.target.value)} placeholder="e.g. 3" />
           {error && <p className="text-xs text-brand-rose">{error}</p>}
           <div className="flex gap-2">
             <button
               onClick={handleSave}
               disabled={saving}
-              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
             >
               {saving ? "Saving..." : "Save"}
             </button>
@@ -851,37 +827,13 @@ function PricingSettings({
 
       {editing && (
         <div className="mt-3 space-y-3">
-          <label className="flex items-center gap-2 text-xs text-gray-700">
-            <input type="checkbox" checked={isFree} onChange={(e) => setIsFree(e.target.checked)} />
-            This course is free (lifetime access, no payment)
-          </label>
+          <Checkbox label="This course is free (lifetime access, no payment)" checked={isFree} onChange={(e) => setIsFree(e.target.checked)} />
 
           {!isFree && (
             <>
               <div className="flex flex-wrap gap-3">
-                <label className="block text-xs text-gray-700">
-                  Price (₦)
-                  <input
-                    type="number"
-                    min={1}
-                    value={priceNaira}
-                    onChange={(e) => setPriceNaira(e.target.value)}
-                    placeholder="e.g. 50000"
-                    className="mt-1 w-full max-w-[10rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-                  />
-                </label>
-                <label className="block text-xs text-gray-700">
-                  Discount (%, optional)
-                  <input
-                    type="number"
-                    min={1}
-                    max={99}
-                    value={discountPercent}
-                    onChange={(e) => setDiscountPercent(e.target.value)}
-                    placeholder="e.g. 20"
-                    className="mt-1 w-full max-w-[8rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-                  />
-                </label>
+                <Input label="Price (₦)" compact wrapperClassName="max-w-[10rem]" type="number" min={1} value={priceNaira} onChange={(e) => setPriceNaira(e.target.value)} placeholder="e.g. 50000" />
+                <Input label="Discount (%, optional)" compact wrapperClassName="max-w-[8rem]" type="number" min={1} max={99} value={discountPercent} onChange={(e) => setDiscountPercent(e.target.value)} placeholder="e.g. 20" />
               </div>
               {priceNaira.trim() !== "" && discountPercent.trim() !== "" && Number(discountPercent) > 0 && (
                 <p className="text-xs text-gray-500">
@@ -894,23 +846,7 @@ function PricingSettings({
                 </p>
               )}
 
-              <label className="block text-xs text-gray-700">
-                Free preview modules (optional)
-                <input
-                  type="number"
-                  min={0}
-                  max={Math.max(0, course.modules.length - 1)}
-                  value={freePreviewModuleCount}
-                  onChange={(e) => setFreePreviewModuleCount(e.target.value)}
-                  placeholder="e.g. 2"
-                  className="mt-1 w-full max-w-[8rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-                />
-                <span className="mt-1 block text-[11px] font-normal text-gray-500">
-                  A trainee can register and go through this many of the course&apos;s {course.modules.length} module
-                  {course.modules.length === 1 ? "" : "s"} (lessons and assessments) before paying. Leave blank to
-                  require payment before any content is accessible, as today.
-                </span>
-              </label>
+              <Input label="Free preview modules (optional)" compact controlClassName="max-w-[8rem]" hint={<>A trainee can register and go through this many of the course&apos;s {course.modules.length} module {course.modules.length === 1 ? "" : "s"} (lessons and assessments) before paying. Leave blank to require payment before any content is accessible, as today.</>} type="number" min={0} max={Math.max(0, course.modules.length - 1)} value={freePreviewModuleCount} onChange={(e) => setFreePreviewModuleCount(e.target.value)} placeholder="e.g. 2" />
 
               <div className="flex gap-4 text-xs text-gray-700">
                 <label className="flex items-center gap-1.5">
@@ -932,45 +868,21 @@ function PricingSettings({
               </div>
 
               {accessModel === "RECURRING_SUBSCRIPTION" ? (
-                <label className="block text-xs text-gray-700">
-                  Billing interval
-                  <select
-                    value={billingInterval}
-                    onChange={(e) => setBillingInterval(e.target.value as "MONTHLY" | "QUARTERLY" | "ANNUALLY")}
-                    className="mt-1 block w-full max-w-[10rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-                  >
+                <Select label="Billing interval" compact wrapperClassName="max-w-[10rem]" value={billingInterval} onChange={(e) => setBillingInterval(e.target.value as "MONTHLY" | "QUARTERLY" | "ANNUALLY")}>
                     <option value="MONTHLY">Monthly</option>
                     <option value="QUARTERLY">Quarterly</option>
                     <option value="ANNUALLY">Annually</option>
-                  </select>
-                </label>
+                  </Select>
               ) : (
                 <div className="flex items-end gap-2">
                   {durationUnit !== "LIFETIME" && (
-                    <label className="block text-xs text-gray-700">
-                      Duration
-                      <input
-                        type="number"
-                        min={1}
-                        value={durationValue}
-                        onChange={(e) => setDurationValue(e.target.value)}
-                        placeholder="e.g. 90"
-                        className="mt-1 w-full max-w-[8rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-                      />
-                    </label>
+                    <Input label="Duration" compact wrapperClassName="max-w-[8rem]" type="number" min={1} value={durationValue} onChange={(e) => setDurationValue(e.target.value)} placeholder="e.g. 90" />
                   )}
-                  <label className="block text-xs text-gray-700">
-                    Unit
-                    <select
-                      value={durationUnit}
-                      onChange={(e) => setDurationUnit(e.target.value as "DAYS" | "MONTHS" | "LIFETIME")}
-                      className="mt-1 block w-full max-w-[9rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-                    >
+                  <Select label="Unit" compact wrapperClassName="max-w-[9rem]" value={durationUnit} onChange={(e) => setDurationUnit(e.target.value as "DAYS" | "MONTHS" | "LIFETIME")}>
                       <option value="DAYS">Days</option>
                       <option value="MONTHS">Months</option>
                       <option value="LIFETIME">Lifetime</option>
-                    </select>
-                  </label>
+                    </Select>
                 </div>
               )}
             </>
@@ -981,7 +893,7 @@ function PricingSettings({
             <button
               onClick={handleSave}
               disabled={saving}
-              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
             >
               {saving ? "Saving..." : "Save"}
             </button>
@@ -1039,19 +951,14 @@ function CertificateTemplateSettings({
         This course belongs to <span className="font-medium">{trainingOrganization.name}</span>. Pick which of their
         approved certificate templates this course&apos;s certificate uses.
       </p>
-      <select
-        value={course.certificateTemplateId ?? ""}
-        onChange={(e) => handleChange(e.target.value)}
-        disabled={saving || trainingOrganization.availableCertificateTemplates.length === 0}
-        className="mt-2 w-full max-w-xs rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-      >
+      <Select label="Certificate template" hideLabel compact wrapperClassName="max-w-xs" value={course.certificateTemplateId ?? ""} onChange={(e) => handleChange(e.target.value)} disabled={saving || trainingOrganization.availableCertificateTemplates.length === 0}>
         <option value="">AAICBI default</option>
         {trainingOrganization.availableCertificateTemplates.map((t) => (
           <option key={t.id} value={t.id}>
             {t.name}
           </option>
         ))}
-      </select>
+      </Select>
       {trainingOrganization.availableCertificateTemplates.length === 0 && (
         <p className="mt-2 text-xs text-gray-500">
           No approved certificate templates yet — this course will use AAICBI&apos;s default certificate until one is
@@ -1141,21 +1048,13 @@ function ReminderSettings({
 
       {editing && (
         <div className="mt-3 space-y-3">
-          <label className="flex items-center gap-2 text-xs text-gray-700">
-            <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
-            {isSubscription
+          <Checkbox label={<>{isSubscription
               ? "Send trainees an email before their subscription automatically renews"
-              : "Send trainees an email before their access expires"}
-          </label>
+              : "Send trainees an email before their access expires"}</>} checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
           {enabled && (
             <label className="block text-xs text-gray-700">
               Days before {isSubscription ? "renewal" : "expiry"} to send a reminder (comma-separated)
-              <input
-                value={days}
-                onChange={(e) => setDays(e.target.value)}
-                placeholder="e.g. 14, 7, 1"
-                className="mt-1 w-full max-w-[16rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-              />
+              <Input label="e.g. 14, 7, 1" hideLabel compact wrapperClassName="max-w-[16rem]" value={days} onChange={(e) => setDays(e.target.value)} placeholder="e.g. 14, 7, 1" />
             </label>
           )}
           {error && <p className="text-xs text-brand-rose">{error}</p>}
@@ -1163,7 +1062,7 @@ function ReminderSettings({
             <button
               onClick={handleSave}
               disabled={saving}
-              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
             >
               {saving ? "Saving..." : "Save"}
             </button>
@@ -1241,23 +1140,13 @@ function AiCreditOverrideSettings({
 
       {editing && (
         <div className="mt-3 space-y-3">
-          <label className="block text-xs text-gray-700">
-            Credits granted for this course specifically (blank = use the platform default)
-            <input
-              type="number"
-              min={0}
-              value={override}
-              onChange={(e) => setOverride(e.target.value)}
-              placeholder="e.g. 100"
-              className="mt-1 w-full max-w-[10rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-            />
-          </label>
+          <Input label="Credits granted for this course specifically (blank = use the platform default)" compact wrapperClassName="max-w-[10rem]" type="number" min={0} value={override} onChange={(e) => setOverride(e.target.value)} placeholder="e.g. 100" />
           {error && <p className="text-xs text-brand-rose">{error}</p>}
           <div className="flex gap-2">
             <button
               onClick={handleSave}
               disabled={saving}
-              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
             >
               {saving ? "Saving..." : "Save"}
             </button>
@@ -1318,7 +1207,7 @@ function QaScopeSettings({
           disabled={saving}
           onClick={() => handleChange("OPEN")}
           className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-            course.qaScope === "OPEN" ? "bg-brand-teal text-white" : "border border-brand-gray"
+            course.qaScope === "OPEN" ? "bg-brand-teal text-brand-onAccent" : "border border-brand-gray"
           }`}
         >
           Open (everyone)
@@ -1327,7 +1216,7 @@ function QaScopeSettings({
           disabled={saving}
           onClick={() => handleChange("COHORT_SCOPED")}
           className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-            course.qaScope === "COHORT_SCOPED" ? "bg-brand-teal text-white" : "border border-brand-gray"
+            course.qaScope === "COHORT_SCOPED" ? "bg-brand-teal text-brand-onAccent" : "border border-brand-gray"
           }`}
         >
           Cohort-scoped
@@ -1395,16 +1284,11 @@ function WhatsappGroupSettings({
         course page. Leave blank if this course has no group.
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
-        <input
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://chat.whatsapp.com/..."
-          className="min-w-0 flex-1 rounded-lg border border-brand-gray px-2.5 py-1.5 text-sm outline-none focus:border-brand-teal"
-        />
+        <Input label="https://chat.whatsapp.com/..." hideLabel compact wrapperClassName="min-w-0 flex-1" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://chat.whatsapp.com/..." />
         <button
           onClick={handleSave}
           disabled={saving}
-          className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+          className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
         >
           {saving ? "Saving..." : "Save"}
         </button>
@@ -1829,23 +1713,13 @@ function MaterialForm({
   return (
     <div className="mt-2 space-y-2 rounded-lg border border-brand-gray bg-gray-50 p-3">
       <div className="flex gap-2">
-        <select
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-          className="rounded border border-brand-gray px-2 py-1.5 text-xs"
-        >
+        <Select label="Material type" hideLabel compact controlClassName="text-xs" value={type} onChange={(e) => setType(e.target.value)}>
           <option value="PDF">PDF</option>
           <option value="DOCX">DOCX</option>
           <option value="PPTX">PPTX</option>
           <option value="VIDEO">Video (YouTube link)</option>
-        </select>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Material title"
-          aria-label="Material title"
-          className="flex-1 rounded border border-brand-gray px-2 py-1.5 text-xs"
-        />
+        </Select>
+        <Input label="Material title" hideLabel compact wrapperClassName="flex-1" controlClassName="text-xs" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Material title" />
       </div>
 
       {type !== "VIDEO" && (
@@ -1860,12 +1734,7 @@ function MaterialForm({
       )}
 
       {effectiveMode === "link" ? (
-        <input
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder={type === "VIDEO" ? "https://youtube.com/watch?v=... (unlisted)" : "https://..."}
-          className="w-full rounded border border-brand-gray px-2 py-1.5 text-xs"
-        />
+        <Input label="Link URL" hideLabel compact controlClassName="text-xs" value={url} onChange={(e) => setUrl(e.target.value)} placeholder={type === "VIDEO" ? "https://youtube.com/watch?v=... (unlisted)" : "https://..."} />
       ) : (
         <div>
           {initialUrl && !file && (
@@ -1943,7 +1812,7 @@ function MaterialForm({
             setSaving(false);
             if (err) setError(err);
           }}
-          className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+          className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
         >
           {saving ? "Saving..." : submitLabel}
         </button>
@@ -1982,23 +1851,10 @@ function AddForm({
   return (
     <div className="space-y-2 rounded-lg border border-brand-gray bg-white dark:bg-brand-surface p-3">
       {fields.includes("title") && (
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Title"
-          aria-label="Title"
-          className="w-full rounded border border-brand-gray px-2.5 py-1.5 text-sm"
-          autoFocus
-        />
+        <Input label="Title" hideLabel compact value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" autoFocus />
       )}
       {fields.includes("description") && (
-        <input
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Description (optional)"
-          aria-label="Description (optional)"
-          className="w-full rounded border border-brand-gray px-2.5 py-1.5 text-sm"
-        />
+        <Input label="Description (optional)" hideLabel compact value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description (optional)" />
       )}
       {error && <p className="text-xs text-brand-rose">{error}</p>}
       <div className="flex gap-2">
@@ -2014,7 +1870,7 @@ function AddForm({
             setSaving(false);
             if (err) setError(err);
           }}
-          className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+          className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
         >
           {saving ? "Saving..." : submitLabel}
         </button>

@@ -2,6 +2,8 @@ import { getSession } from "@/lib/auth/session";
 import { SidebarActiveProvider } from "@/components/SidebarActiveContext";
 import InstructorSidebar from "@/components/instructor/InstructorSidebar";
 
+export const metadata = { title: { default: "Instructor", template: "%s · Instructor · AAICBI" } };
+
 /**
  * Sidebar rollout (Phase 2) — the instructor counterpart to
  * src/app/admin/layout.tsx; see that file's own comment for the fuller
@@ -24,7 +26,7 @@ export default async function InstructorLayout({ children }: { children: React.R
     <SidebarActiveProvider>
       <div className="min-h-screen">
         <InstructorSidebar />
-        <div className="sm:pl-64">{children}</div>
+        <div className="lg:pl-64">{children}</div>
       </div>
     </SidebarActiveProvider>
   );

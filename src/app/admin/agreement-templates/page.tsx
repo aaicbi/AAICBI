@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/Toast";
 import { DEFAULT_INSTRUCTOR_AGREEMENT_NAME, DEFAULT_INSTRUCTOR_AGREEMENT_CONTENT } from "@/lib/instructorAgreementTemplate";
 import { ADMIN_NAV_STAFF } from "@/lib/admin/nav";
 
+import { Input, Textarea } from "@/components/ui/Field";
 interface TemplateDto {
   id: string;
   name: string;
@@ -118,19 +119,8 @@ export default function AgreementTemplatesPage() {
         {editing && (
           <Card className="mt-4">
             <div className="space-y-3">
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Template name"
-                className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-              />
-              <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                rows={16}
-                placeholder="Agreement content — use {{INSTRUCTOR_NAME}}, {{COURSE_NAME}}, {{REMUNERATION_AMOUNT}}, etc."
-                className="w-full rounded-lg border border-brand-gray px-3 py-2 font-mono text-xs leading-relaxed outline-none focus:border-brand-teal"
-              />
+              <Input label="Template name" hideLabel compact value={name} onChange={(e) => setName(e.target.value)} placeholder="Template name" />
+              <Textarea label="Agreement content — use {{INSTRUCTOR_NAME}}, {{COURSE_NAME}}, {{REMUNERATION_AMOUNT}}, etc." hideLabel compact controlClassName="font-mono text-xs leading-relaxed" value={content} onChange={(e) => setContent(e.target.value)} rows={16} placeholder="Agreement content — use {{INSTRUCTOR_NAME}}, {{COURSE_NAME}}, {{REMUNERATION_AMOUNT}}, etc." />
               <p className="text-xs text-gray-500">
                 Available tokens: {"{{LETTER_DATE}}"}, {"{{INSTRUCTOR_NAME}}"}, {"{{INSTRUCTOR_EMAIL}}"}, {"{{INSTRUCTOR_ADDRESS}}"},{" "}
                 {"{{INSTRUCTOR_PHONE}}"}, {"{{POSITION}}"}, {"{{COURSE_NAME}}"}, {"{{COURSE_DURATION}}"}, {"{{START_DATE}}"}, {"{{END_DATE}}"},{" "}

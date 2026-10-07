@@ -7,11 +7,12 @@ import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
-import BackLink from "@/components/ui/BackLink";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { ArrowRight } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
+import { Input } from "@/components/ui/Field";
 interface CohortRow {
   id: string;
   name: string;
@@ -101,9 +102,7 @@ export default function CourseCohortsPage({ params }: { params: { id: string } }
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-3xl px-6 py-10">
-        <BackLink href={`/admin/courses/${params.id}`} className="text-sm text-brand-teal hover:underline">
-          Back to course
-        </BackLink>
+        <Breadcrumbs items={[{ label: "Courses", href: "/admin/courses" }, { label: "Course", href: `/admin/courses/${params.id}` }, { label: "Cohorts" }]} />
         <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="font-display text-2xl font-semibold text-brand-ink">Cohorts / Intakes</h1>
           <Button variant={showForm ? "secondary" : "primary"} onClick={() => setShowForm(!showForm)}>
@@ -117,33 +116,10 @@ export default function CourseCohortsPage({ params }: { params: { id: string } }
 
         {showForm && (
           <form onSubmit={createCohort} className="mt-4 space-y-3 rounded-xl border border-brand-gray bg-white dark:bg-brand-surface p-5">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Cohort name, e.g. January 2026 Intake"
-              aria-label="Cohort name"
-              required
-              className="w-full rounded-lg border border-brand-gray p-2 text-sm outline-none focus:border-brand-teal"
-            />
+            <Input label="Cohort name" hideLabel controlClassName="p-2" value={name} onChange={(e) => setName(e.target.value)} placeholder="Cohort name, e.g. January 2026 Intake" required />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <label className="block text-xs text-gray-600">
-                Start date (optional)
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-brand-gray p-2 text-sm outline-none focus:border-brand-teal"
-                />
-              </label>
-              <label className="block text-xs text-gray-600">
-                End date (optional)
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-brand-gray p-2 text-sm outline-none focus:border-brand-teal"
-                />
-              </label>
+              <Input label="Start date (optional)" controlClassName="p-2" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <Input label="End date (optional)" controlClassName="p-2" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </div>
             {error && <p className="text-sm text-brand-rose">{error}</p>}
             <Button type="submit" loading={creating}>

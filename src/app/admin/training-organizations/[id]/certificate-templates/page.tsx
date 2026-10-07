@@ -7,11 +7,13 @@ import { useToast } from "@/components/ui/Toast";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import CertificateDisplay from "@/components/CertificateDisplay";
+import Modal from "@/components/ui/Modal";
 import PayCertWatermarkFeeButton from "@/components/org/PayCertWatermarkFeeButton";
 import CertificateCanvasEditor from "@/components/certificateEditor/CertificateCanvasEditor";
 import { CERTIFICATE_PRESETS } from "@/lib/certificatePresets";
 import type { CertificateLayout } from "@/lib/certificateLayout";
 
+import { Input } from "@/components/ui/Field";
 interface TemplateDto {
   id: string;
   name: string;
@@ -300,27 +302,9 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
       <Card className="mt-4">
         {isLocked && <p className="mb-3 text-xs font-semibold text-brand-teal">This template is approved and locked.</p>}
         <div className="flex flex-wrap items-end gap-3">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Template name, e.g. Default"
-            disabled={isLocked}
-            className="flex-1 rounded-lg border border-brand-gray px-3 py-2.5 text-sm outline-none focus:border-brand-teal disabled:opacity-60"
-          />
-          <input
-            value={signatoryName}
-            onChange={(e) => setSignatoryName(e.target.value)}
-            placeholder="Signatory name (optional)"
-            disabled={isLocked}
-            className="flex-1 rounded-lg border border-brand-gray px-3 py-2.5 text-sm outline-none focus:border-brand-teal disabled:opacity-60"
-          />
-          <input
-            value={signatoryTitle}
-            onChange={(e) => setSignatoryTitle(e.target.value)}
-            placeholder="Signatory title (optional)"
-            disabled={isLocked}
-            className="flex-1 rounded-lg border border-brand-gray px-3 py-2.5 text-sm outline-none focus:border-brand-teal disabled:opacity-60"
-          />
+          <Input label="Template name, e.g. Default" hideLabel wrapperClassName="flex-1" controlClassName="disabled:opacity-60" value={name} onChange={(e) => setName(e.target.value)} placeholder="Template name, e.g. Default" disabled={isLocked} />
+          <Input label="Signatory name (optional)" hideLabel wrapperClassName="flex-1" controlClassName="disabled:opacity-60" value={signatoryName} onChange={(e) => setSignatoryName(e.target.value)} placeholder="Signatory name (optional)" disabled={isLocked} />
+          <Input label="Signatory title (optional)" hideLabel wrapperClassName="flex-1" controlClassName="disabled:opacity-60" value={signatoryTitle} onChange={(e) => setSignatoryTitle(e.target.value)} placeholder="Signatory title (optional)" disabled={isLocked} />
           {selected && (
             <div>
               <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadLogo} className="hidden" />
@@ -419,15 +403,9 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
         </Card>
       </div>
 
-      {previewOpen && layoutJson && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6" onClick={() => setPreviewOpen(false)}>
-          <div className="max-h-full w-full max-w-2xl overflow-auto rounded-2xl bg-brand-surface p-6 animate-[modal-in_0.2s_ease-out]" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-semibold text-brand-ink">Preview — exactly what's on the canvas</p>
-              <button onClick={() => setPreviewOpen(false)} className="text-sm font-semibold text-gray-500 hover:text-brand-ink">
-                Close
-              </button>
-            </div>
+      <Modal open={previewOpen && !!layoutJson} onClose={() => setPreviewOpen(false)} title="Preview: exactly what's on the canvas" size="lg">
+        <div className="mt-4">
+          {layoutJson && (
             <CertificateDisplay
               traineeName="Jane Doe"
               verb="has successfully completed"
@@ -443,9 +421,14 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
               layoutJson={layoutJson}
               showWatermark={showWatermark}
             />
-          </div>
+          )}
         </div>
-      )}
+        <div className="mt-4 flex justify-end">
+          <Button variant="secondary" onClick={() => setPreviewOpen(false)}>
+            Close
+          </Button>
+        </div>
+      </Modal>
     </main>
   );
 }

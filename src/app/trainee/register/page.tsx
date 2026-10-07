@@ -7,7 +7,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 import GoogleSignInButton from "@/components/trainee/GoogleSignInButton";
-
+import { Input, Select } from "@/components/ui/Field";
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   oauth_failed: "Something went wrong signing up with Google. Please try again.",
   oauth_not_configured: "Google sign-up isn't set up yet. Please create your account with a password instead.",
@@ -112,52 +112,18 @@ function TraineeRegisterForm() {
 
         <Card className="mt-6">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="text-sm font-semibold text-brand-ink">Full name</label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-brand-ink">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-brand-ink">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={8}
-                className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-              />
-            </div>
+            <Input label="Full name" value={name} onChange={(e) => setName(e.target.value)} required />
+            <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
             {freeCourses.length > 0 && (
-              <div>
-                <label className="text-sm font-semibold text-brand-ink">Start a free course now? (optional)</label>
-                <select
-                  value={courseId}
-                  onChange={(e) => setCourseId(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-                >
-                  <option value="">Not right now</option>
-                  {freeCourses.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select label="Start a free course now? (optional)" value={courseId} onChange={(e) => setCourseId(e.target.value)}>
+                <option value="">Not right now</option>
+                {freeCourses.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                  </option>
+                ))}
+              </Select>
             )}
             <div className="flex items-start gap-2">
               <input
@@ -170,13 +136,13 @@ function TraineeRegisterForm() {
               />
               <label htmlFor="privacyConsent" className="text-xs text-gray-600">
                 I have read and agree to AAICBI&apos;s{" "}
-                <a href="/privacy-policy" target="_blank" className="text-brand-teal hover:underline">
+                <a href="/privacy-policy" target="_blank" className="text-brand-teal underline">
                   Privacy Policy
                 </a>
                 , including how my name, email, and course activity are collected and used.
               </label>
             </div>
-            {error && <p className="text-sm text-brand-rose">{error}</p>}
+            {error && <p role="alert" className="text-sm text-brand-rose">{error}</p>}
             <Button type="submit" loading={loading} disabled={!privacyConsent} className="w-full">
               {loading ? "Creating account..." : "Create account"}
             </Button>

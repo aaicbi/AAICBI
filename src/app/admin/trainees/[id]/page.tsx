@@ -193,7 +193,7 @@ export default function AdminTraineeDetailPage({ params }: { params: { id: strin
             {interests && (interests.primary || interests.secondary.length > 0 || interests.emerging.length > 0) && (
               <Card className="mt-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Interest Profile</p>
-                <p className="mt-1 text-[11px] text-gray-400">
+                <p className="mt-1 text-xs text-gray-400">
                   Inferred from behaviour — a behavioural association, not a fact about this trainee.
                 </p>
                 <div className="mt-3 space-y-2">

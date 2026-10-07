@@ -10,6 +10,7 @@ import CorrectnessMark from "@/components/ui/CorrectnessMark";
 import Toggle from "@/components/ui/Toggle";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
+import { Checkbox, Input, Textarea } from "@/components/ui/Field";
 interface OptionDto {
   id: string;
   text: string;
@@ -286,7 +287,7 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="mt-3 rounded-lg bg-brand-teal px-4 py-2 font-semibold text-white hover:bg-brand-tealDeep disabled:opacity-60"
+          className="mt-3 rounded-lg bg-brand-teal px-4 py-2 font-semibold text-brand-onAccent hover:bg-brand-tealDeep disabled:opacity-60"
         >
           {uploading ? "Processing..." : "Choose .docx file"}
         </button>
@@ -309,15 +310,7 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
           <h2 className="font-semibold text-gray-900">Questions ({exam.questions.length})</h2>
           <div className="flex items-center gap-4">
             {exam.questions.length > 0 && (
-              <label className="flex items-center gap-2 text-xs font-semibold text-gray-600">
-                <input
-                  type="checkbox"
-                  checked={selected.size === exam.questions.length}
-                  onChange={toggleSelectAll}
-                  className="h-4 w-4 accent-brand-teal"
-                />
-                Select all
-              </label>
+              <Checkbox label="Select all" checked={selected.size === exam.questions.length} onChange={toggleSelectAll} />
             )}
             <a href={`/admin/exams/${exam.id}/results`} className="inline-flex items-center gap-1 text-sm text-brand-teal hover:underline">
               View results <Icon icon={ArrowRight} size="sm" />
@@ -331,7 +324,7 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
             <button
               onClick={bulkDeleteQuestions}
               disabled={bulkDeleting}
-              className="rounded-lg bg-brand-rose px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+              className="rounded-lg bg-brand-rose px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
             >
               {bulkDeleting ? "Deleting..." : "Delete selected"}
             </button>
@@ -374,7 +367,7 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
             <button
               onClick={handlePublish}
               disabled={outstandingCount > 0 || exam.questions.length === 0}
-              className="mt-3 rounded-lg bg-brand-teal px-5 py-2.5 font-semibold text-white hover:bg-brand-tealDeep disabled:cursor-not-allowed disabled:opacity-40"
+              className="mt-3 rounded-lg bg-brand-teal px-5 py-2.5 font-semibold text-brand-onAccent hover:bg-brand-tealDeep disabled:cursor-not-allowed disabled:opacity-40"
             >
               Publish Examination
             </button>
@@ -415,18 +408,11 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
           </p>
 
           <form onSubmit={grantAccess} className="mt-4 flex gap-2">
-            <input
-              type="email"
-              required
-              value={grantEmail}
-              onChange={(e) => setGrantEmail(e.target.value)}
-              placeholder="Trainee's registered email"
-              className="flex-1 rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
+            <Input label="Trainee's registered email" hideLabel compact wrapperClassName="flex-1" type="email" required value={grantEmail} onChange={(e) => setGrantEmail(e.target.value)} placeholder="Trainee's registered email" />
             <button
               type="submit"
               disabled={granting}
-              className="rounded-lg bg-brand-teal px-4 py-2 text-sm font-semibold text-white hover:bg-brand-tealDeep disabled:opacity-60"
+              className="rounded-lg bg-brand-teal px-4 py-2 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep disabled:opacity-60"
             >
               {granting ? "Granting..." : "Grant Access"}
             </button>
@@ -506,7 +492,7 @@ function QuestionCard({
 
       {editing ? (
         <div className="space-y-2">
-          <textarea value={text} onChange={(e) => setText(e.target.value)} className="w-full rounded border border-brand-gray p-2" rows={2} />
+          <Textarea label="Question text" hideLabel compact controlClassName="p-2" value={text} onChange={(e) => setText(e.target.value)} rows={2} />
           {options.map((o, idx) => (
             <div key={o.id ?? idx} className="flex items-center gap-2">
               <input
@@ -515,11 +501,7 @@ function QuestionCard({
                 onChange={() => setOptions(options.map((x, i) => ({ ...x, isCorrect: i === idx })))}
                 className="accent-brand-teal"
               />
-              <input
-                value={o.text}
-                onChange={(e) => setOptions(options.map((x, i) => (i === idx ? { ...x, text: e.target.value } : x)))}
-                className="flex-1 rounded border border-brand-gray p-1.5 text-sm"
-              />
+              <Input label="Option text" hideLabel compact wrapperClassName="flex-1" controlClassName="p-1.5" value={o.text} onChange={(e) => setOptions(options.map((x, i) => (i === idx ? { ...x, text: e.target.value } : x)))} />
             </div>
           ))}
           <div className="flex gap-2 pt-1">
@@ -528,7 +510,7 @@ function QuestionCard({
                 onSave(text, options);
                 setEditing(false);
               }}
-              className="rounded-lg bg-brand-teal px-3 py-1.5 text-sm font-semibold text-white"
+              className="rounded-lg bg-brand-teal px-3 py-1.5 text-sm font-semibold text-brand-onAccent"
             >
               Save
             </button>
@@ -556,7 +538,7 @@ function QuestionCard({
               Edit
             </button>
             {question.needsReview && (
-              <button onClick={onApprove} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white">
+              <button onClick={onApprove} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent">
                 Approve as-is
               </button>
             )}

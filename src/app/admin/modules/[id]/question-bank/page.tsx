@@ -9,6 +9,7 @@ import Icon from "@/components/ui/Icon";
 import CorrectnessMark from "@/components/ui/CorrectnessMark";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
+import { Input, Textarea } from "@/components/ui/Field";
 interface OptionDto {
   id: string;
   text: string;
@@ -183,7 +184,7 @@ export default function QuestionBankReviewPage({ params }: { params: { id: strin
         {tab === "gate1" && selected.size > 0 && (
           <div className="mt-4 flex items-center justify-between rounded-lg border border-brand-teal bg-brand-mint/30 p-3 text-sm">
             <span>{selected.size} selected</span>
-            <button onClick={bulkApprove} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white">
+            <button onClick={bulkApprove} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent">
               Approve selected for validation
             </button>
           </div>
@@ -238,7 +239,7 @@ function QuestionEditor({
 
   return (
     <div className="space-y-2">
-      <textarea value={text} onChange={(e) => setText(e.target.value)} className="w-full rounded border border-brand-gray p-2" rows={3} />
+      <Textarea label="Question text" hideLabel compact controlClassName="p-2" value={text} onChange={(e) => setText(e.target.value)} rows={3} />
       {options.map((o, idx) => (
         <div key={o.id ?? idx} className="flex items-center gap-2">
           <input
@@ -247,15 +248,11 @@ function QuestionEditor({
             onChange={() => setOptions(options.map((x, i) => ({ ...x, isCorrect: i === idx })))}
             className="accent-brand-teal"
           />
-          <input
-            value={o.text}
-            onChange={(e) => setOptions(options.map((x, i) => (i === idx ? { ...x, text: e.target.value } : x)))}
-            className="flex-1 rounded border border-brand-gray p-1.5 text-sm"
-          />
+          <Input label="Option text" hideLabel compact wrapperClassName="flex-1" controlClassName="p-1.5" value={o.text} onChange={(e) => setOptions(options.map((x, i) => (i === idx ? { ...x, text: e.target.value } : x)))} />
         </div>
       ))}
       <div className="flex gap-2 pt-1">
-        <button onClick={() => onSave(text, options)} className="rounded-lg bg-brand-teal px-3 py-1.5 text-sm font-semibold text-white">
+        <button onClick={() => onSave(text, options)} className="rounded-lg bg-brand-teal px-3 py-1.5 text-sm font-semibold text-brand-onAccent">
           Save &amp; approve
         </button>
         <button onClick={onCancel} className="rounded border border-brand-gray px-3 py-1.5 text-sm">
@@ -329,7 +326,7 @@ function Gate1Card({
                 <button onClick={() => setEditing(true)} className="rounded border border-brand-gray px-3 py-1.5 text-xs font-semibold hover:border-brand-teal">
                   Edit
                 </button>
-                <button onClick={onApprove} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white">
+                <button onClick={onApprove} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent">
                   Approve for validation
                 </button>
                 <button onClick={onReject} className="rounded border border-brand-roseLight px-3 py-1.5 text-xs font-semibold text-brand-rose hover:bg-brand-roseLight/40">
@@ -399,7 +396,7 @@ function Gate2Card({
             <button onClick={() => setEditing(true)} className="rounded border border-brand-gray px-3 py-1.5 text-xs font-semibold hover:border-brand-teal">
               Edit
             </button>
-            <button onClick={onApprove} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white">
+            <button onClick={onApprove} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent">
               Approve
             </button>
             <button onClick={onReject} className="rounded border border-brand-roseLight px-3 py-1.5 text-xs font-semibold text-brand-rose hover:bg-brand-roseLight/40">

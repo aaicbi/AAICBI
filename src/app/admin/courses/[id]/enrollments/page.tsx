@@ -10,6 +10,7 @@ import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
+import { Input } from "@/components/ui/Field";
 interface PaymentDto {
   id: string;
   amountKobo: number;
@@ -191,14 +192,7 @@ export default function CourseEnrollmentsPage({ params }: { params: { id: string
 
         <Card className="mt-6">
           <div className="flex gap-2">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="trainee@example.com"
-              aria-label="Trainee email"
-              className="flex-1 rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
+            <Input label="Trainee email" hideLabel compact wrapperClassName="flex-1" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="trainee@example.com" />
             <Button onClick={grant} loading={granting} disabled={!email}>
               Grant Access
             </Button>
@@ -263,31 +257,14 @@ export default function CourseEnrollmentsPage({ params }: { params: { id: string
 
                   {extending === e.id && (
                     <div className="mt-3 space-y-2 border-t border-brand-gray pt-3">
-                      <label className="block text-xs text-gray-700">
-                        Extend by (days)
-                        <input
-                          type="number"
-                          min={1}
-                          value={extendDays}
-                          onChange={(ev) => setExtendDays(ev.target.value)}
-                          className="mt-1 w-full max-w-[8rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-                        />
-                      </label>
-                      <label className="block text-xs text-gray-700">
-                        Reason (required, kept in the audit trail)
-                        <input
-                          value={extendReason}
-                          onChange={(ev) => setExtendReason(ev.target.value)}
-                          placeholder="e.g. Support gesture — payment gateway issue on trainee's end"
-                          className="mt-1 w-full rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-                        />
-                      </label>
+                      <Input label="Extend by (days)" compact wrapperClassName="max-w-[8rem]" type="number" min={1} value={extendDays} onChange={(ev) => setExtendDays(ev.target.value)} />
+                      <Input label="Reason (required, kept in the audit trail)" compact value={extendReason} onChange={(ev) => setExtendReason(ev.target.value)} placeholder="e.g. Support gesture — payment gateway issue on trainee's end" />
                       {extendError && <p className="text-xs text-brand-rose">{extendError}</p>}
                       <div className="flex gap-2">
                         <button
                           onClick={() => submitExtend(e.id)}
                           disabled={extendSaving}
-                          className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                          className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
                         >
                           {extendSaving ? "Saving..." : "Confirm Extension"}
                         </button>
