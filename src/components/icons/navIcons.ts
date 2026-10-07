@@ -9,16 +9,20 @@ import {
   CohortIcon,
   CoursesIcon,
   DashboardIcon,
+  EventsIcon,
   InsightsIcon,
   LoopIcon,
   MessagesIcon,
   OrganizationIcon,
+  PublicProfileIcon,
   PaymentsIcon,
   ReportsIcon,
   RocketIcon,
   SettingsIcon,
+  SkillsIcon,
   ShowcaseIcon,
   TeamIcon,
+  VideoIcon,
 } from "@/components/icons/brand";
 
 type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
@@ -47,6 +51,12 @@ const BY_PATH: Record<string, IconComponent> = {
   "/settings": SettingsIcon,
   "/organization": OrganizationIcon,
   "/organization/team": TeamIcon,
+  "/organization/profile": PublicProfileIcon,
+  "/organization/programs": SkillsIcon,
+  "/organization/insights": InsightsIcon,
+  "/organization/events": EventsIcon,
+  "/education": VideoIcon,
+  "/ecosystem": ShowcaseIcon,
   "/training-organizations": OrganizationIcon,
   "/instructors": TeamIcon,
   "/agreement-templates": ReportsIcon,
@@ -66,6 +76,7 @@ const BY_PATH: Record<string, IconComponent> = {
   "/introductions": MessagesIcon,
   "/job-postings": BriefcaseIcon,
   "/status": OrganizationIcon,
+  "/organizations": OrganizationIcon,
 };
 
 export function getNavIcon(href: string): IconComponent {

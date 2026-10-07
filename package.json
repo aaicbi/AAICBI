@@ -11,6 +11,8 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed-demo": "tsx prisma/seed-demo-ecosystem.ts",
+    "db:reset-demo": "tsx prisma/reset-demo-ecosystem.ts",
     "db:revoke-legacy-certificates": "tsx prisma/migrate-revoke-legacy-certificates.ts",
     "db:studio": "prisma studio",
     "test": "vitest run",

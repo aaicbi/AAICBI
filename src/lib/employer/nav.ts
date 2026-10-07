@@ -9,6 +9,9 @@
  * "My Profile" was removed — EmployerSidebar.tsx's own account card,
  * linking to the same page, replaced it.
  */
+/** Shown only while the public organization pages are switched on. */
+export const EMPLOYER_ORGANIZATIONS_NAV = { label: "Organizations", href: "/employer/organizations" };
+
 export const EMPLOYER_NAV = [
   { label: "Dashboard", href: "/employer/dashboard" },
   { label: "Discover", href: "/employer/discover" },

@@ -24,3 +24,7 @@ export { default as ReportsIcon } from "./ReportsIcon";
 export { default as RocketIcon } from "./RocketIcon";
 export { default as ShowcaseIcon } from "./ShowcaseIcon";
 export { default as CoursesIcon } from "./CoursesIcon";
+export { default as EventsIcon } from "./EventsIcon";
+export { default as VideoIcon } from "./VideoIcon";
+export { default as SkillsIcon } from "./SkillsIcon";
+export { default as PublicProfileIcon } from "./PublicProfileIcon";

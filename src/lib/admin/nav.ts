@@ -218,6 +218,11 @@ const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
     items: [
       { label: "Overview", href: "/admin/organization", audience: "org" },
       { label: "Team", href: "/admin/organization/team", audience: "org" },
+      { label: "Public profile", href: "/admin/organization/profile", audience: "org" },
+      { label: "Education videos", href: "/admin/education", audience: "org" },
+      { label: "Program skills", href: "/admin/organization/programs", audience: "org" },
+      { label: "Content and visibility", href: "/admin/organization/insights", audience: "org" },
+      { label: "Events", href: "/admin/organization/events", audience: "org" },
     ],
   },
   {
@@ -254,6 +259,7 @@ const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
     label: "Platform",
     items: [
       { label: "Command Center", href: "/admin/command", audience: "superadmin" },
+      { label: "Ecosystem", href: "/admin/ecosystem", audience: "superadmin" },
       { label: "Design System", href: "/admin/design-system", audience: "admins" },
       { label: "Settings", href: "/admin/settings", audience: "staffAndOrg" },
     ],

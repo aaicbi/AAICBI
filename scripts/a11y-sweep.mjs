@@ -12,6 +12,10 @@
  *   BASE_URL=http://localhost:3000 \
  *   A11Y_PASSWORD='...' npm run a11y
  *
+ * A role may set "passwordEnv" to read its password from another variable
+ * (the ecosystem demo accounts use A11Y_DEMO_PASSWORD). A path of
+ * "/learn/{video}" opens the first published education video.
+ *
  * Needs a running app with test accounts for each role in the config
  * (all sharing A11Y_PASSWORD). CHROMIUM_PATH points at a Chromium or
  * Chrome binary; it defaults to Playwright's own path on the dev images.
@@ -27,6 +31,14 @@ const config = JSON.parse(readFileSync(new URL("./a11y-pages.json", import.meta.
 
 const browser = await chromium.launch({ executablePath: CHROMIUM, args: ["--no-sandbox"] });
 let failures = 0;
+
+/** The id of the first published education video, found from the public /learn page (ids differ per database). */
+async function firstVideoId(page) {
+  await page.goto(BASE + "/learn", { waitUntil: "networkidle", timeout: 90_000 });
+  const href = await page.locator('a[href^="/learn/"]').first().getAttribute("href");
+  if (!href) throw new Error("No education video found on /learn; seed the demo data and switch the ecosystem pages on.");
+  return href.replace("/learn/", "");
+}
 let checked = 0;
 
 for (const theme of ["dark", "light"]) {
@@ -37,12 +49,15 @@ for (const theme of ["dark", "light"]) {
       { name: "aaicbi_cookie_consent", value: "declined", url: BASE },
     ]);
     if (spec.login) {
-      if (!PASSWORD) throw new Error("Set A11Y_PASSWORD for the test accounts.");
-      const res = await context.request.post(BASE + spec.login.url, { data: { email: spec.login.email, password: PASSWORD } });
+      const envName = spec.passwordEnv ?? "A11Y_PASSWORD";
+      const password = process.env[envName];
+      if (!password) throw new Error(`Set ${envName} for the ${role} test account.`);
+      const res = await context.request.post(BASE + spec.login.url, { data: { email: spec.login.email, password } });
       if (!res.ok()) throw new Error(`Login failed for ${role} (${res.status()})`);
     }
     const page = await context.newPage();
-    for (const path of spec.paths) {
+    for (const template of spec.paths) {
+      const path = template.includes("{video}") ? template.replace("{video}", await firstVideoId(page)) : template;
       await page.goto(BASE + path, { waitUntil: "networkidle", timeout: 90_000 });
       const { violations } = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
       checked += 1;

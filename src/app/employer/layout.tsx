@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { SidebarActiveProvider } from "@/components/SidebarActiveContext";
 import EmployerSidebar from "@/components/employer/EmployerSidebar";
+import { getEcosystemFlags } from "@/lib/ecosystem/flags";
 import { pageHasSidebar } from "@/lib/sidebarRoutes";
 
 export const metadata = { title: { default: "Employer", template: "%s · Employer · AAICBI" } };
@@ -39,7 +40,7 @@ export default async function EmployerLayout({ children }: { children: React.Rea
   return (
     <SidebarActiveProvider>
       <div className="min-h-screen">
-        <EmployerSidebar companyName={employer?.companyName ?? session.email} />
+        <EmployerSidebar companyName={employer?.companyName ?? session.email} showOrganizations={(await getEcosystemFlags()).orgPages} />
         <div className="lg:pl-64">{children}</div>
       </div>
     </SidebarActiveProvider>

@@ -18,6 +18,33 @@
     "employer": {
       "login": { "url": "/api/auth/employer-login", "email": "employer@dev.test" },
       "paths": ["/employer/dashboard", "/employer/discover", "/employer/introductions", "/employer/job-postings", "/employer/profile", "/employer/settings"]
+    },
+    "ecosystem-public": {
+      "paths": ["/feed", "/learn", "/learn/{video}", "/organizations", "/organizations/demo-tech-academy", "/events", "/search?q=demo"]
+    },
+    "ecosystem-trainee": {
+      "passwordEnv": "A11Y_DEMO_PASSWORD",
+      "login": { "url": "/api/auth/trainee-login", "email": "trainee1@demo.aaicbi.invalid" },
+      "paths": ["/learn/{video}", "/organizations/demo-tech-academy"]
+    },
+    "ecosystem-organization": {
+      "passwordEnv": "A11Y_DEMO_PASSWORD",
+      "login": { "url": "/api/auth/training-org-login", "email": "demo-org@demo.aaicbi.invalid" },
+      "paths": ["/admin/organization/profile", "/admin/education", "/admin/organization/programs", "/admin/organization/insights", "/admin/organization/events"]
+    },
+    "ecosystem-employer": {
+      "passwordEnv": "A11Y_DEMO_PASSWORD",
+      "login": { "url": "/api/auth/employer-login", "email": "demo-employer@demo.aaicbi.invalid" },
+      "paths": ["/employer/organizations", "/learn/{video}"]
+    },
+    "ecosystem-investor": {
+      "passwordEnv": "A11Y_DEMO_PASSWORD",
+      "login": { "url": "/api/auth/investor-login", "email": "demo-investor@demo.aaicbi.invalid" },
+      "paths": ["/investor/organizations"]
+    },
+    "ecosystem-superadmin": {
+      "login": { "url": "/api/auth/login", "email": "super@dev.test" },
+      "paths": ["/admin/ecosystem"]
     }
   }
 }

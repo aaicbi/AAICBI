@@ -80,6 +80,15 @@ export default function EmployerDiscoverPage() {
   }
 
   useEffect(() => {
+    // A link from a video ("Find similar talent") arrives with ?skill=…
+    const skill = new URLSearchParams(window.location.search).get("skill")?.trim().slice(0, 60);
+    if (skill) {
+      const prefilled = { ...filters, skill };
+      setFilters(prefilled);
+      setAppliedFilters(prefilled);
+      load(prefilled);
+      return;
+    }
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

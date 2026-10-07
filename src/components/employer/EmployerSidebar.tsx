@@ -11,7 +11,7 @@ import MobileDrawer from "@/components/ui/MobileDrawer";
 import CommandPalette, { PaletteTrigger } from "@/components/ui/CommandPalette";
 import AvatarFallback from "@/components/ui/AvatarFallback";
 import Badge from "@/components/ui/Badge";
-import { EMPLOYER_NAV } from "@/lib/employer/nav";
+import { EMPLOYER_NAV, EMPLOYER_ORGANIZATIONS_NAV } from "@/lib/employer/nav";
 import { getSidebarTourGuideContent } from "@/lib/tourGuideContent";
 
 /**
@@ -26,7 +26,8 @@ import { getSidebarTourGuideContent } from "@/lib/tourGuideContent";
  * all, and its own profile page (src/app/employer/profile/page.tsx)
  * shows no photo either, so there's genuinely no image to display yet.
  */
-export default function EmployerSidebar({ companyName }: { companyName: string }) {
+export default function EmployerSidebar({ companyName, showOrganizations = false }: { companyName: string; showOrganizations?: boolean }) {
+  const navItems = showOrganizations ? [...EMPLOYER_NAV, EMPLOYER_ORGANIZATIONS_NAV] : EMPLOYER_NAV;
   const pathname = usePathname() ?? "/employer/dashboard";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -83,7 +84,7 @@ export default function EmployerSidebar({ companyName }: { companyName: string }
         <PaletteTrigger onOpen={() => setMobileOpen(false)} />
       </div>
       <nav className="flex-1 overflow-y-auto px-3 py-3">
-        {EMPLOYER_NAV.map((item) => (
+        {navItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
@@ -150,7 +151,7 @@ export default function EmployerSidebar({ companyName }: { companyName: string }
         </button>
       </div>
 
-      <CommandPalette items={EMPLOYER_NAV} />
+      <CommandPalette items={navItems} />
       <MobileDrawer open={mobileOpen} onClose={() => setMobileOpen(false)}>
         {sidebarBody}
       </MobileDrawer>
