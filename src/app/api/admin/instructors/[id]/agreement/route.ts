@@ -7,6 +7,7 @@ import { notifyByEmail } from "@/lib/notifications/log";
 import { instructorAgreementSentEmail } from "@/lib/notifications/templates";
 import { appUrl } from "@/lib/appUrl";
 import { renderInstructorAgreementPdf } from "@/lib/instructorAgreementPdf";
+import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
 const SendAgreementSchema = z.object({
   templateId: z.string().min(1),
@@ -40,10 +41,19 @@ function resolveTemplate(content: string, vars: Record<string, string>): string 
  * never a live reference back to the template — so a later template
  * edit can never retroactively change something already sent or
  * signed (spec Section 28's own requirement).
+ *
+ * Security audit finding (severe) — this let any plain "ADMIN" session
+ * issue a formal, PDF "Letter of Engagement" (compensation, payment
+ * schedule, effective dates) to ANY real instructor, including from a
+ * training organization's own shadow session. Blocked the same way as
+ * every other /api/admin/instructors/** route.
  */
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN");
+    if (await findTrainingOrgByStaffUserId(session.userId)) {
+      return NextResponse.json({ error: "Instructor not found." }, { status: 404 });
+    }
 
     const instructor = await prisma.user.findUnique({
       where: { id: params.id, role: "INSTRUCTOR" },

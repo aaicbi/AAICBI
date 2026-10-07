@@ -6,6 +6,7 @@ import { withApiErrors } from "@/lib/apiError";
 import { notifyByEmail } from "@/lib/notifications/log";
 import { projectApprovedEmail, projectRejectedEmail } from "@/lib/notifications/templates";
 import { appUrl } from "@/lib/appUrl";
+import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
 const DecideSchema = z.object({ action: z.enum(["APPROVE", "REJECT"]) });
 
@@ -18,10 +19,20 @@ const DecideSchema = z.object({ action: z.enum(["APPROVE", "REJECT"]) });
  * one directly), sets showcaseStatus/reviewedById/reviewedAt, emails
  * the trainee best-effort so a notification failure never blocks the
  * decision that already succeeded.
+ *
+ * Security audit finding — the sibling list route (GET /api/admin/showcase)
+ * already blocks a training-org session outright (Project has no FK to
+ * scope by). That guard was never carried over here: a training-org
+ * session could previously POST directly to this route (bypassing the
+ * list page's 404) and decide ANY trainee's project from ANY
+ * organization. Matched here for consistency.
  */
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN");
+    if (await findTrainingOrgByStaffUserId(session.userId)) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
 
     const body = await req.json();
     const parsed = DecideSchema.safeParse(body);

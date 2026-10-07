@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { isFreeEmailProvider } from "@/lib/employerVerification";
+import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
 /**
  * GET /api/admin/employers — the review queue behind M31's approval
@@ -18,10 +19,22 @@ import { isFreeEmailProvider } from "@/lib/employerVerification";
  * separate column — a pure, deterministic function of the email
  * address alone, so storing it would just be a redundant copy that
  * could theoretically drift, not new information.
+ *
+ * Security audit finding — "platform-wide trust decision" was never
+ * actually enforced against a training organization's own shadow
+ * staff session, which is also just a plain "ADMIN" role. Employer
+ * administration (approve/reject, this list) is exactly the kind of
+ * platform-wide authority a training org must never have — spec says
+ * it should get view/comment on employer content at most, never
+ * administrative control. Blocked outright, same pattern as every
+ * other finding in this audit.
  */
 export async function GET() {
   return withApiErrors(async () => {
-    await requireRole("SUPER_ADMIN", "ADMIN");
+    const session = await requireRole("SUPER_ADMIN", "ADMIN");
+    if (await findTrainingOrgByStaffUserId(session.userId)) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
     const employers = await prisma.employer.findMany({
       orderBy: { createdAt: "desc" },
       include: { approvedBy: { select: { name: true } } },

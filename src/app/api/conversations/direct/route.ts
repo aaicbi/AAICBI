@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { resolveActor, areCohortMates, canStaffReachTrainee, findOrCreateDirectConversation } from "@/lib/messaging";
+import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
 const BodySchema = z.object({
   peerType: z.enum(["TRAINEE", "STAFF"]),
@@ -55,6 +56,23 @@ export async function POST(req: NextRequest) {
           select: { id: true },
         });
         if (!reachable) return NextResponse.json({ error: "You can only message staff who teach one of your courses." }, { status: 403 });
+      }
+
+      // Security audit finding — a STAFF session (ADMIN/INSTRUCTOR,
+      // including a training organization's own shadow account)
+      // messaging another STAFF member had NO reachability check at
+      // all: it could open a DM with any User id on the platform by
+      // guessing/enumerating one. SUPER_ADMIN stays universally
+      // reachable either direction (matches this route's own doc
+      // comment); a training-org session on either end of the pair is
+      // blocked — a shadow account exists only to hold
+      // Course.createdById, never as a real messaging participant.
+      if (me.actorType !== "TRAINEE" && peer.role !== "SUPER_ADMIN") {
+        const meIsTrainingOrg = await findTrainingOrgByStaffUserId(me.actorId);
+        const peerIsTrainingOrg = peer.role === "ADMIN" ? await findTrainingOrgByStaffUserId(peer.id) : null;
+        if (meIsTrainingOrg || peerIsTrainingOrg) {
+          return NextResponse.json({ error: "You can only message a Super Admin directly." }, { status: 403 });
+        }
       }
     }
 

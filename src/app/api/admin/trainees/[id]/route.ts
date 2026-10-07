@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
+import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
 /**
  * GET /api/admin/trainees/[id] — a single trainee's full account and
@@ -15,10 +16,20 @@ import { withApiErrors } from "@/lib/apiError";
  * already has full access to this data via existing tools
  * (/admin/employers, /admin/staff both already show it), this isn't a
  * new exposure.
+ *
+ * Security audit finding — this had no guard at all, inconsistent
+ * with the sibling list route (GET /api/admin/trainees), which already
+ * blocks a training-org session outright since Trainee has no org FK
+ * to scope by. Matched here for consistency — a training-org session
+ * could previously reach any trainee's full profile by id even though
+ * it could never discover that id via the (correctly blocked) list.
  */
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
-    await requireRole("SUPER_ADMIN", "ADMIN");
+    const session = await requireRole("SUPER_ADMIN", "ADMIN");
+    if (await findTrainingOrgByStaffUserId(session.userId)) {
+      return NextResponse.json({ error: "Trainee not found." }, { status: 404 });
+    }
 
     const trainee = await prisma.trainee.findUnique({
       where: { id: params.id },

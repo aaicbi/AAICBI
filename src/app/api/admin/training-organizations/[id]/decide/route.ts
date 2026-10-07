@@ -22,10 +22,18 @@ const DecideSchema = z.object({ action: z.enum(["APPROVE", "REJECT"]) });
  * the FIRST time an org is approved. A later re-approve (after a
  * REJECT) reuses the existing shadow account rather than creating a
  * second one, orphaning the first.
+ *
+ * Security audit finding — SUPER_ADMIN only, NOT "ADMIN": a training
+ * organization's own login issues a real ADMIN session on exactly the
+ * shadow account this route itself provisions, so allowing plain
+ * "ADMIN" here let any org approve/reject ANY organization, including
+ * reinstating its own after a REJECT, or deciding a competitor's. The
+ * sibling billing PATCH route (../[id]/route.ts) already required
+ * SUPER_ADMIN only for this exact reason — this route never matched it.
  */
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
-    const session = await requireRole("SUPER_ADMIN", "ADMIN");
+    const session = await requireRole("SUPER_ADMIN");
 
     const body = await req.json();
     const parsed = DecideSchema.safeParse(body);

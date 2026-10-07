@@ -3,15 +3,27 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { getCoursePerformance, type PeriodRange } from "@/lib/analytics/aggregate";
 import { resolveCourseIdsForSession, VALID_REPORT_DAYS } from "@/lib/analytics/reportData";
+import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
 /** GET /api/admin/analytics/export.csv?days=30 — same zero-dependency
  * CSV pattern as /api/courses/[id]/performance/export.csv/route.ts.
  * Exports the content-performance table — the one section an admin is
  * most likely to want outside the dashboard (sharing with an
- * instructor, archiving a monthly snapshot). */
+ * instructor, archiving a monthly snapshot).
+ *
+ * Security audit finding — the JSON dashboard route (GET /api/admin/analytics)
+ * already blocks a training-org session outright (resolveCourseIdsForSession
+ * returns undefined/unscoped for plain ADMIN, same as SUPER_ADMIN). This
+ * sibling export route pulls from the identical unscoped data path but
+ * never got the matching guard — a training-org session could download
+ * the full platform-wide CSV directly, bypassing the dashboard's block.
+ */
 export async function GET(req: NextRequest) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
+    if (await findTrainingOrgByStaffUserId(session.userId)) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
 
     const daysParam = Number(req.nextUrl.searchParams.get("days"));
     const days = VALID_REPORT_DAYS.includes(daysParam) ? daysParam : 30;

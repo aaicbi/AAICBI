@@ -3,16 +3,30 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { countActiveTrainingOrgTrainees } from "@/lib/trainingOrgSeatCap";
+import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
 /**
  * GET /api/admin/training-organizations — Training Organizations,
  * Phase 1. Same shape as GET /api/admin/employers: SUPER_ADMIN/ADMIN
  * only, a genuinely platform-wide trust decision, not scoped to any
  * one course.
+ *
+ * Security audit finding — this returned EVERY organization's full
+ * record (financial billing details, Paystack codes, everything) to
+ * any plain "ADMIN" session with no scoping at all, which includes a
+ * training organization's own shadow staff account. Same
+ * defense-in-depth 404 pattern already proven on GET /api/admin/trainees
+ * and GET /api/admin/analytics: a training-org session has no
+ * legitimate reason to list organizations at all (it IS one), so it's
+ * blocked outright rather than attempting to scope a query that has no
+ * natural "my own org" shape for a list of orgs.
  */
 export async function GET() {
   return withApiErrors(async () => {
-    await requireRole("SUPER_ADMIN", "ADMIN");
+    const session = await requireRole("SUPER_ADMIN", "ADMIN");
+    if (await findTrainingOrgByStaffUserId(session.userId)) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
     const orgs = await prisma.trainingOrganization.findMany({
       orderBy: { createdAt: "desc" },
       include: {

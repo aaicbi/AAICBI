@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
+import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
 /**
  * M45 — the "admin adjusts a trainee's balance directly" half of the
@@ -25,6 +26,13 @@ const AdjustCreditsSchema = z.object({
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
+    // Security audit finding — no guard at all, so any plain "ADMIN"
+    // session (including a training organization's own shadow account)
+    // could grant/debit AI credits for any trainee on the platform.
+    // Blocked the same way as the sibling /api/admin/trainees/[id] routes.
+    if (await findTrainingOrgByStaffUserId(session.userId)) {
+      return NextResponse.json({ error: "Trainee not found." }, { status: 404 });
+    }
     const body = await req.json();
     const parsed = AdjustCreditsSchema.safeParse(body);
     if (!parsed.success) {

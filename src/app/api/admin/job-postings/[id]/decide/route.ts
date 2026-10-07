@@ -6,6 +6,7 @@ import { withApiErrors } from "@/lib/apiError";
 import { notifyByEmail } from "@/lib/notifications/log";
 import { jobPostingApprovedEmail, jobPostingRejectedEmail } from "@/lib/notifications/templates";
 import { appUrl } from "@/lib/appUrl";
+import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
 const DecideSchema = z.object({ action: z.enum(["APPROVE", "REJECT"]) });
 
@@ -31,10 +32,18 @@ const DecideSchema = z.object({ action: z.enum(["APPROVE", "REJECT"]) });
  * "essential, not optional" treatment as the employer-decide route's
  * own fix, wrapped so a notification failure can never block the
  * decision that already succeeded.
+ *
+ * Security audit finding (severe) — this let any plain "ADMIN" session
+ * approve or reject ANY employer's job posting platform-wide,
+ * including from a training organization's own shadow session.
+ * Blocked the same way as the list route above.
  */
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN");
+    if (await findTrainingOrgByStaffUserId(session.userId)) {
+      return NextResponse.json({ error: "Job posting not found." }, { status: 404 });
+    }
 
     const body = await req.json();
     const parsed = DecideSchema.safeParse(body);

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { expireStaleJobPostings } from "@/lib/jobPostingExpiry";
+import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
 /**
  * GET /api/admin/job-postings — returns every posting, not just the
@@ -22,12 +23,21 @@ import { expireStaleJobPostings } from "@/lib/jobPostingExpiry";
  * sections, the same shape M31's employer review page already uses.
  * Sweeps stale postings first so a genuinely expired one is never
  * shown to staff as a stale "APPROVED."
+ *
+ * Security audit finding — unscoped, returned every posting platform-
+ * wide to any plain "ADMIN" session, including a training org's own
+ * shadow session. Blocked outright, same reasoning as the employers
+ * list route — this is administrative review, not the "view/comment"
+ * access a training org should have.
  */
 // src/app/api/admin/job-postings/route.ts
 export const dynamic = "force-dynamic";
 export async function GET() {
   return withApiErrors(async () => {
-    await requireRole("SUPER_ADMIN", "ADMIN");
+    const session = await requireRole("SUPER_ADMIN", "ADMIN");
+    if (await findTrainingOrgByStaffUserId(session.userId)) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
     await expireStaleJobPostings();
 
     const postings = await prisma.jobPosting.findMany({

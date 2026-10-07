@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
+import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
 const UpdateActiveSchema = z.object({ active: z.boolean() });
 
@@ -12,10 +13,18 @@ const UpdateActiveSchema = z.object({ active: z.boolean() });
  * the latest — spec Section 28 wants version history visible), and the
  * courses they own with their current payout configuration attached,
  * since that's this page's own edit surface.
+ *
+ * Security audit finding — blocked for a training-org session the same
+ * way as the list route (see that file's own comment): no legitimate
+ * reason a training org would ever reach a real instructor's profile,
+ * agreement history, or payout configuration.
  */
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
-    await requireRole("SUPER_ADMIN", "ADMIN");
+    const session = await requireRole("SUPER_ADMIN", "ADMIN");
+    if (await findTrainingOrgByStaffUserId(session.userId)) {
+      return NextResponse.json({ error: "Instructor not found." }, { status: 404 });
+    }
 
     const instructor = await prisma.user.findUnique({
       where: { id: params.id, role: "INSTRUCTOR" },
@@ -58,10 +67,18 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
  * PATCH /api/admin/staff/[id] has one — an INSTRUCTOR row is never the
  * caller's own account in this route's context, so there's no risk of a
  * Super Admin deactivating themselves through it.
+ *
+ * Security audit finding (severe) — this let any plain "ADMIN" session
+ * deactivate ANY real AAICBI instructor account platform-wide, which
+ * included a training organization's own shadow staff session. Blocked
+ * the same way as the GET route above.
  */
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
-    await requireRole("SUPER_ADMIN", "ADMIN");
+    const session = await requireRole("SUPER_ADMIN", "ADMIN");
+    if (await findTrainingOrgByStaffUserId(session.userId)) {
+      return NextResponse.json({ error: "Instructor not found." }, { status: 404 });
+    }
 
     const body = await req.json();
     const parsed = UpdateActiveSchema.safeParse(body);

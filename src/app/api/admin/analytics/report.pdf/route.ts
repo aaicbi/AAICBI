@@ -5,6 +5,7 @@ import { withApiErrors } from "@/lib/apiError";
 import { getAnalyticsReportPayload, resolveCourseIdsForSession, VALID_REPORT_DAYS } from "@/lib/analytics/reportData";
 import { renderAnalyticsReportPdf } from "@/lib/analytics/reportPdf";
 import { notifyByEmail } from "@/lib/notifications/log";
+import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
 /**
  * GET /api/admin/analytics/report.pdf?days=30 — Analytics System
@@ -12,6 +13,11 @@ import { notifyByEmail } from "@/lib/notifications/log";
  * (reportData.ts), same runtime/response pattern as the existing
  * course-performance PDF export
  * (src/app/api/courses/[id]/performance/export.pdf/route.ts).
+ *
+ * Security audit finding — same gap as export.csv's own comment: this
+ * pulls from the identical unscoped resolveCourseIdsForSession path as
+ * the JSON dashboard but never got that route's training-org guard. A
+ * training-org session could download the full platform-wide PDF.
  */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +25,9 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
+    if (await findTrainingOrgByStaffUserId(session.userId)) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
 
     const daysParam = Number(req.nextUrl.searchParams.get("days"));
     const days = VALID_REPORT_DAYS.includes(daysParam) ? daysParam : 30;
@@ -63,10 +72,16 @@ const SendBodySchema = z.object({
  * The email body never echoes the destination address back — the
  * recipient already knows which inbox they're reading, and it avoids
  * needing to HTML-escape admin-supplied input for no real benefit.
+ *
+ * Security audit finding — same gap as the GET above: a training-org
+ * session could email itself the full platform-wide PDF.
  */
 export async function POST(req: NextRequest) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
+    if (await findTrainingOrgByStaffUserId(session.userId)) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
 
     const body = await req.json().catch(() => null);
     const parsed = SendBodySchema.safeParse(body);

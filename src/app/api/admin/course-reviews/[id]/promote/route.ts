@@ -19,6 +19,14 @@ const PromoteSchema = z.object({ quote: z.string().trim().min(1).optional() });
  * already promoted can't be promoted again — the real unique
  * constraint on `Testimonial.courseReviewId` enforces this at the
  * database level, not just checked here.
+ *
+ * Security audit finding — this had no ownership check at all, so any
+ * plain ADMIN/INSTRUCTOR session (including a training organization's
+ * own shadow session) could promote ANY course's review — including
+ * another organization's or AAICBI's own — into a public testimonial
+ * using the real trainee's name, without that course owner's consent.
+ * Same ownership rule as the list route above: SUPER_ADMIN can promote
+ * any review, everyone else only a review on a course they created.
  */
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
@@ -26,9 +34,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     const review = await prisma.courseReview.findUnique({
       where: { id: params.id },
-      include: { trainee: { select: { name: true } }, course: { select: { title: true } } },
+      include: { trainee: { select: { name: true } }, course: { select: { title: true, createdById: true } } },
     });
-    if (!review) {
+    if (!review || (session.role !== "SUPER_ADMIN" && review.course.createdById !== session.userId)) {
       return NextResponse.json({ error: "Review not found." }, { status: 404 });
     }
     if (!review.reviewText) {

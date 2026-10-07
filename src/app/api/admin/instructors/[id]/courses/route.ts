@@ -6,6 +6,7 @@ import { withApiErrors } from "@/lib/apiError";
 import { notifyByEmail } from "@/lib/notifications/log";
 import { courseInstructorAssignedEmail } from "@/lib/notifications/templates";
 import { appUrl } from "@/lib/appUrl";
+import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
 const AssignCourseSchema = z.object({ courseId: z.string().min(1) });
 
@@ -24,10 +25,20 @@ const AssignCourseSchema = z.object({ courseId: z.string().min(1) });
  * currently own (handing off their own course to an instructor they
  * manage is fine; reassigning someone else's course is a Super Admin
  * decision, same reasoning as payout configuration).
+ *
+ * Security audit finding — the COURSE side was already correctly
+ * scoped (line below), but the INSTRUCTOR side had no check at all: a
+ * training-org session could reassign its own course to an arbitrary
+ * real instructor id. Blocked the same way as every other
+ * /api/admin/instructors/** route — a training-org session has no
+ * legitimate instructor to assign to in the first place.
  */
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN");
+    if (await findTrainingOrgByStaffUserId(session.userId)) {
+      return NextResponse.json({ error: "Instructor not found." }, { status: 404 });
+    }
 
     const instructor = await prisma.user.findUnique({ where: { id: params.id, role: "INSTRUCTOR" }, select: { id: true, name: true, email: true } });
     if (!instructor) {
