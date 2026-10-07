@@ -35,7 +35,7 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
           <input type="hidden" name="kind" value={kind} />
           <label htmlFor="q" className="sr-only">Search organizations, videos, programs and events</label>
           <input id="q" name="q" defaultValue={q ?? searchParams.q ?? ""} maxLength={80} placeholder="Try “data analytics” or “Lagos”" className="min-h-[44px] flex-1 rounded-lg border border-brand-gray bg-white px-3 text-sm" />
-          <button type="submit" className="min-h-[44px] rounded-lg bg-brand-teal px-4 text-sm font-semibold text-white">Search</button>
+          <button type="submit" className="min-h-[44px] rounded-lg bg-brand-teal px-4 text-sm font-semibold text-brand-onAccent">Search</button>
         </form>
         <nav aria-label="Result type" className="mt-3 flex flex-wrap gap-2">
           {SEARCH_KINDS.filter((k) => k !== "videos" || flags.education).map((k) => (

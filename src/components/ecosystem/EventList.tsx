@@ -14,7 +14,7 @@ export default function EventList({ events, showOrganization = false }: { events
             <p className="font-display font-semibold text-brand-ink">{e.title}</p>
             <p className="text-xs text-gray-600">
               {fmt(e.startsAt)}{e.endsAt ? ` to ${fmt(e.endsAt)}` : ""}{e.locationText ? ` • ${e.locationText}` : ""}
-              {showOrganization && e.organizationSlug && <> • <Link href={`/organizations/${e.organizationSlug}`} className="text-brand-teal hover:underline">{e.organizationName}</Link></>}
+              {showOrganization && e.organizationSlug && <> • <Link href={`/organizations/${e.organizationSlug}`} className="text-brand-teal underline underline-offset-2 hover:no-underline">{e.organizationName}</Link></>}
             </p>
             {e.description && <p className="mt-2 whitespace-pre-line text-sm text-gray-700">{e.description}</p>}
             {e.registrationUrl && (

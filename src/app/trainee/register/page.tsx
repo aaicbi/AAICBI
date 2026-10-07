@@ -91,7 +91,7 @@ function TraineeRegisterForm() {
           <p className="mt-3 text-sm text-gray-600">
             Your account has been created. We&apos;ve sent a verification link to your email address — click it to
             activate your account, then{" "}
-            <a href={loginHref} className="text-brand-teal hover:underline">
+            <a href={loginHref} className="text-brand-teal underline underline-offset-2 hover:no-underline">
               sign in
             </a>
             . Didn&apos;t get it? Check your spam folder, or ask an admin for help.
@@ -163,7 +163,7 @@ function TraineeRegisterForm() {
 
         <p className="mt-4 text-center text-xs text-gray-500">
           Already have an account?{" "}
-          <a href={loginHref} className="text-brand-teal hover:underline">
+          <a href={loginHref} className="text-brand-teal underline underline-offset-2 hover:no-underline">
             Sign in
           </a>
         </p>
