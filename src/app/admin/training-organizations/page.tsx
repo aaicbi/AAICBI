@@ -245,7 +245,7 @@ function PayoutSettings({
               placeholder="ACCT_xxxxxxxxxxxx"
               className="mt-1 w-full rounded-lg border border-brand-gray px-2.5 py-1.5 text-sm outline-none focus:border-brand-teal"
             />
-            <span className="mt-1 block text-[11px] font-normal text-gray-500">
+            <span className="mt-1 block text-xs font-normal text-gray-500">
               Create the Subaccount in Paystack&apos;s own dashboard first (that&apos;s also where its split
               percentage is set), then paste its code here. Blank means trainee payments for this organization&apos;s
               courses land entirely with AAICBI, same as any other course.
@@ -461,7 +461,7 @@ function PlatformFeeSettings({
                   placeholder="e.g. 50"
                   className="mt-1 w-full max-w-[8rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
                 />
-                <span className="mt-1 block text-[11px] font-normal text-gray-500">
+                <span className="mt-1 block text-xs font-normal text-gray-500">
                   Total trainees this organization can give access to, across all of its courses combined. Can be
                   raised at any time, including mid-training.
                 </span>

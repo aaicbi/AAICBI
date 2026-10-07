@@ -7,7 +7,7 @@ import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
-import BackLink from "@/components/ui/BackLink";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { ArrowRight } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import { ADMIN_NAV } from "@/lib/admin/nav";
@@ -101,9 +101,7 @@ export default function CourseCohortsPage({ params }: { params: { id: string } }
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-3xl px-6 py-10">
-        <BackLink href={`/admin/courses/${params.id}`} className="text-sm text-brand-teal hover:underline">
-          Back to course
-        </BackLink>
+        <Breadcrumbs items={[{ label: "Courses", href: "/admin/courses" }, { label: "Course", href: `/admin/courses/${params.id}` }, { label: "Cohorts" }]} />
         <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="font-display text-2xl font-semibold text-brand-ink">Cohorts / Intakes</h1>
           <Button variant={showForm ? "secondary" : "primary"} onClick={() => setShowForm(!showForm)}>

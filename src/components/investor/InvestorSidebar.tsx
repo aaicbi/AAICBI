@@ -7,6 +7,7 @@ import Logo from "@/components/Logo";
 import LogoutButton from "@/components/investor/LogoutButton";
 import Icon from "@/components/ui/Icon";
 import MobileDrawer from "@/components/ui/MobileDrawer";
+import CommandPalette, { PaletteTrigger } from "@/components/ui/CommandPalette";
 import { INVESTOR_NAV } from "@/lib/investor/nav";
 import { getSidebarTourGuideContent } from "@/lib/tourGuideContent";
 
@@ -57,6 +58,9 @@ export default function InvestorSidebar() {
         <LogoutButton />
       </div>
 
+      <div className="px-3 pt-3">
+        <PaletteTrigger onOpen={() => setMobileOpen(false)} />
+      </div>
       <nav className="flex-1 overflow-y-auto px-3 py-3">
         {INVESTOR_NAV.map((item) => (
           <Link
@@ -124,6 +128,7 @@ export default function InvestorSidebar() {
         </button>
       </div>
 
+      <CommandPalette items={INVESTOR_NAV} />
       <MobileDrawer open={mobileOpen} onClose={() => setMobileOpen(false)}>
         {sidebarBody}
       </MobileDrawer>

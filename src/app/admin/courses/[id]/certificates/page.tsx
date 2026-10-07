@@ -4,11 +4,11 @@ import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
 import Badge from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
-import { SkeletonTableRows } from "@/components/ui/Skeleton";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
 import { useToast } from "@/components/ui/Toast";
 import AchievementDoodle from "@/components/doodles/AchievementDoodle";
-import BackLink from "@/components/ui/BackLink";
+import DataTable from "@/components/ui/DataTable";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { ArrowRight } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import { ADMIN_NAV } from "@/lib/admin/nav";
@@ -114,9 +114,7 @@ export default function CourseCertificatesPage({ params }: { params: { id: strin
       />
       {modal}
       <main className="mx-auto max-w-3xl px-6 py-10">
-        <BackLink href={`/admin/courses/${params.id}`} className="text-sm text-brand-teal hover:underline">
-          Back to course
-        </BackLink>
+        <Breadcrumbs items={[{ label: "Courses", href: "/admin/courses" }, { label: "Course", href: `/admin/courses/${params.id}` }, { label: "Certificates" }]} />
         <h1 className="mt-2 font-display text-2xl font-semibold text-brand-ink">Certificates Issued</h1>
 
         {certificates !== null && certificates.length === 0 ? (
@@ -128,33 +126,44 @@ export default function CourseCertificatesPage({ params }: { params: { id: strin
             />
           </div>
         ) : (
-          <div className="mt-6 overflow-x-auto">
-            <table className="w-full min-w-[480px] text-left text-sm">
-            <thead>
-              <tr className="border-b border-brand-gray text-gray-500">
-                <th className="py-2">Trainee</th>
-                <th>Code</th>
-                <th>Issued</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {certificates === null ? (
-                <SkeletonTableRows rows={4} cols={5} />
-              ) : (
-                certificates.map((c) => (
-                  <tr key={c.id} className="border-b border-gray-100">
-                    <td className="py-2">
+          <div className="mt-6">
+            <DataTable
+              caption="Certificates issued for this course"
+              rows={certificates}
+              rowKey={(c) => c.id}
+              searchLabel="Search trainee or code"
+              searchText={(c) => `${c.trainee.name} ${c.trainee.email} ${c.code}`}
+              columns={[
+                {
+                  key: "trainee",
+                  header: "Trainee",
+                  sortValue: (c) => c.trainee.name,
+                  render: (c) => (
+                    <div>
                       <div className="font-medium text-brand-ink">{c.trainee.name}</div>
-                      <div className="text-xs text-gray-500">{c.trainee.email}</div>
-                    </td>
-                    <td className="font-mono text-xs">{c.code}</td>
-                    <td className="text-xs text-gray-500">{new Date(c.issuedAt).toLocaleDateString()}</td>
-                    <td>
-                      <Badge variant={c.revokedAt ? "danger" : "success"}>{c.revokedAt ? "Revoked" : "Valid"}</Badge>
-                    </td>
-                    <td>
+                      <div className="text-xs font-normal text-gray-600">{c.trainee.email}</div>
+                    </div>
+                  ),
+                },
+                { key: "code", header: "Code", className: "font-mono text-xs", sortValue: (c) => c.code, render: (c) => c.code },
+                {
+                  key: "issued",
+                  header: "Issued",
+                  className: "text-xs text-gray-600",
+                  sortValue: (c) => new Date(c.issuedAt).getTime(),
+                  render: (c) => new Date(c.issuedAt).toLocaleDateString(),
+                },
+                {
+                  key: "status",
+                  header: "Status",
+                  sortValue: (c) => (c.revokedAt ? 1 : 0),
+                  render: (c) => <Badge variant={c.revokedAt ? "danger" : "success"}>{c.revokedAt ? "Revoked" : "Valid"}</Badge>,
+                },
+                {
+                  key: "actions",
+                  header: "",
+                  render: (c) => (
+                    <>
                       <a
                         href={`/certificate/${c.code}`}
                         target="_blank"
@@ -166,18 +175,15 @@ export default function CourseCertificatesPage({ params }: { params: { id: strin
                       <button
                         onClick={() => toggleRevoked(c.id, !!c.revokedAt)}
                         disabled={busyId === c.id}
-                        className={`ml-3 text-xs font-semibold hover:underline ${
-                          c.revokedAt ? "text-brand-teal" : "text-brand-rose"
-                        }`}
+                        className={`ml-3 text-xs font-semibold hover:underline ${c.revokedAt ? "text-brand-teal" : "text-brand-rose"}`}
                       >
                         {busyId === c.id ? "…" : c.revokedAt ? "Restore" : "Revoke"}
                       </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-            </table>
+                    </>
+                  ),
+                },
+              ]}
+            />
           </div>
         )}
       </main>

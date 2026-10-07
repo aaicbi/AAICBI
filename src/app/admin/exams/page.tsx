@@ -1,13 +1,12 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { createdByFilter } from "@/lib/courseOwnership";
 import { ADMIN_NAV } from "@/lib/admin/nav";
+import ExamsTable from "@/components/admin/ExamsTable";
 import LogoutButton from "@/components/admin/LogoutButton";
 import SiteHeader from "@/components/SiteHeader";
 import Card from "@/components/ui/Card";
-import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import Icon from "@/components/ui/Icon";
@@ -64,51 +63,16 @@ export default async function AdminExamsPage() {
           </div>
         ) : (
           <Card className="mt-6">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-brand-gray text-left text-xs uppercase tracking-wide text-gray-500">
-                    <th className="pb-2 pr-4">Examination</th>
-                    <th className="pb-2 pr-4">Code</th>
-                    <th className="pb-2 pr-4 text-right">Questions</th>
-                    <th className="pb-2 pr-4 text-right">Attempts</th>
-                    <th className="pb-2 pr-4">Status</th>
-                    <th className="pb-2 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {exams.map((exam) => (
-                    <tr key={exam.id} className="border-b border-gray-100 align-top">
-                      <td className="py-2.5 pr-4 font-medium text-brand-ink">{exam.title}</td>
-                      <td className="py-2.5 pr-4 font-mono text-xs text-gray-500">{exam.code}</td>
-                      <td className="py-2.5 pr-4 text-right text-gray-600">{exam._count.questions}</td>
-                      <td className="py-2.5 pr-4 text-right text-gray-600">{exam._count.attempts}</td>
-                      <td className="py-2.5 pr-4">
-                        <Badge variant={exam.published ? "success" : "neutral"}>
-                          {exam.published ? "Published" : "Draft"}
-                        </Badge>
-                      </td>
-                      <td className="py-2.5 text-right">
-                        <div className="flex justify-end gap-2">
-                          <Link
-                            href={`/admin/exams/${exam.id}/import`}
-                            className="rounded-lg border border-brand-gray px-3 py-1.5 text-xs font-semibold hover:border-brand-teal"
-                          >
-                            Questions
-                          </Link>
-                          <Link
-                            href={`/admin/exams/${exam.id}/results`}
-                            className="rounded-lg border border-brand-gray px-3 py-1.5 text-xs font-semibold hover:border-brand-teal"
-                          >
-                            Results
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ExamsTable
+              exams={exams.map((e) => ({
+                id: e.id,
+                title: e.title,
+                code: e.code,
+                questions: e._count.questions,
+                attempts: e._count.attempts,
+                published: e.published,
+              }))}
+            />
           </Card>
         )}
       </main>

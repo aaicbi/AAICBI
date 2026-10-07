@@ -7,6 +7,7 @@ import Logo from "@/components/Logo";
 import LogoutButton from "@/components/employer/LogoutButton";
 import Icon from "@/components/ui/Icon";
 import MobileDrawer from "@/components/ui/MobileDrawer";
+import CommandPalette, { PaletteTrigger } from "@/components/ui/CommandPalette";
 import AvatarFallback from "@/components/ui/AvatarFallback";
 import Badge from "@/components/ui/Badge";
 import { EMPLOYER_NAV } from "@/lib/employer/nav";
@@ -77,6 +78,9 @@ export default function EmployerSidebar({ companyName }: { companyName: string }
         <LogoutButton />
       </div>
 
+      <div className="px-3 pt-3">
+        <PaletteTrigger onOpen={() => setMobileOpen(false)} />
+      </div>
       <nav className="flex-1 overflow-y-auto px-3 py-3">
         {EMPLOYER_NAV.map((item) => (
           <Link
@@ -144,6 +148,7 @@ export default function EmployerSidebar({ companyName }: { companyName: string }
         </button>
       </div>
 
+      <CommandPalette items={EMPLOYER_NAV} />
       <MobileDrawer open={mobileOpen} onClose={() => setMobileOpen(false)}>
         {sidebarBody}
       </MobileDrawer>

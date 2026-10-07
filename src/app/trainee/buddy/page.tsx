@@ -147,13 +147,13 @@ export default function LearningBuddyPage() {
               ) : (
                 <div key={m.id} className="flex justify-start">
                   <div className="max-w-[86%] space-y-2">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-brand-tealDeep">Loop</p>
+                    <p className="text-xs font-bold uppercase tracking-wide text-brand-tealDeep">Loop</p>
                     {m.keyStats && m.keyStats.length > 0 && (
                       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                         {m.keyStats.map((s, i) => (
                           <div key={i} className="rounded-lg border border-brand-gray bg-brand-sand/50 px-3 py-2">
                             <p className="font-display text-lg font-semibold text-brand-ink">{s.value}</p>
-                            <p className="text-[11px] text-gray-500">{s.label}</p>
+                            <p className="text-xs text-gray-500">{s.label}</p>
                           </div>
                         ))}
                       </div>

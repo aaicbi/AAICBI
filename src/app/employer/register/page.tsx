@@ -91,7 +91,7 @@ export default function EmployerRegisterPage() {
             <p className="pt-2 text-xs font-semibold text-gray-400">Optional — strengthens your review, not required</p>
             <Input label="Company website (optional)" type="url" value={website} onChange={(e) => setWebsite(e.target.value)} />
             <Input label="LinkedIn company page (optional)" type="url" value={linkedinUrl} onChange={(e) => setLinkedinUrl(e.target.value)} />
-            <Input label="Other social or online presence (optional)" type="url" value={otherSocialUrl} onChange={(e) => setOtherSocialUrl(e.target.value)} placeholder="Other social/online presence (optional)" />
+            <Input label="Other social or online presence (optional)" type="url" value={otherSocialUrl} onChange={(e) => setOtherSocialUrl(e.target.value)} />
 
             {error && <p role="alert" className="text-sm text-brand-rose">{error}</p>}
             <Button type="submit" loading={loading} className="w-full">

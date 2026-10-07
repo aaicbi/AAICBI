@@ -7,6 +7,7 @@ import Logo from "@/components/Logo";
 import LogoutButton from "@/components/admin/LogoutButton";
 import Icon from "@/components/ui/Icon";
 import MobileDrawer from "@/components/ui/MobileDrawer";
+import CommandPalette, { PaletteTrigger } from "@/components/ui/CommandPalette";
 import AvatarFallback from "@/components/ui/AvatarFallback";
 import Badge from "@/components/ui/Badge";
 import { getAdminNavGroups } from "@/lib/admin/nav";
@@ -119,6 +120,9 @@ export default function AdminSidebar({
         <LogoutButton />
       </div>
 
+      <div className="px-3 pt-3">
+        <PaletteTrigger onOpen={() => setMobileOpen(false)} />
+      </div>
       <nav aria-label="Admin" className="flex-1 overflow-y-auto px-3 py-3">
         {navGroups.map((group, gi) => (
           <div key={group.label ?? `group-${gi}`} className={gi === 0 ? "" : "mt-4"}>
@@ -199,6 +203,7 @@ export default function AdminSidebar({
         </button>
       </div>
 
+      <CommandPalette items={navGroups.flatMap((g) => g.items.map((i) => ({ ...i, group: g.label })))} />
       <MobileDrawer open={mobileOpen} onClose={() => setMobileOpen(false)}>
         {sidebarBody}
       </MobileDrawer>

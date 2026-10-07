@@ -1,7 +1,7 @@
 import SiteHeader from "@/components/SiteHeader";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
-import LockedDoodle from "@/components/doodles/LockedDoodle";
+import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 
 export const metadata = { title: "Page not found" };
 
@@ -12,7 +12,7 @@ export default function NotFound() {
       <SiteHeader />
       <main className="mx-auto max-w-lg px-6 py-16">
         <EmptyState
-          illustration={<LockedDoodle className="h-full w-full" />}
+          illustration={<GrowthPathDoodle className="h-full w-full" />}
           title="We couldn't find that page"
           description="The link may be out of date or mistyped. Check the address, or head back to somewhere that works."
           action={

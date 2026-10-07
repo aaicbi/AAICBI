@@ -141,7 +141,7 @@ export default function PitchLoopPanel({ draft }: { draft: PitchDraft }) {
           ) : (
             <div key={m.id} className="flex justify-start">
               <div className="max-w-[90%]">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-brand-tealDeep">Loop</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-brand-tealDeep">Loop</p>
                 <p className="whitespace-pre-line text-xs leading-relaxed text-brand-ink">{m.text}</p>
               </div>
             </div>

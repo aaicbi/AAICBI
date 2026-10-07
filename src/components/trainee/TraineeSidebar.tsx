@@ -7,6 +7,7 @@ import Logo from "@/components/Logo";
 import LogoutButton from "@/components/trainee/LogoutButton";
 import Icon from "@/components/ui/Icon";
 import MobileDrawer from "@/components/ui/MobileDrawer";
+import CommandPalette, { PaletteTrigger } from "@/components/ui/CommandPalette";
 import AvatarFallback from "@/components/ui/AvatarFallback";
 import Badge from "@/components/ui/Badge";
 import { TRAINEE_NAV } from "@/lib/trainee/nav";
@@ -84,6 +85,9 @@ export default function TraineeSidebar({ name, avatarUrl }: { name: string; avat
         <LogoutButton />
       </div>
 
+      <div className="px-3 pt-3">
+        <PaletteTrigger onOpen={() => setMobileOpen(false)} />
+      </div>
       <nav className="flex-1 overflow-y-auto px-3 py-3">
         {TRAINEE_NAV.map((item) => (
           <Link
@@ -151,6 +155,7 @@ export default function TraineeSidebar({ name, avatarUrl }: { name: string; avat
         </button>
       </div>
 
+      <CommandPalette items={TRAINEE_NAV} />
       <MobileDrawer open={mobileOpen} onClose={() => setMobileOpen(false)}>
         {sidebarBody}
       </MobileDrawer>

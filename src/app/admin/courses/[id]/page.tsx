@@ -905,7 +905,7 @@ function PricingSettings({
                   placeholder="e.g. 2"
                   className="mt-1 w-full max-w-[8rem] rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
                 />
-                <span className="mt-1 block text-[11px] font-normal text-gray-500">
+                <span className="mt-1 block text-xs font-normal text-gray-500">
                   A trainee can register and go through this many of the course&apos;s {course.modules.length} module
                   {course.modules.length === 1 ? "" : "s"} (lessons and assessments) before paying. Leave blank to
                   require payment before any content is accessible, as today.

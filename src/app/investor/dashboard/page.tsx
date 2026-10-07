@@ -176,7 +176,7 @@ export default function InvestorDashboardPage() {
                 </div>
                 <p className="mt-2 font-display text-lg font-semibold text-brand-ink">{p.startupName}</p>
                 {p.founderReadiness && (
-                  <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-brand-goldLight px-2 py-0.5 text-[11px] font-bold text-brand-goldText">
+                  <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-brand-goldLight px-2 py-0.5 text-xs font-bold text-brand-goldText">
                     ⭐{p.founderReadiness.topPercent != null && ` Top ${p.founderReadiness.topPercent}% ·`}
                     {p.founderReadiness.percentage != null && ` ${Math.round(p.founderReadiness.percentage)}% ·`} Certified: {p.founderReadiness.courseTitle}
                   </p>

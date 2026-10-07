@@ -402,3 +402,9 @@ textarea,
 select {
   color: #000;
 }
+
+/* Figures line up in columns: every table cell uses tabular numerals so
+   scores, counts and dates scan down a column without jitter. */
+table {
+  font-variant-numeric: tabular-nums;
+}

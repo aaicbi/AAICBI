@@ -54,7 +54,7 @@ export default function LoopBroadcastPopup({ notifications, onClose }: LoopBroad
           className="animate-[modal-in_0.15s_ease-out] rounded-xl border border-brand-teal/40 bg-brand-surface p-4 shadow-lg"
         >
           <div className="flex items-start justify-between gap-3">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-brand-tealDeep">
+            <p className="text-xs font-bold uppercase tracking-wide text-brand-tealDeep">
               {n.senderLabel ?? "Loop — Systems Manager"}
             </p>
             <button
