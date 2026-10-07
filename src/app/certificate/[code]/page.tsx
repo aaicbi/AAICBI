@@ -5,6 +5,7 @@ import { certificateQrCodeDataUrl } from "@/lib/certificateQr";
 import { appUrl } from "@/lib/appUrl";
 import type { CertificateLayout } from "@/lib/certificateLayout";
 import { shouldShowCertWatermark } from "@/lib/trainingOrgBilling";
+import { parseCertificateDesignSnapshot } from "@/lib/certificateDesignSnapshot";
 import SiteHeader from "@/components/SiteHeader";
 import PrintCertificateButton from "@/components/PrintCertificateButton";
 import CertificateDisplay from "@/components/CertificateDisplay";
@@ -66,6 +67,14 @@ export default async function CertificateVerificationPage({ params }: { params: 
       code: true,
       issuedAt: true,
       revokedAt: true,
+      // A certificate's design is frozen at the moment it's issued (see
+      // certificateDesignSnapshot.ts) — never redrawn from the course's
+      // CURRENT template, so re-assigning or editing a template later
+      // can't retroactively redesign a certificate already handed out.
+      // Only a row issued before this column existed (backfilled by its
+      // own migration, so should only ever be seen mid-deploy) falls
+      // back to reading the live template below.
+      designSnapshot: true,
       trainee: { select: { name: true } },
       course: {
         select: {
@@ -75,22 +84,18 @@ export default async function CertificateVerificationPage({ params }: { params: 
           // chosen template for this course, if any (see Course.
           // certificateTemplateId's own schema comment). Only
           // included so the render below can branch on it; an
-          // unapproved template is never used even if assigned.
+          // unapproved template is never used even if assigned. Still
+          // selected (not just the snapshot) for the pre-snapshot
+          // fallback path above.
           certificateTemplate: {
             select: {
+              trainingOrganizationId: true,
               logoUrl: true,
               approvedAt: true,
               layoutJson: true,
               signatoryName: true,
               signatoryTitle: true,
-              trainingOrganization: {
-                select: {
-                  name: true,
-                  brandingFooterRemoved: true,
-                  certWatermarkCurrentPeriodEnd: true,
-                  certWatermarkAccessRevokedAt: true,
-                },
-              },
+              trainingOrganization: { select: { name: true } },
             },
           },
         },
@@ -125,27 +130,51 @@ export default async function CertificateVerificationPage({ params }: { params: 
         },
       });
 
-  // Training Organizations, Phase 1 — only an APPROVED template ever
-  // renders, even if one is assigned; a course pointed at a template
-  // still mid-review shows AAICBI's own default until the org actually
-  // approves it.
-  const assignedTemplate = courseCertificate?.course.certificateTemplate;
-  const branding =
-    assignedTemplate && assignedTemplate.approvedAt
+  // The design this certificate was actually ISSUED with — never the
+  // course's current template (see designSnapshot's own schema
+  // comment). `snapshot.template === null` is a real, distinct state
+  // ("issued with AAICBI's own default design"), not the same as no
+  // snapshot existing at all (a pre-migration row, which falls back to
+  // the live template exactly as this page always did).
+  const snapshot = parseCertificateDesignSnapshot(courseCertificate?.designSnapshot);
+  const liveTemplate = courseCertificate?.course.certificateTemplate;
+  const designTemplate = snapshot
+    ? snapshot.template
+    : liveTemplate && liveTemplate.approvedAt
       ? {
-          organizationName: assignedTemplate.trainingOrganization.name,
-          logoUrl: assignedTemplate.logoUrl,
-          signatoryName: assignedTemplate.signatoryName,
-          signatoryTitle: assignedTemplate.signatoryTitle,
+          trainingOrganizationId: liveTemplate.trainingOrganizationId,
+          organizationName: liveTemplate.trainingOrganization.name,
+          logoUrl: liveTemplate.logoUrl,
+          signatoryName: liveTemplate.signatoryName,
+          signatoryTitle: liveTemplate.signatoryTitle,
+          layoutJson: liveTemplate.layoutJson,
         }
-      : undefined;
-  const layoutJson =
-    assignedTemplate && assignedTemplate.approvedAt ? (assignedTemplate.layoutJson as unknown as CertificateLayout | null) : null;
-  // No approved org template → AAICBI's own default design → always
-  // carries its own watermark. An approved org template's watermark
-  // visibility is the one thing certWatermark billing actually controls.
-  const showWatermark =
-    assignedTemplate && assignedTemplate.approvedAt ? shouldShowCertWatermark(assignedTemplate.trainingOrganization) : true;
+      : null;
+
+  const branding = designTemplate
+    ? {
+        organizationName: designTemplate.organizationName,
+        logoUrl: designTemplate.logoUrl,
+        signatoryName: designTemplate.signatoryName,
+        signatoryTitle: designTemplate.signatoryTitle,
+      }
+    : undefined;
+  const layoutJson = designTemplate ? (designTemplate.layoutJson as unknown as CertificateLayout | null) : null;
+
+  // Watermark removal is a LIVE billing state, not part of the frozen
+  // design — looked up fresh by the org id regardless of when the
+  // certificate was issued, same reasoning as designSnapshot.ts's own
+  // comment on why it's deliberately excluded from the snapshot. No org
+  // template at all (AAICBI's own default design) always carries the
+  // watermark — there's no org to pay to remove it.
+  let showWatermark = true;
+  if (designTemplate) {
+    const org = await prisma.trainingOrganization.findUnique({
+      where: { id: designTemplate.trainingOrganizationId },
+      select: { brandingFooterRemoved: true, certWatermarkCurrentPeriodEnd: true, certWatermarkAccessRevokedAt: true },
+    });
+    showWatermark = org ? shouldShowCertWatermark(org) : true;
+  }
 
   const certificate = courseCertificate
     ? {

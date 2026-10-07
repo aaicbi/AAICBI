@@ -60,6 +60,14 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "Certificate template not found." }, { status: 404 });
     }
     await requireTrainingOrgAccess(existing.trainingOrganizationId, session);
+    // Even with the design frozen onto each issued certificate at
+    // issue time (see certificateDesignSnapshot.ts), that snapshot
+    // only stores the logo's URL string — deleting the underlying Blob
+    // file here would still break every already-issued certificate's
+    // displayed logo. Same lock POST already has.
+    if (existing.approvedAt) {
+      return NextResponse.json({ error: "This template is already approved and can't be edited." }, { status: 400 });
+    }
     const template = await prisma.certificateTemplate.update({
       where: { id: params.id },
       data: { logoUrl: null },

@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { notifyByEmail, shouldNotifyTrainee } from "@/lib/notifications/log";
 import { certificateIssuedEmail, examCertificateIssuedEmail } from "@/lib/notifications/templates";
 import { appUrl } from "@/lib/appUrl";
+import { buildCertificateDesignSnapshot, toSnapshotJson } from "@/lib/certificateDesignSnapshot";
 
 // Alphabet excludes 0/O and 1/I/L — characters people reliably
 // mis-transcribe when reading a code off a printed certificate or
@@ -84,18 +85,23 @@ export async function issueCertificateForPassedExam(attemptId: string, courseId:
     // WHERE-clause condition makes Postgres's own row lock do the
     // serializing: only the first concurrent call's WHERE clause still
     // matches by the time it executes.
+    // Freeze the course's current certificate design onto the row so a
+    // later template change can never re-design it (see
+    // certificateDesignSnapshot.ts's own comment).
+    const designSnapshot = toSnapshotJson(await buildCertificateDesignSnapshot(courseId));
+
     let certificate;
     try {
       if (existing) {
         const applied = await prisma.certificate.updateMany({
           where: { id: existing.id, courseExamAttemptId: null },
-          data: { code: generateCertificateCode(), courseExamAttemptId: attemptId, revokedAt: null },
+          data: { code: generateCertificateCode(), courseExamAttemptId: attemptId, revokedAt: null, designSnapshot },
         });
         if (applied.count === 0) return; // lost the race — someone else just turned this into a real certificate
         certificate = await prisma.certificate.findUniqueOrThrow({ where: { id: existing.id } });
       } else {
         certificate = await prisma.certificate.create({
-          data: { code: generateCertificateCode(), traineeId, courseId, courseExamAttemptId: attemptId },
+          data: { code: generateCertificateCode(), traineeId, courseId, courseExamAttemptId: attemptId, designSnapshot },
         });
       }
     } catch (e) {
