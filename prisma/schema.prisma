@@ -697,6 +697,7 @@ model Trainee {
 
 model Skill {
   id       String @id @default(cuid())
+  courseSkills CourseSkill[]
   educationPostSkills EducationPostSkill[]
   name     String @unique
   category String?
@@ -1030,6 +1031,7 @@ model PitchDisclosure {
 model Course {
   id          String   @id @default(cuid())
   isDemo      Boolean  @default(false)
+  skills      CourseSkill[]
   educationPosts EducationPost[]
   title       String
   description String?
@@ -4426,4 +4428,18 @@ model EducationPostReaction {
 
   @@id([postId, traineeId, kind])
   @@index([traineeId, kind])
+}
+
+// Phase 4 — the skills a program teaches. Set by the organization that
+// owns the course; used to connect videos to programs, similar videos and
+// jobs. Reuses the existing Skill table shared with trainee profiles and
+// job postings.
+model CourseSkill {
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  skillId  String
+  skill    Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([courseId, skillId])
+  @@index([skillId])
 }

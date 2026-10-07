@@ -1,10 +1,10 @@
-# Public ecosystem (phases 0 to 3)
+# Public ecosystem (phases 0 to 4)
 
 Organization public pages, trainee education videos, the community feed, and a demo world to try them with. Everything ships **off**.
 
 ## Rolling out
 
-1. Run `prisma migrate deploy` (migrations `20261009090000_public_ecosystem` and `20261009100000_ecosystem_feed`). It only adds tables and columns with defaults, so the current site is unaffected.
+1. Run `prisma migrate deploy` (migrations `20261009090000_public_ecosystem`, `20261009100000_ecosystem_feed` and `20261009110000_course_skills`). It only adds tables and columns with defaults, so the current site is unaffected.
 2. Deploy the code. Nothing public changes yet: `/organizations` and `/learn` return 404.
 3. As SUPER_ADMIN open **Platform > Ecosystem** and switch on public organization pages, education videos and/or the community feed. Switching them off again hides the pages at once; no data is deleted.
 
@@ -23,6 +23,11 @@ Organization public pages, trainee education videos, the community feed, and a d
 - **Trending education** (top of `/learn`): recent published videos ranked by dampened engagement (log-scaled views, likes and saves, decaying with age), at most two per organization, so repeat taps or one organization posting a lot cannot push itself up.
 - **Follow, like, save**: signed-in trainees only; one row per person per item, so repeating a tap changes nothing. Everyone else sees a sign-in prompt.
 - **Mobile**: a sticky Feed / Learn / Organizations strip under the header. A fixed bottom bar was left out so it cannot collide with the cookie banner and help button.
+
+## Recommendations (phase 4)
+
+- **Program skills**: under *Organization > Program skills* an organization says which skills each of its programs teaches. This reuses the shared skill list that trainee profiles and job postings already use (matched ignoring case).
+- **Under a video** (`/learn/[id]`): *Interested in learning this?* suggests up to two published programs from organizations with a public page. Relevance comes only from shared skills, the same category, and the program the organization tagged the video with; the publishing organization gets a small nudge, and nothing about size, activity or payment counts. At most one program per organization. Below that: *More on these skills* (similar videos), *Jobs that use these skills* (signed-in discoverable trainees only) and, for a signed-in employer, *Find similar talent*, which opens the employer Discover page filtered to that skill.
 
 ## Demo accounts
 
@@ -44,4 +49,4 @@ Demo rows are flagged `isDemo` or use the `.invalid` domain (cannot receive emai
 
 ## Not in this change
 
-Comments, achievements and events in the feed, employer and investor feed views, recommendations, the visibility score, employer and investor discovery, events and global search (later phases).
+Comments, achievements and events in the feed, employer and investor feed views, the visibility score, employer and investor discovery, events and global search (later phases).

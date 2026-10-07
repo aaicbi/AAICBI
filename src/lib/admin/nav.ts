@@ -220,6 +220,7 @@ const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
       { label: "Team", href: "/admin/organization/team", audience: "org" },
       { label: "Public profile", href: "/admin/organization/profile", audience: "org" },
       { label: "Education videos", href: "/admin/education", audience: "org" },
+      { label: "Program skills", href: "/admin/organization/programs", audience: "org" },
     ],
   },
   {

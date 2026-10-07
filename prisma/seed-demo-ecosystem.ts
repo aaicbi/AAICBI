@@ -240,6 +240,24 @@ async function main() {
     });
   }
 
+  // Skills each demo program teaches, so videos can recommend programs.
+  const courseSkills: Array<[string, string[]]> = [
+    [courses[0].id, ["Python", "SQL", "Data Cleaning", "Data Analytics", "Power BI"]],
+    [courses[1].id, ["Python", "JavaScript", "Web Development"]],
+    [cloudCourse.id, ["Cloud", "Docker", "DevOps"]],
+  ];
+  for (const [courseId, names] of courseSkills) {
+    for (const name of names) {
+      const skill = (await prisma.skill.findFirst({ where: { name: { equals: name, mode: "insensitive" } } })) ?? (await prisma.skill.create({ data: { name } }));
+      await prisma.courseSkill.upsert({ where: { courseId_skillId: { courseId, skillId: skill.id } }, update: {}, create: { courseId, skillId: skill.id } });
+    }
+  }
+  // Demo talent: the first trainee lists skills and is discoverable (set above).
+  for (const name of ["Python", "SQL"]) {
+    const skill = (await prisma.skill.findFirst({ where: { name: { equals: name, mode: "insensitive" } } })) ?? (await prisma.skill.create({ data: { name } }));
+    await prisma.traineeSkill.upsert({ where: { traineeId_skillId: { traineeId: trainees[0].id, skillId: skill.id } }, update: {}, create: { traineeId: trainees[0].id, skillId: skill.id } });
+  }
+
   // Demo employer with one approved job, and a demo investor.
   const employer = await prisma.employer.upsert({
     where: { email: DEMO_EMAILS.employer },
@@ -265,6 +283,13 @@ async function main() {
         status: "APPROVED",
       },
     });
+  }
+  const demoJob = await prisma.jobPosting.findFirst({ where: { employerId: employer.id } });
+  if (demoJob) {
+    for (const name of ["SQL", "Data Analytics"]) {
+      const skill = (await prisma.skill.findFirst({ where: { name: { equals: name, mode: "insensitive" } } })) ?? (await prisma.skill.create({ data: { name } }));
+      await prisma.jobPostingSkill.upsert({ where: { jobPostingId_skillId: { jobPostingId: demoJob.id, skillId: skill.id } }, update: {}, create: { jobPostingId: demoJob.id, skillId: skill.id } });
+    }
   }
   await prisma.investor.upsert({
     where: { email: DEMO_EMAILS.investor },

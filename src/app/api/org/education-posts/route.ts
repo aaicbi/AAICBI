@@ -7,6 +7,7 @@ import { CreateEducationPostSchema, normalizeSkills } from "@/lib/ecosystem/educ
 import { fetchYouTubeMeta, parseYouTubeUrl } from "@/lib/ecosystem/youtube";
 import { orgTraineeWhere, requireOrgCourse, requireOrgTrainee } from "@/lib/ecosystem/orgScope";
 import { getEcosystemFlags } from "@/lib/ecosystem/flags";
+import { ensureSkill } from "@/lib/ecosystem/skills";
 
 /**
  * GET/POST /api/org/education-posts — a training organization publishing
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
     const post = await prisma.$transaction(async (tx) => {
       const skillIds: string[] = [];
       for (const name of skillNames) {
-        const skill = await tx.skill.upsert({ where: { name }, update: {}, create: { name } });
+        const skill = await ensureSkill(tx, name);
         skillIds.push(skill.id);
       }
       const created = await tx.educationPost.create({
