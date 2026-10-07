@@ -1,10 +1,10 @@
-# Public ecosystem (phases 0 to 7)
+# Public ecosystem (phases 0 to 8)
 
 Organization public pages, trainee education videos, the community feed, and a demo world to try them with. Everything ships **off**.
 
 ## Rolling out
 
-1. Run `prisma migrate deploy` (migrations `20261009090000_public_ecosystem`, `20261009100000_ecosystem_feed` and `20261009110000_course_skills` and `20261009120000_ranking_config` and `20261009130000_org_watchlist` and `20261009140000_ecosystem_events`). It only adds tables and columns with defaults, so the current site is unaffected.
+1. Run `prisma migrate deploy` (migrations `20261009090000_public_ecosystem`, `20261009100000_ecosystem_feed` and `20261009110000_course_skills` and `20261009120000_ranking_config` and `20261009130000_org_watchlist` and `20261009140000_ecosystem_events` and `20261009150000_comments_events`). It only adds tables and columns with defaults, so the current site is unaffected.
 2. Deploy the code. Nothing public changes yet: `/organizations` and `/learn` return 404.
 3. As SUPER_ADMIN open **Platform > Ecosystem** and switch on public organization pages, education videos and/or the community feed. Switching them off again hides the pages at once; no data is deleted.
 
@@ -48,6 +48,12 @@ Organization public pages, trainee education videos, the community feed, and a d
 - **Counting is anonymous**: `EcosystemEvent` stores only the type, organization and optional video or program (no IP, account or text). A visit counts once per browser session and per 30 minutes per caller; a click on a program is attributed to the organization that owns the course, not to anything the caller sends. Nothing is counted while organization pages are off.
 - **Platform view** (Superadmin, *Ecosystem*): the same totals across real organizations with the most visited ones. Demo organizations are excluded so these numbers stay real.
 
+## Search, comments and events (phase 8)
+
+- **Search** (`/search`): one box over public organizations, videos, programs and events, with type filters. Plain case-insensitive matching on what each public page already shows (names, taglines, places, titles, skills); no new index or extension, and nothing a visitor could not already open. Hidden when organization pages are off; videos only when education is on.
+- **Comments**: on `/learn/[id]`, readable by anyone and written by signed-in trainees only. Plain text, 2 to 500 characters, links rejected, ten per hour per person. Authors can delete their own; anyone signed in can report a comment, which lands in the existing report queue (context `EDUCATION_COMMENT`, one open report per person and comment); SUPER_ADMIN can hide any comment from *Ecosystem*.
+- **Events**: organizations add events under *Organization > Events* (title, UTC start and optional end, place, optional https registration link). They show on the organization's *Events* tab and on `/events`. Registration happens on the organization's own link; nothing is collected here. Events are listed until they are over; SUPER_ADMIN can take any down.
+
 ## Demo accounts
 
 ```
@@ -68,4 +74,4 @@ Demo rows are flagged `isDemo` or use the `.invalid` domain (cannot receive emai
 
 ## Not in this change
 
-Comments, achievements and events in the feed, employer and investor feed views, an investor public profile, events and global search (later phases).
+Achievements and events in the feed, employer and investor feed views, an investor public profile, and comment replies or likes.

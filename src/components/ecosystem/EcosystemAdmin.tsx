@@ -12,6 +12,8 @@ import { COMPONENTS, COMPONENT_LABELS, DEFAULT_RANKING_CONFIG, BADGE_LABELS, typ
 
 interface Payload {
   rankingConfig: RankingConfig;
+  comments: Array<{ id: string; body: string; isDemo: boolean; authorName: string; videoTitle: string }>;
+  events: Array<{ id: string; title: string; startsAt: string; isDemo: boolean; organizationName: string }>;
   ratings: Array<{ id: string; name: string; score: number; components: Record<Component, number>; publishedVideos: number; badges: BadgeKey[]; featured: boolean }>;
   flags: { ecosystemOrgPagesEnabled: boolean; ecosystemEducationEnabled: boolean; ecosystemFeedEnabled: boolean };
   organizations: Array<{ id: string; name: string; isDemo: boolean; publicProfile: { slug: string; publicEnabled: boolean; verified: boolean } | null }>;
@@ -68,6 +70,25 @@ export default function EcosystemAdmin() {
             </Card>
           ))}
           {data.organizations.length === 0 && <p className="text-sm text-gray-600">No approved organizations.</p>}
+        </div>
+      </section>
+
+      <section aria-labelledby="community">
+        <h2 id="community" className="font-display text-lg font-semibold text-brand-ink">Recent comments and upcoming events</h2>
+        <div className="mt-3 space-y-2">
+          {data.comments.length === 0 && data.events.length === 0 && <p className="text-sm text-gray-600">Nothing yet.</p>}
+          {data.comments.map((c) => (
+            <Card key={c.id} className="flex items-start justify-between gap-3">
+              <div className="min-w-0 text-sm"><p className="text-xs text-gray-500">{c.authorName} on {c.videoTitle} {c.isDemo && "· demo"}</p><p className="text-gray-700">{c.body}</p></div>
+              <Button size="sm" variant="secondary" onClick={() => call(`/api/admin/ecosystem/comments/${c.id}`, "POST", {})}>Hide</Button>
+            </Card>
+          ))}
+          {data.events.map((e) => (
+            <Card key={e.id} className="flex items-center justify-between gap-3">
+              <p className="min-w-0 truncate text-sm text-brand-ink">{e.title} <span className="text-xs text-gray-500">· {e.organizationName} · {new Date(e.startsAt).toLocaleDateString("en-GB", { dateStyle: "medium" })} {e.isDemo && "· demo"}</span></p>
+              <Button size="sm" variant="secondary" onClick={() => call(`/api/admin/ecosystem/events/${e.id}`, "POST", {})}>Take down</Button>
+            </Card>
+          ))}
         </div>
       </section>
 

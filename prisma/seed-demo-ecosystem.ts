@@ -97,7 +97,7 @@ async function main() {
 
   // Trainees, enrolled in the demo programs.
   const traineeNames = ["Demo John Udoh", "Demo Jane Doe", "Demo Amina Bello", "Demo Tunde Okafor"];
-  const trainees = [];
+  const trainees: Awaited<ReturnType<typeof prisma.trainee.upsert>>[] = [];
   for (const [i, name] of traineeNames.entries()) {
     const email = DEMO_EMAILS.trainee(`trainee${i + 1}`);
     const t = await prisma.trainee.upsert({
@@ -219,6 +219,24 @@ async function main() {
       if (day % 2 === 0) rows.push({ type: "PROGRAM_CLICK", trainingOrganizationId: org.id, courseId: courses[day % courses.length].id, createdAt: at() });
     }
     await prisma.ecosystemEvent.createMany({ data: rows });
+  }
+
+  // Comments on the demo videos and two upcoming events (only if none exist yet).
+  const demoVideos = await prisma.educationPost.findMany({ where: { trainingOrganizationId: org.id, isDemo: true, status: "PUBLISHED" }, select: { id: true }, take: 2 });
+  if (demoVideos.length > 0 && (await prisma.educationPostComment.count({ where: { isDemo: true } })) === 0) {
+    const lines = ["This made joins finally click for me. Thank you!", "Could you do a follow-up with a real dataset?", "Clear and calm explanation, well done."];
+    await prisma.educationPostComment.createMany({
+      data: lines.map((body, i) => ({ postId: demoVideos[i % demoVideos.length].id, traineeId: trainees[(i + 1) % trainees.length].id, body, isDemo: true })),
+    });
+  }
+  if ((await prisma.organizationEvent.count({ where: { trainingOrganizationId: org.id } })) === 0) {
+    const day = 86_400_000;
+    await prisma.organizationEvent.createMany({
+      data: [
+        { trainingOrganizationId: org.id, title: "Open day: meet our trainers (demo)", description: "Tour the programs and ask questions. Placeholder event for the demo organization.", startsAt: new Date(Date.now() + 9 * day), locationText: "Online", registrationUrl: "https://example.com/register", isDemo: true },
+        { trainingOrganizationId: org.id, title: "Demo Day showcase (demo)", description: "Trainees present what they built.", startsAt: new Date(Date.now() + 30 * day), endsAt: new Date(Date.now() + 30 * day + 3 * 3600_000), locationText: "Lagos", isDemo: true },
+      ],
+    });
   }
 
   // Spread the demo organization's videos over several weeks so the visibility

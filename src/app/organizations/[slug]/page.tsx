@@ -12,15 +12,17 @@ import { getEcosystemFlags } from "@/lib/ecosystem/flags";
 import { ProfileViewBeacon, ProgramClick } from "@/components/ecosystem/EventBeacon";
 import OrgBadges from "@/components/ecosystem/OrgBadges";
 import { rateOrganizations } from "@/lib/ecosystem/visibility";
+import EventList from "@/components/ecosystem/EventList";
+import { listUpcomingEvents } from "@/lib/ecosystem/events";
 import { listPublicVideos } from "@/lib/ecosystem/queries";
 import { getSession } from "@/lib/auth/session";
 import { FollowButton } from "@/components/ecosystem/EngageButtons";
 
 export const dynamic = "force-dynamic";
 
-const TABS = ["home", "programs", "education", "about"] as const;
+const TABS = ["home", "programs", "education", "events", "about"] as const;
 type Tab = (typeof TABS)[number];
-const TAB_LABEL: Record<Tab, string> = { home: "Home", programs: "Programs", education: "Education", about: "About" };
+const TAB_LABEL: Record<Tab, string> = { home: "Home", programs: "Programs", education: "Education", events: "Events", about: "About" };
 
 /** Only public, non-private fields are ever selected here — no email, phone, billing or account data. */
 async function loadOrg(slug: string) {
@@ -51,6 +53,7 @@ export default async function OrganizationPage({ params, searchParams }: { param
   const profile = org.publicProfile;
   const badges = (await rateOrganizations().catch(() => [])).find((r) => r.id === org.id)?.badges ?? [];
   const tab: Tab = (TABS as readonly string[]).includes(searchParams.tab ?? "") ? (searchParams.tab as Tab) : "home";
+  const events = tab === "events" ? await listUpcomingEvents({ organizationId: org.id, take: 30 }) : [];
 
   const session = await getSession();
   const traineeId = session?.role === "TRAINEE" ? session.userId : null;
@@ -162,6 +165,9 @@ export default async function OrganizationPage({ params, searchParams }: { param
                 videos.map((v) => <EducationVideoCard key={v.id} post={v} hideOrganizationLink />)
               )}
             </div>
+          )}
+          {tab === "events" && (
+            events.length === 0 ? <EmptyState title="No upcoming events" description={`${org.name} has not announced an event yet.`} /> : <EventList events={events} />
           )}
           {tab === "about" && (
             <Card>

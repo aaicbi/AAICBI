@@ -222,6 +222,7 @@ const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
       { label: "Education videos", href: "/admin/education", audience: "org" },
       { label: "Program skills", href: "/admin/organization/programs", audience: "org" },
       { label: "Content and visibility", href: "/admin/organization/insights", audience: "org" },
+      { label: "Events", href: "/admin/organization/events", audience: "org" },
     ],
   },
   {

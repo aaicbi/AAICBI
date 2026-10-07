@@ -5,6 +5,7 @@ import SiteHeader from "@/components/SiteHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import VerifiedBadge from "@/components/ecosystem/VerifiedBadge";
+import VideoComments from "@/components/ecosystem/VideoComments";
 import ViewBeacon from "@/components/ecosystem/ViewBeacon";
 import { ProgramClick } from "@/components/ecosystem/EventBeacon";
 import { prisma } from "@/lib/prisma";
@@ -56,6 +57,13 @@ export default async function WatchPage({ params }: { params: { id: string } }) 
   const traineeId = session?.role === "TRAINEE" ? session.userId : null;
   const mine = traineeId ? await prisma.educationPostReaction.findMany({ where: { postId: post.id, traineeId }, select: { kind: true } }) : [];
   const skillNames = post.skills.map((s) => s.skill.name);
+  const commentRows = await prisma.educationPostComment.findMany({
+    where: { postId: post.id, status: "VISIBLE" },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+    select: { id: true, body: true, createdAt: true, traineeId: true, trainee: { select: { name: true } } },
+  });
+  const comments = commentRows.map((c) => ({ id: c.id, body: c.body, createdAt: c.createdAt.toISOString(), authorName: c.trainee.name, mine: c.traineeId === traineeId }));
   const [programs, similar, viewer] = await Promise.all([
     recommendPrograms({ skills: skillNames, category: post.category, courseId: post.course?.id ?? null, organizationId: org.id }, 2),
     similarVideos(post.id, skillNames, 3),
@@ -155,6 +163,8 @@ export default async function WatchPage({ params }: { params: { id: string } }) 
             )}
           </Card>
         )}
+
+        <VideoComments postId={post.id} initial={comments} signedIn={!!traineeId} nextPath={`/learn/${post.id}`} />
 
         {similar.length > 0 && (
           <section aria-labelledby="similar" className="mt-10">

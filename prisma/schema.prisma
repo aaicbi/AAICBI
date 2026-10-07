@@ -402,6 +402,7 @@ model Trainee {
   educationPosts EducationPost[]
   orgFollows     OrganizationFollow[]
   postReactions  EducationPostReaction[]
+  educationComments EducationPostComment[]
   name          String
   email         String    @unique
   // Google sign-in — widened from required to optional. A trainee who
@@ -3247,6 +3248,7 @@ model TrainingOrganization {
   followers      OrganizationFollow[]
   watchedByInvestors OrganizationWatchlistItem[]
   ecosystemEvents    EcosystemEvent[]
+  events             OrganizationEvent[]
 
   // Teammates the organization has invited. They sign in with their own
   // email and password but receive the same session as the organization's
@@ -4389,6 +4391,7 @@ model EducationPost {
 
   skills    EducationPostSkill[]
   reactions EducationPostReaction[]
+  comments  EducationPostComment[]
 
   @@index([trainingOrganizationId, status])
   @@index([traineeId, status])
@@ -4483,4 +4486,51 @@ model EcosystemEvent {
 
   @@index([trainingOrganizationId, type, createdAt])
   @@index([type, createdAt])
+}
+
+// Phase 8 — comments on published education videos, and organization
+// events. Comments are written by signed-in trainees only, can be
+// reported (through the existing report queue) and hidden by SUPER_ADMIN.
+enum EducationCommentStatus {
+  VISIBLE
+  HIDDEN
+}
+
+model EducationPostComment {
+  id        String                 @id @default(cuid())
+  postId    String
+  post      EducationPost          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  traineeId String
+  trainee   Trainee                @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  body      String
+  status    EducationCommentStatus @default(VISIBLE)
+  isDemo    Boolean                @default(false)
+  createdAt DateTime               @default(now())
+
+  @@index([postId, status, createdAt])
+  @@index([traineeId])
+}
+
+enum OrganizationEventStatus {
+  PUBLISHED
+  REMOVED
+}
+
+model OrganizationEvent {
+  id                     String                  @id @default(cuid())
+  trainingOrganizationId String
+  trainingOrganization   TrainingOrganization    @relation(fields: [trainingOrganizationId], references: [id], onDelete: Cascade)
+  title                  String
+  description            String?
+  startsAt               DateTime
+  endsAt                 DateTime?
+  locationText           String?
+  registrationUrl        String?
+  status                 OrganizationEventStatus @default(PUBLISHED)
+  isDemo                 Boolean                 @default(false)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+
+  @@index([trainingOrganizationId, startsAt])
+  @@index([status, startsAt])
 }
