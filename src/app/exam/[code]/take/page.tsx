@@ -222,7 +222,7 @@ export default function TakeExamPage({ params }: { params: { code: string } }) {
             />
             <button
               onClick={() => setConfirmSubmit(true)}
-              className="mt-4 w-full rounded-lg bg-brand-teal py-2.5 text-sm font-semibold text-white hover:bg-brand-tealDeep"
+              className="mt-4 w-full rounded-lg bg-brand-teal py-2.5 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep"
             >
               Submit Examination
             </button>
@@ -255,7 +255,7 @@ export default function TakeExamPage({ params }: { params: { code: string } }) {
                 setNavOpen(false);
                 setConfirmSubmit(true);
               }}
-              className="mt-4 w-full rounded-lg bg-brand-teal py-2.5 text-sm font-semibold text-white"
+              className="mt-4 w-full rounded-lg bg-brand-teal py-2.5 text-sm font-semibold text-brand-onAccent"
             >
               Submit Examination
             </button>

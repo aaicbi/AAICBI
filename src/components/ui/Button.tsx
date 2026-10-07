@@ -36,10 +36,10 @@ type ButtonAsLink = ButtonOwnProps &
 type ButtonProps = ButtonAsButton | ButtonAsLink;
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  primary: "bg-brand-teal text-white hover:bg-brand-tealDeep disabled:bg-brand-gray disabled:text-gray-500",
+  primary: "bg-brand-teal text-brand-onAccent hover:bg-brand-tealDeep disabled:bg-brand-gray disabled:text-gray-500",
   secondary:
     "border border-brand-gray text-brand-ink hover:border-brand-teal hover:text-brand-teal disabled:opacity-50",
-  danger: "bg-brand-rose text-white hover:bg-[#96303c] disabled:bg-brand-gray disabled:text-gray-500",
+  danger: "bg-brand-rose text-brand-onAccent hover:bg-brand-rose/90 disabled:bg-brand-gray disabled:text-gray-500",
   ghost: "text-brand-teal hover:bg-brand-mint disabled:opacity-50",
 };
 

@@ -264,7 +264,7 @@ export default function CourseEnrollmentsPage({ params }: { params: { id: string
                         <button
                           onClick={() => submitExtend(e.id)}
                           disabled={extendSaving}
-                          className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                          className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
                         >
                           {extendSaving ? "Saving..." : "Confirm Extension"}
                         </button>

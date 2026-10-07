@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useCallback, useContext, useState } from "react";
+import { ABOVE_BANNER } from "@/lib/floatingLayers";
 import { CheckCircle2, XCircle, Info } from "lucide-react";
 import Icon from "./Icon";
 
@@ -59,7 +60,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="pointer-events-none fixed bottom-4 left-1/2 z-[100] flex -translate-x-1/2 flex-col items-center gap-2 sm:bottom-6">
+      <div className="pointer-events-none fixed left-1/2 z-[100] flex -translate-x-1/2 flex-col items-center gap-2" style={{ bottom: ABOVE_BANNER }}>
         {toasts.map((t) => (
           <div
             key={t.id}

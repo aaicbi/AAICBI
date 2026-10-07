@@ -39,6 +39,8 @@ const config: Config = {
           goldText: "rgb(var(--brand-gold-text) / <alpha-value>)",
           rose: "rgb(var(--brand-rose) / <alpha-value>)",
           roseLight: "rgb(var(--brand-rose-light) / <alpha-value>)",
+          onAccent: "rgb(var(--brand-on-accent) / <alpha-value>)",
+          onGold: "rgb(var(--brand-on-gold) / <alpha-value>)",
         },
         // Audit finding, closed here: 376 uses of Tailwind's own
         // default gray scale across 77 files, none of it theme-aware

@@ -1,6 +1,7 @@
 "use client";
 import { X } from "lucide-react";
 import Icon from "@/components/ui/Icon";
+import { ABOVE_BANNER_AND_FAB } from "@/lib/floatingLayers";
 
 interface NotificationDto {
   id: string;
@@ -47,7 +48,7 @@ export default function LoopBroadcastPopup({ notifications, onClose }: LoopBroad
   if (unreadBroadcasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-[100] flex w-80 max-w-[92vw] flex-col-reverse gap-3">
+    <div className="fixed right-4 z-[100] flex w-80 max-w-[92vw] flex-col-reverse gap-3" style={{ bottom: ABOVE_BANNER_AND_FAB }}>
       {unreadBroadcasts.map((n) => (
         <div
           key={n.id}

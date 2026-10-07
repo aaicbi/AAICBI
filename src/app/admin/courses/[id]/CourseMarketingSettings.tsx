@@ -144,7 +144,7 @@ export default function CourseMarketingSettings({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="rounded-lg bg-brand-teal px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          className="rounded-lg bg-brand-teal px-4 py-2 text-sm font-semibold text-brand-onAccent disabled:opacity-60"
         >
           {saving ? "Saving..." : "Save course information"}
         </button>

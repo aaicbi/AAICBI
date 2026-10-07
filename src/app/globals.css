@@ -67,6 +67,13 @@
   --brand-gold-text: 138 95 31;
   --brand-rose: 178 58 72;
   --brand-rose-light: 245 226 225;
+  /* Text that sits ON a teal, rose or gold fill. White on the light-theme
+     fills (6.4:1, 5.9:1) but near-black on the lighter dark-theme fills,
+     where white measured 2.3:1, 3.8:1 and 2.0:1. */
+  --brand-on-accent: 255 255 255;
+  /* Gold is a light fill in both themes (white on it is 2.4:1), so text
+     on gold is always dark. */
+  --brand-on-gold: 22 48 43;
   /* Audit finding, closed here: 376 instances of Tailwind's own
      default gray scale across 77 files — used everywhere for
      secondary text, borders, and light backgrounds — none of it
@@ -122,8 +129,10 @@
   --brand-gold: 227 172 85;
   --brand-gold-light: 61 46 20;
   --brand-gold-text: 230 195 140;
-  --brand-rose: 214 92 107;
+  --brand-rose: 228 110 124;
   --brand-rose-light: 61 26 30;
+  --brand-on-accent: 20 24 26;
+  --brand-on-gold: 20 24 26;
   --gray-50: 24 28 30;
   --gray-100: 34 39 42;
   --gray-300: 70 77 81;

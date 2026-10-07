@@ -96,7 +96,7 @@ export default function NotificationBell({ align = "right" }: { align?: "left" |
       >
         <Icon icon={Bell} size="md" />
         {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-rose px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-rose px-1 text-[10px] font-bold text-brand-onAccent">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}

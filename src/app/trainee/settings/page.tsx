@@ -13,6 +13,7 @@ import CorrectnessMark from "@/components/ui/CorrectnessMark";
 import { SUPPORTED_LANGUAGES, LANGUAGE_LABELS, t, type LanguageCode } from "@/lib/i18n";
 
 import { Checkbox, Input, Textarea } from "@/components/ui/Field";
+import Toggle from "@/components/ui/Toggle";
 /**
  * The self-service side of the notification-preference gap flagged
  * across the M14/M15 audits, joined by M39's low-bandwidth toggle on
@@ -249,21 +250,7 @@ export default function TraineeSettingsPage() {
                 </p>
               </div>
               {notificationsEnabled !== null && (
-                <button
-                  onClick={() => toggle("notificationsEnabled")}
-                  disabled={saving}
-                  role="switch"
-                  aria-checked={notificationsEnabled}
-                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                    notificationsEnabled ? "bg-brand-teal" : "bg-gray-300"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                      notificationsEnabled ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
+                <Toggle checked={notificationsEnabled} onChange={() => toggle("notificationsEnabled")} disabled={saving} label="Progress notifications" />
               )}
             </div>
           </Card>
@@ -288,21 +275,7 @@ export default function TraineeSettingsPage() {
                 </p>
               </div>
               {lowBandwidthMode !== null && (
-                <button
-                  onClick={() => toggle("lowBandwidthMode")}
-                  disabled={saving}
-                  role="switch"
-                  aria-checked={lowBandwidthMode}
-                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                    lowBandwidthMode ? "bg-brand-teal" : "bg-gray-300"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                      lowBandwidthMode ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
+                <Toggle checked={lowBandwidthMode} onChange={() => toggle("lowBandwidthMode")} disabled={saving} label="Low-bandwidth mode" />
               )}
             </div>
           </Card>
@@ -350,21 +323,7 @@ export default function TraineeSettingsPage() {
                 )}
               </div>
               {aiStudyBuddyEnabled !== null && (
-                <button
-                  onClick={() => toggle("aiStudyBuddyEnabled")}
-                  disabled={saving}
-                  role="switch"
-                  aria-checked={aiStudyBuddyEnabled}
-                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                    aiStudyBuddyEnabled ? "bg-brand-teal" : "bg-gray-300"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                      aiStudyBuddyEnabled ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
+                <Toggle checked={aiStudyBuddyEnabled} onChange={() => toggle("aiStudyBuddyEnabled")} disabled={saving} label="AI study buddy" />
               )}
             </div>
           </Card>
@@ -376,21 +335,7 @@ export default function TraineeSettingsPage() {
                 <p className="mt-1 text-sm text-gray-600">Switch to a dark theme. This follows you across devices.</p>
               </div>
               {darkMode !== null && (
-                <button
-                  onClick={() => toggle("darkMode")}
-                  disabled={saving}
-                  role="switch"
-                  aria-checked={darkMode}
-                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                    darkMode ? "bg-brand-teal" : "bg-gray-300"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                      darkMode ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
+                <Toggle checked={darkMode} onChange={() => toggle("darkMode")} disabled={saving} label="Dark mode" />
               )}
             </div>
           </Card>
@@ -514,7 +459,7 @@ function WhatsAppSettings({
             <button
               onClick={verifyCode}
               disabled={busy || code.length !== 6}
-              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
             >
               Verify
             </button>
@@ -530,7 +475,7 @@ function WhatsAppSettings({
           <button
             onClick={requestCode}
             disabled={busy || !phoneInput.trim()}
-            className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+            className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
           >
             Enable WhatsApp Notifications
           </button>
@@ -617,16 +562,7 @@ function DiscoverabilitySettings() {
             until you accept a specific introduction — turning this on only makes your listing visible.
           </p>
         </div>
-        <button
-          role="switch"
-          aria-checked={discoverable}
-          onClick={() => setDiscoverable((v) => !v)}
-          className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${discoverable ? "bg-brand-teal" : "bg-brand-gray"}`}
-        >
-          <span
-            className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${discoverable ? "translate-x-5" : "translate-x-0"}`}
-          />
-        </button>
+        <Toggle checked={discoverable} onChange={() => setDiscoverable((v) => !v)} label="Employer discoverability" />
       </div>
 
       {discoverable && (

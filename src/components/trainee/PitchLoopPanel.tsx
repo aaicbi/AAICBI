@@ -137,7 +137,7 @@ export default function PitchLoopPanel({ draft }: { draft: PitchDraft }) {
         {messages.map((m) =>
           m.role === "trainee" ? (
             <div key={m.id} className="flex justify-end">
-              <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-brand-teal px-3 py-2 text-xs font-medium text-white">{m.text}</div>
+              <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-brand-teal px-3 py-2 text-xs font-medium text-brand-onAccent">{m.text}</div>
             </div>
           ) : (
             <div key={m.id} className="flex justify-start">

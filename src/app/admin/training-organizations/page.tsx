@@ -245,7 +245,7 @@ function PayoutSettings({
             <button
               onClick={handleSave}
               disabled={saving}
-              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
             >
               {saving ? "Saving..." : "Save"}
             </button>
@@ -385,7 +385,7 @@ function PlatformFeeSettings({
         <button
           onClick={handleConfirmPayment}
           disabled={confirming}
-          className="mt-2 rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+          className="mt-2 rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
         >
           {confirming ? "Confirming..." : "Confirm Payment Received"}
         </button>
@@ -427,7 +427,7 @@ function PlatformFeeSettings({
             <button
               onClick={handleSave}
               disabled={saving}
-              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
             >
               {saving ? "Saving..." : "Save"}
             </button>
@@ -535,7 +535,7 @@ function CertWatermarkSettings({
         <button
           onClick={handleConfirmPayment}
           disabled={confirming}
-          className="mt-2 rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+          className="mt-2 rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
         >
           {confirming ? "Confirming..." : "Confirm Payment Received"}
         </button>
@@ -557,7 +557,7 @@ function CertWatermarkSettings({
             <button
               onClick={handleSave}
               disabled={saving}
-              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
             >
               {saving ? "Saving..." : "Save"}
             </button>

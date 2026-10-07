@@ -83,8 +83,9 @@ export default function OnboardingWalkthrough({
             <Icon icon={ChevronLeft} size="sm" /> Back
           </button>
           <button
+            autoFocus
             onClick={() => (isLast ? onComplete() : setIndex((i) => i + 1))}
-            className="rounded-lg bg-brand-teal px-5 py-2 text-sm font-semibold text-white hover:bg-brand-tealDeep"
+            className="rounded-lg bg-brand-teal px-5 py-2 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep"
           >
             {isLast ? "Get Started" : "Next"}
           </button>

@@ -886,7 +886,7 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
               href={course.whatsappGroupUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full border-2 border-brand-teal px-4 py-2 text-sm font-semibold text-brand-teal transition-colors hover:bg-brand-teal hover:text-white"
+              className="inline-flex items-center gap-2 rounded-full border-2 border-brand-teal px-4 py-2 text-sm font-semibold text-brand-teal transition-colors hover:bg-brand-teal hover:text-brand-onAccent"
             >
               <Icon icon={MessageCircle} size="sm" />
               Join WhatsApp Group

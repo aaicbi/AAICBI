@@ -53,7 +53,7 @@ export default function PriceTag({
         {formatNaira(effectivePriceKobo!)}
         {suffix}
       </span>
-      <span className="rounded-full bg-brand-rose px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-white">
+      <span className="rounded-full bg-brand-rose px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-brand-onAccent">
         -{discountPercent}% OFF
       </span>
     </span>

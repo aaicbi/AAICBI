@@ -184,7 +184,7 @@ export default function QuestionBankReviewPage({ params }: { params: { id: strin
         {tab === "gate1" && selected.size > 0 && (
           <div className="mt-4 flex items-center justify-between rounded-lg border border-brand-teal bg-brand-mint/30 p-3 text-sm">
             <span>{selected.size} selected</span>
-            <button onClick={bulkApprove} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white">
+            <button onClick={bulkApprove} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent">
               Approve selected for validation
             </button>
           </div>
@@ -252,7 +252,7 @@ function QuestionEditor({
         </div>
       ))}
       <div className="flex gap-2 pt-1">
-        <button onClick={() => onSave(text, options)} className="rounded-lg bg-brand-teal px-3 py-1.5 text-sm font-semibold text-white">
+        <button onClick={() => onSave(text, options)} className="rounded-lg bg-brand-teal px-3 py-1.5 text-sm font-semibold text-brand-onAccent">
           Save &amp; approve
         </button>
         <button onClick={onCancel} className="rounded border border-brand-gray px-3 py-1.5 text-sm">
@@ -326,7 +326,7 @@ function Gate1Card({
                 <button onClick={() => setEditing(true)} className="rounded border border-brand-gray px-3 py-1.5 text-xs font-semibold hover:border-brand-teal">
                   Edit
                 </button>
-                <button onClick={onApprove} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white">
+                <button onClick={onApprove} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent">
                   Approve for validation
                 </button>
                 <button onClick={onReject} className="rounded border border-brand-roseLight px-3 py-1.5 text-xs font-semibold text-brand-rose hover:bg-brand-roseLight/40">
@@ -396,7 +396,7 @@ function Gate2Card({
             <button onClick={() => setEditing(true)} className="rounded border border-brand-gray px-3 py-1.5 text-xs font-semibold hover:border-brand-teal">
               Edit
             </button>
-            <button onClick={onApprove} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white">
+            <button onClick={onApprove} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent">
               Approve
             </button>
             <button onClick={onReject} className="rounded border border-brand-roseLight px-3 py-1.5 text-xs font-semibold text-brand-rose hover:bg-brand-roseLight/40">

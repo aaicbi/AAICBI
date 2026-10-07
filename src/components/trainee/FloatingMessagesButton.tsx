@@ -7,6 +7,7 @@ import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 
 import { Input, Select, Textarea } from "@/components/ui/Field";
+import { ABOVE_BANNER, FAB_FOOTPRINT_PX, setFloatingOffset } from "@/lib/floatingLayers";
 interface ConversationRow {
   id: string;
   type: "DIRECT" | "COHORT";
@@ -175,10 +176,18 @@ export default function FloatingMessagesButton() {
   }
 
   const isLiveExamOrAssessment = pathname?.endsWith("/examination/take") || pathname?.endsWith("/assessment/take");
+
+  // Tell the other floating layers this button is on screen.
+  useEffect(() => {
+    if (isLiveExamOrAssessment) return;
+    setFloatingOffset("fab", FAB_FOOTPRINT_PX);
+    return () => setFloatingOffset("fab", 0);
+  }, [isLiveExamOrAssessment]);
+
   if (isLiveExamOrAssessment) return null;
 
   return (
-    <div ref={containerRef} className="fixed bottom-6 right-6 z-40">
+    <div ref={containerRef} className="fixed right-6 z-40" style={{ bottom: ABOVE_BANNER }}>
       {open && (
         <div className="absolute bottom-14 right-0 w-80 max-w-[90vw] rounded-xl border border-brand-gray bg-brand-surface shadow-lg animate-[modal-in_0.15s_ease-out] sm:w-96">
           <div className="flex items-center justify-between border-b border-brand-gray px-4 py-3">
@@ -269,11 +278,11 @@ export default function FloatingMessagesButton() {
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-label={unreadCount > 0 ? `Messages, ${unreadCount} unread` : "Messages"}
-        className="relative flex h-12 w-12 items-center justify-center rounded-full bg-brand-teal text-white shadow-lg transition-transform hover:scale-105 hover:bg-brand-tealDeep"
+        className="relative flex h-12 w-12 items-center justify-center rounded-full bg-brand-teal text-brand-onAccent shadow-lg transition-transform hover:scale-105 hover:bg-brand-tealDeep"
       >
         <Icon icon={open ? X : MessageSquare} size="md" />
         {!open && unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-rose px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-rose px-1 text-[10px] font-bold text-brand-onAccent">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}

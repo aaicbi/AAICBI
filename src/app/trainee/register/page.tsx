@@ -136,7 +136,7 @@ function TraineeRegisterForm() {
               />
               <label htmlFor="privacyConsent" className="text-xs text-gray-600">
                 I have read and agree to AAICBI&apos;s{" "}
-                <a href="/privacy-policy" target="_blank" className="text-brand-teal hover:underline">
+                <a href="/privacy-policy" target="_blank" className="text-brand-teal underline">
                   Privacy Policy
                 </a>
                 , including how my name, email, and course activity are collected and used.

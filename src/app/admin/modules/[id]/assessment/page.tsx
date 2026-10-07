@@ -320,7 +320,7 @@ export default function ModuleAssessmentPage({ params }: { params: { id: string 
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="mt-3 rounded-lg bg-brand-teal px-4 py-2 font-semibold text-white hover:bg-brand-tealDeep disabled:opacity-60"
+            className="mt-3 rounded-lg bg-brand-teal px-4 py-2 font-semibold text-brand-onAccent hover:bg-brand-tealDeep disabled:opacity-60"
           >
             {uploading ? "Processing..." : "Choose .docx file"}
           </button>
@@ -374,7 +374,7 @@ export default function ModuleAssessmentPage({ params }: { params: { id: string 
             <button
               onClick={saveSettings}
               disabled={savingSettings}
-              className="rounded-lg bg-brand-teal px-4 py-2 text-sm font-semibold text-white hover:bg-brand-tealDeep disabled:opacity-60"
+              className="rounded-lg bg-brand-teal px-4 py-2 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep disabled:opacity-60"
             >
               {savingSettings ? "Saving..." : exam ? "Save Settings" : "Create Assessment"}
             </button>
@@ -398,7 +398,7 @@ export default function ModuleAssessmentPage({ params }: { params: { id: string 
                 <button
                   onClick={bulkDeleteQuestions}
                   disabled={bulkDeleting}
-                  className="rounded-lg bg-brand-rose px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                  className="rounded-lg bg-brand-rose px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
                 >
                   {bulkDeleting ? "Deleting..." : "Delete selected"}
                 </button>
@@ -452,7 +452,7 @@ export default function ModuleAssessmentPage({ params }: { params: { id: string 
                   <button
                     onClick={handlePublish}
                     disabled={outstandingCount > 0 || exam.questions.length === 0}
-                    className="mt-3 rounded-lg bg-brand-teal px-5 py-2.5 font-semibold text-white hover:bg-brand-tealDeep disabled:cursor-not-allowed disabled:opacity-40"
+                    className="mt-3 rounded-lg bg-brand-teal px-5 py-2.5 font-semibold text-brand-onAccent hover:bg-brand-tealDeep disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Publish Assessment
                   </button>
@@ -526,7 +526,7 @@ function QuestionCard({
                 onSave(text, options);
                 setEditing(false);
               }}
-              className="rounded-lg bg-brand-teal px-3 py-1.5 text-sm font-semibold text-white"
+              className="rounded-lg bg-brand-teal px-3 py-1.5 text-sm font-semibold text-brand-onAccent"
             >
               Save
             </button>
@@ -561,7 +561,7 @@ function QuestionCard({
               Edit
             </button>
             {question.needsReview && (
-              <button onClick={onApprove} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-white">
+              <button onClick={onApprove} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent">
                 Approve as-is
               </button>
             )}

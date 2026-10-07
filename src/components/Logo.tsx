@@ -65,7 +65,7 @@ export default function Logo({ href = "/", compact = false, className = "", mark
   );
 
   if (href === null) {
-    return <span aria-label="AAICBI">{content}</span>;
+    return <span role="img" aria-label="AAICBI">{content}</span>;
   }
 
   return (

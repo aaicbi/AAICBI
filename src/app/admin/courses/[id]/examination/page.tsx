@@ -358,7 +358,7 @@ export default function CourseExaminationPage({ params }: { params: { id: string
               <button
                 onClick={saveSettings}
                 disabled={savingSettings}
-                className="rounded-lg bg-brand-teal px-4 py-2 text-sm font-semibold text-white hover:bg-brand-tealDeep disabled:opacity-60"
+                className="rounded-lg bg-brand-teal px-4 py-2 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep disabled:opacity-60"
               >
                 {savingSettings ? "Saving..." : "Save Settings"}
               </button>
@@ -376,7 +376,7 @@ export default function CourseExaminationPage({ params }: { params: { id: string
                 <button
                   onClick={bulkDeleteQuestions}
                   disabled={bulkDeleting}
-                  className="rounded-lg bg-brand-rose px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                  className="rounded-lg bg-brand-rose px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
                 >
                   {bulkDeleting ? "Deleting..." : "Delete selected"}
                 </button>

@@ -114,7 +114,7 @@ export default function InvestorDashboardPage() {
                   type="button"
                   onClick={() => setFundingType(fundingType === ft ? "" : ft)}
                   className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-                    fundingType === ft ? "bg-brand-teal text-white" : "border border-brand-gray text-brand-ink"
+                    fundingType === ft ? "bg-brand-teal text-brand-onAccent" : "border border-brand-gray text-brand-ink"
                   }`}
                 >
                   {ft === "GRANT" ? "Grant" : "Debt"}
@@ -125,7 +125,7 @@ export default function InvestorDashboardPage() {
               type="button"
               onClick={() => setWatchlistOnly((v) => !v)}
               className={`ml-auto rounded-full px-3 py-1.5 text-xs font-semibold ${
-                watchlistOnly ? "bg-brand-gold text-white" : "border border-brand-gray text-brand-ink"
+                watchlistOnly ? "bg-brand-gold text-brand-onGold" : "border border-brand-gray text-brand-ink"
               }`}
             >
               ★ Watchlist only
