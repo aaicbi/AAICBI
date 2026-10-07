@@ -14,6 +14,8 @@ import { hasActivePlatformFeeAccess } from "@/lib/trainingOrgBilling";
 // boundary), it only decides sidebar-vs-not for this request.
 const ALLOWED_ROLES = ["SUPER_ADMIN", "ADMIN", "INSTRUCTOR"];
 
+export const metadata = { title: { default: "Admin", template: "%s · Admin · AAICBI" } };
+
 /**
  * Admin sidebar pilot — the one place a persistent left sidebar is
  * rendered for every authenticated admin page, replacing the old

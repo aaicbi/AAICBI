@@ -185,7 +185,7 @@ export default function ExamResultsPage({ params }: { params: { id: string } }) 
                               href={`/certificate/${a.earnedExamCertificate.code}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-xs font-semibold text-brand-gold hover:underline"
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-brand-goldText hover:underline"
                             >
                               <Icon icon={Award} size="sm" /> Certificate Issued
                             </a>
@@ -207,7 +207,7 @@ export default function ExamResultsPage({ params }: { params: { id: string } }) 
                                 )}
                                 {a.performanceSummary.weaknesses.length > 0 && (
                                   <div>
-                                    <p className="text-xs font-semibold text-brand-gold">Needs improvement</p>
+                                    <p className="text-xs font-semibold text-brand-goldText">Needs improvement</p>
                                     <p className="text-sm text-gray-800">
                                       {a.performanceSummary.weaknesses.join(", ")}
                                     </p>

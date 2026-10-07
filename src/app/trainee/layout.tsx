@@ -6,6 +6,8 @@ import TraineeSidebar from "@/components/trainee/TraineeSidebar";
 import FloatingMessagesButton from "@/components/trainee/FloatingMessagesButton";
 import { pageHasSidebar } from "@/lib/sidebarRoutes";
 
+export const metadata = { title: { default: "Trainee", template: "%s · Trainee · AAICBI" } };
+
 /**
  * Sidebar rollout (Phase 2) — the trainee counterpart to
  * src/app/admin/layout.tsx; see that file's own comment for the fuller

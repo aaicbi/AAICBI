@@ -63,7 +63,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            role="status"
+            role={t.variant === "error" ? "alert" : "status"}
             className={`pointer-events-auto flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold shadow-lg animate-[toast-in_0.2s_ease-out] ${VARIANT_CLASSES[t.variant]}`}
           >
             <Icon icon={VARIANT_ICON[t.variant]} size="sm" />

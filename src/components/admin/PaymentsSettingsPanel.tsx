@@ -217,7 +217,7 @@ export default function PaymentsSettingsPanel({ viewerRole }: { viewerRole?: str
             <Button variant="ghost" onClick={cancel} disabled={saving}>
               Cancel
             </Button>
-            <span className="text-xs font-semibold text-brand-gold">Unsaved changes</span>
+            <span className="text-xs font-semibold text-brand-goldText">Unsaved changes</span>
           </>
         )}
       </div>

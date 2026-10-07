@@ -107,7 +107,7 @@ function ModuleAssessmentStrip({ courseId, moduleId }: { courseId: string; modul
         <span className="font-semibold text-brand-ink">Assessment</span> — {meta.totalQuestions} question
         {meta.totalQuestions === 1 ? "" : "s"}, pass mark {meta.passMarkPercent}%
         {best && (
-          <span className={`ml-2 font-semibold ${best.passed ? "text-brand-teal" : "text-brand-gold"}`}>
+          <span className={`ml-2 font-semibold ${best.passed ? "text-brand-teal" : "text-brand-goldText"}`}>
             · Best: {Math.round(best.percentage ?? 0)}% {best.passed ? "(Passed)" : ""}
           </span>
         )}

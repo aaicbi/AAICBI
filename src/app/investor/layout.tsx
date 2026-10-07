@@ -4,6 +4,8 @@ import { SidebarActiveProvider } from "@/components/SidebarActiveContext";
 import InvestorSidebar from "@/components/investor/InvestorSidebar";
 import { pageHasSidebar } from "@/lib/sidebarRoutes";
 
+export const metadata = { title: { default: "Investor", template: "%s · Investor · AAICBI" } };
+
 /**
  * Sidebar rollout (Phase 2) — the investor counterpart to
  * src/app/admin/layout.tsx; see that file's own comment for the fuller

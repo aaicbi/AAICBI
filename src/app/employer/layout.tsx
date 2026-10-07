@@ -5,6 +5,8 @@ import { SidebarActiveProvider } from "@/components/SidebarActiveContext";
 import EmployerSidebar from "@/components/employer/EmployerSidebar";
 import { pageHasSidebar } from "@/lib/sidebarRoutes";
 
+export const metadata = { title: { default: "Employer", template: "%s · Employer · AAICBI" } };
+
 /**
  * Sidebar rollout (Phase 2) — the employer counterpart to
  * src/app/admin/layout.tsx; see that file's own comment for the fuller

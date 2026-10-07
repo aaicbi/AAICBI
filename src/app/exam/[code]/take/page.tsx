@@ -152,7 +152,7 @@ export default function TakeExamPage({ params }: { params: { code: string } }) {
             <span>
               Question {current + 1} of {attempt.questions.length}
             </span>
-            <button onClick={() => toggleMark(current)} className="inline-flex items-center gap-1 font-semibold text-brand-gold">
+            <button onClick={() => toggleMark(current)} className="inline-flex items-center gap-1 font-semibold text-brand-goldText">
               <Icon icon={Star} size="sm" className={marked.has(current) ? "fill-current" : "fill-none"} />
               {marked.has(current) ? "Marked for review" : "Mark for review"}
             </button>

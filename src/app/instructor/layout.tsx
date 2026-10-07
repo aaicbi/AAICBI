@@ -2,6 +2,8 @@ import { getSession } from "@/lib/auth/session";
 import { SidebarActiveProvider } from "@/components/SidebarActiveContext";
 import InstructorSidebar from "@/components/instructor/InstructorSidebar";
 
+export const metadata = { title: { default: "Instructor", template: "%s · Instructor · AAICBI" } };
+
 /**
  * Sidebar rollout (Phase 2) — the instructor counterpart to
  * src/app/admin/layout.tsx; see that file's own comment for the fuller

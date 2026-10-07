@@ -205,7 +205,7 @@ export default function PublicCoursesPage() {
               <div className="mt-16">
                 <div className="flex items-baseline justify-between">
                   <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-brand-ink">
-                    <Icon icon={CalendarClock} size="sm" className="text-brand-gold" />
+                    <Icon icon={CalendarClock} size="sm" className="text-brand-goldText" />
                     Upcoming Courses
                   </h2>
                   <a

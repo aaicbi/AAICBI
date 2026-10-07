@@ -23,8 +23,11 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "AAICBI Learning Management System",
-  description: "AAICBI's AI-assisted learning and computer-based assessment platform",
+  // Every child segment's title fills %s, so tabs read "Courses · AAICBI"
+  // instead of twenty identical "AAICBI Learning Management System" tabs.
+  title: { default: "AAICBI", template: "%s · AAICBI" },
+  description:
+    "AAICBI, the African AI Capacity Building Initiative: practical AI and technology courses, publicly verifiable certificates and a path to employers.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

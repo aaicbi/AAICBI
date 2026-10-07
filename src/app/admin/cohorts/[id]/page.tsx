@@ -189,7 +189,7 @@ export default function CohortDetailPage({ params }: { params: { id: string } })
                             href={`/certificate/${r.certificateCode}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs font-semibold text-brand-gold hover:underline"
+                            className="text-xs font-semibold text-brand-goldText hover:underline"
                           >
                             <Icon icon={AchievementIcon} size="sm" className="mr-1 inline align-text-bottom" /> View
                           </a>

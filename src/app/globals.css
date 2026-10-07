@@ -98,9 +98,13 @@
   --gray-50: 249 250 251;
   --gray-100: 243 244 246;
   --gray-300: 209 213 219;
-  --gray-400: 156 163 175;
-  --gray-500: 107 114 128;
-  --gray-600: 75 85 99;
+  /* Contrast pass: the old values (gray-400 2.5:1, gray-500 4.4:1 on the
+     sand page, disabled-button text 3.4:1) sat below WCAG AA's 4.5:1 for
+     body-size text. gray-400/500/600 are now all >= 4.5:1 on white, sand,
+     and the mint tint, and gray-500 on the disabled-button gray. */
+  --gray-400: 96 104 116;
+  --gray-500: 84 92 106;
+  --gray-600: 70 80 95;
   --gray-700: 55 65 81;
   --gray-800: 31 41 55;
   --gray-900: 17 24 39;
@@ -123,9 +127,9 @@
   --gray-50: 24 28 30;
   --gray-100: 34 39 42;
   --gray-300: 70 77 81;
-  --gray-400: 110 117 121;
-  --gray-500: 148 155 159;
-  --gray-600: 168 174 178;
+  --gray-400: 148 155 159;
+  --gray-500: 160 167 171;
+  --gray-600: 172 178 182;
   --gray-700: 194 199 202;
   --gray-800: 222 226 228;
   --gray-900: 237 240 241;
