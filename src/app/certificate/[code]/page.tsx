@@ -5,6 +5,7 @@ import { certificateQrCodeDataUrl } from "@/lib/certificateQr";
 import { appUrl } from "@/lib/appUrl";
 import type { CertificateLayout } from "@/lib/certificateLayout";
 import { shouldShowCertWatermark } from "@/lib/trainingOrgBilling";
+import { parseCertificateDesignSnapshot } from "@/lib/certificateDesignSnapshot";
 import SiteHeader from "@/components/SiteHeader";
 import PrintCertificateButton from "@/components/PrintCertificateButton";
 import CertificateDisplay from "@/components/CertificateDisplay";
@@ -66,6 +67,7 @@ export default async function CertificateVerificationPage({ params }: { params: 
       code: true,
       issuedAt: true,
       revokedAt: true,
+      designSnapshot: true,
       trainee: { select: { name: true } },
       course: {
         select: {
@@ -81,6 +83,8 @@ export default async function CertificateVerificationPage({ params }: { params: 
               logoUrl: true,
               approvedAt: true,
               layoutJson: true,
+              primaryColor: true,
+              accentColor: true,
               signatoryName: true,
               signatoryTitle: true,
               trainingOrganization: {
@@ -125,27 +129,54 @@ export default async function CertificateVerificationPage({ params }: { params: 
         },
       });
 
-  // Training Organizations, Phase 1 — only an APPROVED template ever
-  // renders, even if one is assigned; a course pointed at a template
-  // still mid-review shows AAICBI's own default until the org actually
-  // approves it.
-  const assignedTemplate = courseCertificate?.course.certificateTemplate;
-  const branding =
-    assignedTemplate && assignedTemplate.approvedAt
+  // The design the certificate was ISSUED with (see
+  // certificateDesignSnapshot.ts) — never the course's current template,
+  // so re-assigning or editing templates later can't re-design a
+  // certificate that's already out there. Only a row with no snapshot at
+  // all (issued mid-deploy, before the backfill ran) falls back to the
+  // live template, as the page always did.
+  const snapshot = parseCertificateDesignSnapshot(courseCertificate?.designSnapshot);
+  const liveTemplate = courseCertificate?.course.certificateTemplate;
+  const designTemplate = snapshot
+    ? snapshot.template
+    : liveTemplate && liveTemplate.approvedAt
       ? {
-          organizationName: assignedTemplate.trainingOrganization.name,
-          logoUrl: assignedTemplate.logoUrl,
-          signatoryName: assignedTemplate.signatoryName,
-          signatoryTitle: assignedTemplate.signatoryTitle,
+          trainingOrganizationId: null,
+          organizationName: liveTemplate.trainingOrganization.name,
+          logoUrl: liveTemplate.logoUrl,
+          signatoryName: liveTemplate.signatoryName,
+          signatoryTitle: liveTemplate.signatoryTitle,
+          primaryColor: liveTemplate.primaryColor,
+          accentColor: liveTemplate.accentColor,
+          layoutJson: liveTemplate.layoutJson,
         }
-      : undefined;
-  const layoutJson =
-    assignedTemplate && assignedTemplate.approvedAt ? (assignedTemplate.layoutJson as unknown as CertificateLayout | null) : null;
-  // No approved org template → AAICBI's own default design → always
-  // carries its own watermark. An approved org template's watermark
-  // visibility is the one thing certWatermark billing actually controls.
-  const showWatermark =
-    assignedTemplate && assignedTemplate.approvedAt ? shouldShowCertWatermark(assignedTemplate.trainingOrganization) : true;
+      : null;
+
+  const branding = designTemplate
+    ? {
+        organizationName: designTemplate.organizationName,
+        logoUrl: designTemplate.logoUrl,
+        signatoryName: designTemplate.signatoryName,
+        signatoryTitle: designTemplate.signatoryTitle,
+        primaryColor: designTemplate.primaryColor,
+        accentColor: designTemplate.accentColor,
+      }
+    : undefined;
+  const layoutJson = designTemplate ? (designTemplate.layoutJson as unknown as CertificateLayout | null) : null;
+
+  // Watermark removal is a live billing state, not part of the frozen
+  // design. AAICBI's own default design never carries the watermark —
+  // it's AAICBI's own certificate, exactly as it always looked.
+  let showWatermark = false;
+  if (designTemplate) {
+    const org = designTemplate.trainingOrganizationId
+      ? await prisma.trainingOrganization.findUnique({
+          where: { id: designTemplate.trainingOrganizationId },
+          select: { certWatermarkCurrentPeriodEnd: true, certWatermarkAccessRevokedAt: true, brandingFooterRemoved: true },
+        })
+      : liveTemplate?.trainingOrganization;
+    showWatermark = org ? shouldShowCertWatermark(org) : true;
+  }
 
   const certificate = courseCertificate
     ? {

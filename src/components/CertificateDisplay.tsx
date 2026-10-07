@@ -1,6 +1,6 @@
 import CertificateLayoutRenderer from "@/components/CertificateLayoutRenderer";
+import CertificateCard from "@/components/CertificateCard";
 import type { CertificateLayout } from "@/lib/certificateLayout";
-import { AAICBI_CLASSIC_PRESET } from "@/lib/certificatePresets";
 
 export interface CertificateDisplayProps {
   traineeName: string;
@@ -16,10 +16,14 @@ export interface CertificateDisplayProps {
     logoUrl: string | null;
     signatoryName?: string | null;
     signatoryTitle?: string | null;
+    /** Only used by the default design (no layoutJson); fall back to
+     * AAICBI's own teal/gold when absent. */
+    primaryColor?: string;
+    accentColor?: string;
   };
   /** Null/undefined means "no template assigned, or a template with no
-   * design built yet" — renders the AAICBI Classic preset, the
-   * platform-wide fallback. */
+   * design built yet" — renders the original default certificate
+   * design (CertificateCard), the platform-wide fallback. */
   layoutJson?: CertificateLayout | null;
   /** Required — see CertificateLayoutRenderer's own prop comment for
    * why this is never optional/defaulted. */
@@ -27,18 +31,41 @@ export interface CertificateDisplayProps {
 }
 
 /**
- * Visual Certificate Design Editor — the ONE rendering path every
- * certificate (real, preview, or review) goes through. The old
- * separate hardcoded CertificateCard component is gone; "AAICBI
- * Classic" is just one of several selectable presets now, same engine
- * as every training-org-branded design, so there's no second code path
- * that could ever visually drift from what the canvas editor produces.
+ * The ONE place certificates are rendered. A custom canvas design
+ * (layoutJson) goes through the layout engine; everything else gets the
+ * original default design, unchanged from before the canvas editor.
+ * "AAICBI Classic" remains a selectable starting preset in the editor
+ * only — it is no longer the fallback.
  */
 export default function CertificateDisplay({ layoutJson, qrDataUrl, branding, showWatermark, ...props }: CertificateDisplayProps) {
-  const layout = layoutJson ?? AAICBI_CLASSIC_PRESET.layout;
+  if (!layoutJson) {
+    return (
+      <CertificateCard
+        traineeName={props.traineeName}
+        verb={props.verb}
+        credentialTitle={props.credentialTitle}
+        issuedAt={props.issuedAt}
+        code={props.code}
+        qrDataUrl={qrDataUrl}
+        branding={
+          branding
+            ? {
+                organizationName: branding.organizationName,
+                logoUrl: branding.logoUrl,
+                primaryColor: branding.primaryColor ?? "#016B61",
+                accentColor: branding.accentColor ?? "#D99A34",
+                hideFooter: !showWatermark,
+                signatoryName: branding.signatoryName,
+                signatoryTitle: branding.signatoryTitle,
+              }
+            : undefined
+        }
+      />
+    );
+  }
   return (
     <CertificateLayoutRenderer
-      layout={layout}
+      layout={layoutJson}
       logoUrl={branding?.logoUrl ?? null}
       qrDataUrl={qrDataUrl}
       showWatermark={showWatermark}

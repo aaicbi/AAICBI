@@ -2337,6 +2337,12 @@ model Certificate {
   // immediately.
   revokedAt DateTime?
 
+  // The certificate's visual design, frozen when it was issued — see
+  // src/lib/certificateDesignSnapshot.ts. Without this, the public page
+  // drew every certificate from its course's CURRENT template, so any
+  // later template change re-designed certificates already issued.
+  designSnapshot Json?
+
   // Post-M15 milestone: which specific passing attempt actually earned
   // this certificate — added when certificate issuance moved from "all
   // modules complete" to "passed the course examination" (see the
