@@ -60,6 +60,11 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "Certificate template not found." }, { status: 404 });
     }
     await requireTrainingOrgAccess(existing.trainingOrganizationId, session);
+    // Same lock POST has: removing an approved template's logo would
+    // blank it (and delete the file) on every certificate already issued.
+    if (existing.approvedAt) {
+      return NextResponse.json({ error: "This template is already approved and can't be edited." }, { status: 400 });
+    }
     const template = await prisma.certificateTemplate.update({
       where: { id: params.id },
       data: { logoUrl: null },

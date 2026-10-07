@@ -44,6 +44,8 @@ export default async function CertificateTemplateReviewPage({ params }: { params
       layoutJson: true,
       signatoryName: true,
       signatoryTitle: true,
+      primaryColor: true,
+      accentColor: true,
       trainingOrganization: {
         select: {
           name: true,
@@ -93,6 +95,8 @@ export default async function CertificateTemplateReviewPage({ params }: { params
               logoUrl: template.logoUrl,
               signatoryName: template.signatoryName,
               signatoryTitle: template.signatoryTitle,
+              primaryColor: template.primaryColor,
+              accentColor: template.accentColor,
             }}
             layoutJson={template.layoutJson as unknown as CertificateLayout | null}
             showWatermark={shouldShowCertWatermark(template.trainingOrganization)}
