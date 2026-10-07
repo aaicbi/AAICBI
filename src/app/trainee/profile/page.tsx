@@ -17,6 +17,7 @@ import { computeTraineeCompletion } from "@/lib/profileCompletion";
 import ResumeUpload from "@/components/ResumeUpload";
 import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
+import { Input } from "@/components/ui/Field";
 const EMPLOYMENT_STATUS_LABELS: Record<string, string> = {
   STUDENT: "Student",
   EMPLOYED: "Employed",
@@ -303,51 +304,11 @@ export default function TraineeProfilePage() {
             <Card className="mt-6">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Basic Info</p>
               <div className="mt-3 space-y-3">
-                <div>
-                  <label className="text-sm font-semibold text-brand-ink">Username</label>
-                  <input
-                    value={coreForm.username}
-                    onChange={(e) => setCoreForm((f) => ({ ...f, username: e.target.value }))}
-                    placeholder="e.g. ada-lovelace"
-                    className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-brand-ink">Location</label>
-                  <input
-                    value={coreForm.location}
-                    onChange={(e) => setCoreForm((f) => ({ ...f, location: e.target.value }))}
-                    placeholder="e.g. Lagos, Nigeria"
-                    className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-brand-ink">LinkedIn</label>
-                  <input
-                    value={coreForm.linkedinUrl}
-                    onChange={(e) => setCoreForm((f) => ({ ...f, linkedinUrl: e.target.value }))}
-                    placeholder="https://linkedin.com/in/..."
-                    className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-brand-ink">GitHub</label>
-                  <input
-                    value={coreForm.githubUrl}
-                    onChange={(e) => setCoreForm((f) => ({ ...f, githubUrl: e.target.value }))}
-                    placeholder="https://github.com/..."
-                    className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-brand-ink">Portfolio website</label>
-                  <input
-                    value={coreForm.portfolioUrl}
-                    onChange={(e) => setCoreForm((f) => ({ ...f, portfolioUrl: e.target.value }))}
-                    placeholder="https://..."
-                    className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                </div>
+                <Input label="Username" value={coreForm.username} onChange={(e) => setCoreForm((f) => ({ ...f, username: e.target.value }))} placeholder="e.g. ada-lovelace" />
+                <Input label="Location" value={coreForm.location} onChange={(e) => setCoreForm((f) => ({ ...f, location: e.target.value }))} placeholder="e.g. Lagos, Nigeria" />
+                <Input label="LinkedIn" value={coreForm.linkedinUrl} onChange={(e) => setCoreForm((f) => ({ ...f, linkedinUrl: e.target.value }))} placeholder="https://linkedin.com/in/..." />
+                <Input label="GitHub" value={coreForm.githubUrl} onChange={(e) => setCoreForm((f) => ({ ...f, githubUrl: e.target.value }))} placeholder="https://github.com/..." />
+                <Input label="Portfolio website" value={coreForm.portfolioUrl} onChange={(e) => setCoreForm((f) => ({ ...f, portfolioUrl: e.target.value }))} placeholder="https://..." />
               </div>
             </Card>
 

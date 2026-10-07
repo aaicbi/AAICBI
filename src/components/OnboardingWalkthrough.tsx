@@ -1,7 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import Icon from "@/components/ui/Icon";
+import { useDialog } from "@/components/ui/useDialog";
 
 export interface OnboardingStep {
   icon?: React.ReactNode;
@@ -37,10 +38,20 @@ export default function OnboardingWalkthrough({
   const [index, setIndex] = useState(0);
   const step = steps[index];
   const isLast = index === steps.length - 1;
+  const panelRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  useDialog(true, onComplete, panelRef);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="w-full max-w-md rounded-2xl border border-brand-gray bg-brand-surface p-8 text-center shadow-xl animate-[modal-in_0.15s_ease-out]">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="w-full max-w-md rounded-2xl border border-brand-gray bg-brand-surface p-8 text-center shadow-xl animate-[modal-in_0.15s_ease-out]"
+      >
         <button
           onClick={onComplete}
           className="float-right -mt-2 -mr-2 text-xs font-semibold text-gray-400 hover:text-gray-600"
@@ -49,7 +60,7 @@ export default function OnboardingWalkthrough({
         </button>
 
         {step.icon && <div className="mx-auto mb-4 h-20 w-20 text-brand-teal">{step.icon}</div>}
-        <p className="font-display text-xl font-semibold text-brand-ink">{step.title}</p>
+        <p id={titleId} className="font-display text-xl font-semibold text-brand-ink">{step.title}</p>
         <p className="mt-2 text-sm text-gray-600">{step.description}</p>
 
         <div className="mt-6 flex items-center justify-center gap-1.5">

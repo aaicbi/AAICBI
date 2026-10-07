@@ -26,7 +26,7 @@ export default async function InstructorLayout({ children }: { children: React.R
     <SidebarActiveProvider>
       <div className="min-h-screen">
         <InstructorSidebar />
-        <div className="sm:pl-64">{children}</div>
+        <div className="lg:pl-64">{children}</div>
       </div>
     </SidebarActiveProvider>
   );

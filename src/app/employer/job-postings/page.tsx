@@ -14,6 +14,7 @@ import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 import JobPostingMediaPicker, { StagedMedia } from "@/components/jobPostings/JobPostingMediaPicker";
 import JobPostingMediaGallery, { JobPostingMediaItem } from "@/components/jobPostings/JobPostingMediaGallery";
 
+import { Input } from "@/components/ui/Field";
 interface JobPostingDto {
   id: string;
   title: string;
@@ -169,14 +170,7 @@ export default function EmployerJobPostingsPage() {
         <Card className="mt-4">
           <p className="font-display font-semibold text-brand-ink">Post a Vacancy</p>
           <form onSubmit={submit} className="mt-3 space-y-3">
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Job title"
-              aria-label="Job title"
-              required
-              className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
+            <Input label="Job title" value={title} onChange={(e) => setTitle(e.target.value)} required />
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -186,15 +180,7 @@ export default function EmployerJobPostingsPage() {
               required
               className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
             />
-            <div>
-              <label className="text-xs font-semibold text-gray-600">Skills you're hiring for (comma-separated, optional)</label>
-              <input
-                value={skills}
-                onChange={(e) => setSkills(e.target.value)}
-                placeholder="e.g. React, SQL, Data Analysis"
-                className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-              />
-            </div>
+            <Input label="Skills you're hiring for (comma-separated, optional)" value={skills} onChange={(e) => setSkills(e.target.value)} placeholder="e.g. React, SQL, Data Analysis" />
             <div>
               <label className="text-xs font-semibold text-gray-600">Closing date</label>
               <input

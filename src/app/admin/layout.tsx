@@ -88,7 +88,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           role={session.role}
           isTrainingOrg={!!trainingOrg}
         />
-        <div className="sm:pl-64">{children}</div>
+        <div className="lg:pl-64">{children}</div>
       </div>
     </SidebarActiveProvider>
   );

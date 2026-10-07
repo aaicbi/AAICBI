@@ -11,6 +11,7 @@ import StarRating from "@/components/ui/StarRating";
 import CorrectnessMark from "@/components/ui/CorrectnessMark";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
+import { Input } from "@/components/ui/Field";
 interface ReviewDto {
   id: string;
   rating: number;
@@ -179,21 +180,8 @@ export default function AdminTestimonialsPage() {
         {showManualForm && (
           <Card className="mt-2">
             <form onSubmit={submitManual} className="space-y-2">
-              <input
-                value={manualName}
-                onChange={(e) => setManualName(e.target.value)}
-                placeholder="Trainee name"
-                aria-label="Trainee name"
-                required
-                className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-              />
-              <input
-                value={manualCourse}
-                onChange={(e) => setManualCourse(e.target.value)}
-                placeholder="Course (optional)"
-                aria-label="Course (optional)"
-                className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-              />
+              <Input label="Trainee name" value={manualName} onChange={(e) => setManualName(e.target.value)} required />
+              <Input label="Course (optional)" value={manualCourse} onChange={(e) => setManualCourse(e.target.value)} />
               <textarea
                 value={manualQuote}
                 onChange={(e) => setManualQuote(e.target.value)}

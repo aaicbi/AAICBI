@@ -3,7 +3,7 @@ import { useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-
+import { Input } from "@/components/ui/Field";
 /**
  * Training Organizations, Phase 1 — mirrors employer/register/page.tsx's
  * exact shape. No "check your email" step, same reasoning as the
@@ -72,40 +72,10 @@ export default function TrainingOrgRegisterPage() {
         </p>
         <Card className="mt-6">
           <form onSubmit={handleSubmit} className="space-y-3">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Organization name"
-              aria-label="Organization name"
-              required
-              className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-            />
-            <input
-              value={contactName}
-              onChange={(e) => setContactName(e.target.value)}
-              placeholder="Your name"
-              aria-label="Your name"
-              required
-              className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-            />
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Work email"
-              aria-label="Work email"
-              required
-              className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-            />
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              aria-label="Password"
-              required
-              className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-            />
+            <Input label="Organization name" value={name} onChange={(e) => setName(e.target.value)} required />
+            <Input label="Your name" value={contactName} onChange={(e) => setContactName(e.target.value)} required />
+            <Input label="Work email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
 
             <p className="pt-2 text-xs font-semibold text-gray-400">How would you like to work with AAICBI?</p>
             <div className="space-y-2 rounded-lg border border-brand-gray p-3">
@@ -141,24 +111,10 @@ export default function TrainingOrgRegisterPage() {
             </div>
 
             <p className="pt-2 text-xs font-semibold text-gray-400">Optional — strengthens your review, not required</p>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="Phone number (optional)"
-              aria-label="Phone number (optional)"
-              className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-            />
-            <input
-              type="url"
-              value={website}
-              onChange={(e) => setWebsite(e.target.value)}
-              placeholder="Organization website (optional)"
-              aria-label="Organization website (optional)"
-              className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-            />
+            <Input label="Phone number (optional)" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <Input label="Organization website (optional)" type="url" value={website} onChange={(e) => setWebsite(e.target.value)} />
 
-            {error && <p className="text-sm text-brand-rose">{error}</p>}
+            {error && <p role="alert" className="text-sm text-brand-rose">{error}</p>}
             <Button type="submit" loading={loading} className="w-full">
               Register
             </Button>

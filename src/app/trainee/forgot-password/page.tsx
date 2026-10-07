@@ -3,7 +3,7 @@ import { useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-
+import { Input } from "@/components/ui/Field";
 export default function TraineeForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -38,16 +38,7 @@ export default function TraineeForgotPasswordPage() {
         ) : (
           <Card className="mt-6">
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="text-sm font-semibold text-brand-ink">Email</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-                />
-              </div>
+              <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
               <Button type="submit" loading={loading} className="w-full">
                 {loading ? "Sending..." : "Send Reset Link"}
               </Button>

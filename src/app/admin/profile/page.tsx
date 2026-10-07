@@ -15,6 +15,7 @@ import ProfileCompletionBanner from "@/components/ui/ProfileCompletionBanner";
 import { computeAdminCompletion } from "@/lib/profileCompletion";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
+import { Input } from "@/components/ui/Field";
 const ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: "Super Admin",
   ADMIN: "Admin",
@@ -158,32 +159,9 @@ export default function AdminProfilePage() {
             <Card className="mt-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Profile Details</p>
               <div className="mt-3 space-y-3">
-                <div>
-                  <label className="text-sm font-semibold text-brand-ink">Username</label>
-                  <input
-                    value={form.username}
-                    onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
-                    className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-brand-ink">Job title</label>
-                  <input
-                    value={form.jobTitle}
-                    onChange={(e) => setForm((f) => ({ ...f, jobTitle: e.target.value }))}
-                    placeholder="e.g. Programme Coordinator"
-                    className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-brand-ink">Department</label>
-                  <input
-                    value={form.department}
-                    onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))}
-                    placeholder="e.g. Training Operations"
-                    className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                </div>
+                <Input label="Username" value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} />
+                <Input label="Job title" value={form.jobTitle} onChange={(e) => setForm((f) => ({ ...f, jobTitle: e.target.value }))} placeholder="e.g. Programme Coordinator" />
+                <Input label="Department" value={form.department} onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))} placeholder="e.g. Training Operations" />
                 <div>
                   <label className="text-sm font-semibold text-brand-ink">Areas of responsibility</label>
                   <textarea

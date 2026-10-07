@@ -14,6 +14,7 @@ import ProfileCompletionBanner from "@/components/ui/ProfileCompletionBanner";
 import { computeEmployerCompletion } from "@/lib/profileCompletion";
 import AvatarUpload from "@/components/AvatarUpload";
 
+import { Input } from "@/components/ui/Field";
 const NAV = [
   { label: "Dashboard", href: "/employer/dashboard" },
   { label: "Discover", href: "/employer/discover" },
@@ -174,33 +175,9 @@ export default function EmployerProfilePage() {
             <Card className="mt-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Company Details</p>
               <div className="mt-3 space-y-3">
-                <div>
-                  <label className="text-sm font-semibold text-brand-ink">Industry</label>
-                  <input
-                    value={form.industry}
-                    onChange={(e) => setForm((f) => ({ ...f, industry: e.target.value }))}
-                    placeholder="e.g. Financial Services"
-                    className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-brand-ink">Company size</label>
-                  <input
-                    value={form.companySize}
-                    onChange={(e) => setForm((f) => ({ ...f, companySize: e.target.value }))}
-                    placeholder="e.g. 11-50 employees"
-                    className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-brand-ink">Location</label>
-                  <input
-                    value={form.location}
-                    onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
-                    placeholder="e.g. Lagos, Nigeria"
-                    className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                  />
-                </div>
+                <Input label="Industry" value={form.industry} onChange={(e) => setForm((f) => ({ ...f, industry: e.target.value }))} placeholder="e.g. Financial Services" />
+                <Input label="Company size" value={form.companySize} onChange={(e) => setForm((f) => ({ ...f, companySize: e.target.value }))} placeholder="e.g. 11-50 employees" />
+                <Input label="Location" value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} placeholder="e.g. Lagos, Nigeria" />
                 <div>
                   <label className="text-sm font-semibold text-brand-ink">About the company</label>
                   <textarea

@@ -3,7 +3,7 @@ import { useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-
+import { Input } from "@/components/ui/Field";
 /**
  * M31 — no "check your email" step here, unlike trainee registration:
  * approval, not email verification, is this account type's real gate.
@@ -81,85 +81,19 @@ export default function EmployerRegisterPage() {
         </p>
         <Card className="mt-6">
           <form onSubmit={handleSubmit} className="space-y-3">
-            <input
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="Company name"
-              aria-label="Company name"
-              required
-              className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-            />
-            <input
-              value={contactName}
-              onChange={(e) => setContactName(e.target.value)}
-              placeholder="Your name"
-              aria-label="Your name"
-              required
-              className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-            />
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Work email"
-              aria-label="Work email"
-              required
-              className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-            />
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              aria-label="Password"
-              required
-              className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-            />
-            <input
-              value={registrationNumber}
-              onChange={(e) => setRegistrationNumber(e.target.value)}
-              placeholder="Business registration number"
-              aria-label="Business registration number"
-              required
-              className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-            />
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="Company phone number"
-              aria-label="Company phone number"
-              required
-              className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-            />
+            <Input label="Company name" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required />
+            <Input label="Your name" value={contactName} onChange={(e) => setContactName(e.target.value)} required />
+            <Input label="Work email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <Input label="Business registration number" value={registrationNumber} onChange={(e) => setRegistrationNumber(e.target.value)} required />
+            <Input label="Company phone number" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required />
 
             <p className="pt-2 text-xs font-semibold text-gray-400">Optional — strengthens your review, not required</p>
-            <input
-              type="url"
-              value={website}
-              onChange={(e) => setWebsite(e.target.value)}
-              placeholder="Company website (optional)"
-              aria-label="Company website (optional)"
-              className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-            />
-            <input
-              type="url"
-              value={linkedinUrl}
-              onChange={(e) => setLinkedinUrl(e.target.value)}
-              placeholder="LinkedIn company page (optional)"
-              aria-label="LinkedIn company page (optional)"
-              className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-            />
-            <input
-              type="url"
-              value={otherSocialUrl}
-              onChange={(e) => setOtherSocialUrl(e.target.value)}
-              placeholder="Other social/online presence (optional)"
-              aria-label="Other social or online presence (optional)"
-              className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-            />
+            <Input label="Company website (optional)" type="url" value={website} onChange={(e) => setWebsite(e.target.value)} />
+            <Input label="LinkedIn company page (optional)" type="url" value={linkedinUrl} onChange={(e) => setLinkedinUrl(e.target.value)} />
+            <Input label="Other social or online presence (optional)" type="url" value={otherSocialUrl} onChange={(e) => setOtherSocialUrl(e.target.value)} placeholder="Other social/online presence (optional)" />
 
-            {error && <p className="text-sm text-brand-rose">{error}</p>}
+            {error && <p role="alert" className="text-sm text-brand-rose">{error}</p>}
             <Button type="submit" loading={loading} className="w-full">
               Register
             </Button>

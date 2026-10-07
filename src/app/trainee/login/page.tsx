@@ -6,7 +6,7 @@ import Logo from "@/components/Logo";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import GoogleSignInButton from "@/components/trainee/GoogleSignInButton";
-
+import { Input } from "@/components/ui/Field";
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   no_account: "No account found for that Google email. Create an account first.",
   oauth_failed: "Something went wrong signing in with Google. Please try again.",
@@ -83,27 +83,9 @@ function TraineeLoginForm() {
 
         <Card className="mt-6">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="text-sm font-semibold text-brand-ink">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-brand-ink">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-              />
-            </div>
-            {error && <p className="text-sm text-brand-rose">{error}</p>}
+            <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            {error && <p role="alert" className="text-sm text-brand-rose">{error}</p>}
             <Button type="submit" loading={loading} className="w-full">
               {loading ? "Signing in..." : "Sign in"}
             </Button>

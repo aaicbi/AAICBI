@@ -31,7 +31,7 @@ export default async function InvestorLayout({ children }: { children: React.Rea
     <SidebarActiveProvider>
       <div className="min-h-screen">
         <InvestorSidebar />
-        <div className="sm:pl-64">{children}</div>
+        <div className="lg:pl-64">{children}</div>
       </div>
     </SidebarActiveProvider>
   );

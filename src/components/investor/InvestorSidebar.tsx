@@ -6,6 +6,7 @@ import { Menu, X, HelpCircle } from "lucide-react";
 import Logo from "@/components/Logo";
 import LogoutButton from "@/components/investor/LogoutButton";
 import Icon from "@/components/ui/Icon";
+import MobileDrawer from "@/components/ui/MobileDrawer";
 import { INVESTOR_NAV } from "@/lib/investor/nav";
 import { getSidebarTourGuideContent } from "@/lib/tourGuideContent";
 
@@ -111,7 +112,7 @@ export default function InvestorSidebar() {
 
   return (
     <>
-      <div className="flex items-center justify-between border-b border-brand-gray bg-brand-surface px-4 py-3 sm:hidden">
+      <div className="flex items-center justify-between border-b border-brand-gray bg-brand-surface px-4 py-3 lg:hidden">
         <Logo />
         <button
           onClick={() => setMobileOpen((o) => !o)}
@@ -123,14 +124,11 @@ export default function InvestorSidebar() {
         </button>
       </div>
 
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 sm:hidden">
-          <div className="absolute inset-0 bg-black/30" onClick={() => setMobileOpen(false)} />
-          <div className="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-brand-surface shadow-lg">{sidebarBody}</div>
-        </div>
-      )}
+      <MobileDrawer open={mobileOpen} onClose={() => setMobileOpen(false)}>
+        {sidebarBody}
+      </MobileDrawer>
 
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-brand-gray bg-brand-surface sm:block">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-brand-gray bg-brand-surface lg:block">
         {sidebarBody}
       </aside>
     </>

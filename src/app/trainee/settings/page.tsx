@@ -12,6 +12,7 @@ import CorrectnessMark from "@/components/ui/CorrectnessMark";
 
 import { SUPPORTED_LANGUAGES, LANGUAGE_LABELS, t, type LanguageCode } from "@/lib/i18n";
 
+import { Input } from "@/components/ui/Field";
 /**
  * The self-service side of the notification-preference gap flagged
  * across the M14/M15 audits, joined by M39's low-bandwidth toggle on
@@ -507,16 +508,7 @@ function WhatsAppSettings({
       ) : optedIn ? (
         <div className="mt-3 space-y-2">
           {pendingNote && <p className="text-xs text-brand-goldText">{pendingNote}</p>}
-          <input
-            type="text"
-            inputMode="numeric"
-            maxLength={6}
-            value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-            placeholder="Enter the 6-digit code"
-            aria-label="6-digit verification code"
-            className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-          />
+          <Input label="6-digit verification code" type="text" inputMode="numeric" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} placeholder="Enter the 6-digit code" />
           {error && <p className="text-xs text-brand-rose">{error}</p>}
           <div className="flex gap-2">
             <button
@@ -533,14 +525,7 @@ function WhatsAppSettings({
         </div>
       ) : (
         <div className="mt-3 space-y-2">
-          <input
-            type="tel"
-            value={phoneInput}
-            onChange={(e) => setPhoneInput(e.target.value)}
-            placeholder="+2348012345678"
-            aria-label="WhatsApp phone number"
-            className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-          />
+          <Input label="WhatsApp phone number" type="tel" value={phoneInput} onChange={(e) => setPhoneInput(e.target.value)} placeholder="+2348012345678" />
           {error && <p className="text-xs text-brand-rose">{error}</p>}
           <button
             onClick={requestCode}
@@ -646,19 +631,7 @@ function DiscoverabilitySettings() {
 
       {discoverable && (
         <div className="mt-4 space-y-3 border-t border-brand-gray pt-4">
-          <div>
-            <label htmlFor="discoverable-headline" className="text-xs font-semibold text-gray-600">
-              Headline (optional)
-            </label>
-            <input
-              id="discoverable-headline"
-              value={headline}
-              onChange={(e) => setHeadline(e.target.value)}
-              maxLength={120}
-              placeholder="Full-stack developer, AAICBI Cohort 2026"
-              className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
-          </div>
+          <Input label="Headline (optional)" id="discoverable-headline" value={headline} onChange={(e) => setHeadline(e.target.value)} maxLength={120} placeholder="Full-stack developer, AAICBI Cohort 2026" />
           <div>
             <label htmlFor="discoverable-bio" className="text-xs font-semibold text-gray-600">
               About you (optional)

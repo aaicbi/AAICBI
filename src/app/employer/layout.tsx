@@ -40,7 +40,7 @@ export default async function EmployerLayout({ children }: { children: React.Rea
     <SidebarActiveProvider>
       <div className="min-h-screen">
         <EmployerSidebar companyName={employer?.companyName ?? session.email} />
-        <div className="sm:pl-64">{children}</div>
+        <div className="lg:pl-64">{children}</div>
       </div>
     </SidebarActiveProvider>
   );

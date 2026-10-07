@@ -9,6 +9,7 @@ import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
 import { ADMIN_NAV_STAFF } from "@/lib/admin/nav";
 
+import { Input } from "@/components/ui/Field";
 interface StaffDto {
   id: string;
   name: string;
@@ -108,23 +109,8 @@ export default function AdminStaffPage() {
         {showAddForm && (
           <Card className="mt-4">
             <form onSubmit={createStaff} className="space-y-3">
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Full name"
-                aria-label="Full name"
-                required
-                className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-              />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Work email"
-                aria-label="Work email"
-                required
-                className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-              />
+              <Input label="Full name" value={name} onChange={(e) => setName(e.target.value)} required />
+              <Input label="Work email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
               <div>
                 <label className="text-xs font-semibold text-gray-600">Role</label>
                 <select

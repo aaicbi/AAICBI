@@ -7,6 +7,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
+import { Input } from "@/components/ui/Field";
 export default function NewCoursePage() {
   const router = useRouter();
   const [title, setTitle] = useState("");
@@ -101,19 +102,7 @@ export default function NewCoursePage() {
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Create Course</h1>
         <Card className="mt-6">
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label htmlFor="new-course-title" className="mb-1 block text-sm font-semibold text-brand-ink">
-                Course Title
-              </label>
-              <input
-                id="new-course-title"
-                required
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Excel for Data Analytics"
-                className="w-full rounded-lg border border-brand-gray px-3 py-2.5 outline-none focus:border-brand-teal"
-              />
-            </div>
+            <Input label="Course Title" id="new-course-title" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Excel for Data Analytics" />
             <div>
               <label className="mb-1 block text-sm font-semibold text-brand-ink">Description</label>
               <textarea

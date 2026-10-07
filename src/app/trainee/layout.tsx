@@ -47,7 +47,7 @@ export default async function TraineeLayout({ children }: { children: React.Reac
     <SidebarActiveProvider>
       <div className="min-h-screen">
         <TraineeSidebar name={trainee?.name ?? session.email} avatarUrl={trainee?.avatarUrl ?? null} />
-        <div className="sm:pl-64">{children}</div>
+        <div className="lg:pl-64">{children}</div>
         <FloatingMessagesButton />
       </div>
     </SidebarActiveProvider>

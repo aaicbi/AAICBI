@@ -1,6 +1,6 @@
 "use client";
-import { useEffect } from "react";
 import Button from "./Button";
+import Modal from "./Modal";
 
 /**
  * Replaces the browser's native confirm() for anything consequential
@@ -35,45 +35,17 @@ export default function ConfirmModal({
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
-  useEffect(() => {
-    if (!open) return;
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onCancel();
-    }
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open, onCancel]);
-
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-brand-ink/40 px-4 backdrop-blur-[1px]"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="confirm-modal-title"
-      onClick={onCancel}
-    >
-      <div
-        // Audit finding, closed here: same hardcoded-`bg-white` gap as
-        // Card's own — see that component's comment for the full
-        // reasoning.
-        className="w-full max-w-sm rounded-2xl bg-brand-surface p-6 shadow-xl animate-[modal-in_0.15s_ease-out]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 id="confirm-modal-title" className="font-display text-lg font-semibold text-brand-ink">
-          {title}
-        </h2>
-        <p className="mt-2 text-sm text-gray-600">{description}</p>
-        <div className="mt-6 flex gap-2">
-          <Button variant="secondary" onClick={onCancel} className="flex-1" autoFocus>
-            {cancelLabel}
-          </Button>
-          <Button variant={danger ? "danger" : "primary"} onClick={onConfirm} className="flex-1">
-            {confirmLabel}
-          </Button>
-        </div>
+    <Modal open={open} onClose={onCancel} title={title} size="sm">
+      <p className="mt-2 text-sm text-gray-600">{description}</p>
+      <div className="mt-6 flex gap-2">
+        <Button variant="secondary" onClick={onCancel} className="flex-1" autoFocus>
+          {cancelLabel}
+        </Button>
+        <Button variant={danger ? "danger" : "primary"} onClick={onConfirm} className="flex-1">
+          {confirmLabel}
+        </Button>
       </div>
-    </div>
+    </Modal>
   );
 }
