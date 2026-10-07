@@ -9,7 +9,7 @@ import Icon from "@/components/ui/Icon";
 import { getNavIcon } from "@/components/icons/navIcons";
 import MobileDrawer from "@/components/ui/MobileDrawer";
 import CommandPalette, { PaletteTrigger } from "@/components/ui/CommandPalette";
-import { INVESTOR_NAV } from "@/lib/investor/nav";
+import { INVESTOR_NAV, INVESTOR_ORGANIZATIONS_NAV } from "@/lib/investor/nav";
 import { getSidebarTourGuideContent } from "@/lib/tourGuideContent";
 
 /**
@@ -22,7 +22,8 @@ import { getSidebarTourGuideContent } from "@/lib/tourGuideContent";
  * No account card — investors have no profile page to link one to
  * (unlike admin/trainee/employer).
  */
-export default function InvestorSidebar() {
+export default function InvestorSidebar({ showOrganizations = false }: { showOrganizations?: boolean }) {
+  const navItems = showOrganizations ? [...INVESTOR_NAV, INVESTOR_ORGANIZATIONS_NAV] : INVESTOR_NAV;
   const pathname = usePathname() ?? "/investor/dashboard";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -63,7 +64,7 @@ export default function InvestorSidebar() {
         <PaletteTrigger onOpen={() => setMobileOpen(false)} />
       </div>
       <nav className="flex-1 overflow-y-auto px-3 py-3">
-        {INVESTOR_NAV.map((item) => (
+        {navItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
@@ -130,7 +131,7 @@ export default function InvestorSidebar() {
         </button>
       </div>
 
-      <CommandPalette items={INVESTOR_NAV} />
+      <CommandPalette items={navItems} />
       <MobileDrawer open={mobileOpen} onClose={() => setMobileOpen(false)}>
         {sidebarBody}
       </MobileDrawer>

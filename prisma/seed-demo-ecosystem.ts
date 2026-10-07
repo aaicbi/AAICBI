@@ -304,7 +304,7 @@ async function main() {
       await prisma.jobPostingSkill.upsert({ where: { jobPostingId_skillId: { jobPostingId: demoJob.id, skillId: skill.id } }, update: {}, create: { jobPostingId: demoJob.id, skillId: skill.id } });
     }
   }
-  await prisma.investor.upsert({
+  const demoInvestor = await prisma.investor.upsert({
     where: { email: DEMO_EMAILS.investor },
     update: {},
     create: {
@@ -315,6 +315,12 @@ async function main() {
       approvalState: "APPROVED",
       approvedAt: new Date(),
     },
+  });
+  // The demo investor already watches the demo academy, so that list is not empty.
+  await prisma.organizationWatchlistItem.upsert({
+    where: { investorId_trainingOrganizationId: { investorId: demoInvestor.id, trainingOrganizationId: org.id } },
+    update: {},
+    create: { investorId: demoInvestor.id, trainingOrganizationId: org.id },
   });
 
   console.log("Demo ecosystem ready. Sign in with password:", inProd ? "(your DEMO_PASSWORD)" : password);

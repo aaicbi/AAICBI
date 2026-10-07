@@ -970,6 +970,7 @@ model Investor {
 
   disclosures PitchDisclosure[]
   watchlistItems PitchWatchlistItem[]
+  organizationWatchlist OrganizationWatchlistItem[]
 }
 
 // An investor's personal "save for later" list — genuinely independent
@@ -3244,6 +3245,7 @@ model TrainingOrganization {
   publicProfile  OrganizationPublicProfile?
   educationPosts EducationPost[]
   followers      OrganizationFollow[]
+  watchedByInvestors OrganizationWatchlistItem[]
 
   // Teammates the organization has invited. They sign in with their own
   // email and password but receive the same session as the organization's
@@ -4445,4 +4447,17 @@ model CourseSkill {
 
   @@id([courseId, skillId])
   @@index([skillId])
+}
+
+// Phase 6 — an approved investor's private list of training organizations
+// to keep an eye on. Never visible to the organization or anyone else.
+model OrganizationWatchlistItem {
+  investorId             String
+  investor               Investor             @relation(fields: [investorId], references: [id], onDelete: Cascade)
+  trainingOrganizationId String
+  trainingOrganization   TrainingOrganization @relation(fields: [trainingOrganizationId], references: [id], onDelete: Cascade)
+  createdAt              DateTime             @default(now())
+
+  @@id([investorId, trainingOrganizationId])
+  @@index([trainingOrganizationId])
 }

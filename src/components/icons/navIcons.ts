@@ -66,6 +66,7 @@ const BY_PATH: Record<string, IconComponent> = {
   "/introductions": MessagesIcon,
   "/job-postings": BriefcaseIcon,
   "/status": OrganizationIcon,
+  "/organizations": OrganizationIcon,
 };
 
 export function getNavIcon(href: string): IconComponent {

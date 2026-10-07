@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { getSession } from "@/lib/auth/session";
 import { SidebarActiveProvider } from "@/components/SidebarActiveContext";
 import InvestorSidebar from "@/components/investor/InvestorSidebar";
+import { getEcosystemFlags } from "@/lib/ecosystem/flags";
 import { pageHasSidebar } from "@/lib/sidebarRoutes";
 
 export const metadata = { title: { default: "Investor", template: "%s · Investor · AAICBI" } };
@@ -30,7 +31,7 @@ export default async function InvestorLayout({ children }: { children: React.Rea
   return (
     <SidebarActiveProvider>
       <div className="min-h-screen">
-        <InvestorSidebar />
+        <InvestorSidebar showOrganizations={(await getEcosystemFlags()).orgPages} />
         <div className="lg:pl-64">{children}</div>
       </div>
     </SidebarActiveProvider>

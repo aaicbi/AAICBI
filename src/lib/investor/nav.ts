@@ -10,6 +10,9 @@
  * redirects a PENDING/REJECTED investor to /investor/status), so the
  * sidebar link leading there is harmless, just no longer hidden.
  */
+/** Shown only while the public organization pages are switched on. */
+export const INVESTOR_ORGANIZATIONS_NAV = { label: "Organizations", href: "/investor/organizations" };
+
 export const INVESTOR_NAV = [
   { label: "Investment Opportunities", href: "/investor/dashboard" },
   { label: "Account", href: "/investor/status" },

@@ -1,10 +1,10 @@
-# Public ecosystem (phases 0 to 5)
+# Public ecosystem (phases 0 to 6)
 
 Organization public pages, trainee education videos, the community feed, and a demo world to try them with. Everything ships **off**.
 
 ## Rolling out
 
-1. Run `prisma migrate deploy` (migrations `20261009090000_public_ecosystem`, `20261009100000_ecosystem_feed` and `20261009110000_course_skills` and `20261009120000_ranking_config`). It only adds tables and columns with defaults, so the current site is unaffected.
+1. Run `prisma migrate deploy` (migrations `20261009090000_public_ecosystem`, `20261009100000_ecosystem_feed` and `20261009110000_course_skills` and `20261009120000_ranking_config` and `20261009130000_org_watchlist`). It only adds tables and columns with defaults, so the current site is unaffected.
 2. Deploy the code. Nothing public changes yet: `/organizations` and `/learn` return 404.
 3. As SUPER_ADMIN open **Platform > Ecosystem** and switch on public organization pages, education videos and/or the community feed. Switching them off again hides the pages at once; no data is deleted.
 
@@ -36,6 +36,12 @@ Organization public pages, trainee education videos, the community feed, and a d
 - **Never shown publicly.** Organizations see badges (Consistent educator, Active this month, Trainee-led learning, plus Verified). **Featured** organizations (shown first on `/organizations`) must meet the published criteria: minimum score, minimum recent videos, optionally verified, capped in number.
 - Defaults apply until the config is saved (`PlatformSettings.ecosystemRankingConfig`, nullable JSON).
 
+## Employer and investor discovery (phase 6)
+
+- **Organizations** (`/employer/organizations`, `/investor/organizations`): approved employers and investors search organizations with a public page by the skill their programs teach. Featured organizations come first. Each card shows programs, videos, badges (never the score) and links to the public page. Only public information is read; contact details and trainee lists are never selected. The sidebar link appears only while organization pages are on; with them off the API returns 404.
+- **Employers**: each skill chip opens the employer Discover page filtered to that skill, which still shows only trainees who chose to be discoverable.
+- **Investors**: a private **watch list** of organizations (separate from the pitch watch list). Watching is idempotent and nobody else, including the organization, can see it. Pitch sectors and stages were already filterable on the investor dashboard.
+
 ## Demo accounts
 
 ```
@@ -56,4 +62,4 @@ Demo rows are flagged `isDemo` or use the `.invalid` domain (cannot receive emai
 
 ## Not in this change
 
-Comments, achievements and events in the feed, employer and investor feed views, employer and investor discovery, events and global search (later phases).
+Comments, achievements and events in the feed, employer and investor feed views, an investor public profile, events and global search (later phases).
