@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { withApiErrors } from "@/lib/apiError";
 import { requireRole } from "@/lib/auth/session";
 
+export const dynamic = "force-dynamic";
+
 /** GET /api/trainee/education-consents — videos an organization wants to feature this trainee in. */
 export async function GET() {
   return withApiErrors(async () => {
