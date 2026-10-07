@@ -11,6 +11,7 @@ import CorrectnessMark from "@/components/ui/CorrectnessMark";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
+import { Checkbox, Input, Textarea } from "@/components/ui/Field";
 interface OptionDto {
   id: string;
   text: string;
@@ -332,68 +333,14 @@ export default function CourseExaminationPage({ params }: { params: { id: string
           <details className="mt-8 rounded-lg border border-brand-gray p-4">
             <summary className="cursor-pointer font-semibold text-gray-900">Examination Settings</summary>
             <div className="mt-4 space-y-4">
-              <Field label="Title">
-                <input
-                  value={settings.title}
-                  onChange={(e) => setSettings({ ...settings, title: e.target.value })}
-                  className="input"
-                />
-              </Field>
-              <Field label="Instructions">
-                <textarea
-                  value={settings.instructions}
-                  onChange={(e) => setSettings({ ...settings, instructions: e.target.value })}
-                  className="input"
-                  rows={3}
-                />
-              </Field>
+              <Input label="Title" value={settings.title} onChange={(e) => setSettings({ ...settings, title: e.target.value })} />
+              <Textarea label="Instructions" value={settings.instructions} onChange={(e) => setSettings({ ...settings, instructions: e.target.value })} rows={3} />
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Duration (minutes)">
-                  <input
-                    type="number"
-                    min={1}
-                    value={settings.durationMinutes}
-                    onChange={(e) => setSettings({ ...settings, durationMinutes: Number(e.target.value) })}
-                    className="input"
-                  />
-                </Field>
-                <Field label="Pass Mark (%)">
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={settings.passMarkPercent}
-                    onChange={(e) => setSettings({ ...settings, passMarkPercent: Number(e.target.value) })}
-                    className="input"
-                  />
-                </Field>
-                <Field label="Questions per attempt (blank = all)">
-                  <input
-                    type="number"
-                    min={1}
-                    value={settings.numQuestions}
-                    onChange={(e) => setSettings({ ...settings, numQuestions: e.target.value })}
-                    className="input"
-                  />
-                </Field>
-                <Field label="Max attempts (blank = unlimited)">
-                  <input
-                    type="number"
-                    min={1}
-                    value={settings.maxAttempts}
-                    onChange={(e) => setSettings({ ...settings, maxAttempts: e.target.value })}
-                    className="input"
-                  />
-                </Field>
-                <Field label="Retake cooldown (hours, blank = none)">
-                  <input
-                    type="number"
-                    min={0}
-                    value={settings.retakeCooldownHours}
-                    onChange={(e) => setSettings({ ...settings, retakeCooldownHours: e.target.value })}
-                    className="input"
-                  />
-                </Field>
+                <Input label="Duration (minutes)" type="number" min={1} value={settings.durationMinutes} onChange={(e) => setSettings({ ...settings, durationMinutes: Number(e.target.value) })} />
+                <Input label="Pass Mark (%)" type="number" min={0} max={100} value={settings.passMarkPercent} onChange={(e) => setSettings({ ...settings, passMarkPercent: Number(e.target.value) })} />
+                <Input label="Questions per attempt (blank = all)" type="number" min={1} value={settings.numQuestions} onChange={(e) => setSettings({ ...settings, numQuestions: e.target.value })} />
+                <Input label="Max attempts (blank = unlimited)" type="number" min={1} value={settings.maxAttempts} onChange={(e) => setSettings({ ...settings, maxAttempts: e.target.value })} />
+                <Input label="Retake cooldown (hours, blank = none)" type="number" min={0} value={settings.retakeCooldownHours} onChange={(e) => setSettings({ ...settings, retakeCooldownHours: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-2 text-sm text-gray-700">
                 {(
@@ -405,15 +352,7 @@ export default function CourseExaminationPage({ params }: { params: { id: string
                     ["allowReview", "Allow reviewing before submit"],
                   ] as const
                 ).map(([key, label]) => (
-                  <label key={key} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={settings[key]}
-                      onChange={(e) => setSettings({ ...settings, [key]: e.target.checked })}
-                      className="h-4 w-4 accent-brand-teal"
-                    />
-                    {label}
-                  </label>
+                  <Checkbox key={key} label={<>{label}</>} checked={settings[key]} onChange={(e) => setSettings({ ...settings, [key]: e.target.checked })} />
                 ))}
               </div>
               <button
@@ -430,15 +369,7 @@ export default function CourseExaminationPage({ params }: { params: { id: string
 
         {exam.questions.length > 0 && (
           <div className="mt-6 flex items-center justify-between">
-            <label className="flex items-center gap-2 text-xs font-semibold text-gray-600">
-              <input
-                type="checkbox"
-                checked={selected.size === exam.questions.length}
-                onChange={toggleSelectAll}
-                className="h-4 w-4 accent-brand-teal"
-              />
-              Select all
-            </label>
+            <Checkbox label="Select all" checked={selected.size === exam.questions.length} onChange={toggleSelectAll} />
             {selected.size > 0 && (
               <div className="flex items-center gap-3 rounded-lg border border-brand-rose bg-brand-roseLight/30 px-3 py-1.5 text-sm">
                 <span>{selected.size} selected</span>
@@ -470,12 +401,7 @@ export default function CourseExaminationPage({ params }: { params: { id: string
                     />
                     <div className="flex-1">
                       {editingId === q.id ? (
-                        <textarea
-                          value={editText}
-                          onChange={(e) => setEditText(e.target.value)}
-                          className="w-full rounded-lg border border-brand-gray p-2 text-sm"
-                          rows={3}
-                        />
+                        <Textarea label="Question text" hideLabel compact controlClassName="p-2" value={editText} onChange={(e) => setEditText(e.target.value)} rows={3} />
                       ) : (
                         <p className="text-sm font-medium text-brand-ink">{q.text}</p>
                       )}
@@ -539,11 +465,3 @@ export default function CourseExaminationPage({ params }: { params: { id: string
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-semibold text-gray-600">{label}</span>
-      {children}
-    </label>
-  );
-}

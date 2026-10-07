@@ -11,7 +11,7 @@ import StarRating from "@/components/ui/StarRating";
 import CorrectnessMark from "@/components/ui/CorrectnessMark";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
-import { Input } from "@/components/ui/Field";
+import { Input, Textarea } from "@/components/ui/Field";
 interface ReviewDto {
   id: string;
   rating: number;
@@ -182,15 +182,7 @@ export default function AdminTestimonialsPage() {
             <form onSubmit={submitManual} className="space-y-2">
               <Input label="Trainee name" value={manualName} onChange={(e) => setManualName(e.target.value)} required />
               <Input label="Course (optional)" value={manualCourse} onChange={(e) => setManualCourse(e.target.value)} />
-              <textarea
-                value={manualQuote}
-                onChange={(e) => setManualQuote(e.target.value)}
-                placeholder="Quote"
-                aria-label="Quote"
-                rows={2}
-                required
-                className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-              />
+              <Textarea label="Quote" hideLabel compact value={manualQuote} onChange={(e) => setManualQuote(e.target.value)} placeholder="Quote" rows={2} required />
               <div className="flex gap-2">
                 <Button type="submit" size="sm">
                   Save

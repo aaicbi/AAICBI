@@ -9,6 +9,7 @@ import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
 import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
+import { Checkbox } from "@/components/ui/Field";
 interface IntroductionDto {
   id: string;
   status: "PENDING" | "ACCEPTED" | "DECLINED";
@@ -146,14 +147,7 @@ export default function TraineeIntroductionsPage() {
 
                 {respondingId === r.id && (
                   <div className="mt-3 space-y-2 border-t border-brand-gray pt-3">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={includeContactInfo}
-                        onChange={(e) => setIncludeContactInfo(e.target.checked)}
-                      />
-                      Share my contact information
-                    </label>
+                    <Checkbox label="Share my contact information" checked={includeContactInfo} onChange={(e) => setIncludeContactInfo(e.target.checked)} />
                     {certificates.filter((c) => !c.revoked).length > 0 && (
                       <div>
                         <p className="text-xs font-semibold text-gray-600">Certificates to share</p>
@@ -161,10 +155,7 @@ export default function TraineeIntroductionsPage() {
                           {certificates
                             .filter((c) => !c.revoked)
                             .map((c) => (
-                              <label key={c.id} className="flex items-center gap-2 text-sm">
-                                <input type="checkbox" checked={c.included} onChange={() => toggleCertificate(c.id)} />
-                                {c.courseTitle}
-                              </label>
+                              <Checkbox key={c.id} label={<>{c.courseTitle}</>} checked={c.included} onChange={() => toggleCertificate(c.id)} />
                             ))}
                         </div>
                       </div>

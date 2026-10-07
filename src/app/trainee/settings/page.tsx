@@ -12,7 +12,7 @@ import CorrectnessMark from "@/components/ui/CorrectnessMark";
 
 import { SUPPORTED_LANGUAGES, LANGUAGE_LABELS, t, type LanguageCode } from "@/lib/i18n";
 
-import { Input } from "@/components/ui/Field";
+import { Checkbox, Input, Textarea } from "@/components/ui/Field";
 /**
  * The self-service side of the notification-preference gap flagged
  * across the M14/M15 audits, joined by M39's low-bandwidth toggle on
@@ -632,20 +632,7 @@ function DiscoverabilitySettings() {
       {discoverable && (
         <div className="mt-4 space-y-3 border-t border-brand-gray pt-4">
           <Input label="Headline (optional)" id="discoverable-headline" value={headline} onChange={(e) => setHeadline(e.target.value)} maxLength={120} placeholder="Full-stack developer, AAICBI Cohort 2026" />
-          <div>
-            <label htmlFor="discoverable-bio" className="text-xs font-semibold text-gray-600">
-              About you (optional)
-            </label>
-            <textarea
-              id="discoverable-bio"
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              maxLength={1000}
-              rows={3}
-              placeholder="A short note about what you're looking for..."
-              className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
-          </div>
+          <Textarea label="About you (optional)" compact id="discoverable-bio" value={bio} onChange={(e) => setBio(e.target.value)} maxLength={1000} rows={3} placeholder="A short note about what you're looking for..." />
           <div>
             <p className="text-xs font-semibold text-gray-600">Certificates to include</p>
             {certificates.filter((c) => !c.revoked).length === 0 ? (
@@ -655,10 +642,7 @@ function DiscoverabilitySettings() {
                 {certificates
                   .filter((c) => !c.revoked)
                   .map((c) => (
-                    <label key={c.id} className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" checked={c.included} onChange={() => toggleCertificate(c.id)} />
-                      {c.courseTitle}
-                    </label>
+                    <Checkbox key={c.id} label={<>{c.courseTitle}</>} checked={c.included} onChange={() => toggleCertificate(c.id)} />
                   ))}
               </div>
             )}
@@ -726,11 +710,7 @@ function PublicProfileSettings() {
 
       {url && (
         <div className="mt-3 flex items-center gap-2">
-          <input
-            readOnly
-            value={url}
-            className="w-full rounded-lg border border-brand-gray bg-gray-50 px-3 py-2 text-sm text-gray-600"
-          />
+          <Input label="Your public profile link" hideLabel wrapperClassName="min-w-0 flex-1" controlClassName="bg-gray-50 text-gray-600" readOnly value={url} />
           <button onClick={copy} className="shrink-0 text-xs font-semibold text-brand-teal hover:underline">
             Copy
           </button>

@@ -13,6 +13,7 @@ import CertificateCanvasEditor from "@/components/certificateEditor/CertificateC
 import { CERTIFICATE_PRESETS } from "@/lib/certificatePresets";
 import type { CertificateLayout } from "@/lib/certificateLayout";
 
+import { Input } from "@/components/ui/Field";
 interface TemplateDto {
   id: string;
   name: string;
@@ -301,27 +302,9 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
       <Card className="mt-4">
         {isLocked && <p className="mb-3 text-xs font-semibold text-brand-teal">This template is approved and locked.</p>}
         <div className="flex flex-wrap items-end gap-3">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Template name, e.g. Default"
-            disabled={isLocked}
-            className="flex-1 rounded-lg border border-brand-gray px-3 py-2.5 text-sm outline-none focus:border-brand-teal disabled:opacity-60"
-          />
-          <input
-            value={signatoryName}
-            onChange={(e) => setSignatoryName(e.target.value)}
-            placeholder="Signatory name (optional)"
-            disabled={isLocked}
-            className="flex-1 rounded-lg border border-brand-gray px-3 py-2.5 text-sm outline-none focus:border-brand-teal disabled:opacity-60"
-          />
-          <input
-            value={signatoryTitle}
-            onChange={(e) => setSignatoryTitle(e.target.value)}
-            placeholder="Signatory title (optional)"
-            disabled={isLocked}
-            className="flex-1 rounded-lg border border-brand-gray px-3 py-2.5 text-sm outline-none focus:border-brand-teal disabled:opacity-60"
-          />
+          <Input label="Template name, e.g. Default" hideLabel wrapperClassName="flex-1" controlClassName="disabled:opacity-60" value={name} onChange={(e) => setName(e.target.value)} placeholder="Template name, e.g. Default" disabled={isLocked} />
+          <Input label="Signatory name (optional)" hideLabel wrapperClassName="flex-1" controlClassName="disabled:opacity-60" value={signatoryName} onChange={(e) => setSignatoryName(e.target.value)} placeholder="Signatory name (optional)" disabled={isLocked} />
+          <Input label="Signatory title (optional)" hideLabel wrapperClassName="flex-1" controlClassName="disabled:opacity-60" value={signatoryTitle} onChange={(e) => setSignatoryTitle(e.target.value)} placeholder="Signatory title (optional)" disabled={isLocked} />
           {selected && (
             <div>
               <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadLogo} className="hidden" />

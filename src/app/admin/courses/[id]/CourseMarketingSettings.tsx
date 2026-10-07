@@ -6,6 +6,7 @@ import Toggle from "@/components/ui/Toggle";
 import Icon from "@/components/ui/Icon";
 import { ClipboardList } from "lucide-react";
 
+import { Input, Select, Textarea } from "@/components/ui/Field";
 export interface CourseMarketingFields {
   category: string | null;
   level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | null;
@@ -117,109 +118,26 @@ export default function CourseMarketingSettings({
       </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <label className="block text-xs text-gray-700">
-          Category
-          <input
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            placeholder="e.g. Data Analytics"
-            className="mt-1 w-full rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-          />
-        </label>
-        <label className="block text-xs text-gray-700">
-          Level
-          <select
-            value={level}
-            onChange={(e) => setLevel(e.target.value as typeof level)}
-            className="mt-1 w-full rounded-lg border border-brand-gray px-2 py-1.5 text-sm"
-          >
+        <Input label="Category" compact value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Data Analytics" />
+        <Select label="Level" compact value={level} onChange={(e) => setLevel(e.target.value as typeof level)}>
             <option value="">Not specified</option>
             <option value="BEGINNER">Beginner</option>
             <option value="INTERMEDIATE">Intermediate</option>
             <option value="ADVANCED">Advanced</option>
-          </select>
-        </label>
-        <label className="block text-xs text-gray-700">
-          Duration
-          <input
-            value={durationDisplay}
-            onChange={(e) => setDurationDisplay(e.target.value)}
-            placeholder="e.g. 6 weeks, 3 hrs/week"
-            className="mt-1 w-full rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-          />
-        </label>
-        <label className="block text-xs text-gray-700">
-          Training format
-          <select
-            value={trainingFormat}
-            onChange={(e) => setTrainingFormat(e.target.value as typeof trainingFormat)}
-            className="mt-1 w-full rounded-lg border border-brand-gray px-2 py-1.5 text-sm"
-          >
+          </Select>
+        <Input label="Duration" compact value={durationDisplay} onChange={(e) => setDurationDisplay(e.target.value)} placeholder="e.g. 6 weeks, 3 hrs/week" />
+        <Select label="Training format" compact value={trainingFormat} onChange={(e) => setTrainingFormat(e.target.value as typeof trainingFormat)}>
             <option value="">Not specified</option>
             <option value="SELF_PACED">Self-paced / Online</option>
             <option value="INSTRUCTOR_LED">Instructor-led</option>
             <option value="HYBRID">Hybrid</option>
-          </select>
-        </label>
-        <label className="block text-xs text-gray-700 sm:col-span-2">
-          Instructor(s)
-          <input
-            value={instructorNames}
-            onChange={(e) => setInstructorNames(e.target.value)}
-            placeholder="e.g. Jane Doe, Senior Data Analyst"
-            className="mt-1 w-full rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-          />
-        </label>
-        <label className="block text-xs text-gray-700 sm:col-span-2">
-          Who this course is for
-          <textarea
-            value={targetAudience}
-            onChange={(e) => setTargetAudience(e.target.value)}
-            rows={2}
-            placeholder="Describe the intended audience"
-            className="mt-1 w-full resize-none rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-          />
-        </label>
-        <label className="block text-xs text-gray-700">
-          Prerequisites (one per line)
-          <textarea
-            value={prerequisites}
-            onChange={(e) => setPrerequisites(e.target.value)}
-            rows={4}
-            placeholder={"Basic computer literacy\nA laptop with internet access"}
-            className="mt-1 w-full resize-none rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-          />
-        </label>
-        <label className="block text-xs text-gray-700">
-          Skills gained (one per line)
-          <textarea
-            value={skillsGained}
-            onChange={(e) => setSkillsGained(e.target.value)}
-            rows={4}
-            placeholder={"Data cleaning\nPivot tables\nDashboard design"}
-            className="mt-1 w-full resize-none rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-          />
-        </label>
-        <label className="block text-xs text-gray-700">
-          What you&apos;ll learn (one per line)
-          <textarea
-            value={learningOutcomes}
-            onChange={(e) => setLearningOutcomes(e.target.value)}
-            rows={4}
-            placeholder={"Clean and prepare real datasets\nBuild interactive dashboards"}
-            className="mt-1 w-full resize-none rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-          />
-        </label>
-        <label className="block text-xs text-gray-700">
-          What to expect (one per line)
-          <textarea
-            value={whatToExpect}
-            onChange={(e) => setWhatToExpect(e.target.value)}
-            rows={4}
-            placeholder={"Instructor-led sessions\nHands-on projects\nA certificate on completion"}
-            className="mt-1 w-full resize-none rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-          />
-        </label>
+          </Select>
+        <Input label="Instructor(s)" compact value={instructorNames} onChange={(e) => setInstructorNames(e.target.value)} placeholder="e.g. Jane Doe, Senior Data Analyst" />
+        <Textarea label="Who this course is for" compact controlClassName="resize-none" value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} rows={2} placeholder="Describe the intended audience" />
+        <Textarea label="Prerequisites (one per line)" compact controlClassName="resize-none" value={prerequisites} onChange={(e) => setPrerequisites(e.target.value)} rows={4} placeholder={"Basic computer literacy\nA laptop with internet access"} />
+        <Textarea label="Skills gained (one per line)" compact controlClassName="resize-none" value={skillsGained} onChange={(e) => setSkillsGained(e.target.value)} rows={4} placeholder={"Data cleaning\nPivot tables\nDashboard design"} />
+        <Textarea label="What you&apos;ll learn (one per line)" compact controlClassName="resize-none" value={learningOutcomes} onChange={(e) => setLearningOutcomes(e.target.value)} rows={4} placeholder={"Clean and prepare real datasets\nBuild interactive dashboards"} />
+        <Textarea label="What to expect (one per line)" compact controlClassName="resize-none" value={whatToExpect} onChange={(e) => setWhatToExpect(e.target.value)} rows={4} placeholder={"Instructor-led sessions\nHands-on projects\nA certificate on completion"} />
       </div>
 
       <div className="mt-4 flex justify-end">

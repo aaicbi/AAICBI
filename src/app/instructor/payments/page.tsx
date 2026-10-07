@@ -8,6 +8,7 @@ import Badge from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
 import { SkeletonList } from "@/components/ui/Skeleton";
 
+import { Input } from "@/components/ui/Field";
 interface CoursePayout {
   courseId: string;
   courseTitle: string;
@@ -88,12 +89,7 @@ export default function InstructorPaymentsPage() {
             <h1 className="font-display text-2xl font-semibold text-brand-ink">My Payments</h1>
             <p className="mt-1 text-sm text-gray-500">Your calculated entitlement for {monthLabel(month)}.</p>
           </div>
-          <input
-            type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            className="rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-          />
+          <Input label="Month" hideLabel compact type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
         </div>
 
         {loading && <div className="mt-6"><SkeletonList rows={2} /></div>}

@@ -9,7 +9,7 @@ import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
 import { ADMIN_NAV_STAFF } from "@/lib/admin/nav";
 
-import { Input } from "@/components/ui/Field";
+import { Input, Select } from "@/components/ui/Field";
 interface StaffDto {
   id: string;
   name: string;
@@ -111,17 +111,10 @@ export default function AdminStaffPage() {
             <form onSubmit={createStaff} className="space-y-3">
               <Input label="Full name" value={name} onChange={(e) => setName(e.target.value)} required />
               <Input label="Work email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-              <div>
-                <label className="text-xs font-semibold text-gray-600">Role</label>
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value as "ADMIN" | "INSTRUCTOR")}
-                  className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                >
+              <Select label="Role" compact value={role} onChange={(e) => setRole(e.target.value as "ADMIN" | "INSTRUCTOR")}>
                   <option value="INSTRUCTOR">Instructor</option>
                   <option value="ADMIN">Admin</option>
-                </select>
-              </div>
+                </Select>
               <p className="text-xs text-gray-500">
                 They&apos;ll receive an email with a link to set their own password.
               </p>
@@ -158,15 +151,10 @@ export default function AdminStaffPage() {
                 {s.role === "SUPER_ADMIN" ? (
                   <span className="text-xs font-semibold text-brand-teal">{ROLE_LABELS[s.role]}</span>
                 ) : (
-                  <select
-                    value={s.role}
-                    onChange={(e) => changeRole(s.id, e.target.value as "ADMIN" | "INSTRUCTOR")}
-                    disabled={busyId === s.id}
-                    className="rounded-lg border border-brand-gray px-2 py-1.5 text-xs font-semibold outline-none focus:border-brand-teal"
-                  >
+                  <Select label={`Role for ${s.name}`} hideLabel compact controlClassName="text-xs font-semibold" value={s.role} onChange={(e) => changeRole(s.id, e.target.value as "ADMIN" | "INSTRUCTOR")} disabled={busyId === s.id}>
                     <option value="INSTRUCTOR">Instructor</option>
                     <option value="ADMIN">Admin</option>
-                  </select>
+                  </Select>
                 )}
               </Card>
             ))

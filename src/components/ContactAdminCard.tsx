@@ -4,6 +4,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 
+import { Input, Textarea } from "@/components/ui/Field";
 /**
  * The simple direct inbox's one sending surface — a single shared
  * component rendered from each of the three settings pages (trainee,
@@ -48,21 +49,8 @@ export default function ContactAdminCard() {
         Have a question or something to report? Send it directly — it goes straight to the Super Admin's inbox.
       </p>
       <div className="mt-4 space-y-3">
-        <input
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          placeholder="Subject"
-          maxLength={200}
-          className="w-full rounded-lg border border-brand-gray px-3 py-2.5 text-sm outline-none focus:border-brand-teal"
-        />
-        <textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          placeholder="Your message…"
-          rows={4}
-          maxLength={5000}
-          className="w-full resize-none rounded-lg border border-brand-gray px-3 py-2.5 text-sm outline-none focus:border-brand-teal"
-        />
+        <Input label="Subject" hideLabel value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject" maxLength={200} />
+        <Textarea label="Your message…" hideLabel controlClassName="resize-none" value={body} onChange={(e) => setBody(e.target.value)} placeholder="Your message…" rows={4} maxLength={5000} />
         <div className="flex justify-end">
           <Button onClick={send} disabled={sending || !subject.trim() || !body.trim()}>
             {sending ? "Sending…" : "Send message"}

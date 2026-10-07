@@ -22,6 +22,7 @@ import { useToast } from "@/components/ui/Toast";
 import CourseMarketingView from "@/components/courses/CourseMarketingView";
 import type { MarketingView } from "@/lib/courseMarketing";
 
+import { Textarea } from "@/components/ui/Field";
 interface MaterialDto {
   id: string;
   type: "PDF" | "DOCX" | "PPTX" | "VIDEO";
@@ -1237,14 +1238,7 @@ function CourseReviewSection({ courseId }: { courseId: string }) {
           </button>
         ))}
       </div>
-      <textarea
-        value={reviewText}
-        onChange={(e) => setReviewText(e.target.value)}
-        placeholder="What stood out about this course? (optional)"
-        aria-label="What stood out about this course? (optional)"
-        rows={3}
-        className="mt-3 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-      />
+      <Textarea label="What stood out about this course? (optional)" hideLabel compact value={reviewText} onChange={(e) => setReviewText(e.target.value)} placeholder="What stood out about this course? (optional)" rows={3} />
       <Button onClick={submit} loading={saving} disabled={rating === 0} className="mt-2">
         {review ? "Update Review" : "Submit Review"}
       </Button>

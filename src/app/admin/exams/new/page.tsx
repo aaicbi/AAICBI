@@ -7,6 +7,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
+import { Checkbox, Input, Textarea } from "@/components/ui/Field";
 export default function NewExamPage() {
   const router = useRouter();
   const [form, setForm] = useState({
@@ -60,78 +61,16 @@ export default function NewExamPage() {
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Create Examination</h1>
         <Card className="mt-6">
           <form onSubmit={handleSubmit} className="space-y-5">
-            <Field label="Exam Title">
-              <input
-                required
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="AAICBI Excel Assessment — Week 1"
-                aria-label="Exam title"
-                className="input"
-              />
-            </Field>
-            <Field label="Description">
-              <textarea
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className="input"
-                rows={2}
-              />
-            </Field>
-            <Field label="Course">
-              <input
-                value={form.course}
-                onChange={(e) => setForm({ ...form, course: e.target.value })}
-                className="input"
-              />
-            </Field>
+            <Input label="Exam Title" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="AAICBI Excel Assessment — Week 1" />
+            <Textarea label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} />
+            <Input label="Course" value={form.course} onChange={(e) => setForm({ ...form, course: e.target.value })} />
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Duration (minutes)">
-                <input
-                  type="number"
-                  min={1}
-                  value={form.durationMinutes}
-                  onChange={(e) => setForm({ ...form, durationMinutes: Number(e.target.value) })}
-                  className="input"
-                />
-              </Field>
-              <Field label="Pass mark (%)">
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={form.passMarkPercent}
-                  onChange={(e) => setForm({ ...form, passMarkPercent: Number(e.target.value) })}
-                  className="input"
-                />
-              </Field>
-              <Field label="Questions per attempt (blank = all)">
-                <input
-                  type="number"
-                  min={1}
-                  value={form.numQuestions}
-                  onChange={(e) => setForm({ ...form, numQuestions: e.target.value })}
-                  className="input"
-                />
-              </Field>
-              <Field label="Max attempts (blank = unlimited)">
-                <input
-                  type="number"
-                  min={1}
-                  value={form.maxAttempts}
-                  onChange={(e) => setForm({ ...form, maxAttempts: e.target.value })}
-                  className="input"
-                />
-              </Field>
+              <Input label="Duration (minutes)" type="number" min={1} value={form.durationMinutes} onChange={(e) => setForm({ ...form, durationMinutes: Number(e.target.value) })} />
+              <Input label="Pass mark (%)" type="number" min={0} max={100} value={form.passMarkPercent} onChange={(e) => setForm({ ...form, passMarkPercent: Number(e.target.value) })} />
+              <Input label="Questions per attempt (blank = all)" type="number" min={1} value={form.numQuestions} onChange={(e) => setForm({ ...form, numQuestions: e.target.value })} />
+              <Input label="Max attempts (blank = unlimited)" type="number" min={1} value={form.maxAttempts} onChange={(e) => setForm({ ...form, maxAttempts: e.target.value })} />
             </div>
-            <Field label="Instructions shown to students">
-              <textarea
-                value={form.instructions}
-                onChange={(e) => setForm({ ...form, instructions: e.target.value })}
-                className="input"
-                rows={3}
-              />
-            </Field>
+            <Textarea label="Instructions shown to students" value={form.instructions} onChange={(e) => setForm({ ...form, instructions: e.target.value })} rows={3} />
 
             <div className="space-y-2">
               {[
@@ -141,15 +80,7 @@ export default function NewExamPage() {
                 ["showCorrectAnswers", "Show correct answers after submission"],
                 ["allowReview", "Allow students to review answers before final submit"],
               ].map(([key, label]) => (
-                <label key={key} className="flex items-center gap-2 text-sm text-gray-700">
-                  <input
-                    type="checkbox"
-                    checked={(form as any)[key]}
-                    onChange={(e) => setForm({ ...form, [key]: e.target.checked })}
-                    className="h-4 w-4 accent-brand-teal"
-                  />
-                  {label}
-                </label>
+                <Checkbox key={key} label={<>{label}</>} checked={(form as any)[key]} onChange={(e) => setForm({ ...form, [key]: e.target.checked })} />
               ))}
             </div>
 
@@ -160,28 +91,8 @@ export default function NewExamPage() {
           </form>
         </Card>
 
-        <style jsx global>{`
-          .input {
-            width: 100%;
-            border: 1px solid #d9d9d9;
-            border-radius: 0.5rem;
-            padding: 0.6rem 0.75rem;
-            outline: none;
-          }
-          .input:focus {
-            border-color: #016b61;
-          }
-        `}</style>
       </main>
     </>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="mb-1 block text-sm font-semibold text-brand-ink">{label}</label>
-      {children}
-    </div>
-  );
-}

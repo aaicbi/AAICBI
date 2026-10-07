@@ -5,6 +5,7 @@ import SiteHeader from "@/components/SiteHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 
+import { Input } from "@/components/ui/Field";
 export default function EnterExamCodePage() {
   const [code, setCode] = useState("");
   const router = useRouter();
@@ -24,13 +25,7 @@ export default function EnterExamCodePage() {
               if (code.trim()) router.push(`/exam/${code.trim().toUpperCase()}`);
             }}
           >
-            <input
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="e.g. AAICBI-EXCEL-2026"
-              aria-label="Exam code"
-              className="w-full rounded-lg border border-brand-gray px-4 py-3 text-center font-mono uppercase tracking-wide outline-none focus:border-brand-teal"
-            />
+            <Input label="Exam code" hideLabel controlClassName="text-center font-mono uppercase tracking-wide" value={code} onChange={(e) => setCode(e.target.value)} placeholder="e.g. AAICBI-EXCEL-2026" />
             <Button type="submit" className="mt-4 w-full">
               Continue
             </Button>

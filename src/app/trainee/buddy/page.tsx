@@ -8,6 +8,7 @@ import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
+import { Input } from "@/components/ui/Field";
 interface KeyStat {
   label: string;
   value: string;
@@ -177,13 +178,7 @@ export default function LearningBuddyPage() {
 
           <div className="border-t border-brand-gray p-4">
             <div className="flex gap-2">
-              <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && send()}
-                placeholder="Ask Loop about your progress, performance, or achievements…"
-                className="flex-1 rounded-lg border border-brand-gray px-3 py-2.5 text-sm outline-none focus:border-brand-teal"
-              />
+              <Input label="Ask Loop about your progress, performance, or achievements…" hideLabel wrapperClassName="flex-1" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Ask Loop about your progress, performance, or achievements…" />
               <Button onClick={() => send()} disabled={asking || !input.trim()}>
                 Ask Loop
               </Button>

@@ -13,6 +13,7 @@ import { TrendingUp, TrendingDown, Minus, Download, AlertTriangle, X, MessageCir
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer } from "recharts";
 import SuspendReasonModal from "@/components/messaging/SuspendReasonModal";
 
+import { Input, Select } from "@/components/ui/Field";
 type Trend = "improving" | "declining" | "flat" | "insufficient-data";
 type CertificationStatus = "ISSUED" | "REVOKED" | "NOT_YET";
 type OverallStatus = "ON_TRACK" | "AT_RISK" | "COMPLETED";
@@ -314,36 +315,23 @@ export default function PerformanceDashboard({ courseId }: { courseId: string })
 
       {/* Filter bar */}
       <div className="mt-6 flex flex-wrap items-center gap-3">
-        <select
-          value={cohortFilter}
-          onChange={(e) => setCohortFilter(e.target.value)}
-          className="rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-        >
+        <Select label="Cohort" hideLabel compact value={cohortFilter} onChange={(e) => setCohortFilter(e.target.value)}>
           <option value="">All cohorts</option>
           {cohorts.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
             </option>
           ))}
-        </select>
-        <select
-          value={moduleFilter}
-          onChange={(e) => setModuleFilter(e.target.value)}
-          className="rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-        >
+        </Select>
+        <Select label="Module" hideLabel compact value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)}>
           <option value="">All modules</option>
           {modules.map((m) => (
             <option key={m.id} value={m.id}>
               {m.title}
             </option>
           ))}
-        </select>
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search trainees…"
-          className="flex-1 min-w-[160px] rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-        />
+        </Select>
+        <Input label="Search trainees…" hideLabel compact wrapperClassName="flex-1 min-w-[160px]" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search trainees…" />
       </div>
 
       {/* Trainee table */}

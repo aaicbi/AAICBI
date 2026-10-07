@@ -6,6 +6,7 @@ import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
 import { useToast } from "@/components/ui/Toast";
 
+import { Input } from "@/components/ui/Field";
 interface SecurityData {
   qaWarningsBeforeSuspension: number;
   staffSessionHours: number;
@@ -152,39 +153,9 @@ export default function SecuritySettingsPanel({ viewerRole }: { viewerRole?: str
           save — anyone already signed in keeps their current session until it naturally expires.
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <label className="block text-xs font-semibold text-gray-700">
-            Staff (hours)
-            <input
-              type="number"
-              min={1}
-              max={168}
-              value={data.staffSessionHours}
-              onChange={(e) => setData({ ...data, staffSessionHours: Number(e.target.value) })}
-              className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm font-normal outline-none focus:border-brand-teal"
-            />
-          </label>
-          <label className="block text-xs font-semibold text-gray-700">
-            Trainee (days)
-            <input
-              type="number"
-              min={1}
-              max={90}
-              value={data.traineeSessionDays}
-              onChange={(e) => setData({ ...data, traineeSessionDays: Number(e.target.value) })}
-              className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm font-normal outline-none focus:border-brand-teal"
-            />
-          </label>
-          <label className="block text-xs font-semibold text-gray-700">
-            Employer (hours)
-            <input
-              type="number"
-              min={1}
-              max={168}
-              value={data.employerSessionHours}
-              onChange={(e) => setData({ ...data, employerSessionHours: Number(e.target.value) })}
-              className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm font-normal outline-none focus:border-brand-teal"
-            />
-          </label>
+          <Input label="Staff (hours)" compact controlClassName="font-normal" type="number" min={1} max={168} value={data.staffSessionHours} onChange={(e) => setData({ ...data, staffSessionHours: Number(e.target.value) })} />
+          <Input label="Trainee (days)" compact controlClassName="font-normal" type="number" min={1} max={90} value={data.traineeSessionDays} onChange={(e) => setData({ ...data, traineeSessionDays: Number(e.target.value) })} />
+          <Input label="Employer (hours)" compact controlClassName="font-normal" type="number" min={1} max={168} value={data.employerSessionHours} onChange={(e) => setData({ ...data, employerSessionHours: Number(e.target.value) })} />
         </div>
       </Card>
 
@@ -194,14 +165,7 @@ export default function SecuritySettingsPanel({ viewerRole }: { viewerRole?: str
           How many open Q&amp;A moderation warnings a trainee can accumulate before this app automatically suspends
           their posting access. Doesn&apos;t affect a warning that&apos;s already been issued or reversed.
         </p>
-        <input
-          type="number"
-          min={1}
-          max={100}
-          value={data.qaWarningsBeforeSuspension}
-          onChange={(e) => setData({ ...data, qaWarningsBeforeSuspension: Number(e.target.value) })}
-          className="mt-4 w-40 rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-        />
+        <Input label="Warnings before suspension" compact wrapperClassName="w-40" type="number" min={1} max={100} value={data.qaWarningsBeforeSuspension} onChange={(e) => setData({ ...data, qaWarningsBeforeSuspension: Number(e.target.value) })} />
       </Card>
 
       {saveError && <p className="text-sm text-brand-rose">{saveError}</p>}

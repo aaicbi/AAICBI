@@ -16,18 +16,31 @@ import { forwardRef, useId } from "react";
  */
 interface FieldChrome {
   label: string;
-  hint?: string;
+  hint?: React.ReactNode;
   error?: string | null;
-  /** Wrapper classes, e.g. to span grid columns. */
+  /** Wrapper classes, e.g. to span grid columns or fix a width. */
   wrapperClassName?: string;
+  /** Keep the label for assistive tech but do not show it. Use for
+   * compact inline controls (a filter, a cell in a row) where the
+   * surrounding layout already says what the control is. */
+  hideLabel?: boolean;
+  /** The compact control for dense rows and toolbars. (Named compact,
+   * not size, because size is already a native input attribute.) */
+  compact?: boolean;
+  /** Extra classes for the control itself (for example "font-mono"). */
+  controlClassName?: string;
 }
 
 const CONTROL =
-  "mt-1 block w-full rounded-lg border bg-brand-surface px-3 py-2.5 text-sm text-brand-ink outline-none transition-colors placeholder:text-gray-500 disabled:cursor-not-allowed disabled:opacity-60";
+  "block w-full rounded-lg border bg-brand-surface text-sm text-brand-ink outline-none transition-colors placeholder:text-gray-500 disabled:cursor-not-allowed disabled:opacity-60";
 const CONTROL_OK = "border-brand-gray focus:border-brand-teal";
 const CONTROL_BAD = "border-brand-rose focus:border-brand-rose";
 
-function describedBy(id: string, hint?: string, error?: string | null) {
+function controlClass({ compact, hideLabel, error, controlClassName }: Pick<FieldChrome, "compact" | "hideLabel" | "error" | "controlClassName">) {
+  return `${hideLabel ? "mt-0" : "mt-1"} ${CONTROL} ${compact ? "px-2 py-1.5" : "px-3 py-2.5"} ${error ? CONTROL_BAD : CONTROL_OK} ${controlClassName ?? ""}`;
+}
+
+function describedBy(id: string, hint?: React.ReactNode, error?: string | null) {
   const ids = [error ? `${id}-error` : null, hint ? `${id}-hint` : null].filter(Boolean);
   return ids.length ? ids.join(" ") : undefined;
 }
@@ -39,11 +52,12 @@ function Shell({
   error,
   required,
   wrapperClassName,
+  hideLabel,
   children,
-}: FieldChrome & { id: string; required?: boolean; children: React.ReactNode }) {
+}: Pick<FieldChrome, "label" | "hint" | "error" | "wrapperClassName" | "hideLabel"> & { id: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div className={wrapperClassName}>
-      <label htmlFor={id} className="text-sm font-semibold text-brand-ink">
+      <label htmlFor={id} className={hideLabel ? "sr-only" : "text-sm font-semibold text-brand-ink"}>
         {label}
         {required && (
           <span aria-hidden="true" className="ml-0.5 text-brand-rose">
@@ -69,20 +83,20 @@ function Shell({
 type InputProps = FieldChrome & Omit<React.InputHTMLAttributes<HTMLInputElement>, "className">;
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { label, hint, error, wrapperClassName, id: idProp, required, ...rest },
+  { label, hint, error, wrapperClassName, hideLabel, compact, controlClassName, id: idProp, required, ...rest },
   ref
 ) {
   const auto = useId();
   const id = idProp ?? auto;
   return (
-    <Shell id={id} label={label} hint={hint} error={error} required={required} wrapperClassName={wrapperClassName}>
+    <Shell id={id} label={label} hint={hint} error={error} required={required} wrapperClassName={wrapperClassName} hideLabel={hideLabel}>
       <input
         ref={ref}
         id={id}
         required={required}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy(id, hint, error)}
-        className={`${CONTROL} ${error ? CONTROL_BAD : CONTROL_OK}`}
+        className={controlClass({ compact, hideLabel, error, controlClassName })}
         {...rest}
       />
     </Shell>
@@ -92,20 +106,20 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
 type SelectProps = FieldChrome & Omit<React.SelectHTMLAttributes<HTMLSelectElement>, "className">;
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
-  { label, hint, error, wrapperClassName, id: idProp, required, children, ...rest },
+  { label, hint, error, wrapperClassName, hideLabel, compact, controlClassName, id: idProp, required, children, ...rest },
   ref
 ) {
   const auto = useId();
   const id = idProp ?? auto;
   return (
-    <Shell id={id} label={label} hint={hint} error={error} required={required} wrapperClassName={wrapperClassName}>
+    <Shell id={id} label={label} hint={hint} error={error} required={required} wrapperClassName={wrapperClassName} hideLabel={hideLabel}>
       <select
         ref={ref}
         id={id}
         required={required}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy(id, hint, error)}
-        className={`${CONTROL} ${error ? CONTROL_BAD : CONTROL_OK}`}
+        className={controlClass({ compact, hideLabel, error, controlClassName })}
         {...rest}
       >
         {children}
@@ -117,20 +131,20 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
 type TextareaProps = FieldChrome & Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, "className">;
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
-  { label, hint, error, wrapperClassName, id: idProp, required, ...rest },
+  { label, hint, error, wrapperClassName, hideLabel, compact, controlClassName, id: idProp, required, ...rest },
   ref
 ) {
   const auto = useId();
   const id = idProp ?? auto;
   return (
-    <Shell id={id} label={label} hint={hint} error={error} required={required} wrapperClassName={wrapperClassName}>
+    <Shell id={id} label={label} hint={hint} error={error} required={required} wrapperClassName={wrapperClassName} hideLabel={hideLabel}>
       <textarea
         ref={ref}
         id={id}
         required={required}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy(id, hint, error)}
-        className={`${CONTROL} ${error ? CONTROL_BAD : CONTROL_OK}`}
+        className={controlClass({ compact, hideLabel, error, controlClassName })}
         {...rest}
       />
     </Shell>

@@ -14,6 +14,7 @@ import LiveActivityCard from "@/components/analytics/LiveActivityCard";
 import { useToast } from "@/components/ui/Toast";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
+import { Input } from "@/components/ui/Field";
 interface PlatformOverview {
   registeredUsers: number | null;
   newRegistrations: number | null;
@@ -207,15 +208,7 @@ export default function AdminAnalyticsPage() {
             weekly cron's fixed SUPER_ADMIN/ADMIN staff list. */}
         {showSendForm && (
           <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-brand-gray bg-brand-surface px-4 py-3">
-            <input
-              type="email"
-              value={sendEmail}
-              onChange={(e) => setSendEmail(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submitSend()}
-              placeholder="recipient@example.com"
-              className="min-w-[220px] flex-1 rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-              autoFocus
-            />
+            <Input label="recipient@example.com" hideLabel compact wrapperClassName="min-w-[220px] flex-1" type="email" value={sendEmail} onChange={(e) => setSendEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submitSend()} placeholder="recipient@example.com" autoFocus />
             <Button onClick={submitSend} loading={sending} disabled={!sendEmail.trim()} size="sm">
               Send ({days}d report)
             </Button>

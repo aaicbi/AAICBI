@@ -13,6 +13,7 @@ import Icon from "@/components/ui/Icon";
 import { AchievementIcon } from "@/components/icons/brand";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
+import { Input } from "@/components/ui/Field";
 interface RosterEntry {
   trainee: { id: string; name: string; email: string };
   enrolledAt: string;
@@ -127,15 +128,7 @@ export default function CohortDetailPage({ params }: { params: { id: string } })
         )}
 
         <form onSubmit={enrollTrainee} className="mt-6 flex gap-2">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="trainee@example.com"
-            aria-label="Trainee email"
-            required
-            className="flex-1 rounded-lg border border-brand-gray px-3 py-2 text-sm focus:border-brand-teal focus:outline-none"
-          />
+          <Input label="Trainee email" hideLabel compact wrapperClassName="flex-1" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="trainee@example.com" required />
           <Button type="submit" loading={enrolling}>
             Enroll
           </Button>

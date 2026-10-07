@@ -11,6 +11,7 @@ import { Heart } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
+import { Textarea } from "@/components/ui/Field";
 interface PostDto {
   id: string;
   authorType: "TRAINEE" | "STAFF";
@@ -192,14 +193,7 @@ export default function StaffQaThreadPage({ params }: { params: { id: string; th
             </div>
 
             <Card className="mt-4">
-              <textarea
-                value={reply}
-                onChange={(e) => setReply(e.target.value)}
-                placeholder="Reply as staff..."
-                aria-label="Reply as staff"
-                rows={3}
-                className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-              />
+              <Textarea label="Reply as staff" hideLabel compact value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Reply as staff..." rows={3} />
               <Button onClick={postReply} loading={posting} disabled={!reply.trim()} className="mt-2">
                 Reply
               </Button>

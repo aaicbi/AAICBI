@@ -10,6 +10,7 @@ import ErrorState from "@/components/ui/ErrorState";
 import EmptyState from "@/components/ui/EmptyState";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
+import { Input } from "@/components/ui/Field";
 const FIXED_SEGMENT_LABEL: Record<string, string> = {
   REGISTERED_NOT_ENROLLED: "Registered, not yet enrolled",
   STARTED_NOT_COMPLETED: "Started a course, not completed",
@@ -105,12 +106,7 @@ function AdminTraineesContent() {
         )}
 
         <form onSubmit={search} className="mt-4 flex gap-2">
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by name, email, or username"
-            className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-          />
+          <Input label="Search by name, email, or username" hideLabel compact value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, email, or username" />
         </form>
 
         <div className="mt-4 space-y-2">

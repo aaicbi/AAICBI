@@ -10,6 +10,7 @@ import CorrectnessMark from "@/components/ui/CorrectnessMark";
 import BackLink from "@/components/ui/BackLink";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
+import { Checkbox, Input, Textarea } from "@/components/ui/Field";
 interface OptionDto {
   id: string;
   text: string;
@@ -349,60 +350,13 @@ export default function ModuleAssessmentPage({ params }: { params: { id: string 
         <details className="mt-8 rounded-lg border border-brand-gray p-4" open={!exam}>
           <summary className="cursor-pointer font-semibold text-gray-900">Assessment Settings</summary>
           <div className="mt-4 space-y-4">
-            <Field label="Title">
-              <input
-                value={settings.title}
-                onChange={(e) => setSettings({ ...settings, title: e.target.value })}
-                placeholder={moduleTitle ? `${moduleTitle} — Assessment` : ""}
-                className="input"
-              />
-            </Field>
-            <Field label="Instructions">
-              <textarea
-                value={settings.instructions}
-                onChange={(e) => setSettings({ ...settings, instructions: e.target.value })}
-                className="input"
-                rows={3}
-              />
-            </Field>
+            <Input label="Title" value={settings.title} onChange={(e) => setSettings({ ...settings, title: e.target.value })} placeholder={moduleTitle ? `${moduleTitle} — Assessment` : ""} />
+            <Textarea label="Instructions" value={settings.instructions} onChange={(e) => setSettings({ ...settings, instructions: e.target.value })} rows={3} />
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Duration (minutes)">
-                <input
-                  type="number"
-                  min={1}
-                  value={settings.durationMinutes}
-                  onChange={(e) => setSettings({ ...settings, durationMinutes: Number(e.target.value) })}
-                  className="input"
-                />
-              </Field>
-              <Field label="Pass Mark (%)">
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={settings.passMarkPercent}
-                  onChange={(e) => setSettings({ ...settings, passMarkPercent: Number(e.target.value) })}
-                  className="input"
-                />
-              </Field>
-              <Field label="Questions per attempt (blank = all)">
-                <input
-                  type="number"
-                  min={1}
-                  value={settings.numQuestions}
-                  onChange={(e) => setSettings({ ...settings, numQuestions: e.target.value })}
-                  className="input"
-                />
-              </Field>
-              <Field label="Max attempts (blank = unlimited)">
-                <input
-                  type="number"
-                  min={1}
-                  value={settings.maxAttempts}
-                  onChange={(e) => setSettings({ ...settings, maxAttempts: e.target.value })}
-                  className="input"
-                />
-              </Field>
+              <Input label="Duration (minutes)" type="number" min={1} value={settings.durationMinutes} onChange={(e) => setSettings({ ...settings, durationMinutes: Number(e.target.value) })} />
+              <Input label="Pass Mark (%)" type="number" min={0} max={100} value={settings.passMarkPercent} onChange={(e) => setSettings({ ...settings, passMarkPercent: Number(e.target.value) })} />
+              <Input label="Questions per attempt (blank = all)" type="number" min={1} value={settings.numQuestions} onChange={(e) => setSettings({ ...settings, numQuestions: e.target.value })} />
+              <Input label="Max attempts (blank = unlimited)" type="number" min={1} value={settings.maxAttempts} onChange={(e) => setSettings({ ...settings, maxAttempts: e.target.value })} />
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm text-gray-700">
               {(
@@ -414,15 +368,7 @@ export default function ModuleAssessmentPage({ params }: { params: { id: string 
                   ["allowReview", "Allow reviewing before submit"],
                 ] as const
               ).map(([key, label]) => (
-                <label key={key} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={settings[key]}
-                    onChange={(e) => setSettings({ ...settings, [key]: e.target.checked })}
-                    className="h-4 w-4 accent-brand-teal"
-                  />
-                  {label}
-                </label>
+                <Checkbox key={key} label={<>{label}</>} checked={settings[key]} onChange={(e) => setSettings({ ...settings, [key]: e.target.checked })} />
               ))}
             </div>
             <button
@@ -442,15 +388,7 @@ export default function ModuleAssessmentPage({ params }: { params: { id: string 
             <div className="mt-8 flex items-center justify-between">
               <h2 className="font-semibold text-gray-900">Questions ({exam.questions.length})</h2>
               {exam.questions.length > 0 && (
-                <label className="flex items-center gap-2 text-xs font-semibold text-gray-600">
-                  <input
-                    type="checkbox"
-                    checked={selected.size === exam.questions.length}
-                    onChange={toggleSelectAll}
-                    className="h-4 w-4 accent-brand-teal"
-                  />
-                  Select all
-                </label>
+                <Checkbox label="Select all" checked={selected.size === exam.questions.length} onChange={toggleSelectAll} />
               )}
             </div>
 
@@ -528,14 +466,6 @@ export default function ModuleAssessmentPage({ params }: { params: { id: string 
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-semibold text-gray-600">{label}</span>
-      {children}
-    </label>
-  );
-}
 
 function QuestionCard({
   question,
@@ -578,7 +508,7 @@ function QuestionCard({
 
       {editing ? (
         <div className="space-y-2">
-          <textarea value={text} onChange={(e) => setText(e.target.value)} className="w-full rounded border border-brand-gray p-2" rows={2} />
+          <Textarea label="Question text" hideLabel compact controlClassName="p-2" value={text} onChange={(e) => setText(e.target.value)} rows={2} />
           {options.map((o, idx) => (
             <div key={o.id ?? idx} className="flex items-center gap-2">
               <input
@@ -587,11 +517,7 @@ function QuestionCard({
                 onChange={() => setOptions(options.map((x, i) => ({ ...x, isCorrect: i === idx })))}
                 className="accent-brand-teal"
               />
-              <input
-                value={o.text}
-                onChange={(e) => setOptions(options.map((x, i) => (i === idx ? { ...x, text: e.target.value } : x)))}
-                className="flex-1 rounded border border-brand-gray p-1.5 text-sm"
-              />
+              <Input label="Option text" hideLabel compact wrapperClassName="flex-1" controlClassName="p-1.5" value={o.text} onChange={(e) => setOptions(options.map((x, i) => (i === idx ? { ...x, text: e.target.value } : x)))} />
             </div>
           ))}
           <div className="flex gap-2 pt-1">

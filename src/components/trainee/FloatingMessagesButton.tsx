@@ -6,6 +6,7 @@ import Icon from "@/components/ui/Icon";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 
+import { Input, Select, Textarea } from "@/components/ui/Field";
 interface ConversationRow {
   id: string;
   type: "DIRECT" | "COHORT";
@@ -210,32 +211,15 @@ export default function FloatingMessagesButton() {
 
           {tab === "message" ? (
             <div className="space-y-3 p-4">
-              <div>
-                <label htmlFor="composer-target" className="text-xs font-semibold text-gray-600">
-                  Send to
-                </label>
-                <select
-                  id="composer-target"
-                  value={target}
-                  onChange={(e) => setTarget(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-                >
+              <Select label="Send to" compact id="composer-target" value={target} onChange={(e) => setTarget(e.target.value)}>
                   <option value="ADMIN">Admin</option>
                   {cohortConversations.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.title}
                     </option>
                   ))}
-                </select>
-              </div>
-              <textarea
-                value={messageBody}
-                onChange={(e) => setMessageBody(e.target.value)}
-                placeholder="Type your message…"
-                rows={4}
-                maxLength={5000}
-                className="w-full resize-none rounded-lg border border-brand-gray px-3 py-2.5 text-sm outline-none focus:border-brand-teal"
-              />
+                </Select>
+              <Textarea label="Type your message…" hideLabel controlClassName="resize-none" value={messageBody} onChange={(e) => setMessageBody(e.target.value)} placeholder="Type your message…" rows={4} maxLength={5000} />
               <div className="flex justify-end">
                 <Button size="sm" onClick={sendMessage} disabled={sending || !messageBody.trim()}>
                   {sending ? "Sending…" : "Send"}
@@ -244,27 +228,9 @@ export default function FloatingMessagesButton() {
             </div>
           ) : (
             <div className="space-y-3 p-4">
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Project title"
-                maxLength={160}
-                className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-              />
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="What did you build? (optional)"
-                rows={3}
-                maxLength={2000}
-                className="w-full resize-none rounded-lg border border-brand-gray px-3 py-2.5 text-sm outline-none focus:border-brand-teal"
-              />
-              <input
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="Project link (optional)"
-                className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-              />
+              <Input label="Project title" hideLabel compact value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Project title" maxLength={160} />
+              <Textarea label="What did you build? (optional)" hideLabel controlClassName="resize-none" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What did you build? (optional)" rows={3} maxLength={2000} />
+              <Input label="Project link (optional)" hideLabel compact value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Project link (optional)" />
               <div>
                 <input ref={fileInputRef} type="file" accept={ACCEPT} multiple onChange={(e) => addFiles(e.target.files)} className="hidden" />
                 <button

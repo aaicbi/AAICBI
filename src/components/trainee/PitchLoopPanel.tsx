@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 
+import { Input } from "@/components/ui/Field";
 export interface PitchDraft {
   startupName?: string;
   industry?: string;
@@ -161,13 +162,7 @@ export default function PitchLoopPanel({ draft }: { draft: PitchDraft }) {
 
       <div className="border-t border-brand-gray p-3">
         <div className="flex gap-2">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder="Ask about your pitch…"
-            className="flex-1 rounded-lg border border-brand-gray px-3 py-2 text-xs outline-none focus:border-brand-teal"
-          />
+          <Input label="Ask about your pitch…" hideLabel compact wrapperClassName="flex-1" controlClassName="text-xs" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Ask about your pitch…" />
           <Button size="sm" onClick={() => send()} disabled={asking || !input.trim()}>
             Ask
           </Button>

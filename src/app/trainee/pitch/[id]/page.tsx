@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
+import { Checkbox } from "@/components/ui/Field";
 interface PitchDetail {
   id: string;
   startupName: string;
@@ -182,15 +183,7 @@ export default function PitchDetailPage({ params }: { params: { id: string } }) 
                       <p className="text-xs font-semibold text-gray-500">Choose what to share if you accept</p>
                       <div className="mt-2 space-y-1 text-sm">
                         {(["video", "deck", "demo", "github"] as const).map((key) => (
-                          <label key={key} className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={c[key]}
-                              onChange={(e) => setChecklist((prev) => ({ ...prev, [d.id]: { ...c, [key]: e.target.checked } }))}
-                              className="h-3.5 w-3.5 rounded border-brand-gray text-brand-teal focus:ring-brand-teal"
-                            />
-                            {key === "video" ? "Pitch Video" : key === "deck" ? "Pitch Deck" : key === "demo" ? "Demo" : "GitHub Repository"}
-                          </label>
+                          <Checkbox key={key} label={<>{key === "video" ? "Pitch Video" : key === "deck" ? "Pitch Deck" : key === "demo" ? "Demo" : "GitHub Repository"}</>} checked={c[key]} onChange={(e) => setChecklist((prev) => ({ ...prev, [d.id]: { ...c, [key]: e.target.checked } }))} />
                         ))}
                       </div>
                     </div>

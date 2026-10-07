@@ -9,6 +9,7 @@ import {
   COURSE_LIFECYCLE_PHASE_BADGE_VARIANT,
 } from "@/lib/courseLifecycle";
 
+import { Input, Select } from "@/components/ui/Field";
 export interface CourseScheduleFields {
   startDate: string | null;
   endDate: string | null;
@@ -91,86 +92,30 @@ export default function CourseScheduleSettings({
       </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <label className="block text-xs text-gray-700">
-          Start date
-          <input
-            type="datetime-local"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-          />
-        </label>
-        <label className="block text-xs text-gray-700">
-          End date (optional)
-          <input
-            type="datetime-local"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-          />
-        </label>
-        <label className="block text-xs text-gray-700">
-          Registration deadline
-          <input
-            type="datetime-local"
-            value={registrationDeadline}
-            onChange={(e) => setRegistrationDeadline(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-          />
-        </label>
-        <label className="block text-xs text-gray-700">
-          Capacity (optional)
-          <input
-            type="number"
-            min={1}
-            value={capacity}
-            onChange={(e) => setCapacity(e.target.value)}
-            placeholder="e.g. 50"
-            className="mt-1 w-full rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-          />
-        </label>
-        <label className="block text-xs text-gray-700">
-          Location
-          <select
-            value={locationType}
-            onChange={(e) => setLocationType(e.target.value as typeof locationType)}
-            className="mt-1 w-full rounded-lg border border-brand-gray px-2 py-1.5 text-sm"
-          >
+        <Input label="Start date" compact type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+        <Input label="End date (optional)" compact type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+        <Input label="Registration deadline" compact type="datetime-local" value={registrationDeadline} onChange={(e) => setRegistrationDeadline(e.target.value)} />
+        <Input label="Capacity (optional)" compact type="number" min={1} value={capacity} onChange={(e) => setCapacity(e.target.value)} placeholder="e.g. 50" />
+        <Select label="Location" compact value={locationType} onChange={(e) => setLocationType(e.target.value as typeof locationType)}>
             <option value="">Not specified</option>
             <option value="ONLINE">Online</option>
             <option value="PHYSICAL">Physical</option>
             <option value="HYBRID">Hybrid</option>
-          </select>
-        </label>
+          </Select>
         {(locationType === "PHYSICAL" || locationType === "HYBRID") && (
-          <label className="block text-xs text-gray-700">
-            Venue
-            <input
-              value={venue}
-              onChange={(e) => setVenue(e.target.value)}
-              placeholder="e.g. AAICBI Training Hall, Uyo"
-              className="mt-1 w-full rounded-lg border border-brand-gray px-2 py-1.5 text-sm outline-none focus:border-brand-teal"
-            />
-          </label>
+          <Input label="Venue" compact value={venue} onChange={(e) => setVenue(e.target.value)} placeholder="e.g. AAICBI Training Hall, Uyo" />
         )}
       </div>
 
       <div className="mt-4 flex flex-wrap items-end gap-3 border-t border-brand-gray pt-4">
-        <label className="block text-xs text-gray-700">
-          Status override
-          <select
-            value={lifecyclePhaseOverride}
-            onChange={(e) => setLifecyclePhaseOverride(e.target.value as typeof lifecyclePhaseOverride)}
-            className="mt-1 w-full min-w-[220px] rounded-lg border border-brand-gray px-2 py-1.5 text-sm"
-          >
+        <Select label="Status override" compact wrapperClassName="min-w-[220px]" value={lifecyclePhaseOverride} onChange={(e) => setLifecyclePhaseOverride(e.target.value as typeof lifecyclePhaseOverride)}>
             <option value="">Auto (computed from dates)</option>
             <option value="COMING_SOON">Coming Soon</option>
             <option value="REGISTRATION_OPEN">Registration Open</option>
             <option value="REGISTRATION_CLOSED">Registration Closed</option>
             <option value="STARTED">Started</option>
             <option value="COMPLETED">Completed</option>
-          </select>
-        </label>
+          </Select>
         <div className="text-xs text-gray-600">
           <span className="mr-2">Visitors currently see:</span>
           {computedPhase ? (

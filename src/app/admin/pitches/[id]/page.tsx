@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { ADMIN_NAV_PITCH } from "@/lib/admin/nav";
 
+import { Input, Select, Textarea } from "@/components/ui/Field";
 interface PitchCohortOption {
   id: string;
   name: string;
@@ -211,54 +212,40 @@ export default function AdminPitchReviewPage({ params }: { params: { id: string 
             {RUBRIC_FIELDS.map((f) => (
               <div key={f.key} className="flex items-center justify-between text-sm">
                 <span>{f.label}</span>
-                <input
+                <Input
+                  label={f.label}
+                  hideLabel
+                  compact
+                  wrapperClassName="w-16"
+                  controlClassName="text-center"
                   type="number"
                   min={1}
                   max={5}
                   value={scores[f.key] ?? ""}
                   onChange={(e) => setScores((s) => ({ ...s, [f.key]: Number(e.target.value) }))}
-                  className="w-16 rounded-lg border border-brand-gray px-2 py-1 text-center text-sm outline-none focus:border-brand-teal"
                 />
               </div>
             ))}
           </div>
 
-          <div className="mt-4">
-            <label className="text-xs font-semibold text-gray-500">Assign to cohort (for Approve)</label>
-            <select
-              value={cohortId}
-              onChange={(e) => setCohortId(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            >
+          <Select label="Assign to cohort (for Approve)" compact wrapperClassName="mt-4" value={cohortId} onChange={(e) => setCohortId(e.target.value)}>
               <option value="">No cohort yet</option>
               {cohorts.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
 
           <div className="mt-4">
-            <label className="text-xs font-semibold text-gray-500">Reason category (for Request Revision / Reject)</label>
-            <select
-              value={reasonCategory}
-              onChange={(e) => setReasonCategory(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            >
+            <Select label="Reason category (for Request Revision / Reject)" compact value={reasonCategory} onChange={(e) => setReasonCategory(e.target.value)}>
               {REASON_CATEGORIES.map((r) => (
                 <option key={r} value={r}>
                   {r}
                 </option>
               ))}
-            </select>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              rows={3}
-              placeholder="Note to the founder"
-              className="mt-2 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
+            </Select>
+            <Textarea label="Note to the founder" hideLabel compact value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="Note to the founder" />
           </div>
 
           <div className="mt-4 flex gap-2">

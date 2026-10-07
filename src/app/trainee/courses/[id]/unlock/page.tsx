@@ -7,6 +7,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
+import { Input } from "@/components/ui/Field";
 /**
  * Reachable two ways, deliberately the same code either way — see the
  * schema comment on CourseEnrollment.otpCode: typing the 6-digit code
@@ -64,16 +65,7 @@ export default function UnlockCoursePage({ params }: { params: { id: string } })
             <>
               <h1 className="font-display text-xl font-semibold text-brand-ink">Enter your unlock code</h1>
               <p className="mt-2 text-sm text-gray-600">Check your email for the 6-digit code we just sent you.</p>
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                placeholder="000000"
-                aria-label="6-digit unlock code"
-                className="mt-4 w-full rounded-lg border border-brand-gray px-3 py-2.5 text-center text-2xl font-semibold tracking-[0.3em] outline-none focus:border-brand-teal"
-              />
+              <Input label="6-digit unlock code" hideLabel controlClassName="text-center text-2xl font-semibold tracking-[0.3em]" type="text" inputMode="numeric" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} placeholder="000000" />
               {error && <p className="mt-3 text-sm text-brand-rose">{error}</p>}
               <Button onClick={() => verify(code)} loading={verifying} disabled={code.length !== 6} className="mt-4 w-full">
                 Unlock

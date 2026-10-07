@@ -14,7 +14,7 @@ import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 import JobPostingMediaPicker, { StagedMedia } from "@/components/jobPostings/JobPostingMediaPicker";
 import JobPostingMediaGallery, { JobPostingMediaItem } from "@/components/jobPostings/JobPostingMediaGallery";
 
-import { Input } from "@/components/ui/Field";
+import { Input, Textarea } from "@/components/ui/Field";
 interface JobPostingDto {
   id: string;
   title: string;
@@ -171,26 +171,9 @@ export default function EmployerJobPostingsPage() {
           <p className="font-display font-semibold text-brand-ink">Post a Vacancy</p>
           <form onSubmit={submit} className="mt-3 space-y-3">
             <Input label="Job title" value={title} onChange={(e) => setTitle(e.target.value)} required />
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Job description"
-              aria-label="Job description"
-              rows={4}
-              required
-              className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
+            <Textarea label="Job description" hideLabel compact value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Job description" rows={4} required />
             <Input label="Skills you're hiring for (comma-separated, optional)" value={skills} onChange={(e) => setSkills(e.target.value)} placeholder="e.g. React, SQL, Data Analysis" />
-            <div>
-              <label className="text-xs font-semibold text-gray-600">Closing date</label>
-              <input
-                type="date"
-                value={closingDate}
-                onChange={(e) => setClosingDate(e.target.value)}
-                required
-                className="mt-1 w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-              />
-            </div>
+            <Input label="Closing date" compact type="date" value={closingDate} onChange={(e) => setClosingDate(e.target.value)} required />
             <JobPostingMediaPicker staged={stagedMedia} onChange={setStagedMedia} />
             {error && <p className="text-sm text-brand-rose">{error}</p>}
             <Button type="submit" loading={posting}>

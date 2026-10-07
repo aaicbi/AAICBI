@@ -10,6 +10,7 @@ import CorrectnessMark from "@/components/ui/CorrectnessMark";
 import Toggle from "@/components/ui/Toggle";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
+import { Checkbox, Input, Textarea } from "@/components/ui/Field";
 interface OptionDto {
   id: string;
   text: string;
@@ -309,15 +310,7 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
           <h2 className="font-semibold text-gray-900">Questions ({exam.questions.length})</h2>
           <div className="flex items-center gap-4">
             {exam.questions.length > 0 && (
-              <label className="flex items-center gap-2 text-xs font-semibold text-gray-600">
-                <input
-                  type="checkbox"
-                  checked={selected.size === exam.questions.length}
-                  onChange={toggleSelectAll}
-                  className="h-4 w-4 accent-brand-teal"
-                />
-                Select all
-              </label>
+              <Checkbox label="Select all" checked={selected.size === exam.questions.length} onChange={toggleSelectAll} />
             )}
             <a href={`/admin/exams/${exam.id}/results`} className="inline-flex items-center gap-1 text-sm text-brand-teal hover:underline">
               View results <Icon icon={ArrowRight} size="sm" />
@@ -415,14 +408,7 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
           </p>
 
           <form onSubmit={grantAccess} className="mt-4 flex gap-2">
-            <input
-              type="email"
-              required
-              value={grantEmail}
-              onChange={(e) => setGrantEmail(e.target.value)}
-              placeholder="Trainee's registered email"
-              className="flex-1 rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
+            <Input label="Trainee's registered email" hideLabel compact wrapperClassName="flex-1" type="email" required value={grantEmail} onChange={(e) => setGrantEmail(e.target.value)} placeholder="Trainee's registered email" />
             <button
               type="submit"
               disabled={granting}
@@ -506,7 +492,7 @@ function QuestionCard({
 
       {editing ? (
         <div className="space-y-2">
-          <textarea value={text} onChange={(e) => setText(e.target.value)} className="w-full rounded border border-brand-gray p-2" rows={2} />
+          <Textarea label="Question text" hideLabel compact controlClassName="p-2" value={text} onChange={(e) => setText(e.target.value)} rows={2} />
           {options.map((o, idx) => (
             <div key={o.id ?? idx} className="flex items-center gap-2">
               <input
@@ -515,11 +501,7 @@ function QuestionCard({
                 onChange={() => setOptions(options.map((x, i) => ({ ...x, isCorrect: i === idx })))}
                 className="accent-brand-teal"
               />
-              <input
-                value={o.text}
-                onChange={(e) => setOptions(options.map((x, i) => (i === idx ? { ...x, text: e.target.value } : x)))}
-                className="flex-1 rounded border border-brand-gray p-1.5 text-sm"
-              />
+              <Input label="Option text" hideLabel compact wrapperClassName="flex-1" controlClassName="p-1.5" value={o.text} onChange={(e) => setOptions(options.map((x, i) => (i === idx ? { ...x, text: e.target.value } : x)))} />
             </div>
           ))}
           <div className="flex gap-2 pt-1">

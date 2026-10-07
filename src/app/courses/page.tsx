@@ -12,6 +12,7 @@ import AttentionPulse from "@/components/ui/AttentionPulse";
 import { CalendarClock, ArrowRight, Search, Sparkles } from "lucide-react";
 import { trackVisitorEvent } from "@/lib/analytics/visitorTrackClient";
 
+import { Input } from "@/components/ui/Field";
 interface PublicCourseRow extends UpcomingCourseRow {
   level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | null;
   moduleCount: number;
@@ -105,14 +106,7 @@ export default function PublicCoursesPage() {
 
         <div className="relative mt-6 max-w-md">
           <Icon icon={Search} size="sm" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search courses…"
-            aria-label="Search courses"
-            className="w-full rounded-lg border border-brand-gray py-2.5 pl-9 pr-3 text-sm outline-none focus:border-brand-teal"
-          />
+          <Input label="Search courses" hideLabel controlClassName="pl-9 pr-3" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search courses…" />
         </div>
 
         {searchResults !== null ? (

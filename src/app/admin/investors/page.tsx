@@ -9,6 +9,7 @@ import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
 import { ADMIN_NAV_PITCH } from "@/lib/admin/nav";
 
+import { Input } from "@/components/ui/Field";
 interface InvestorDto {
   id: string;
   name: string;
@@ -101,36 +102,11 @@ export default function AdminInvestorsPage() {
         <Card className="mt-6">
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Add an Investor</p>
           <div className="mt-3 space-y-2">
-            <input
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="Full name"
-              className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
-            <input
-              value={form.email}
-              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-              placeholder="Email"
-              className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
-            <input
-              value={form.organization}
-              onChange={(e) => setForm((f) => ({ ...f, organization: e.target.value }))}
-              placeholder="Organization"
-              className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
-            <input
-              value={form.phone}
-              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-              placeholder="Phone (optional)"
-              className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
-            <input
-              value={form.linkedinUrl}
-              onChange={(e) => setForm((f) => ({ ...f, linkedinUrl: e.target.value }))}
-              placeholder="LinkedIn URL (optional)"
-              className="w-full rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-            />
+            <Input label="Full name" hideLabel compact value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Full name" />
+            <Input label="Email" hideLabel compact value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="Email" />
+            <Input label="Organization" hideLabel compact value={form.organization} onChange={(e) => setForm((f) => ({ ...f, organization: e.target.value }))} placeholder="Organization" />
+            <Input label="Phone (optional)" hideLabel compact value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="Phone (optional)" />
+            <Input label="LinkedIn URL (optional)" hideLabel compact value={form.linkedinUrl} onChange={(e) => setForm((f) => ({ ...f, linkedinUrl: e.target.value }))} placeholder="LinkedIn URL (optional)" />
             <Button size="sm" onClick={create} loading={creating}>
               Create Investor Account
             </Button>

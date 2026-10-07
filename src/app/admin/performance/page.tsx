@@ -13,6 +13,7 @@ import PerformanceDashboard from "@/components/admin/PerformanceDashboard";
 import type { CourseStatus } from "@prisma/client";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
+import { Select } from "@/components/ui/Field";
 interface CourseOption {
   id: string;
   title: string;
@@ -69,18 +70,14 @@ export default function GeneralPerformancePage() {
           {courses === null ? (
             <SkeletonList rows={1} />
           ) : (
-            <select
-              value={courseId}
-              onChange={(e) => setCourseId(e.target.value)}
-              className="w-full rounded-lg border border-brand-gray px-3 py-2.5 text-sm font-semibold outline-none focus:border-brand-teal"
-            >
+            <Select label="Course" hideLabel controlClassName="font-semibold" value={courseId} onChange={(e) => setCourseId(e.target.value)}>
               <option value="">Select a course…</option>
               {courses.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.title} {c.status !== "PUBLISHED" ? `(${c.status[0]}${c.status.slice(1).toLowerCase()})` : ""}
                 </option>
               ))}
-            </select>
+            </Select>
           )}
         </div>
 

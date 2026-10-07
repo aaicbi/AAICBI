@@ -10,6 +10,7 @@ import { ChevronDown, ChevronRight, Clock, Award } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
+import { Input } from "@/components/ui/Field";
 interface PerformanceSummaryDto {
   strengths: string[];
   weaknesses: string[];
@@ -113,13 +114,7 @@ export default function ExamResultsPage({ params }: { params: { id: string } }) 
               ))}
         </div>
 
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name or email..."
-          aria-label="Search by name or email"
-          className="mt-6 w-full rounded-lg border border-brand-gray px-4 py-2.5 outline-none focus:border-brand-teal"
-        />
+        <Input label="Search by name or email" hideLabel value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or email..." />
 
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[520px] text-left text-sm">

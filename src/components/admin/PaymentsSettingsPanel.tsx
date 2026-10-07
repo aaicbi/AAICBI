@@ -7,6 +7,7 @@ import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
 import { useToast } from "@/components/ui/Toast";
 
+import { Input } from "@/components/ui/Field";
 interface PaymentsData {
   defaultAiCreditAllowance: number;
   defaultReminderDaysBeforeExpiry: number[];
@@ -180,13 +181,7 @@ export default function PaymentsSettingsPanel({ viewerRole }: { viewerRole?: str
           Granted automatically to a trainee on every successful paid enrollment or renewal, unless a specific
           course has its own override set on its own page.
         </p>
-        <input
-          type="number"
-          min={0}
-          value={data.defaultAiCreditAllowance}
-          onChange={(e) => setData({ ...data, defaultAiCreditAllowance: Number(e.target.value) })}
-          className="mt-4 w-40 rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-        />
+        <Input label="Default AI credit allowance" compact wrapperClassName="w-40" type="number" min={0} value={data.defaultAiCreditAllowance} onChange={(e) => setData({ ...data, defaultAiCreditAllowance: Number(e.target.value) })} />
       </Card>
 
       <Card>
@@ -195,12 +190,7 @@ export default function PaymentsSettingsPanel({ viewerRole }: { viewerRole?: str
           Pre-fills the reminder days shown when creating a new fixed-duration paid course — an admin can still
           change it per course. Doesn&apos;t affect any course that already exists.
         </p>
-        <input
-          value={reminderDaysText}
-          onChange={(e) => setReminderDaysText(e.target.value)}
-          placeholder="e.g. 14, 7, 1"
-          className="mt-4 w-full max-w-xs rounded-lg border border-brand-gray px-3 py-2 text-sm outline-none focus:border-brand-teal"
-        />
+        <Input label="e.g. 14, 7, 1" hideLabel compact wrapperClassName="max-w-xs" value={reminderDaysText} onChange={(e) => setReminderDaysText(e.target.value)} placeholder="e.g. 14, 7, 1" />
         {!reminderDaysValid && (
           <p className="mt-1.5 text-xs text-brand-rose">Enter a comma-separated list of positive whole days, e.g. 14, 7, 1.</p>
         )}

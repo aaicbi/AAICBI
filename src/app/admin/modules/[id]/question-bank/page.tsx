@@ -9,6 +9,7 @@ import Icon from "@/components/ui/Icon";
 import CorrectnessMark from "@/components/ui/CorrectnessMark";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 
+import { Input, Textarea } from "@/components/ui/Field";
 interface OptionDto {
   id: string;
   text: string;
@@ -238,7 +239,7 @@ function QuestionEditor({
 
   return (
     <div className="space-y-2">
-      <textarea value={text} onChange={(e) => setText(e.target.value)} className="w-full rounded border border-brand-gray p-2" rows={3} />
+      <Textarea label="Question text" hideLabel compact controlClassName="p-2" value={text} onChange={(e) => setText(e.target.value)} rows={3} />
       {options.map((o, idx) => (
         <div key={o.id ?? idx} className="flex items-center gap-2">
           <input
@@ -247,11 +248,7 @@ function QuestionEditor({
             onChange={() => setOptions(options.map((x, i) => ({ ...x, isCorrect: i === idx })))}
             className="accent-brand-teal"
           />
-          <input
-            value={o.text}
-            onChange={(e) => setOptions(options.map((x, i) => (i === idx ? { ...x, text: e.target.value } : x)))}
-            className="flex-1 rounded border border-brand-gray p-1.5 text-sm"
-          />
+          <Input label="Option text" hideLabel compact wrapperClassName="flex-1" controlClassName="p-1.5" value={o.text} onChange={(e) => setOptions(options.map((x, i) => (i === idx ? { ...x, text: e.target.value } : x)))} />
         </div>
       ))}
       <div className="flex gap-2 pt-1">
