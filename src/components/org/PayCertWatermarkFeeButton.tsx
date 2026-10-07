@@ -7,7 +7,7 @@ import Button from "@/components/ui/Button";
  * /org/billing's second card, mirroring PayPlatformFeeButton.tsx
  * exactly for this separate product.
  */
-export default function PayCertWatermarkFeeButton() {
+export default function PayCertWatermarkFeeButton({ label = "Pay with Paystack" }: { label?: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,7 +27,7 @@ export default function PayCertWatermarkFeeButton() {
   return (
     <div>
       <Button onClick={handlePay} loading={loading}>
-        Pay with Paystack
+        {label}
       </Button>
       {error && <p className="mt-2 text-sm text-brand-rose">{error}</p>}
     </div>

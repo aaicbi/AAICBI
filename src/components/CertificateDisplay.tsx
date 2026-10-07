@@ -43,6 +43,7 @@ export default function CertificateDisplay({ layoutJson, qrDataUrl, branding, sh
         issuedAt={props.issuedAt}
         code={props.code}
         qrDataUrl={qrDataUrl}
+        showWatermark={showWatermark}
         branding={
           branding
             ? {
@@ -50,7 +51,6 @@ export default function CertificateDisplay({ layoutJson, qrDataUrl, branding, sh
                 logoUrl: branding.logoUrl,
                 primaryColor: "#016B61",
                 accentColor: "#D99A34",
-                hideFooter: !showWatermark,
                 signatoryName: branding.signatoryName,
                 signatoryTitle: branding.signatoryTitle,
               }

@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import CertificateDisplay from "@/components/CertificateDisplay";
+import PayCertWatermarkFeeButton from "@/components/org/PayCertWatermarkFeeButton";
 import CertificateCanvasEditor from "@/components/certificateEditor/CertificateCanvasEditor";
 import { CERTIFICATE_PRESETS } from "@/lib/certificatePresets";
 import type { CertificateLayout } from "@/lib/certificateLayout";
@@ -409,16 +410,12 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
           />
           <p className="mt-3 text-xs text-gray-500">
             A &quot;Powered by AAICBI&quot; watermark is added automatically to every certificate and can&apos;t be removed from this editor.
-            {showWatermark && viewerRole === "ADMIN" && (
-              <>
-                {" "}
-                <a href="/org/billing" className="font-semibold text-brand-teal hover:underline">
-                  Remove it — go premium
-                </a>
-                .
-              </>
-            )}
           </p>
+          {showWatermark && viewerRole === "ADMIN" && (
+            <div className="mt-3">
+              <PayCertWatermarkFeeButton label="Remove watermark" />
+            </div>
+          )}
         </Card>
       </div>
 

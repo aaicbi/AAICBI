@@ -16,6 +16,10 @@ export interface CertificateCardProps {
    * issued certificate yet) — shows a plain placeholder square instead
    * of generating a QR code for a URL that doesn't exist yet. */
   qrDataUrl?: string;
+  /** The "Powered by aaicbi.org" line. Required so every caller decides
+   * explicitly; false only for an org that pays for removal (or has been
+   * waived by SUPER_ADMIN) — see shouldShowCertWatermark. */
+  showWatermark: boolean;
   /** Present only for an organization-branded certificate — when set,
    * every prop below it also applies. Absent means AAICBI's own
    * unbranded default, byte-identical to this card's pre-Phase-1
@@ -55,7 +59,7 @@ export interface CertificateCardProps {
  * template with no design built in the canvas editor. Only a template
  * with a real layoutJson goes through the layout engine.
  */
-export default function CertificateCard({ traineeName, verb, credentialTitle, issuedAt, code, qrDataUrl, branding }: CertificateCardProps) {
+export default function CertificateCard({ traineeName, verb, credentialTitle, issuedAt, code, qrDataUrl, branding, showWatermark }: CertificateCardProps) {
   const teal = branding ? hexToRgbTriple(branding.primaryColor) : "1 107 97";
   const gold = branding ? hexToRgbTriple(branding.accentColor) : "217 154 52";
 
@@ -128,7 +132,7 @@ export default function CertificateCard({ traineeName, verb, credentialTitle, is
           </div>
         )}
 
-        {branding && !branding.hideFooter && (
+        {showWatermark && (
           <p className="mt-4 text-[10px] uppercase tracking-widest text-gray-400">Powered by aaicbi.org</p>
         )}
       </div>
