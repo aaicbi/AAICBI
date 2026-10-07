@@ -397,6 +397,9 @@ model User {
 // email, and comes back across many courses and attempts over time.
 model Trainee {
   id            String    @id @default(cuid())
+  // Public ecosystem — seeded demo rows only; see prisma/seed-demo-ecosystem.ts.
+  isDemo         Boolean  @default(false)
+  educationPosts EducationPost[]
   name          String
   email         String    @unique
   // Google sign-in — widened from required to optional. A trainee who
@@ -692,6 +695,7 @@ model Trainee {
 
 model Skill {
   id       String @id @default(cuid())
+  educationPostSkills EducationPostSkill[]
   name     String @unique
   category String?
 
@@ -1023,6 +1027,8 @@ model PitchDisclosure {
 
 model Course {
   id          String   @id @default(cuid())
+  isDemo      Boolean  @default(false)
+  educationPosts EducationPost[]
   title       String
   description String?
   // Course catalogue upgrade — DEPRECATED. Superseded by `status`
@@ -2883,6 +2889,11 @@ model PlatformSettings {
   // same "default the admin can override per-course" shape as
   // defaultAiCreditAllowance above.
   defaultReminderDaysBeforeExpiry Int[] @default([7, 3, 1])
+  // Public ecosystem (organization pages, education videos) — both off
+  // until SUPER_ADMIN switches them on, so shipping the code changes
+  // nothing visible. See src/lib/ecosystem/flags.ts.
+  ecosystemOrgPagesEnabled  Boolean  @default(false)
+  ecosystemEducationEnabled Boolean  @default(false)
   updatedAt                DateTime @updatedAt
 }
 
@@ -3219,6 +3230,11 @@ model TrainingOrganization {
   certWatermarkAccessRevokedAt          DateTime?
 
   certificateTemplates CertificateTemplate[]
+
+  // Public ecosystem — additive, empty for every existing org.
+  isDemo         Boolean                    @default(false)
+  publicProfile  OrganizationPublicProfile?
+  educationPosts EducationPost[]
 
   // Teammates the organization has invited. They sign in with their own
   // email and password but receive the same session as the organization's
@@ -4289,4 +4305,89 @@ model AssignmentReminderSent {
   sentAt       DateTime   @default(now())
 
   @@unique([assignmentId, traineeId, type])
+}
+
+
+// ---------------------------------------------------------------------
+// Public ecosystem — Phases 1-2. Everything below is additive: no
+// existing table loses or changes a column, and nothing here is read by
+// existing features.
+// ---------------------------------------------------------------------
+
+/// Public face of a TrainingOrganization, kept in its own 1:1 table so
+/// the heavy billing/account row is untouched. `publicEnabled` is the
+/// organization's own switch (and SUPER_ADMIN's); `verified` is set only
+/// by SUPER_ADMIN and drives the "Verified Training Organization" badge
+/// and instant publishing of education posts.
+model OrganizationPublicProfile {
+  id                     String               @id @default(cuid())
+  trainingOrganizationId String               @unique
+  trainingOrganization   TrainingOrganization @relation(fields: [trainingOrganizationId], references: [id], onDelete: Cascade)
+  slug                   String               @unique
+  tagline                String?
+  description            String?
+  location               String?
+  coverUrl               String?
+  publicEnabled          Boolean              @default(false)
+  verified               Boolean              @default(false)
+  isDemo                 Boolean              @default(false)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+}
+
+enum EducationPostStatus {
+  AWAITING_CONSENT
+  DECLINED
+  PENDING_REVIEW
+  PUBLISHED
+  REJECTED
+  REMOVED
+}
+
+/// A trainee educational video published by a training organization.
+/// Author = the trainee (traineeId); publisher = the organization
+/// (trainingOrganizationId). The video itself stays on YouTube; only the
+/// link, the extracted video id and the thumbnail URL are stored.
+model EducationPost {
+  id                     String               @id @default(cuid())
+  trainingOrganizationId String
+  trainingOrganization   TrainingOrganization @relation(fields: [trainingOrganizationId], references: [id], onDelete: Cascade)
+  traineeId              String
+  trainee                Trainee              @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  courseId               String?
+  course                 Course?              @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  title                  String
+  description            String?
+  youtubeUrl             String
+  youtubeId              String
+  thumbnailUrl           String
+  category               String?
+  topic                  String?
+  moduleName             String?
+  status                 EducationPostStatus  @default(AWAITING_CONSENT)
+  consentRespondedAt     DateTime?
+  reviewedById           String?
+  reviewedAt             DateTime?
+  reviewNote             String?
+  publishedAt            DateTime?
+  viewCount              Int                  @default(0)
+  isDemo                 Boolean              @default(false)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+
+  skills EducationPostSkill[]
+
+  @@index([trainingOrganizationId, status])
+  @@index([traineeId, status])
+  @@index([status, publishedAt])
+}
+
+model EducationPostSkill {
+  postId  String
+  post    EducationPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  skillId String
+  skill   Skill         @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([postId, skillId])
+  @@index([skillId])
 }
