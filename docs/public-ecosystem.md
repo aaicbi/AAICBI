@@ -1,10 +1,10 @@
-# Public ecosystem (phases 0 to 6)
+# Public ecosystem (phases 0 to 7)
 
 Organization public pages, trainee education videos, the community feed, and a demo world to try them with. Everything ships **off**.
 
 ## Rolling out
 
-1. Run `prisma migrate deploy` (migrations `20261009090000_public_ecosystem`, `20261009100000_ecosystem_feed` and `20261009110000_course_skills` and `20261009120000_ranking_config` and `20261009130000_org_watchlist`). It only adds tables and columns with defaults, so the current site is unaffected.
+1. Run `prisma migrate deploy` (migrations `20261009090000_public_ecosystem`, `20261009100000_ecosystem_feed` and `20261009110000_course_skills` and `20261009120000_ranking_config` and `20261009130000_org_watchlist` and `20261009140000_ecosystem_events`). It only adds tables and columns with defaults, so the current site is unaffected.
 2. Deploy the code. Nothing public changes yet: `/organizations` and `/learn` return 404.
 3. As SUPER_ADMIN open **Platform > Ecosystem** and switch on public organization pages, education videos and/or the community feed. Switching them off again hides the pages at once; no data is deleted.
 
@@ -41,6 +41,12 @@ Organization public pages, trainee education videos, the community feed, and a d
 - **Organizations** (`/employer/organizations`, `/investor/organizations`): approved employers and investors search organizations with a public page by the skill their programs teach. Featured organizations come first. Each card shows programs, videos, badges (never the score) and links to the public page. Only public information is read; contact details and trainee lists are never selected. The sidebar link appears only while organization pages are on; with them off the API returns 404.
 - **Employers**: each skill chip opens the employer Discover page filtered to that skill, which still shows only trainees who chose to be discoverable.
 - **Investors**: a private **watch list** of organizations (separate from the pitch watch list). Watching is idempotent and nobody else, including the organization, can see it. Pitch sectors and stages were already filterable on the investor dashboard.
+
+## Content dashboard and analytics (phase 7)
+
+- **Organization dashboard** (*Organization > Content and visibility*): the last 30 days of page visits, video views, program clicks, new followers, likes and saves and new enrollments, the click rate from visits to programs, top videos, programs people clicked, the organization's own visibility breakdown with badges, and up to three plain suggestions for what would help most. Enrollments count everyone who joined its programs from any source; the page says so.
+- **Counting is anonymous**: `EcosystemEvent` stores only the type, organization and optional video or program (no IP, account or text). A visit counts once per browser session and per 30 minutes per caller; a click on a program is attributed to the organization that owns the course, not to anything the caller sends. Nothing is counted while organization pages are off.
+- **Platform view** (Superadmin, *Ecosystem*): the same totals across real organizations with the most visited ones. Demo organizations are excluded so these numbers stay real.
 
 ## Demo accounts
 

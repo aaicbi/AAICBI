@@ -3246,6 +3246,7 @@ model TrainingOrganization {
   educationPosts EducationPost[]
   followers      OrganizationFollow[]
   watchedByInvestors OrganizationWatchlistItem[]
+  ecosystemEvents    EcosystemEvent[]
 
   // Teammates the organization has invited. They sign in with their own
   // email and password but receive the same session as the organization's
@@ -4460,4 +4461,26 @@ model OrganizationWatchlistItem {
 
   @@id([investorId, trainingOrganizationId])
   @@index([trainingOrganizationId])
+}
+
+// Phase 7 — anonymous, privacy-light counters behind the organization
+// dashboard: no IP, no account, no free text. VIDEO_VIEW sits beside
+// EducationPost.viewCount (which stays) so views can be shown by period.
+enum EcosystemEventType {
+  PROFILE_VIEW
+  VIDEO_VIEW
+  PROGRAM_CLICK
+}
+
+model EcosystemEvent {
+  id                     String               @id @default(cuid())
+  type                   EcosystemEventType
+  trainingOrganizationId String
+  trainingOrganization   TrainingOrganization @relation(fields: [trainingOrganizationId], references: [id], onDelete: Cascade)
+  postId                 String?
+  courseId               String?
+  createdAt              DateTime             @default(now())
+
+  @@index([trainingOrganizationId, type, createdAt])
+  @@index([type, createdAt])
 }

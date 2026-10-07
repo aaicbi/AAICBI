@@ -18,6 +18,10 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       where: { id: params.id, status: "PUBLISHED" },
       data: { viewCount: { increment: 1 } },
     });
+    if (result.count > 0) {
+      const post = await prisma.educationPost.findUnique({ where: { id: params.id }, select: { trainingOrganizationId: true } });
+      if (post) await prisma.ecosystemEvent.create({ data: { type: "VIDEO_VIEW", trainingOrganizationId: post.trainingOrganizationId, postId: params.id } });
+    }
     return NextResponse.json({ counted: result.count > 0 });
   });
 }

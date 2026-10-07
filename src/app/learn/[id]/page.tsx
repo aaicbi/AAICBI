@@ -6,6 +6,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import VerifiedBadge from "@/components/ecosystem/VerifiedBadge";
 import ViewBeacon from "@/components/ecosystem/ViewBeacon";
+import { ProgramClick } from "@/components/ecosystem/EventBeacon";
 import { prisma } from "@/lib/prisma";
 import { getEcosystemFlags } from "@/lib/ecosystem/flags";
 import { PUBLIC_POST_WHERE } from "@/lib/ecosystem/queries";
@@ -121,7 +122,7 @@ export default async function WatchPage({ params }: { params: { id: string } }) 
                     {p.durationDisplay ? ` · ${p.durationDisplay}` : ""}
                   </p>
                   <div className="mt-2 flex gap-2">
-                    <Button href={`/courses/${p.id}`} size="sm">View program</Button>
+                    <ProgramClick courseId={p.id} postId={post.id}><Button href={`/courses/${p.id}`} size="sm">View program</Button></ProgramClick>
                     {p.organizationSlug && <Button href={`/organizations/${p.organizationSlug}`} variant="secondary" size="sm">View organization</Button>}
                   </div>
                 </div>

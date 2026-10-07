@@ -208,6 +208,19 @@ async function main() {
     });
   }
 
+  // A month of anonymous activity for the demo organization's dashboard (only if it has none yet).
+  if ((await prisma.ecosystemEvent.count({ where: { trainingOrganizationId: org.id } })) === 0) {
+    const posts = await prisma.educationPost.findMany({ where: { trainingOrganizationId: org.id, isDemo: true }, select: { id: true } });
+    const rows: Array<{ type: "PROFILE_VIEW" | "VIDEO_VIEW" | "PROGRAM_CLICK"; trainingOrganizationId: string; postId?: string; courseId?: string; createdAt: Date }> = [];
+    for (let day = 0; day < 30; day++) {
+      const at = () => new Date(Date.now() - day * 86_400_000 - Math.floor(Math.random() * 40_000_000));
+      for (let i = 0; i < 2 + (day % 4); i++) rows.push({ type: "PROFILE_VIEW", trainingOrganizationId: org.id, createdAt: at() });
+      for (let i = 0; i < 3 + (day % 5); i++) rows.push({ type: "VIDEO_VIEW", trainingOrganizationId: org.id, postId: posts[(day + i) % Math.max(posts.length, 1)]?.id, createdAt: at() });
+      if (day % 2 === 0) rows.push({ type: "PROGRAM_CLICK", trainingOrganizationId: org.id, courseId: courses[day % courses.length].id, createdAt: at() });
+    }
+    await prisma.ecosystemEvent.createMany({ data: rows });
+  }
+
   // Spread the demo organization's videos over several weeks so the visibility
   // score has a realistic, steady history to show (safe to repeat).
   const demoOrgPosts = await prisma.educationPost.findMany({ where: { trainingOrganizationId: org.id, isDemo: true }, orderBy: { createdAt: "asc" }, select: { id: true } });

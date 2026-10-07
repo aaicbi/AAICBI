@@ -49,6 +49,8 @@ export default function EcosystemAdmin() {
         <Row label="Community feed (/feed)" checked={data.flags.ecosystemFeedEnabled} onChange={(v) => call("/api/admin/ecosystem", "PUT", { ecosystemFeedEnabled: v })} />
       </Card>
 
+      <PlatformAnalytics />
+
       <RankingSection config={data.rankingConfig} ratings={data.ratings} onSave={(c) => call("/api/admin/ecosystem", "PUT", { rankingConfig: c })} />
 
       <section aria-labelledby="orgs">
@@ -164,6 +166,36 @@ function RankingSection({ config, ratings, onSave }: { config: RankingConfig; ra
           </Card>
         ))}
       </div>
+    </section>
+  );
+}
+
+interface Analytics {
+  days: number;
+  totals: { profileViews: number; videoViews: number; programClicks: number; newFollows: number; videosPublished: number; publicOrganizations: number; enrollments: number };
+  topOrganizations: Array<{ name: string; interactions: number }>;
+}
+
+function PlatformAnalytics() {
+  const [a, setA] = useState<Analytics | null>(null);
+  useEffect(() => {
+    fetch("/api/admin/ecosystem/analytics").then((r) => (r.ok ? r.json() : null)).then(setA).catch(() => setA(null));
+  }, []);
+  if (!a) return null;
+  const tiles: Array<[string, number]> = [
+    ["Public organizations", a.totals.publicOrganizations], ["Videos published", a.totals.videosPublished], ["Page visits", a.totals.profileViews],
+    ["Video views", a.totals.videoViews], ["Program clicks", a.totals.programClicks], ["New follows", a.totals.newFollows], ["Enrollments in organization programs", a.totals.enrollments],
+  ];
+  return (
+    <section aria-labelledby="analytics" className="space-y-3">
+      <h2 id="analytics" className="font-display text-lg font-semibold text-brand-ink">Last {a.days} days</h2>
+      <p className="text-sm text-gray-600">Real organizations only; demo organizations are left out.</p>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {tiles.map(([label, n]) => <Card key={label}><p className="text-2xl font-semibold text-brand-ink">{n}</p><p className="text-xs text-gray-600">{label}</p></Card>)}
+      </div>
+      {a.topOrganizations.length > 0 && (
+        <p className="text-sm text-gray-700">Most visited: {a.topOrganizations.map((o) => `${o.name} (${o.interactions})`).join(", ")}</p>
+      )}
     </section>
   );
 }

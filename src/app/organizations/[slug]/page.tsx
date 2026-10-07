@@ -9,6 +9,7 @@ import VerifiedBadge from "@/components/ecosystem/VerifiedBadge";
 import EducationVideoCard from "@/components/ecosystem/EducationVideoCard";
 import { prisma } from "@/lib/prisma";
 import { getEcosystemFlags } from "@/lib/ecosystem/flags";
+import { ProfileViewBeacon, ProgramClick } from "@/components/ecosystem/EventBeacon";
 import OrgBadges from "@/components/ecosystem/OrgBadges";
 import { rateOrganizations } from "@/lib/ecosystem/visibility";
 import { listPublicVideos } from "@/lib/ecosystem/queries";
@@ -83,6 +84,7 @@ export default async function OrganizationPage({ params, searchParams }: { param
     <>
       <SiteHeader nav={[{ label: "Organizations", href: "/organizations" }, { label: "Learn", href: "/learn" }]} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
+      <ProfileViewBeacon slug={profile.slug} />
       <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
         <div className="overflow-hidden rounded-xl border border-brand-gray bg-brand-surface">
           <div className="h-32 bg-brand-mint sm:h-44">
@@ -196,7 +198,7 @@ function ProgramList({
               <p className="font-display font-semibold text-brand-ink">{c.title}</p>
               <p className="mt-1 text-xs text-gray-600">{[c.category, c.durationDisplay].filter(Boolean).join(" • ")}</p>
               {c.description && <p className="mt-2 line-clamp-2 text-sm text-gray-700">{c.description}</p>}
-              <div className="mt-3"><Button href={`/courses/${c.id}`} size="sm">View program</Button></div>
+              <div className="mt-3"><ProgramClick courseId={c.id}><Button href={`/courses/${c.id}`} size="sm">View program</Button></ProgramClick></div>
             </Card>
           ))}
         </div>
