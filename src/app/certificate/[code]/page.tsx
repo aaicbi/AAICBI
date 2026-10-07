@@ -165,9 +165,9 @@ export default async function CertificateVerificationPage({ params }: { params: 
   // design — looked up fresh by the org id regardless of when the
   // certificate was issued, same reasoning as designSnapshot.ts's own
   // comment on why it's deliberately excluded from the snapshot. No org
-  // template at all (AAICBI's own default design) always carries the
-  // watermark — there's no org to pay to remove it.
-  let showWatermark = true;
+  // template at all (AAICBI's own default design) never carries it —
+  // that's AAICBI's own certificate, exactly as it always looked.
+  let showWatermark = false;
   if (designTemplate) {
     const org = await prisma.trainingOrganization.findUnique({
       where: { id: designTemplate.trainingOrganizationId },
