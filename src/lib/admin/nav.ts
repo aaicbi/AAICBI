@@ -254,6 +254,7 @@ const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
     label: "Platform",
     items: [
       { label: "Command Center", href: "/admin/command", audience: "superadmin" },
+      { label: "Design System", href: "/admin/design-system", audience: "admins" },
       { label: "Settings", href: "/admin/settings", audience: "staffAndOrg" },
     ],
   },

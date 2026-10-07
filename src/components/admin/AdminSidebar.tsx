@@ -6,6 +6,7 @@ import { Menu, X, HelpCircle } from "lucide-react";
 import Logo from "@/components/Logo";
 import LogoutButton from "@/components/admin/LogoutButton";
 import Icon from "@/components/ui/Icon";
+import { getNavIcon } from "@/components/icons/navIcons";
 import MobileDrawer from "@/components/ui/MobileDrawer";
 import CommandPalette, { PaletteTrigger } from "@/components/ui/CommandPalette";
 import AvatarFallback from "@/components/ui/AvatarFallback";
@@ -144,12 +145,13 @@ export default function AdminSidebar({
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
                 aria-current={item.href === activeHref ? "page" : undefined}
-                className={`block rounded-lg px-3 py-2 text-sm font-semibold ${
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold ${
                   item.href === activeHref
                     ? "bg-brand-mint text-brand-teal"
                     : "text-gray-600 hover:bg-brand-mint hover:text-brand-teal"
                 }`}
               >
+                <Icon icon={getNavIcon(item.href)} size="md" />
                 {item.label}
               </Link>
             ))}

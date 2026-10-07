@@ -12,6 +12,36 @@ import { ArrowRight, Building2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import VisitorTracker from "@/components/analytics/VisitorTracker";
 import RegisterCta from "@/components/analytics/RegisterCta";
+import ProgressSurface from "@/components/progress/ProgressSurface";
+import type { ProgressSurfaceData } from "@/lib/trainee/progressSurface";
+
+/** Illustrative only. Shown on the landing page, labelled as a sample. */
+const SAMPLE_PROGRESS: ProgressSurfaceData = {
+  readiness: { attemptsAnalysed: 6, averageScore: 74, latestScore: 82, scoreDelta: 11 },
+  strengths: [
+    { topic: "Data cleaning", count: 4 },
+    { topic: "Lookup formulas", count: 3 },
+    { topic: "Charts", count: 2 },
+  ],
+  focus: [
+    { topic: "Pivot tables", count: 3 },
+    { topic: "Conditional logic", count: 2 },
+  ],
+  latestNote: {
+    assessment: "Module 3 Assessment",
+    context: "Excel for Data Analytics",
+    narrative:
+      "Strong, accurate work on cleaning and lookups. Pivot tables cost you marks again: you built them correctly but misread which field belonged in rows and which in values. Rebuild the sales pivot from Lesson 3.2 without the guide, then retry.",
+    score: 82,
+    passed: true,
+    when: "2026-09-14T10:00:00.000Z",
+  },
+  courses: [
+    { id: "sample-1", title: "Excel for Data Analytics", completedModules: 3, totalModules: 5, href: "#" },
+    { id: "sample-2", title: "SQL for Data Analytics", completedModules: 1, totalModules: 6, href: "#" },
+  ],
+  nextStep: { text: "Pivot tables keep coming up. Revisit them before your next assessment.", label: "Continue learning", href: "#" },
+};
 
 /**
  * Design-pass finding: this page was a straight leftover from the
@@ -122,6 +152,22 @@ export default async function LandingPage() {
                 <p className="mt-2 text-sm leading-relaxed text-gray-600">{desc}</p>
               </Card>
             ))}
+          </div>
+        </section>
+
+        {/* The thing only AAICBI does: feedback across every assessment,
+            pulled into one picture with a next step. Sample data, and
+            labelled as such inside the component. */}
+        <section className="border-t border-brand-gray">
+          <div className="mx-auto max-w-4xl px-6 py-16">
+            <h2 className="font-display text-2xl font-semibold text-brand-ink">Feedback that adds up to a plan.</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-gray-600">
+              After every assessment, AAICBI reviews your answers. Over time it shows where you are strong, what keeps
+              tripping you up, and the next thing worth doing.
+            </p>
+            <div className="mt-8">
+              <ProgressSurface data={SAMPLE_PROGRESS} sample />
+            </div>
           </div>
         </section>
 

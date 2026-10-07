@@ -19,6 +19,7 @@ describe("getAdminNavGroups", () => {
     expect(l).not.toContain("Command Center");
     expect(l).not.toContain("Staff");
     expect(l).toContain("Instructors");
+    expect(l).toContain("Design System");
   });
 
   it("keeps people and platform management away from an instructor", () => {
@@ -26,6 +27,7 @@ describe("getAdminNavGroups", () => {
     expect(l).not.toContain("Instructors");
     expect(l).not.toContain("Training Organizations");
     expect(l).not.toContain("Showcase");
+    expect(l).not.toContain("Design System");
     expect(l).toContain("Courses");
     expect(l).toContain("Payments");
   });
@@ -35,7 +37,7 @@ describe("getAdminNavGroups", () => {
     expect(l).toEqual(
       expect.arrayContaining(["Dashboard", "Courses", "Examinations", "Assignments", "Certificates", "Overview", "Team", "Performance", "Payments", "Settings"])
     );
-    for (const hidden of ["Analytics", "Messages", "Showcase", "Training Organizations", "Instructors", "Staff", "Command Center", "Pitches", "Investors"]) {
+    for (const hidden of ["Analytics", "Messages", "Showcase", "Training Organizations", "Instructors", "Staff", "Command Center", "Pitches", "Investors", "Design System"]) {
       expect(l).not.toContain(hidden);
     }
   });

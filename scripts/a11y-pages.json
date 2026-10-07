@@ -1,0 +1,23 @@
+{
+  "roles": {
+    "public": {
+      "paths": ["/", "/courses", "/certificate", "/privacy-policy", "/trainee/login", "/trainee/register", "/employer/login", "/employer/register", "/org/login", "/org/register", "/admin/login", "/this-page-does-not-exist"]
+    },
+    "trainee": {
+      "login": { "url": "/api/auth/trainee-login", "email": "t0@dev.test" },
+      "paths": ["/trainee/dashboard", "/trainee/courses", "/trainee/examinations", "/trainee/assignments", "/trainee/certificates", "/trainee/progress", "/trainee/my-activity", "/trainee/messages", "/trainee/profile", "/trainee/settings", "/trainee/pitch/new"]
+    },
+    "staff": {
+      "login": { "url": "/api/auth/login", "email": "super@dev.test" },
+      "paths": ["/admin/dashboard", "/admin/courses", "/admin/courses/new", "/admin/exams", "/admin/exams/new", "/admin/assignments", "/admin/performance", "/admin/analytics", "/admin/messages", "/admin/payments", "/admin/training-organizations", "/admin/instructors", "/admin/staff", "/admin/command", "/admin/settings", "/admin/profile", "/admin/design-system"]
+    },
+    "organization": {
+      "login": { "url": "/api/auth/training-org-login", "email": "org@dev.test" },
+      "paths": ["/admin/organization", "/admin/organization/team", "/admin/courses", "/admin/exams", "/admin/settings", "/org/billing"]
+    },
+    "employer": {
+      "login": { "url": "/api/auth/employer-login", "email": "employer@dev.test" },
+      "paths": ["/employer/dashboard", "/employer/discover", "/employer/introductions", "/employer/job-postings", "/employer/profile", "/employer/settings"]
+    }
+  }
+}
