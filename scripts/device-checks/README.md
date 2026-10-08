@@ -16,6 +16,7 @@ Environment: `BASE_URL` (default `http://localhost:3113`), `PSQL_ARGS` (psql con
 node scripts/device-checks/trainee.cjs            # phone home, bottom bar, More sheet, iPad portrait vs landscape
 node scripts/device-checks/employer.cjs           # employer home, messaging rules, drafts, offline send
 node scripts/device-checks/forms-and-offline.cjs   # stepped job posting, install card, offline recovery, cache contents, slow 3G
+node scripts/device-checks/add-to-home-screen.cjs   # Install app button, steps sheet on iPhone and Android, none on laptop
 node scripts/device-checks/organization.cjs       # organization home, messaging scope, profile preview, Loop guide
 node scripts/device-checks/videos-and-reports.cjs # trainee video -> organization -> Super Admin, and reports
 node scripts/device-checks/builder-tools.cjs      # course builder / exam tools on phone and tablet

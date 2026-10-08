@@ -63,3 +63,7 @@ One messaging system for everyone (`src/lib/messaging.ts`, `src/app/api/conversa
 The employer rules are one table in `src/lib/messaging/policy.ts` with tests. A trainee who has not engaged with an employer cannot be messaged just for appearing in discovery. Blocking and reporting work for every kind of person.
 
 Each new direct message creates (or refreshes) one unread notification for the other person, in their own bell (organizations in the organization's bell), plus a web push when enabled. It says who wrote, never what. Cohort group chats do not notify. The inbox (`ConversationList`) has search, unread first, last-message time and a refresh on return or reconnect; an unsent message is kept as a draft for the tab, and a send that fails offline keeps its text.
+
+## "Add to home screen" button
+
+`AddToHomeScreenButton` is always visible on phones and tablets until the app is installed: in the top bar of every page (label "Install app") and in the bottom bar's More sheet. One tap opens the browser's own install dialog where the browser allows it. On iPhone/iPad (no such dialog exists for web pages) and on browsers that withhold it, a sheet shows the exact steps (Safari: Share → Add to Home Screen; others: browser menu → Install app). It is hidden once installed and on laptops without an install prompt. A browser cannot place an icon silently: the person always confirms.

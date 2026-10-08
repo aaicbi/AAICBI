@@ -223,3 +223,23 @@ describe("room for the bottom bar", () => {
     expect(css).toMatch(/html \{ scroll-padding-bottom: var\(--layer-nav, 0px\); \}/);
   });
 });
+
+describe("the Add to home screen button", () => {
+  const base = { installed: false, canPrompt: false, ios: false, mobile: true };
+  it("uses the browser's own dialog when it is available", async () => {
+    const { installButtonMode } = await import("@/lib/pwa/installCore");
+    expect(installButtonMode({ ...base, canPrompt: true })).toBe("prompt");
+  });
+  it("shows Safari steps on iPhone/iPad and menu steps on other phones", async () => {
+    const { installButtonMode } = await import("@/lib/pwa/installCore");
+    expect(installButtonMode({ ...base, ios: true })).toBe("ios");
+    expect(installButtonMode(base)).toBe("manual");
+  });
+  it("is hidden once installed and on laptops without an install prompt", async () => {
+    const { installButtonMode, isMobileDevice } = await import("@/lib/pwa/installCore");
+    expect(installButtonMode({ ...base, installed: true, canPrompt: true })).toBe("none");
+    expect(installButtonMode({ ...base, mobile: false })).toBe("none");
+    expect(isMobileDevice("Mozilla/5.0 (Linux; Android 14; Pixel 7) Mobile")).toBe(true);
+    expect(isMobileDevice("Mozilla/5.0 (X11; Linux x86_64) Chrome/120")).toBe(false);
+  });
+});

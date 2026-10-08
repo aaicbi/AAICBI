@@ -5,6 +5,7 @@ import { X, Menu } from "lucide-react";
 import Logo from "./Logo";
 import BackButton from "./BackButton";
 import Icon from "./ui/Icon";
+import AddToHomeScreenButton from "./pwa/AddToHomeScreenButton";
 import { useSidebarActive } from "./SidebarActiveContext";
 
 interface NavItem {
@@ -84,6 +85,10 @@ export default function SiteHeader({
         </div>
 
         <div className="hidden sm:block">{right}</div>
+
+        <div className="ml-auto mr-2 sm:hidden">
+          <AddToHomeScreenButton label="Install app" className="min-h-[40px] px-2.5 text-xs" />
+        </div>
 
         {hasMobileMenu && (
           <button
