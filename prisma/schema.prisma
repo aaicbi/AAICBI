@@ -2895,12 +2895,21 @@ model PlatformSettings {
   // same "default the admin can override per-course" shape as
   // defaultAiCreditAllowance above.
   defaultReminderDaysBeforeExpiry Int[] @default([7, 3, 1])
-  // Public ecosystem (organization pages, education videos) — both off
-  // until SUPER_ADMIN switches them on, so shipping the code changes
-  // nothing visible. See src/lib/ecosystem/flags.ts.
-  ecosystemOrgPagesEnabled  Boolean  @default(false)
-  ecosystemEducationEnabled Boolean  @default(false)
-  ecosystemFeedEnabled      Boolean  @default(false)
+  // Public ecosystem. All switches default to ON; SUPER_ADMIN can turn any
+  // of them off in /admin/ecosystem, which hides the matching public pages
+  // at once. See src/lib/ecosystem/flags.ts.
+  ecosystemOrgPagesEnabled  Boolean  @default(true)
+  ecosystemEducationEnabled Boolean  @default(true)
+  ecosystemFeedEnabled      Boolean  @default(true)
+  // Landing page: the ecosystem hero, activity and discovery sections
+  // (off = the original landing page), whether labelled example
+  // placeholders fill sections that have little real content yet, the
+  // public job board, and the public trainee directory (only trainees
+  // who set profileVisibility to PUBLIC ever appear).
+  ecosystemLandingEnabled         Boolean @default(true)
+  ecosystemLandingPlaceholders    Boolean @default(true)
+  ecosystemPublicJobsEnabled      Boolean @default(true)
+  ecosystemPublicTraineesEnabled  Boolean @default(true)
   // Visibility-score weights and Featured criteria (JSON, validated by
   // parseRankingConfig; null = built-in defaults). See visibilityCore.ts.
   ecosystemRankingConfig    Json?

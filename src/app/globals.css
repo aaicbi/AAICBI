@@ -292,6 +292,13 @@ h1, h2, h3 {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-4px); }
 }
+/* The landing page's ecosystem map: dashes slowly travelling along the
+   connectors, so the map reads as a living flow rather than a diagram.
+   Slow and subtle; the global reduced-motion rule above stops it. */
+@keyframes dash-flow {
+  to { stroke-dashoffset: -32; }
+}
+
 /* Shared "notice me" primitive — see src/components/ui/AttentionPulse.tsx,
    the one place this is actually used from. A slow opacity pulse
    (glow/dim), not a fast flash — meant to draw the eye to a genuinely
