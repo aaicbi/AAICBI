@@ -47,6 +47,7 @@ export interface Payload {
   metrics: Metrics;
   categories: string[];
   limit: number;
+  consultant: ConsultantInfo;
 }
 
 export interface QuestionDto {
@@ -127,3 +128,46 @@ export const STATUS_LABEL: Record<string, string> = { OPEN: "Needs review", IN_R
 
 export const date = (v: string | Date) => new Date(v).toLocaleDateString("en-GB", { dateStyle: "medium" });
 export const dateTime = (v: string | Date) => new Date(v).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
+
+export interface SuggestionDto {
+  id: string;
+  kind: "DRAFT_ANSWER" | "IMPROVE_ANSWER" | "MERGE" | "REJECT" | "ADVICE";
+  status: "PENDING" | "APPROVED" | "DISMISSED";
+  questionId: string | null;
+  entryId: string | null;
+  title: string;
+  rationale: string;
+  proposal: Record<string, unknown>;
+  warnings: string[];
+  model: string;
+  createdAt: string;
+  decidedAt: string | null;
+  question: { id: string; text: string; asked: number; status: string } | null;
+}
+
+export interface ConsultantInfo {
+  enabled: boolean;
+  configured: boolean;
+  pending: number;
+}
+
+export interface DraftProposal {
+  question: string;
+  answer: string;
+  category: string | null;
+  navHref: string | null;
+  navLabel: string | null;
+  target: string | null;
+  roles: string[];
+  relatedQuestions: string[];
+  keywords: string[];
+}
+
+/** A consultant's proposed answer as the form's draft. The note records that Claude drafted it and a person approved it. */
+export function draftFromProposal(p: DraftProposal): Draft {
+  return {
+    question: p.question, answer: p.answer, keywords: p.keywords.join(", "), related: p.relatedQuestions.join("\n"), links: [], enabled: true,
+    category: p.category ?? "", navHref: p.navHref ?? "", navLabel: p.navLabel ?? "", target: p.target ?? "", roles: p.roles,
+    changeNote: "Drafted by the Claude consultant; reviewed and approved by a super admin",
+  };
+}

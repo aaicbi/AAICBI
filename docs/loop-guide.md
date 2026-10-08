@@ -95,3 +95,24 @@ A control opts in with `data-guide-target="some-id"`; every menu item carries `n
 - Guided tours are the existing playbooks: steps may now carry `target`, `page` (where the control lives) and `completeOn`. A step on another page offers **Take me there**. A test checks every named target exists.
 - **Reduced motion** gets a still, double high-contrast outline with no animation. The beam is slow (2.8 s halo, 3.6 s sweep) and never flashes.
 - To make a new control pointable: add `data-guide-target="its-id"`, list it in `src/lib/guide/controlTargets.ts` (a test keeps the list honest), and use it in a playbook step or an approved answer.
+
+---
+
+# The Claude consultant (Command Center)
+
+An adviser for teaching Loop, in **Guide Bot Knowledge → Claude consultant** (SUPER_ADMIN). It uses the platform's existing Anthropic account (`ANTHROPIC_API_KEY`, billed with the other AI features; model `claude-sonnet-4-5`, overridable with `GUIDE_CONSULTANT_MODEL`). An app cannot use a personal Claude.ai subscription; the key is what connects it to your Anthropic plan.
+
+**Switch.** Off by default. A super admin turns it on or off from the tab (`PlatformSettings.guideConsultantEnabled`). Off: every consultant route refuses (403), no run button is shown, nothing is sent to Claude, and Loop behaves exactly as before. On without a key: it says plainly that it cannot run (503).
+
+**Advice only, and only when asked.**
+- It runs only when a super admin presses **Ask Claude to review** (or **Ask Claude for a draft** on one question, or asks the consultant a question). Never on a schedule, never from a public route. Limited to 10 runs an hour per super admin; each run is written to the existing audit log (`AiCommandLog`).
+- It can only return proposals, stored as `GuideSuggestion` rows: a draft answer, a duplicate to merge into an existing answer, a question to reject, or advice. Nothing writes to the knowledge from the consultant code (a test enforces that no consultant file touches answers or question statuses).
+- A proposal reaches Loop only after a super admin opens **Review and approve**, which is the normal answer form pre-filled; they read it, change it and save. Saving records the version with the note "Drafted by the Claude consultant; reviewed and approved by a super admin" and who saved it. Dismissing leaves the question waiting.
+
+**What it sees.** Scrubbed question text, ask counts, kinds of account, areas, confidence, the closest answer tried, and the approved answers, as numbered references (Q1, A1), never database ids. Never who asked, accounts, messages or addresses.
+
+**Guard rails on what it writes.** Told never to invent how the platform works, to avoid prices and dates, and to use only real pages and controls. Server-side, whatever it returns is checked: a page or control that does not exist is removed with a visible warning, unknown audiences are dropped, an over-long answer is shortened, and an answer that mentions a price, date or number is flagged. Every draft carries "Check the facts before approving" plus any facts Claude listed for the reader to verify.
+
+**Failure is contained.** A Claude outage, timeout or unreadable reply gives a plain message ("Nothing was changed"), stores nothing and leaks no detail.
+
+Verified with a stand-in for Anthropic's server (the app's own SDK pointed at it with `ANTHROPIC_BASE_URL`): `scripts/device-checks/guide-consultant-api.cjs`, `guide-consultant-ui.cjs`, `fake-claude.cjs`.

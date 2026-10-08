@@ -7,14 +7,16 @@ import { useToast } from "@/components/ui/Toast";
 import EntryForm from "@/components/admin/guide/EntryForm";
 import QueueTab from "@/components/admin/guide/QueueTab";
 import KnowledgeTab from "@/components/admin/guide/KnowledgeTab";
+import ConsultantTab from "@/components/admin/guide/ConsultantTab";
 import { CategoriesTab, FaqTab, HistoryTab, OverviewTab, SettingsTab, TargetsTab } from "@/components/admin/guide/OtherTabs";
-import { EMPTY_DRAFT, bodyOf, draftFrom, draftFromQuestion, type Draft, type EntryDto, type Payload, type QuestionDto } from "@/components/admin/guide/shared";
+import { EMPTY_DRAFT, bodyOf, draftFrom, draftFromProposal, draftFromQuestion, type Draft, type DraftProposal, type EntryDto, type Payload, type QuestionDto, type SuggestionDto } from "@/components/admin/guide/shared";
 
 const TABS = [
   ["overview", "Overview"],
   ["queue", "Needs review"],
   ["faq", "Frequently asked"],
   ["knowledge", "Knowledge base"],
+  ["consultant", "Claude consultant"],
   ["navigation", "Navigation"],
   ["history", "Learning history"],
   ["categories", "Categories"],
@@ -34,7 +36,8 @@ export default function GuideManager() {
   const [loadError, setLoadError] = useState(false);
   const [tab, setTab] = useState<TabId>("overview");
   const [feature, setFeature] = useState<string | undefined>();
-  const [editing, setEditing] = useState<{ draft: Draft; entryId?: string; question?: QuestionDto } | null>(null);
+  const [editing, setEditing] = useState<{ draft: Draft; entryId?: string; question?: Pick<QuestionDto, "id" | "asked" | "text">; suggestionId?: string } | null>(null);
+  const [consultantTick, setConsultantTick] = useState(0);
   const [busy, setBusy] = useState(false);
   const { showToast } = useToast();
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -69,6 +72,9 @@ export default function GuideManager() {
         ? await call(`/api/admin/guide/entries/${editing.entryId}`, "PUT", payload)
         : await call("/api/admin/guide/entries", "POST", payload);
     if (ok) {
+      // A proposal from the consultant is marked approved only once a person has saved the answer.
+      if (editing.suggestionId) await fetch(`/api/admin/guide/consultant/suggestions/${editing.suggestionId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "approve" }) }).catch(() => {});
+      setConsultantTick((n) => n + 1);
       setEditing(null);
       showToast(editing.question ? "Approved. Loop can use it within a minute." : "Saved. Visitors see it within a minute.", "success");
     }
@@ -80,6 +86,17 @@ export default function GuideManager() {
   const edit = (e: EntryDto) => setEditing({ draft: draftFrom(e), entryId: e.id });
   const add = () => setEditing({ draft: EMPTY_DRAFT });
   const answer = (q: QuestionDto) => setEditing({ draft: draftFromQuestion(q), question: q });
+  const approveDraft = (s: SuggestionDto, d: DraftProposal) => setEditing({ draft: draftFromProposal(d), question: s.question ? { id: s.question.id, asked: s.question.asked, text: s.question.text } : undefined, suggestionId: s.id });
+  const askClaude = async (q: QuestionDto) => {
+    setBusy(true);
+    const res = await fetch("/api/admin/guide/consultant/review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionIds: [q.id] }) });
+    setBusy(false);
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) return showToast(d.error ?? "That did not work.", "error");
+    showToast("Claude's proposal is in the Claude consultant tab.", "success");
+    setConsultantTick((n) => n + 1);
+    load();
+  };
   const openQueue = (f?: string) => {
     setFeature(f);
     setTab("queue");
@@ -114,15 +131,17 @@ export default function GuideManager() {
           >
             {label}
             {id === "queue" && data.metrics.queue.open + data.metrics.queue.inReview > 0 ? ` (${data.metrics.queue.open + data.metrics.queue.inReview})` : ""}
+            {id === "consultant" && data.consultant.pending > 0 ? ` (${data.consultant.pending})` : ""}
           </button>
         ))}
       </div>
 
       <div role="tabpanel" id={`guide-panel-${tab}`} aria-labelledby={`guide-tab-${tab}`}>
         {tab === "overview" && <OverviewTab m={data.metrics} onOpenQueue={openQueue} />}
-        {tab === "queue" && <QueueTab key={feature ?? "all"} entries={data.entries} categories={data.categories} busy={busy} call={call} onAnswer={answer} initialFeature={feature} />}
+        {tab === "queue" && <QueueTab key={feature ?? "all"} entries={data.entries} categories={data.categories} busy={busy} call={call} onAnswer={answer} initialFeature={feature} onAskClaude={data.consultant.enabled && data.consultant.configured ? askClaude : undefined} />}
         {tab === "faq" && <FaqTab entries={data.entries} m={data.metrics} />}
         {tab === "knowledge" && <KnowledgeTab entries={data.entries} categories={data.categories} limit={data.limit} busy={busy} call={call} onEdit={edit} onAdd={add} />}
+        {tab === "consultant" && <ConsultantTab info={data.consultant} busy={busy} call={call} onToggle={(v) => call("/api/admin/guide", "PUT", { consultantEnabled: v })} onApproveDraft={approveDraft} refreshKey={consultantTick} onChanged={load} />}
         {tab === "navigation" && <KnowledgeTab navigationOnly entries={data.entries} categories={data.categories} limit={data.limit} busy={busy} call={call} onEdit={edit} onAdd={add} />}
         {tab === "history" && <HistoryTab />}
         {tab === "categories" && <CategoriesTab entries={data.entries} categories={data.categories} />}
@@ -130,9 +149,10 @@ export default function GuideManager() {
         {tab === "settings" && <SettingsTab enabled={data.enabled} busy={busy} limit={data.limit} onToggle={(v) => call("/api/admin/guide", "PUT", { enabled: v })} />}
       </div>
 
-      <Modal open={!!editing} onClose={() => setEditing(null)} title={editing?.question ? "Approve an answer" : editing?.entryId ? "Edit answer" : "Write an answer"} size="lg">
+      <Modal open={!!editing} onClose={() => setEditing(null)} title={editing?.suggestionId ? "Review Claude's draft" : editing?.question ? "Approve an answer" : editing?.entryId ? "Edit answer" : "Write an answer"} size="lg">
         {editing && (
           <>
+            {editing.suggestionId && <p className="mt-3 rounded-lg bg-brand-goldLight px-3 py-2 text-sm text-brand-goldText">Drafted by the Claude consultant. Read it, check the facts, change anything, and only then approve. Loop uses nothing until you save.</p>}
             {editing.question && (
               <p className="mt-3 rounded-lg bg-brand-mint px-3 py-2 text-sm text-brand-ink">
                 Asked {editing.question.asked} {editing.question.asked === 1 ? "time" : "times"}. Once you save, this becomes an approved answer Loop can use. Other wordings below are added so it is found next time.
