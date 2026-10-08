@@ -21,6 +21,13 @@ describe("where Loop never appears", () => {
     for (const p of ["/admin/dashboard", "/admin/command", "/admin/courses", "/admin/ecosystem", "/instructor/courses"]) expect(isHiddenPath(p), p).toBe(true);
     for (const p of ["/admin/organization", "/admin/organization/events", "/admin/login", "/admin/forgot-password"]) expect(isHiddenPath(p), p).toBe(false);
   });
+  it("shows the whole workspace to a training organization, including where it authors assessments", () => {
+    for (const p of ["/admin/dashboard", "/admin/courses", "/admin/courses/c1", "/admin/modules/m1/assessment", "/admin/exams/e1/import", "/admin/payments"]) {
+      expect(isHiddenPath(p, "organization"), p).toBe(false);
+      expect(isHiddenPath(p, "staff"), p).toBe(true);
+      expect(isHiddenPath(p, null), p).toBe(true);
+    }
+  });
   it("shows everywhere else the ecosystem lives", () => {
     for (const p of ["/", "/courses", "/courses/c1", "/jobs", "/jobs/j1", "/organizations", "/organizations/x", "/trainees", "/learn", "/feed", "/events", "/search", "/certificate", "/trainee/dashboard", "/trainee/login", "/employer/dashboard", "/investor/dashboard", "/org/login", "/profile/u/amina"]) {
       expect(isHiddenPath(p), p).toBe(false);

@@ -206,6 +206,9 @@ export function answerQuestion(question: string, index: GuideIndex, on: GuideSwi
 
   if (best && best.score >= ANSWER_MIN) {
     const e = best.it.entry;
+    if (e.playbookId) {
+      return { kind: "playbook", text: e.answer, links: [], playbookId: e.playbookId, matchedQuestion: e.question, related: related(true) };
+    }
     const links = filterLinks(e.links, on);
     if (skill && best.score < 0.85) {
       return { kind: "answer", text: e.answer, links: dedupe([...topicLinks(skill, question, on).slice(0, 2), ...links]), matchedQuestion: e.question, related: related(true) };
