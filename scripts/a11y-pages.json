@@ -13,11 +13,11 @@
     },
     "organization": {
       "login": { "url": "/api/auth/training-org-login", "email": "org@dev.test" },
-      "paths": ["/admin/organization", "/admin/organization/team", "/admin/organization/profile", "/admin/education", "/admin/courses", "/admin/exams", "/admin/settings", "/org/billing"]
+      "paths": ["/admin/organization", "/admin/organization/team", "/admin/messages", "/admin/organization/profile", "/admin/education", "/admin/courses", "/admin/exams", "/admin/settings", "/org/billing"]
     },
     "employer": {
       "login": { "url": "/api/auth/employer-login", "email": "employer@dev.test" },
-      "paths": ["/employer/dashboard", "/employer/discover", "/employer/introductions", "/employer/job-postings", "/employer/profile", "/employer/settings"]
+      "paths": ["/employer/dashboard", "/employer/discover", "/employer/introductions", "/employer/messages", "/employer/job-postings", "/employer/profile", "/employer/settings"]
     },
     "landing": {
       "paths": ["/", "/jobs", "/jobs/{job}", "/trainees", "/jobs?q=zzzzzz", "/trainees?q=zzzzzz"]

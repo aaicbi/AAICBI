@@ -35,9 +35,9 @@ describe("getAdminNavGroups", () => {
   it("shows a training organization only its own scoped sections", () => {
     const l = labels("ADMIN", true);
     expect(l).toEqual(
-      expect.arrayContaining(["Dashboard", "Courses", "Examinations", "Assignments", "Certificates", "Overview", "Team", "Performance", "Payments", "Settings"])
+      expect.arrayContaining(["Dashboard", "Courses", "Examinations", "Assignments", "Certificates", "Overview", "Team", "Messages", "Performance", "Payments", "Settings"])
     );
-    for (const hidden of ["Analytics", "Messages", "Showcase", "Training Organizations", "Instructors", "Staff", "Command Center", "Pitches", "Investors", "Design System"]) {
+    for (const hidden of ["Analytics", "Showcase", "Training Organizations", "Instructors", "Staff", "Command Center", "Pitches", "Investors", "Design System"]) {
       expect(l).not.toContain(hidden);
     }
   });

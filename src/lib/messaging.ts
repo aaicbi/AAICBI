@@ -14,7 +14,7 @@
 import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/auth/session";
 
-export type ActorType = "TRAINEE" | "STAFF";
+export type ActorType = "TRAINEE" | "STAFF" | "EMPLOYER";
 
 export interface Actor {
   actorType: ActorType;
@@ -27,8 +27,35 @@ export async function resolveActor(session: SessionPayload): Promise<Actor> {
     const t = await prisma.trainee.findUnique({ where: { id: session.userId }, select: { name: true } });
     return { actorType: "TRAINEE", actorId: session.userId, name: t?.name ?? "A trainee" };
   }
+  if (session.role === "EMPLOYER") {
+    const e = await prisma.employer.findUnique({ where: { id: session.userId }, select: { companyName: true } });
+    return { actorType: "EMPLOYER", actorId: session.userId, name: e?.companyName ?? "An employer" };
+  }
   const u = await prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } });
   return { actorType: "STAFF", actorId: session.userId, name: u?.name ?? "A staff member" };
+}
+
+/** Display name for any participant; one place so every route names people the same way. */
+export async function resolveDisplayName(type: ActorType, id: string): Promise<string> {
+  if (type === "TRAINEE") {
+    const t = await prisma.trainee.findUnique({ where: { id }, select: { name: true } });
+    return t?.name ?? "A trainee";
+  }
+  if (type === "EMPLOYER") {
+    const e = await prisma.employer.findUnique({ where: { id }, select: { companyName: true } });
+    return e?.companyName ?? "An employer";
+  }
+  const u = await prisma.user.findUnique({ where: { id }, select: { name: true } });
+  return u?.name ?? "A staff member";
+}
+
+/** Has this trainee agreed to engage with this employer: an accepted introduction, or an application to one of its postings. */
+export async function employerTraineeFacts(employerId: string, traineeId: string): Promise<{ acceptedIntroduction: boolean; appliedToEmployer: boolean }> {
+  const [intro, application] = await Promise.all([
+    prisma.introductionRequest.findFirst({ where: { employerId, traineeId, status: "ACCEPTED" }, select: { id: true } }),
+    prisma.jobApplication.findFirst({ where: { traineeId, jobPosting: { employerId } }, select: { id: true } }),
+  ]);
+  return { acceptedIntroduction: intro !== null, appliedToEmployer: application !== null };
 }
 
 /** Deterministic, order-independent key for a DIRECT conversation's two
@@ -66,6 +93,8 @@ export async function canAccessCohortConversation(session: SessionPayload, cohor
     const cohort = await prisma.cohort.findUnique({ where: { id: cohortId }, select: { course: { select: { createdById: true } } } });
     return cohort?.course.createdById === session.userId;
   }
+  // Employers are never part of a cohort's chat.
+  if (session.role !== "TRAINEE") return false;
   // TRAINEE
   const match = await prisma.enrollmentRecord.findFirst({ where: { cohortId, traineeId: session.userId }, select: { id: true } });
   return match !== null;
@@ -167,14 +196,6 @@ export async function getTraineeConversationMessagesForReview(traineeId: string,
     }));
 }
 
-async function resolveDisplayName(type: ActorType, id: string): Promise<string> {
-  if (type === "TRAINEE") {
-    const t = await prisma.trainee.findUnique({ where: { id }, select: { name: true } });
-    return t?.name ?? "A trainee";
-  }
-  const u = await prisma.user.findUnique({ where: { id }, select: { name: true } });
-  return u?.name ?? "A staff member";
-}
 
 export async function canAccessConversation(
   session: SessionPayload,

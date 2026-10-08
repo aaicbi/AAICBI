@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
-import { resolveActor, findOrCreateCohortConversation, type Actor } from "@/lib/messaging";
+import { resolveActor, resolveDisplayName, findOrCreateCohortConversation, type Actor, type ActorType } from "@/lib/messaging";
 
 /**
  * GET /api/conversations — the inbox list. One shared route for both
@@ -21,7 +21,7 @@ import { resolveActor, findOrCreateCohortConversation, type Actor } from "@/lib/
  */
 export async function GET() {
   return withApiErrors(async () => {
-    const session = await requireRole("TRAINEE", "SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
+    const session = await requireRole("TRAINEE", "EMPLOYER", "SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
     const actor = await resolveActor(session);
 
     let conversations: { id: string; type: "DIRECT" | "COHORT"; cohortId: string | null; lastMessageAt: Date }[];
@@ -35,6 +35,10 @@ export async function GET() {
       ]);
       const directConvos = await prisma.conversation.findMany({ where: { id: { in: myParticipantRows.map((r) => r.conversationId) }, type: "DIRECT" } });
       conversations = [...ownedCohortConvos, ...directConvos].sort((a, b) => b.lastMessageAt.getTime() - a.lastMessageAt.getTime());
+    } else if (session.role === "EMPLOYER") {
+      // Employers only ever have direct conversations they are a party to.
+      const myParticipantRows = await prisma.conversationParticipant.findMany({ where: { participantType: "EMPLOYER", participantId: session.userId }, select: { conversationId: true } });
+      conversations = await prisma.conversation.findMany({ where: { id: { in: myParticipantRows.map((r) => r.conversationId) }, type: "DIRECT" }, orderBy: { lastMessageAt: "desc" } });
     } else {
       const myCohorts = await prisma.enrollmentRecord.findMany({ where: { traineeId: session.userId }, select: { cohortId: true } });
       const [cohortConvos, myParticipantRows] = await Promise.all([
@@ -48,15 +52,6 @@ export async function GET() {
     const rows = await Promise.all(conversations.map((c) => summarizeConversation(c, actor)));
     return NextResponse.json(rows);
   });
-}
-
-async function resolveDisplayName(type: "TRAINEE" | "STAFF", id: string): Promise<string> {
-  if (type === "TRAINEE") {
-    const t = await prisma.trainee.findUnique({ where: { id }, select: { name: true } });
-    return t?.name ?? "A trainee";
-  }
-  const u = await prisma.user.findUnique({ where: { id }, select: { name: true } });
-  return u?.name ?? "A staff member";
 }
 
 async function summarizeConversation(conversation: { id: string; type: "DIRECT" | "COHORT"; cohortId: string | null }, actor: Actor) {
@@ -87,10 +82,10 @@ async function summarizeConversation(conversation: { id: string; type: "DIRECT" 
     const myParticipant = participants.find((p) => p.participantType === actor.actorType && p.participantId === actor.actorId);
     if (myParticipant) {
       const other = participants.find((p) => p.id !== myParticipant.id);
-      title = other ? await resolveDisplayName(other.participantType as "TRAINEE" | "STAFF", other.participantId) : "Conversation";
+      title = other ? await resolveDisplayName(other.participantType as ActorType, other.participantId) : "Conversation";
     } else if (participants.length === 2) {
       // SUPER_ADMIN oversight view of a DM neither party involves them in.
-      const names = await Promise.all(participants.map((p) => resolveDisplayName(p.participantType as "TRAINEE" | "STAFF", p.participantId)));
+      const names = await Promise.all(participants.map((p) => resolveDisplayName(p.participantType as ActorType, p.participantId)));
       title = names.join(" ↔ ");
     } else {
       title = "Conversation";

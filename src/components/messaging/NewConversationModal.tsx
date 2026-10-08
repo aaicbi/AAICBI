@@ -6,7 +6,7 @@ import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 
 interface Contact {
-  type: "TRAINEE" | "STAFF";
+  type: "TRAINEE" | "STAFF" | "EMPLOYER";
   id: string;
   name: string;
   alreadyBlocked: boolean;
@@ -74,7 +74,7 @@ export default function NewConversationModal({ open, onClose, redirectBase }: { 
                 className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-brand-ink hover:bg-brand-mint/30 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <span>
-                  {c.name} {c.type === "STAFF" && <span className="text-xs text-brand-teal">Staff</span>}
+                  {c.name} {c.type === "STAFF" && <span className="text-xs text-brand-teal">Staff</span>}{c.type === "EMPLOYER" && <span className="text-xs text-brand-goldText">Employer</span>}
                 </span>
                 {c.alreadyBlocked && <span className="text-xs text-gray-400">Blocked</span>}
               </button>

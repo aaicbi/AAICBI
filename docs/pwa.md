@@ -43,8 +43,23 @@ People turn it on from **Notifications → Alerts on this device** (on iPhone/iP
 
 ## Not covered yet (needs product decisions or new features)
 
-- Employers and investors have no in-app messaging, so there is no Messages tab for them. Organizations' staff messaging is not offered because that page's data scoping was never confirmed for organizations.
+- Investors have no in-app messaging: nothing in the data model gives an investor and a trainee or organization an agreed relationship to base it on (watching a pitch is not consent to be contacted), so there is no Messages tab for them. Organization-to-employer and employer-to-employer chat are also not offered, for the same reason.
 - Dashboards keep one layout at all sizes; a phone-specific "priority order" home is the next step.
 - Forms are the existing responsive forms; multi-step phone forms and numeric/email keyboards per field are not done everywhere.
 - Offline drafts exist only for what a page already keeps in memory; there is no draft store for messages.
 - Real-device testing (Android/iPhone/iPad, rotation, slow network) must be done by people on those devices.
+
+## Messaging
+
+One messaging system for everyone (`src/lib/messaging.ts`, `src/app/api/conversations/*`). Who may start a chat:
+
+| From | May message |
+|---|---|
+| Trainee | cohort-mates, staff who teach them, any Super Admin, and employers they have engaged with (accepted introduction or applied to their job) |
+| Employer | trainees who accepted their introduction or applied to one of their jobs, and any Super Admin (support) |
+| Organization | trainees in its own cohorts (and each cohort's group chat); never other organizations |
+| Super Admin | everyone, with read-only oversight of all conversations |
+
+The employer rules are one table in `src/lib/messaging/policy.ts` with tests. A trainee who has not engaged with an employer cannot be messaged just for appearing in discovery. Blocking and reporting work for every kind of person.
+
+Each new direct message creates (or refreshes) one unread notification for the other person, in their own bell (organizations in the organization's bell), plus a web push when enabled. It says who wrote, never what. Cohort group chats do not notify. The inbox (`ConversationList`) has search, unread first, last-message time and a refresh on return or reconnect; an unsent message is kept as a draft for the tab, and a send that fails offline keeps its text.

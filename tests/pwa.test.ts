@@ -41,7 +41,9 @@ describe("where the installed app opens", () => {
   });
   it("honours shortcuts, falling back to home where an account has no such page", () => {
     expect(launchDestination("trainee", "messages")).toBe("/trainee/messages");
-    expect(launchDestination("employer", "messages")).toBe("/employer/dashboard");
+    expect(launchDestination("employer", "messages")).toBe("/employer/messages");
+    expect(launchDestination("organization", "messages")).toBe("/admin/messages");
+    expect(launchDestination("investor", "messages")).toBe("/investor/dashboard");
     expect(launchDestination("organization", "events")).toBe("/admin/organization/events");
     expect(launchDestination("investor", "notifications")).toBe("/notifications");
     expect(launchDestination("trainee", parseLaunchTarget("nonsense"))).toBe("/trainee/dashboard");
@@ -85,10 +87,9 @@ describe("the phone bottom navigation", () => {
       expect(tabs.some((t) => t.key === "alerts"), role).toBe(true);
       expect(tabs.length, role).toBeLessThanOrEqual(4); // plus More = at most five targets
     }
-    // Employers and investors have no messaging, so they are not offered a Messages tab.
-    expect(BOTTOM_NAV.employer.some((t) => t.key === "messages")).toBe(false);
+    // Investors have no messaging yet, so they are not offered a Messages tab; everyone who can message is.
     expect(BOTTOM_NAV.investor.some((t) => t.key === "messages")).toBe(false);
-    expect(BOTTOM_NAV.trainee.some((t) => t.key === "messages")).toBe(true);
+    for (const role of ["trainee", "employer", "organization", "staff"] as const) expect(BOTTOM_NAV[role].some((t) => t.key === "messages"), role).toBe(true);
   });
   it("marks the current tab, and the home tab only on its own page", () => {
     const [home, messages] = BOTTOM_NAV.trainee;

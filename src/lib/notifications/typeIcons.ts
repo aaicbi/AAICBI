@@ -57,6 +57,7 @@ const TYPE_ICON: Record<string, LucideIcon> = {
   MATERIAL_UPDATED: FileText,
   QA_REPLY: MessageCircle,
   MESSAGE_TO_ADMIN: Mail,
+  NEW_MESSAGE: MessageCircle,
   EMPLOYER_APPROVED: CheckCircle2,
   JOB_POSTING_APPROVED: CheckCircle2,
   INVESTOR_APPROVED: CheckCircle2,

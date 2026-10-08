@@ -16,6 +16,7 @@ export const EMPLOYER_NAV = [
   { label: "Dashboard", href: "/employer/dashboard" },
   { label: "Discover", href: "/employer/discover" },
   { label: "My Introductions", href: "/employer/introductions" },
+  { label: "Messages", href: "/employer/messages" },
   { label: "Job Postings", href: "/employer/job-postings" },
   { label: "Account", href: "/employer/status" },
   { label: "Settings", href: "/employer/settings" },

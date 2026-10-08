@@ -2,8 +2,8 @@
  * The phone bottom navigation: a few places people go several times a day,
  * chosen per kind of account from what that account actually has. Everything
  * else lives behind "More", which lists the account's full menu. Pages that
- * do not exist for an account are never offered (employers and investors have
- * no messaging yet, so they get no Messages tab).
+ * do not exist for an account are never offered (investors have no messaging,
+ * so they get no Messages tab).
  */
 export type NavRole = "trainee" | "employer" | "investor" | "instructor" | "organization" | "staff";
 export type NavIconKey = "home" | "messages" | "events" | "talent" | "jobs" | "courses" | "organizations" | "alerts";
@@ -23,8 +23,8 @@ export const BOTTOM_NAV: Record<NavRole, BottomNavItem[]> = {
   ],
   employer: [
     { key: "home", label: "Home", href: "/employer/dashboard" },
+    { key: "messages", label: "Messages", href: "/employer/messages" },
     { key: "talent", label: "Talent", href: "/employer/discover" },
-    { key: "jobs", label: "Jobs", href: "/employer/job-postings" },
     { key: "alerts", label: "Alerts", href: "/notifications" },
   ],
   investor: [
@@ -39,7 +39,7 @@ export const BOTTOM_NAV: Record<NavRole, BottomNavItem[]> = {
   ],
   organization: [
     { key: "home", label: "Overview", href: "/admin/organization" },
-    { key: "courses", label: "Courses", href: "/admin/courses" },
+    { key: "messages", label: "Messages", href: "/admin/messages" },
     { key: "events", label: "Events", href: "/admin/organization/events" },
     { key: "alerts", label: "Alerts", href: "/notifications" },
   ],

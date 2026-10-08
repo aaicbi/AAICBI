@@ -18,7 +18,7 @@ const HOME: Record<MeKind, string> = {
   staff: "/admin/dashboard",
 };
 
-const MESSAGES: Partial<Record<MeKind, string>> = { trainee: "/trainee/messages", staff: "/admin/messages" };
+const MESSAGES: Partial<Record<MeKind, string>> = { trainee: "/trainee/messages", employer: "/employer/messages", organization: "/admin/messages", staff: "/admin/messages" };
 const OPPORTUNITIES: Partial<Record<MeKind, string>> = { trainee: "/jobs", employer: "/employer/job-postings" };
 
 export function parseLaunchTarget(value: string | null | undefined): LaunchTarget | null {

@@ -11,9 +11,11 @@ import ReportModal from "./ReportModal";
 import SuspendReasonModal from "./SuspendReasonModal";
 
 import { Textarea } from "@/components/ui/Field";
+type PersonKind = "TRAINEE" | "STAFF" | "EMPLOYER";
+const draftKey = (id: string) => `msg-draft:${id}`;
 interface MessageDto {
   id: string;
-  authorType: "TRAINEE" | "STAFF";
+  authorType: PersonKind;
   authorId: string;
   authorName: string;
   body: string;
@@ -22,8 +24,8 @@ interface MessageDto {
 interface ThreadDto {
   title: string;
   conversationType: "DIRECT" | "COHORT";
-  otherParticipant: { type: "TRAINEE" | "STAFF"; id: string; name: string } | null;
-  viewer: { actorType: "TRAINEE" | "STAFF"; actorId: string; isSuperAdmin: boolean; isMessagingSuspended: boolean };
+  otherParticipant: { type: PersonKind; id: string; name: string } | null;
+  viewer: { actorType: PersonKind; actorId: string; isSuperAdmin: boolean; isMessagingSuspended: boolean };
   messages: MessageDto[];
 }
 
@@ -45,7 +47,7 @@ export default function ConversationThread({ conversationId }: { conversationId:
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [reportTarget, setReportTarget] = useState<{ type: "TRAINEE" | "STAFF"; id: string; name: string } | null>(null);
+  const [reportTarget, setReportTarget] = useState<{ type: PersonKind; id: string; name: string } | null>(null);
   const [suspendReasonOpen, setSuspendReasonOpen] = useState(false);
   const threadRef = useRef<HTMLDivElement>(null);
   const { showToast } = useToast();
@@ -61,9 +63,34 @@ export default function ConversationThread({ conversationId }: { conversationId:
   useEffect(() => {
     load();
     const interval = setInterval(load, 60_000);
-    return () => clearInterval(interval);
+    // Coming back to the tab, or back online, refreshes straight away instead of waiting for the next tick.
+    const refresh = () => document.visibilityState === "visible" && load();
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("online", load);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("online", load);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
+
+  // An unsent message survives a reload, a lost connection or leaving the page; it is kept for this tab only.
+  useEffect(() => {
+    try {
+      setBody(sessionStorage.getItem(draftKey(conversationId)) ?? "");
+    } catch {
+      /* private mode: no draft */
+    }
+  }, [conversationId]);
+  useEffect(() => {
+    try {
+      if (body) sessionStorage.setItem(draftKey(conversationId), body);
+      else sessionStorage.removeItem(draftKey(conversationId));
+    } catch {
+      /* private mode: no draft */
+    }
+  }, [body, conversationId]);
 
   useEffect(() => {
     threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: "smooth" });
@@ -72,11 +99,19 @@ export default function ConversationThread({ conversationId }: { conversationId:
   async function send() {
     if (!body.trim() || sending) return;
     setSending(true);
-    const res = await fetch(`/api/conversations/${conversationId}/messages`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body }),
-    });
+    let res: Response;
+    try {
+      res = await fetch(`/api/conversations/${conversationId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body }),
+      });
+    } catch {
+      // No connection: the text stays in the box (and in the saved draft) so nothing is lost.
+      setSending(false);
+      showToast("You're offline. Your message is still here; press Send when you're back online.", "error");
+      return;
+    }
     setSending(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -213,12 +248,13 @@ export default function ConversationThread({ conversationId }: { conversationId:
           {thread.messages.map((m) => {
             const isMine = m.authorType === thread.viewer.actorType && m.authorId === thread.viewer.actorId;
             return (
-              <Card key={m.id} className={m.authorType === "STAFF" ? "border-brand-teal bg-brand-teal/5" : ""}>
+              <Card key={m.id} className={m.authorType === "STAFF" ? "border-brand-teal bg-brand-teal/5" : m.authorType === "EMPLOYER" ? "border-brand-gold bg-brand-goldLight/40" : ""}>
                 <p className="text-sm text-gray-800">{m.body}</p>
                 <div className="mt-1.5 flex items-center justify-between gap-2">
                   <p className="text-xs text-gray-500">
                     {m.authorName}
                     {m.authorType === "STAFF" && <span className="ml-1 font-semibold text-brand-teal">· Staff</span>}
+                    {m.authorType === "EMPLOYER" && <span className="ml-1 font-semibold text-brand-goldText">· Employer</span>}
                     {" · "}
                     {new Date(m.createdAt).toLocaleString()}
                   </p>
