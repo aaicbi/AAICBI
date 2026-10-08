@@ -112,6 +112,7 @@ export const PLAYBOOKS: Playbook[] = [
     steps: [
       { title: "Open Certificates", text: "In the menu choose **Certificates**.", href: "/admin/certificate-templates", hrefLabel: "Open Certificates" },
       { title: "Start a template", text: "Press **+ New** (or **Choose a starting template** to start from a design). Give it a name, add the signatory name and title, and use **Upload logo** for your logo." },
+      { title: "Or upload your own design", text: "If you already have a finished certificate design, press **Upload template** and choose a PNG, JPG or WEBP picture of it. It becomes the page, and the trainee name, course, date and code fields are placed on it for you to drag into position. **Replace template image** swaps it later and **Remove template image** goes back to a plain page.", tip: "Leave the spaces for the name, course and date empty in your picture, because those are filled in for each trainee. Images can be up to 10MB." },
       { title: "Check it", text: "Use **Preview** to see exactly what is on the canvas. Your work saves as a draft automatically; **Save changes** saves now." },
       { title: "Send for review", text: "Press **Send for Review**. AAICBI approves templates before courses can use them; approved templates are locked.", tip: "Until yours is approved, courses use the AAICBI default certificate." },
       { title: "Use it on a course", text: "Open the course and pick the template under **Certificate Template**.", href: "/admin/courses", hrefLabel: "Open Courses" },

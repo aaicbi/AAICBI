@@ -8,6 +8,7 @@ import {
   DEFAULT_LAYOUT_WIDTH,
   DEFAULT_LAYOUT_HEIGHT,
   PAGE_SIZE_PRESETS,
+  pageSizeForImage,
   type CertificateLayout,
   type CertificateElement,
   type TextElement,
@@ -42,6 +43,8 @@ export interface CertificateCanvasEditorProps {
   onChange: (layout: CertificateLayout) => void;
   logoUrl: string | null;
   disabled: boolean;
+  /** Where an uploaded template image is sent. Null hides the upload button. */
+  backgroundUploadUrl?: string | null;
 }
 
 /**
@@ -54,7 +57,9 @@ export interface CertificateCanvasEditorProps {
  * (never Fabric's own internal object graph) is the single source of
  * truth persisted to the server.
  */
-export default function CertificateCanvasEditor({ layout, onChange, logoUrl, disabled }: CertificateCanvasEditorProps) {
+export default function CertificateCanvasEditor({ layout, onChange, logoUrl, disabled, backgroundUploadUrl = null }: CertificateCanvasEditorProps) {
+  const [uploadingBackground, setUploadingBackground] = useState(false);
+  const [backgroundError, setBackgroundError] = useState<string | null>(null);
   const [current, setCurrent] = useState<CertificateLayout>(layout ?? DEFAULT_LAYOUT);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [multiCount, setMultiCount] = useState(0);
@@ -257,6 +262,32 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
     // the parent's `key` prop instead.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // The uploaded template image, drawn behind every element. Loaded
+  // through Fabric's own backgroundImage so it never shows up as a
+  // selectable object, and never in the undo stack of elements.
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    const url = current.backgroundImageUrl;
+    if (!url) {
+      canvas.backgroundImage = undefined;
+      canvas.requestRenderAll();
+      return;
+    }
+    let live = true;
+    FabricImage.fromURL(url, { crossOrigin: "anonymous" })
+      .then((img) => {
+        if (!live || !fabricRef.current) return;
+        img.set({ originX: "left", originY: "top", left: 0, top: 0, scaleX: current.width / (img.width || 1), scaleY: current.height / (img.height || 1), selectable: false, evented: false });
+        fabricRef.current.backgroundImage = img;
+        fabricRef.current.requestRenderAll();
+      })
+      .catch(() => setBackgroundError("The template image could not be shown. Try uploading it again."));
+    return () => {
+      live = false;
+    };
+  }, [current.backgroundImageUrl, current.width, current.height]);
 
   // Keep canvas size/background in sync with page-size/background changes
   // (e.g. the page-size picker). Full logical resolution always — the
@@ -586,6 +617,69 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
     setUploadedIcons((icons) => [icon, ...icons]);
   }
 
+  // An uploaded certificate design becomes the page: the page takes the
+  // image's shape, and if the page is still empty the usual fields are
+  // laid out on it, ready to drag into place.
+  async function handleUploadTemplate(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !backgroundUploadUrl) return;
+    setBackgroundError(null);
+    setUploadingBackground(true);
+    try {
+      const dims = await new Promise<{ w: number; h: number }>((resolve, reject) => {
+        const probe = new Image();
+        const objectUrl = URL.createObjectURL(file);
+        probe.onload = () => {
+          URL.revokeObjectURL(objectUrl);
+          resolve({ w: probe.naturalWidth, h: probe.naturalHeight });
+        };
+        probe.onerror = () => {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error("That file could not be read as an image."));
+        };
+        probe.src = objectUrl;
+      });
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(backgroundUploadUrl, { method: "POST", body: formData });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || typeof data.url !== "string") throw new Error(typeof data.error === "string" ? data.error : "Could not upload. Try again.");
+      const size = pageSizeForImage(dims.w, dims.h);
+      const base = currentRef.current;
+      const next: CertificateLayout = { ...base, ...size, backgroundImageUrl: data.url };
+      if (base.elements.length === 0) {
+        const mid = Math.round(size.width / 2);
+        const w = Math.round(size.width * 0.7);
+        const left = mid - Math.round(w / 2);
+        const row = (field: DynamicField, y: number, fontSize: number, bold = false): TextElement => ({
+          id: newId(), type: "text", x: left, y: Math.round(size.height * y), width: w, rotation: 0,
+          fontSize, fontFamily: "Georgia", bold, italic: false, color: "#16302B", align: "center", content: { kind: "field", field },
+        });
+        next.elements = [row("traineeName", 0.42, 40, true), row("verb", 0.52, 20), row("credentialTitle", 0.58, 28, true), row("issuedAt", 0.74, 18), row("certificateCode", 0.8, 14)];
+      }
+      update(next);
+      // Rebuild the canvas objects for the new element set and page size.
+      const canvas = fabricRef.current;
+      if (canvas) {
+        canvas.remove(...canvas.getObjects());
+        objectsRef.current = {};
+        await loadElements(canvas, next.elements, logoUrl, objectsRef);
+        canvas.requestRenderAll();
+      }
+    } catch (err) {
+      setBackgroundError(err instanceof Error ? err.message : "Could not upload. Try again.");
+    } finally {
+      setUploadingBackground(false);
+    }
+  }
+
+  function removeTemplateImage() {
+    const { backgroundImageUrl: _removed, ...rest } = currentRef.current;
+    void _removed;
+    update(rest);
+  }
+
   // --- Property panel edits apply to both state AND the live Fabric object ---
   async function handlePanelChange(patch: Record<string, unknown>) {
     if (!selectedId) return;
@@ -654,6 +748,19 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
           >
             + Line
           </button>
+          {backgroundUploadUrl && (
+            <>
+              <label className="cursor-pointer rounded-lg border border-brand-teal px-2.5 py-1 text-xs font-semibold text-brand-teal hover:bg-brand-mint focus-within:ring-2 focus-within:ring-brand-teal">
+                {uploadingBackground ? "Uploading..." : current.backgroundImageUrl ? "Replace template image" : "Upload template"}
+                <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleUploadTemplate} disabled={uploadingBackground} className="sr-only" />
+              </label>
+              {current.backgroundImageUrl && (
+                <button type="button" onClick={removeTemplateImage} className="rounded-lg border border-brand-gray px-2.5 py-1 text-xs font-semibold text-brand-ink">
+                  Remove template image
+                </button>
+              )}
+            </>
+          )}
           <Select label="Page size" compact controlClassName="ml-1.5 text-xs" onChange={(e) => {
                 const preset = PAGE_SIZE_PRESETS.find((p) => p.id === e.target.value);
                 if (preset) update({ ...current, width: preset.width, height: preset.height });
@@ -691,6 +798,13 @@ export default function CertificateCanvasEditor({ layout, onChange, logoUrl, dis
             </button>
           )}
         </div>
+      )}
+
+      {!disabled && backgroundUploadUrl && (
+        <p className="mb-3 text-xs text-gray-600">
+          Have your own certificate design? Choose <strong>Upload template</strong> to use a PNG, JPG or WEBP picture of it as the page, then drag the name, course, date and code fields into place.
+          {backgroundError && <span role="alert" className="mt-1 block font-semibold text-brand-rose">{backgroundError}</span>}
+        </p>
       )}
 
       {!disabled && (

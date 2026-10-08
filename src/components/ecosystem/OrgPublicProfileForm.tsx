@@ -9,6 +9,7 @@ import { SkeletonList } from "@/components/ui/Skeleton";
 import { Input, Textarea } from "@/components/ui/Field";
 import { useToast } from "@/components/ui/Toast";
 import VerifiedBadge from "./VerifiedBadge";
+import OrgProfilePreview from "./OrgProfilePreview";
 
 interface ProfileDto {
   slug: string; tagline: string | null; description: string | null; location: string | null;
@@ -17,6 +18,7 @@ interface ProfileDto {
 
 export default function OrgPublicProfileForm() {
   const [profile, setProfile] = useState<ProfileDto | null>(null);
+  const [org, setOrg] = useState<{ name: string; logoUrl: string | null }>({ name: "Your organization", logoUrl: null });
   const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +26,10 @@ export default function OrgPublicProfileForm() {
 
   function load() {
     setLoadError(false);
-    fetch("/api/org/profile").then((r) => (r.ok ? r.json() : Promise.reject())).then((d) => setProfile(d.profile)).catch(() => setLoadError(true));
+    fetch("/api/org/profile").then((r) => (r.ok ? r.json() : Promise.reject())).then((d) => {
+        setProfile(d.profile);
+        setOrg({ name: d.organizationName ?? "Your organization", logoUrl: d.logoUrl ?? null });
+      }).catch(() => setLoadError(true));
   }
   useEffect(load, []);
 
@@ -58,6 +63,7 @@ export default function OrgPublicProfileForm() {
   const set = (patch: Partial<ProfileDto>) => setProfile({ ...profile, ...patch });
 
   return (
+    <>
     <form onSubmit={save}>
       <Card className="space-y-4">
         <div className="flex items-center justify-between gap-4">
@@ -80,5 +86,17 @@ export default function OrgPublicProfileForm() {
         </div>
       </Card>
     </form>
+    <OrgProfilePreview
+      name={org.name}
+      logoUrl={org.logoUrl}
+      slug={profile.slug}
+      tagline={profile.tagline ?? ""}
+      description={profile.description ?? ""}
+      location={profile.location ?? ""}
+      coverUrl={profile.coverUrl ?? ""}
+      verified={profile.verified}
+      publicEnabled={profile.publicEnabled}
+    />
+    </>
   );
 }

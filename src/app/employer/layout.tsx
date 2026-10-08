@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { SidebarActiveProvider } from "@/components/SidebarActiveContext";
+import SidebarBackBar from "@/components/SidebarBackBar";
 import EmployerSidebar from "@/components/employer/EmployerSidebar";
 import { getEcosystemFlags } from "@/lib/ecosystem/flags";
 import { pageHasSidebar } from "@/lib/sidebarRoutes";
@@ -41,7 +42,10 @@ export default async function EmployerLayout({ children }: { children: React.Rea
     <SidebarActiveProvider>
       <div className="min-h-screen">
         <EmployerSidebar companyName={employer?.companyName ?? session.email} showOrganizations={(await getEcosystemFlags()).orgPages} />
-        <div className="lg:pl-64">{children}</div>
+        <div className="lg:pl-64">
+          <SidebarBackBar />
+          {children}
+        </div>
       </div>
     </SidebarActiveProvider>
   );

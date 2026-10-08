@@ -94,6 +94,12 @@ export default function AssignmentWorkspacePage({ params }: { params: { id: stri
     [params.id, showToast]
   );
 
+  // Answers are the trainee's own words: pasting (and dropping text in) is blocked.
+  function blockClipboard(e: React.SyntheticEvent) {
+    e.preventDefault();
+    showToast("Pasting is turned off here. Please type your answer in your own words.", "error");
+  }
+
   function handleAnswerChange(questionId: string, text: string) {
     setAnswers((a) => ({ ...a, [questionId]: text }));
     if (debounceTimers.current[questionId]) clearTimeout(debounceTimers.current[questionId]);
@@ -223,6 +229,8 @@ export default function AssignmentWorkspacePage({ params }: { params: { id: stri
                   hideLabel
                   value={answers[activeQuestion.id] ?? ""}
                   onChange={(e) => handleAnswerChange(activeQuestion.id, e.target.value)}
+                  onPaste={blockClipboard}
+                  onDrop={blockClipboard}
                   rows={activeQuestion.type === "TECHNICAL_RESPONSE" ? 14 : 10}
                   placeholder="Type your answer here..."
                   disabled={activeIsCarriedForward}

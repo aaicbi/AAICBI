@@ -391,6 +391,7 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
             onChange={setLayoutJson}
             logoUrl={selected?.logoUrl ?? null}
             disabled={isLocked}
+            backgroundUploadUrl={`/api/admin/training-organizations/${params.id}/certificate-backgrounds`}
           />
           <p className="mt-3 text-xs text-gray-500">
             A &quot;Powered by AAICBI&quot; watermark is added automatically to every certificate and can&apos;t be removed from this editor.

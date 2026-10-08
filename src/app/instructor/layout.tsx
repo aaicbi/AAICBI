@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth/session";
 import { SidebarActiveProvider } from "@/components/SidebarActiveContext";
+import SidebarBackBar from "@/components/SidebarBackBar";
 import InstructorSidebar from "@/components/instructor/InstructorSidebar";
 
 export const metadata = { title: { default: "Instructor", template: "%s · Instructor · AAICBI" } };
@@ -26,7 +27,10 @@ export default async function InstructorLayout({ children }: { children: React.R
     <SidebarActiveProvider>
       <div className="min-h-screen">
         <InstructorSidebar />
-        <div className="lg:pl-64">{children}</div>
+        <div className="lg:pl-64">
+          <SidebarBackBar />
+          {children}
+        </div>
       </div>
     </SidebarActiveProvider>
   );

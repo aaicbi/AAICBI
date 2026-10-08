@@ -103,10 +103,29 @@ export const CertificateElementSchema = z.discriminatedUnion("type", [
   IconElementSchema,
 ]);
 
+/** Only images this app stored itself may sit behind a certificate (a public page), never an arbitrary web address. */
+function isOwnUploadUrl(value: string): boolean {
+  try {
+    const u = new URL(value);
+    return u.protocol === "https:" && u.hostname.endsWith(".public.blob.vercel-storage.com");
+  } catch {
+    return false;
+  }
+}
+
 export const CertificateLayoutSchema = z.object({
   width: z.number().min(200).max(4000),
   height: z.number().min(200).max(4000),
   backgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  // An uploaded certificate design (PNG/JPG/WEBP) drawn edge to edge
+  // behind every element. Its url is part of the layout, so it is frozen
+  // into each certificate's snapshot like any other design value.
+  backgroundImageUrl: z
+    .string()
+    .url()
+    .max(2000)
+    .refine(isOwnUploadUrl, "The template image must be one uploaded through the editor.")
+    .optional(),
   elements: z.array(CertificateElementSchema).max(200),
 });
 
@@ -154,3 +173,12 @@ export const PAGE_SIZE_PRESETS: { id: string; label: string; width: number; heig
   { id: "letter-landscape", label: "Letter Landscape", width: 1100, height: 850 },
   { id: "letter-portrait", label: "Letter Portrait", width: 850, height: 1100 },
 ];
+
+/** Page size for an uploaded design: keeps the image's shape on an A4-sized long edge, never outside the schema's limits. */
+export function pageSizeForImage(imageWidth: number, imageHeight: number): { width: number; height: number } {
+  if (!(imageWidth > 0) || !(imageHeight > 0)) return { width: DEFAULT_LAYOUT_WIDTH, height: DEFAULT_LAYOUT_HEIGHT };
+  const LONG = 1169;
+  const scale = LONG / Math.max(imageWidth, imageHeight);
+  const clamp = (n: number) => Math.min(4000, Math.max(200, Math.round(n)));
+  return { width: clamp(imageWidth * scale), height: clamp(imageHeight * scale) };
+}
