@@ -23,4 +23,19 @@ const nextConfig = {
   },
 };
 
+// The service worker file must always be re-checked by the browser (so an
+// update is picked up), may control the whole site, and runs under its own
+// strict policy. The manifest and offline page are small and may be cached briefly.
+nextConfig.headers = async () => [
+  {
+    source: "/sw.js",
+    headers: [
+      { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+      { key: "Service-Worker-Allowed", value: "/" },
+      { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+    ],
+  },
+  { source: "/offline.html", headers: [{ key: "Cache-Control", value: "public, max-age=3600" }] },
+];
+
 module.exports = nextConfig;

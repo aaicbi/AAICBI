@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { SidebarActiveProvider } from "@/components/SidebarActiveContext";
-import SidebarBackBar from "@/components/SidebarBackBar";
+import ShellContent from "@/components/pwa/ShellContent";
+import { getAdminNavGroups } from "@/lib/admin/nav";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import { pageHasSidebar } from "@/lib/sidebarRoutes";
 import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
@@ -96,10 +97,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           role={session.role}
           isTrainingOrg={!!trainingOrg}
         />
-        <div className="lg:pl-64">
-          <SidebarBackBar />
-          {children}
-        </div>
+        <ShellContent role={trainingOrg ? "organization" : session.role === "INSTRUCTOR" ? "instructor" : "staff"} moreItems={getAdminNavGroups(session.role, !!trainingOrg).flatMap((g) => g.items)}>{children}</ShellContent>
       </div>
     </SidebarActiveProvider>
   );

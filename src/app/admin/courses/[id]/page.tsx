@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import DesktopRecommended from "@/components/pwa/DesktopRecommended";
 import { uploadPresigned } from "@vercel/blob/client";
 import {
   MessageSquare,
@@ -443,6 +444,7 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-3xl px-6 py-10">
+        <DesktopRecommended what="Building a course" />
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             {editingCourse ? (

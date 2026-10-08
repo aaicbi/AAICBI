@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import DesktopRecommended from "@/components/pwa/DesktopRecommended";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
@@ -271,6 +272,7 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
+        <DesktopRecommended what="The certificate studio" below="lg" />
       {modal}
       <h1 className="font-display text-2xl font-semibold text-brand-ink">Certificate Templates</h1>
       <p className="mt-1 text-sm text-gray-500">Design a branded certificate, then send it to the organization for approval.</p>

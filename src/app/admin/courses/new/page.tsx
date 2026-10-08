@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import DesktopRecommended from "@/components/pwa/DesktopRecommended";
 import { useRouter } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
@@ -99,6 +100,7 @@ export default function NewCoursePage() {
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-xl px-6 py-10">
+        <DesktopRecommended what="Creating a course" />
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Create Course</h1>
         <Card className="mt-6">
           <form onSubmit={handleSubmit} className="space-y-5">

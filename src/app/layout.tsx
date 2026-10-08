@@ -1,9 +1,14 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Manrope } from "next/font/google";
 import { ToastProvider } from "@/components/ui/Toast";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
 import TourGuideButton from "@/components/TourGuideButton";
 import LoopGuide from "@/components/guide/LoopGuide";
+import PwaRegister from "@/components/pwa/PwaRegister";
+import NetworkStatus from "@/components/pwa/NetworkStatus";
+import InstallPrompt from "@/components/pwa/InstallPrompt";
+import GlobalBottomNav from "@/components/pwa/GlobalBottomNav";
+import ResponsiveTables from "@/components/pwa/ResponsiveTables";
 import "./globals.css";
 
 // next/font self-hosts these at build time — no external font-CDN
@@ -29,6 +34,26 @@ export const metadata: Metadata = {
   title: { default: "AAICBI", template: "%s · AAICBI" },
   description:
     "AAICBI, the African AI Capacity Building Initiative: practical AI and technology courses, publicly verifiable certificates and a path to employers.",
+  applicationName: "AAICBI",
+  appleWebApp: { capable: true, title: "AAICBI", statusBarStyle: "black-translucent" },
+  formatDetection: { telephone: false },
+  icons: {
+    icon: [{ url: "/icons/icon-32.png", sizes: "32x32", type: "image/png" }, { url: "/logo.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
+};
+
+// Installable app: the browser bar and the splash screen take the brand colors,
+// the page may draw under a phone's notch (the shell then pads itself with the
+// safe-area insets), and zooming is left to the user.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#14181A" },
+    { media: "(prefers-color-scheme: light)", color: "#016B61" },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -73,6 +98,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             help button it replaces wherever it shows. See
             src/components/guide/LoopGuide.tsx. */}
         <LoopGuide />
+        {/* The installable-app layer: service worker, offline notice, install prompt, and phone-friendly tables. */}
+        <PwaRegister />
+        <NetworkStatus />
+        <InstallPrompt />
+        <GlobalBottomNav />
+        <ResponsiveTables />
       </body>
     </html>
   );

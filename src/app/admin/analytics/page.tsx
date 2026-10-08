@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import DesktopRecommended from "@/components/pwa/DesktopRecommended";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
 import Card from "@/components/ui/Card";
@@ -166,6 +167,7 @@ export default function AdminAnalyticsPage() {
     <>
       <SiteHeader nav={ADMIN_NAV} right={<LogoutButton />} />
       <main className="mx-auto max-w-6xl px-6 py-10">
+        <DesktopRecommended what="Detailed analytics" />
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="flex items-center gap-2 font-display text-2xl font-semibold text-brand-ink">

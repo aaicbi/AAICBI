@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiErrors } from "@/lib/apiError";
 import { requireTrainingOrgSession } from "@/lib/trainingOrgMembers";
+import { sendPushForNotification } from "@/lib/push/send";
 import { OrgDecisionSchema, statusAfterOrgDecision } from "@/lib/ecosystem/videoSubmissionCore";
 
 /** POST /api/org/education-posts/[id]/decision — the organization approves or declines a video a trainee sent it. */
@@ -35,19 +36,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     });
     if (changed.count === 0) return NextResponse.json({ error: "This video just changed. Refresh and try again." }, { status: 409 });
 
-    await prisma.userNotification.create({
-      data: {
-        recipientType: "TRAINEE",
-        recipientId: post.traineeId,
-        type: "EDUCATION_ORG_DECISION",
-        title: parsed.data.action === "approve" ? `${org.name} approved your video` : `${org.name} did not approve your video`,
-        body: parsed.data.action === "approve"
-          ? next === "PUBLISHED" ? `"${post.title}" is now public.` : `"${post.title}" now goes to AAICBI for a final check before it is public.`
-          : `"${post.title}": ${parsed.data.note} You can send it to AAICBI for review from My Videos.`,
-        url: "/trainee/videos",
-        senderLabel: org.name,
-      },
-    });
+    const note = {
+      type: "EDUCATION_ORG_DECISION",
+      title: parsed.data.action === "approve" ? `${org.name} approved your video` : `${org.name} did not approve your video`,
+      body: parsed.data.action === "approve"
+        ? next === "PUBLISHED" ? `"${post.title}" is now public.` : `"${post.title}" now goes to AAICBI for a final check before it is public.`
+        : `"${post.title}": ${parsed.data.note} You can send it to AAICBI for review from My Videos.`,
+      url: "/trainee/videos",
+    };
+    await prisma.userNotification.create({ data: { recipientType: "TRAINEE", recipientId: post.traineeId, ...note, senderLabel: org.name } });
+    await sendPushForNotification("TRAINEE", post.traineeId, note);
     return NextResponse.json({ status: next });
   });
 }

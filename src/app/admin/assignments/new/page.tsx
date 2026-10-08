@@ -1,5 +1,6 @@
 "use client";
 import { Suspense, useRef, useState } from "react";
+import DesktopRecommended from "@/components/pwa/DesktopRecommended";
 import { useRouter, useSearchParams } from "next/navigation";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -50,6 +51,7 @@ function NewAssignmentPageContent() {
 
   return (
     <main className="mx-auto max-w-xl px-6 py-10">
+        <DesktopRecommended what="Creating an assignment" />
       <h1 className="font-display text-2xl font-semibold text-brand-ink">New Assignment</h1>
 
       <div className="mt-4 flex gap-2">

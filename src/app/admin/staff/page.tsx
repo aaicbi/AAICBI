@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import DesktopRecommended from "@/components/pwa/DesktopRecommended";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
 import Card from "@/components/ui/Card";
@@ -101,6 +102,7 @@ export default function AdminStaffPage() {
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-2xl px-6 py-10">
+        <DesktopRecommended what="Managing staff accounts" />
         <div className="flex items-center justify-between">
           <h1 className="font-display text-2xl font-semibold text-brand-ink">Staff Accounts</h1>
           {!showAddForm && <Button onClick={() => setShowAddForm(true)}>+ Add Staff</Button>}

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
+import DesktopRecommended from "@/components/pwa/DesktopRecommended";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
@@ -269,6 +270,7 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
       />
       {modal}
       <main className="mx-auto max-w-3xl px-6 py-10">
+        <DesktopRecommended what="Importing and reviewing questions" />
       <h1 className="text-2xl font-bold text-gray-900">{exam.title}</h1>
       <p className="text-sm text-gray-500">
         Exam code: <span className="font-mono">{exam.code}</span>

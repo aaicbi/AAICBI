@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import DesktopRecommended from "@/components/pwa/DesktopRecommended";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
 import Card from "@/components/ui/Card";
@@ -327,6 +328,7 @@ export default function CommandCenterPage() {
     <>
       <SiteHeader nav={ADMIN_NAV_COMMAND} right={<LogoutButton />} />
       <main className="mx-auto max-w-6xl px-6 py-8">
+        <DesktopRecommended what="The Command Center" />
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="font-display text-2xl font-semibold text-brand-ink">Command</h1>
