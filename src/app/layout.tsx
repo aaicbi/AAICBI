@@ -3,6 +3,7 @@ import { Fraunces, Manrope } from "next/font/google";
 import { ToastProvider } from "@/components/ui/Toast";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
 import TourGuideButton from "@/components/TourGuideButton";
+import LoopGuide from "@/components/guide/LoopGuide";
 import "./globals.css";
 
 // next/font self-hosts these at build time — no external font-CDN
@@ -68,6 +69,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             fixed-position affordance rather than an element-anchored
             tour. */}
         <TourGuideButton />
+        {/* Loop, the ecosystem guide — mounted once, here, like the page
+            help button it replaces wherever it shows. See
+            src/components/guide/LoopGuide.tsx. */}
+        <LoopGuide />
       </body>
     </html>
   );

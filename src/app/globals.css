@@ -428,3 +428,48 @@ select {
 table {
   font-variant-numeric: tabular-nums;
 }
+
+/* Loop, the guide character (src/components/guide). Transform-only motion,
+   so it costs next to nothing. The global reduced-motion rule above turns
+   all of it off for anyone who asks the browser for less motion. */
+@keyframes loop-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
+}
+@keyframes loop-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+@keyframes loop-wave {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-22deg); }
+  75% { transform: rotate(16deg); }
+}
+@keyframes loop-talk {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.9); }
+}
+@keyframes loop-tilt {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-5deg); }
+}
+@keyframes loop-pop {
+  0% { transform: scale(0); }
+  70% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+@keyframes loop-bubble-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.loop-face .loop-eye { transform-box: fill-box; transform-origin: center; animation: loop-blink 5.5s infinite; }
+.loop-face .loop-mouth { transform-box: fill-box; transform-origin: center; }
+.loop-face .loop-hand { transform-box: fill-box; transform-origin: 20% 100%; display: none; }
+.loop-face .loop-check { display: none; transform-box: fill-box; transform-origin: center; }
+.loop-face .loop-head { transform-box: fill-box; transform-origin: 50% 100%; }
+.loop-face[data-state="idle"], .loop-face[data-state="minimized"] { animation: loop-bob 4s ease-in-out infinite; }
+.loop-face[data-state="attention"] .loop-hand, .loop-face[data-state="speaking"] .loop-hand { display: block; animation: loop-wave 0.9s ease-in-out 2; }
+.loop-face[data-state="speaking"] .loop-mouth { animation: loop-talk 0.45s ease-in-out infinite; }
+.loop-face[data-state="thinking"] .loop-head { animation: loop-tilt 1.2s ease-in-out infinite; }
+.loop-face[data-state="thinking"] .loop-eyes { transform: translateY(-1.5px); }
+.loop-face[data-state="helpful"] .loop-check { display: block; animation: loop-pop 0.35s ease-out; }

@@ -260,6 +260,7 @@ const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
     items: [
       { label: "Command Center", href: "/admin/command", audience: "superadmin" },
       { label: "Ecosystem", href: "/admin/ecosystem", audience: "superadmin" },
+      { label: "Loop guide", href: "/admin/command/guide", audience: "superadmin" },
       { label: "Design System", href: "/admin/design-system", audience: "admins" },
       { label: "Settings", href: "/admin/settings", audience: "staffAndOrg" },
     ],
