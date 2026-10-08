@@ -12,7 +12,7 @@
  * profiles, admin data) is ever kept by this worker. Logging out
  * therefore leaves nothing behind to clean up.
  */
-const VERSION = "v1";
+const VERSION = "v2";
 const STATIC_CACHE = `aaicbi-static-${VERSION}`;
 const SHELL_CACHE = `aaicbi-shell-${VERSION}`;
 const OFFLINE_URL = "/offline.html";
@@ -56,11 +56,13 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // A page: always the network. Only when it cannot be reached, show the offline page.
-  if (req.mode === "navigate") {
-    event.respondWith(
-      fetch(req).catch(async () => (await caches.match(OFFLINE_URL)) || new Response("You are offline.", { status: 503, headers: { "Content-Type": "text/plain" } })),
-    );
+  // A page: the browser's own network stack handles it, so redirects (sign-in
+  // returns from Google, role redirects) behave exactly as without a worker.
+  // Answering navigations with fetch() from here breaks redirected
+  // navigations in some mobile Safari/WebKit versions. Only when the device
+  // reports it is offline do we step in with the offline page.
+  if (req.mode === "navigate" && self.navigator && self.navigator.onLine === false) {
+    event.respondWith(caches.match(OFFLINE_URL).then((hit) => hit || new Response("You are offline.", { status: 503, headers: { "Content-Type": "text/plain" } })));
   }
 });
 

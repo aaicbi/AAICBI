@@ -243,3 +243,12 @@ describe("the Add to home screen button", () => {
     expect(isMobileDevice("Mozilla/5.0 (X11; Linux x86_64) Chrome/120")).toBe(false);
   });
 });
+
+describe("service worker and redirected page loads", () => {
+  it("never answers a page navigation with fetch() (breaks sign-in redirects on some phones)", async () => {
+    const src = (await import("node:fs")).readFileSync("public/sw.js", "utf8");
+    const nav = src.slice(src.indexOf('req.mode === "navigate"'), src.indexOf("// --- Web push"));
+    expect(nav).not.toMatch(/fetch\(/);
+    expect(nav).toContain("onLine === false");
+  });
+});
