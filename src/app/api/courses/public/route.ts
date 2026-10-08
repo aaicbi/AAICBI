@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiErrors } from "@/lib/apiError";
 import { getCourseLifecyclePhase } from "@/lib/courseLifecycle";
 import { getEffectivePriceKobo } from "@/lib/coursePricing";
+import { publisherNames } from "@/lib/courseOrg";
 
 /**
  * GET /api/courses/public — genuinely anonymous, no session required.
@@ -32,6 +33,7 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
+        createdById: true,
         title: true,
         description: true,
         category: true,
@@ -60,6 +62,7 @@ export async function GET() {
       },
     });
 
+    const publishers = await publisherNames(courses);
     const result = courses.map((c) => ({
       id: c.id,
       title: c.title,
@@ -75,6 +78,7 @@ export async function GET() {
       effectivePriceKobo: getEffectivePriceKobo(c),
       billingInterval: c.billingInterval,
       flyerUrl: c.showFlyer ? c.flyerUrl : null,
+      publisherName: publishers.get(c.id) ?? null,
       moduleCount: c._count.modules,
       startDate: c.startDate,
       endDate: c.endDate,

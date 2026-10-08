@@ -2,6 +2,7 @@
 import { useState, type ReactNode } from "react";
 import Badge from "@/components/ui/Badge";
 import CourseOutlineAccordion from "@/components/courses/CourseOutlineAccordion";
+import CourseHero from "@/components/courses/CourseHero";
 import CourseFlyerLightbox from "@/components/courses/CourseFlyerLightbox";
 import PriceTag from "@/components/courses/PriceTag";
 import type { MarketingView } from "@/lib/courseMarketing";
@@ -40,21 +41,17 @@ export default function CourseMarketingView({ data, actions }: { data: Marketing
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
       {/* Hero */}
-      <div className="flex flex-col gap-6 sm:flex-row">
-        {data.flyerUrl && (
-          <button
-            onClick={() => setLightboxOpen(true)}
-            className="h-40 w-full shrink-0 overflow-hidden rounded-xl border border-brand-gray sm:w-56"
-            aria-label="View full-size flyer"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element -- a real, dynamically-uploaded external URL. */}
-            <img src={data.flyerUrl} alt={`${data.title} flyer`} className="h-full w-full object-cover" />
-          </button>
-        )}
-        <div className="flex-1">
-          <div className="flex flex-wrap items-center gap-2">
+      <CourseHero
+        title={data.title}
+        imageUrl={data.flyerUrl}
+        publisher={data.publisherName}
+        category={data.category}
+        onImageClick={() => setLightboxOpen(true)}
+        overview={data.description}
+        badges={
+          <>
             {data.lifecyclePhase && (
               <Badge variant={COURSE_LIFECYCLE_PHASE_BADGE_VARIANT[data.lifecyclePhase]}>
                 {COURSE_LIFECYCLE_PHASE_LABEL[data.lifecyclePhase]}
@@ -62,10 +59,10 @@ export default function CourseMarketingView({ data, actions }: { data: Marketing
             )}
             {data.isFree && <Badge variant="success">Free</Badge>}
             {data.level && <Badge variant="neutral">{LEVEL_LABEL[data.level] ?? data.level}</Badge>}
-          </div>
-          <h1 className="mt-2 font-display text-2xl font-semibold text-brand-ink">{data.title}</h1>
-          {data.description && <p className="mt-2 text-sm text-gray-600">{data.description}</p>}
-
+          </>
+        }
+      >
+        <div>
           <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
             {data.durationDisplay && (
               <div>
@@ -129,15 +126,7 @@ export default function CourseMarketingView({ data, actions }: { data: Marketing
 
           {actions && <div className="mt-5">{actions}</div>}
         </div>
-      </div>
-
-      {/* About */}
-      {data.description && (
-        <section className="mt-8">
-          <h2 className="font-display text-lg font-semibold text-brand-ink">About this course</h2>
-          <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-gray-700">{data.description}</p>
-        </section>
-      )}
+      </CourseHero>
 
       {/* What you'll learn */}
       {(data.skillsGained.length > 0 || data.learningOutcomes.length > 0) && (

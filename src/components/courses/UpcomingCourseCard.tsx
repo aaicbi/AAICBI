@@ -43,12 +43,12 @@ export default function UpcomingCourseCard({ course }: { course: UpcomingCourseR
   return (
     <a
       href={`/courses/${course.id}`}
-      className="flex w-full flex-col overflow-hidden rounded-xl border border-brand-gray bg-brand-surface shadow-sm transition-shadow hover:shadow-md"
+      className="group flex h-full w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-brand-gray bg-brand-surface shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-brand-teal hover:shadow-lg"
     >
-      <div className="relative flex h-32 items-center justify-center bg-gradient-to-br from-brand-mint to-brand-teal/20">
+      <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden bg-gradient-to-br from-brand-mint to-brand-teal/20">
         {course.flyerUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- a real, dynamically-uploaded external URL.
-          <img src={course.flyerUrl} alt="" className="h-full w-full object-cover" />
+          <img src={course.flyerUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
         ) : (
           <Icon icon={BookOpen} size="xl" className="text-brand-teal/40" />
         )}
@@ -62,8 +62,8 @@ export default function UpcomingCourseCard({ course }: { course: UpcomingCourseR
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
-        <h3 className="font-display text-base font-semibold leading-snug text-brand-ink">{course.title}</h3>
-        {course.description && <p className="line-clamp-2 text-xs text-gray-600">{course.description}</p>}
+        <h3 className="line-clamp-2 break-words font-display text-base font-semibold leading-snug text-brand-ink [overflow-wrap:anywhere]">{course.title}</h3>
+        {course.description && <p className="line-clamp-3 break-words text-sm leading-relaxed text-gray-600 [overflow-wrap:anywhere]">{course.description}</p>}
 
         <div className="mt-1 flex flex-col gap-1 text-xs text-gray-600">
           {course.startDate && (

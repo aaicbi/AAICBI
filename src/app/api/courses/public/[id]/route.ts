@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiErrors } from "@/lib/apiError";
 import { isCoursePubliclyVisible } from "@/lib/courseStatus";
 import { buildMarketingView } from "@/lib/courseMarketing";
+import { publisherNames } from "@/lib/courseOrg";
 
 /**
  * GET /api/courses/public/[id] — genuinely anonymous course detail,
@@ -43,6 +44,6 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ error: "Course not found." }, { status: 404 });
     }
 
-    return NextResponse.json(buildMarketingView(course));
+    return NextResponse.json(buildMarketingView(course, (await publisherNames([{ id: course.id, createdById: course.createdById }])).get(course.id) ?? null));
   });
 }

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { getEffectivePriceKobo } from "@/lib/coursePricing";
+import { publisherNames } from "@/lib/courseOrg";
 
 /**
  * GET /api/courses/published — every published course, for a logged-in
@@ -26,6 +27,7 @@ export async function GET() {
       },
     });
 
+    const publishers = await publisherNames(courses);
     const result = courses.map((c) => {
       const enrollment = c.courseEnrollments[0] ?? null;
       const isPaid = enrollment?.source === "PAID" || !c.isFree;
@@ -46,6 +48,7 @@ export async function GET() {
         category: c.category,
         level: c.level,
         flyerUrl: c.showFlyer ? c.flyerUrl : null,
+        publisherName: publishers.get(c.id) ?? null,
         _count: c._count,
         isPaid,
         isEnrolled,

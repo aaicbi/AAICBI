@@ -11,6 +11,7 @@ import { isModuleIndexInFreePreview } from "@/lib/courseAccessCore";
 import { isCoursePubliclyVisible } from "@/lib/courseStatus";
 import { requireOwnedCourse } from "@/lib/courseOwnership";
 import { buildMarketingView } from "@/lib/courseMarketing";
+import { publisherNames } from "@/lib/courseOrg";
 import { safeUrl } from "@/lib/materialUrl";
 import { validateCourseSchedule } from "@/lib/courseSchedule";
 import { trackEvent } from "@/lib/analytics/track";
@@ -194,7 +195,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           // shape-builder the staff preview route and the public
           // catalogue detail route both use, so all three surfaces can
           // never quietly drift apart on what a prospective trainee sees.
-          course: buildMarketingView(course),
+          course: buildMarketingView(course, (await publisherNames([{ id: course.id, createdById: course.createdById }])).get(course.id) ?? null),
           // Free preview modules — lets the trainee page offer "Start
           // Free Preview" alongside Pay/Enroll, only when genuinely
           // configured on a paid course and not already tried (a
@@ -332,6 +333,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     return NextResponse.json({
       ...course,
+      publisherName: (await publisherNames([{ id: course.id, createdById: course.createdById }])).get(course.id) ?? null,
       modules: shapedModules,
       certificate: certificate && !certificate.revokedAt ? certificate : null,
       badges,

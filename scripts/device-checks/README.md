@@ -18,6 +18,8 @@ node scripts/device-checks/employer.cjs           # employer home, messaging rul
 node scripts/device-checks/forms-and-offline.cjs   # stepped job posting, install card, offline recovery, cache contents, slow 3G
 node scripts/device-checks/add-to-home-screen.cjs   # Install app button, steps sheet on iPhone and Android, none on laptop
 node scripts/device-checks/theme-and-hydration.cjs   # dark theme kept and no hydration errors on public pages, three device types
+node scripts/device-checks/course-cards.cjs        # course cards: no overflow at 5 sizes (load seed-course-ui.sql first)
+node scripts/device-checks/course-video.cjs        # lesson video: 16:9, modal, fullscreen, plays in-platform
 node scripts/device-checks/organization.cjs       # organization home, messaging scope, profile preview, Loop guide
 node scripts/device-checks/videos-and-reports.cjs # trainee video -> organization -> Super Admin, and reports
 node scripts/device-checks/builder-tools.cjs      # course builder / exam tools on phone and tablet
