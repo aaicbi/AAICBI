@@ -97,3 +97,11 @@ Optional environment variables in Vercel:
 - `SKIP_DB_MIGRATE=1`: build without migrating (escape hatch).
 
 Migrations must stay additive (new tables and columns with defaults) so the old deployment keeps working while a new one builds.
+
+## Trainee participation (videos, reports, Explore)
+
+- **Explore** (`/trainee/explore`): inside the trainee area, links to jobs, organizations, trainee videos, events, the feed, other trainees and the Showcase. A tile is hidden when its platform switch is off.
+- **My Videos** (`/trainee/videos`): a trainee posts a YouTube video to an organization whose course they are enrolled in. Status flow: `AWAITING_ORG` → the organization approves (published at once if verified, otherwise `PENDING_REVIEW` for the Super Admin) or declines (`ORG_DECLINED`, with a reason). At any point while it waits or after a decline the trainee can press **Send to AAICBI for review**, or choose "AAICBI directly" when posting; both put it in the Super Admin's existing review queue marked as sent by the trainee, with their reason. Rules live in `src/lib/ecosystem/videoSubmissionCore.ts`.
+- **Organization side** (`/admin/education`): "Videos trainees sent you" with Approve / Decline (a reason is required to decline).
+- **Report a Concern** (`/trainee/report`): a trainee reports an organization they are enrolled with. Reports are stored in `OrganizationReport`, read only by the Super Admin on the Ecosystem page ("Reports about organizations"), and never exposed through any organization route. The trainee sees only the status and is notified when it is resolved or closed.
+- Migration: `20261012090000_trainee_videos_and_reports` (two new `EducationPostStatus` values, trainee-submission columns, `OrganizationReport`).

@@ -126,6 +126,9 @@ function traineeWorkspaceContext(pathname: string): PageContext {
   else if (second === "profile") add("Guide me: who sees my profile", "How do I set up my profile and choose who can see it?");
   else if (second === "job-postings" || second === "introductions") add("Guide me: jobs and introductions", "How do I answer an employer introduction?");
   else if (second === "messages") add("Guide me: get help", "How do I message my instructor or get help?");
+  else if (second === "explore") add("Guide me: explore", "How do I explore the ecosystem and see job listings?");
+  else if (second === "videos") add("Guide me: post a video", "How do I post my video and send it to my training organization?");
+  else if (second === "report") add("Guide me: report a concern", "How do I report an abusive training organization?");
   else if (second === "settings") add("Guide me: my settings", "How do I change my settings and notifications?");
   return {
     key: "trainee-workspace",

@@ -10,7 +10,8 @@ export async function GET() {
   return withApiErrors(async () => {
     const session = await requireRole("TRAINEE");
     const posts = await prisma.educationPost.findMany({
-      where: { traineeId: session.userId },
+      // Videos the trainee posted themselves are managed under My Videos, not here.
+      where: { traineeId: session.userId, submittedByTrainee: false },
       orderBy: { createdAt: "desc" },
       select: {
         id: true, title: true, description: true, youtubeId: true, thumbnailUrl: true, status: true, createdAt: true,

@@ -48,6 +48,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const isStaff = !!session && ALLOWED_ROLES.includes(session.role);
   const pathname = headers().get("x-pathname") ?? "";
 
+  // Trainees, employers and investors have no business in the staff area
+  // (certificate design included). Their API calls were always refused;
+  // now the pages themselves send them home instead of showing a shell.
+  if (session && !isStaff && pageHasSidebar(pathname)) {
+    redirect(session.role === "TRAINEE" ? "/trainee/dashboard" : session.role === "EMPLOYER" ? "/employer/dashboard" : session.role === "INVESTOR" ? "/investor/dashboard" : "/");
+  }
+
   if (!isStaff || !pageHasSidebar(pathname)) {
     return <>{children}</>;
   }

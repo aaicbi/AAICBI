@@ -35,3 +35,23 @@ export async function requireOrgCourse(org: { staffUserId: string | null }, cour
   if (!course) throw httpError(403, "That program is not one of your organization's.");
   return course;
 }
+
+/**
+ * The approved organizations a trainee belongs to: those that own a course
+ * the trainee is enrolled in. A trainee can only send a video to, or make a
+ * report about, an organization they actually take part in.
+ */
+export async function traineeOrganizations(traineeId: string) {
+  const owners = await prisma.course.findMany({
+    where: { courseEnrollments: { some: { traineeId } } },
+    select: { createdById: true },
+    distinct: ["createdById"],
+  });
+  const ids = owners.map((o) => o.createdById).filter((id): id is string => !!id);
+  if (ids.length === 0) return [];
+  return prisma.trainingOrganization.findMany({
+    where: { approvalState: "APPROVED", staffUserId: { in: ids } },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, staffUserId: true, publicProfile: { select: { verified: true } } },
+  });
+}

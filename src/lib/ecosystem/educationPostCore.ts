@@ -2,7 +2,7 @@ import { z } from "zod";
 
 /** Pure rules for education posts — no database access, so they are unit-testable. */
 
-export const EDUCATION_POST_STATUSES = ["AWAITING_CONSENT", "DECLINED", "PENDING_REVIEW", "PUBLISHED", "REJECTED", "REMOVED"] as const;
+export const EDUCATION_POST_STATUSES = ["AWAITING_CONSENT", "AWAITING_ORG", "ORG_DECLINED", "DECLINED", "PENDING_REVIEW", "PUBLISHED", "REJECTED", "REMOVED"] as const;
 export type EducationPostStatusValue = (typeof EDUCATION_POST_STATUSES)[number];
 
 export const CreateEducationPostSchema = z.object({

@@ -119,6 +119,33 @@ export const TOUR_GUIDE_CONTENT: TourGuideEntry[] = [
       "Your interests are inferred from what you've actually been exploring — not a label.",
     ],
   },
+  {
+    match: exact("/trainee/explore"),
+    title: "Explore the Ecosystem",
+    notes: [
+      "Browse open jobs, training organizations, trainee videos and events, whether or not you have switched on discoverability.",
+      "Use \"Share a video\" to post your own video for your training organization to review.",
+      "Use \"Report a concern\" to tell the Super Admin, in confidence, about something that went wrong with an organization.",
+    ],
+  },
+  {
+    match: exact("/trainee/videos"),
+    title: "My Videos",
+    notes: [
+      "Post a YouTube video about what you learned. It goes to your training organization first.",
+      "If the organization has not replied, or declined, press \"Send to AAICBI for review\" to ask the Super Admin to look at it.",
+      "You can also choose to send a video straight to AAICBI when you post it.",
+    ],
+  },
+  {
+    match: exact("/trainee/report"),
+    title: "Report a Concern",
+    notes: [
+      "Tell the Super Admin about harassment, unfair treatment, a payment problem or anything else an organization did to you.",
+      "Only the Super Admin sees your report. The organization is never told who sent it.",
+      "You can follow the status of your reports at the bottom of the page.",
+    ],
+  },
   // Admin
   {
     match: exact("/admin/dashboard"),
