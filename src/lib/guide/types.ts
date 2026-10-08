@@ -17,6 +17,8 @@ export interface GuideEntry {
   source: "default" | "custom";
   /** Set when this entry starts a step-by-step guide (see playbooks) instead of giving a short answer. */
   playbookId?: string;
+  /** For a playbook: the kind of account it is written for. */
+  audience?: "organization" | "trainee";
 }
 
 export type GuideSwitches = Pick<EcosystemFlags, "orgPages" | "education" | "feed" | "publicJobs" | "publicTrainees">;

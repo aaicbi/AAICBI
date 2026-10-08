@@ -25,6 +25,8 @@ export interface Playbook {
   /** One or two sentences said before the steps start. */
   summary: string;
   keywords: string[];
+  /** Who the guide is for; shown first to that kind of account. */
+  audience?: "organization" | "trainee";
   steps: PlaybookStep[];
   /** Guides worth doing after this one. */
   next?: string[];

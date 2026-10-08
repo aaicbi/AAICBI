@@ -7,6 +7,7 @@ import LoopFace, { type LoopState } from "@/components/guide/LoopFace";
 import type { GuideClientConfig } from "@/components/guide/useGuideConfig";
 import { answerQuestion, buildIndex, suggest } from "@/lib/guide/match";
 import type { MeKind, PageContext, QuickAction } from "@/lib/guide/context";
+import { entriesForAudience } from "@/lib/guide/playbooks";
 import PlaybookCard, { Marked } from "@/components/guide/PlaybookCard";
 import type { GuideLink } from "@/lib/guide/types";
 import { getSidebarTourGuideContent, getTourGuideContent } from "@/lib/tourGuideContent";
@@ -60,7 +61,7 @@ export default function ChatPanel({
   onClose: () => void;
   onState: (s: LoopState) => void;
 }) {
-  const index = useMemo(() => buildIndex(config.entries, config.skills), [config]);
+  const index = useMemo(() => buildIndex(entriesForAudience(config.entries, me), config.skills), [config, me]);
   const [messages, setMessages] = useState<Msg[]>(() => readStored());
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);

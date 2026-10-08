@@ -89,7 +89,7 @@ export const TOUR_GUIDE_CONTENT: TourGuideEntry[] = [
     notes: [
       "Click a module to expand it and see its lessons and assessment.",
       "Mark each lesson complete to unlock the next module in sequence.",
-      "A \"Pay to continue\" banner means you've used up your free preview of this course.",
+      "A \"Pay to Unlock\" badge or \"Pay Now\" button means you've used up your free preview of this course.",
     ],
   },
   {
@@ -98,7 +98,7 @@ export const TOUR_GUIDE_CONTENT: TourGuideEntry[] = [
     notes: [
       "Every module assessment and course examination you have, in one table.",
       "The Status column shows whether you can start, continue, or need to pay first.",
-      "Click \"View Result\" on a passed row to see your score summary.",
+      "Click \"View result\" on a passed row to see your score summary.",
     ],
   },
   {

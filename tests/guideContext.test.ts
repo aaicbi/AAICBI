@@ -167,3 +167,15 @@ describe("text helpers", () => {
     expect(normalizeQuestion("Find the JOBS!")).toBe(normalizeQuestion("jobs find"));
   });
 });
+
+describe("signed-in workspaces", () => {
+  it("offers trainees step-by-step guides, tuned to the page", () => {
+    const c = contextFor("/trainee/assignments", ON, "trainee");
+    expect(c.key).toBe("trainee-workspace");
+    expect(c.quick.some((q) => q.ask === "How do I do and submit an assignment?")).toBe(true);
+    expect(contextFor("/trainee/dashboard", ON, "trainee").quick.some((q) => q.ask === "Show me around my trainee dashboard")).toBe(true);
+  });
+  it("keeps the plain trainee-area hints for someone who is not signed in as a trainee", () => {
+    expect(contextFor("/trainee/dashboard", ON, null).key).toBe("trainee-area");
+  });
+});
