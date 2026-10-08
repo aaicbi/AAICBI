@@ -252,3 +252,16 @@ describe("service worker and redirected page loads", () => {
     expect(nav).toContain("onLine === false");
   });
 });
+
+describe("install state and page hydration", () => {
+  it("reads browser facts only after mount, so the first client render matches the server HTML", async () => {
+    const src = (await import("node:fs")).readFileSync("src/lib/pwa/installStore.ts", "utf8");
+    const hook = src.slice(src.indexOf("export function useInstallState"));
+    // the user-agent check lives inside the effect, never in the render body
+    const effect = hook.slice(hook.indexOf("useEffect("), hook.indexOf("}, []);"));
+    expect(effect).toContain("isIosDevice(navigator.userAgent");
+    expect(hook.replace(effect, "")).not.toContain("navigator.userAgent");
+    // and nothing install-related renders until mounted
+    expect(hook).toContain("!ready || installed");
+  });
+});
