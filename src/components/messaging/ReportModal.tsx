@@ -6,7 +6,7 @@ import { useToast } from "@/components/ui/Toast";
 import { Input, Textarea } from "@/components/ui/Field";
 interface ReportModalProps {
   open: boolean;
-  reportedType: "TRAINEE" | "STAFF";
+  reportedType: "TRAINEE" | "STAFF" | "EMPLOYER";
   reportedId: string;
   reportedName: string;
   conversationId: string;

@@ -15,6 +15,9 @@
  *                   (page help, or the trainee messages button)
  *   --layer-loop    footprint of Loop, the guide button, which sits
  *                   above that round button when there is one
+ *   --layer-nav     the phone bottom navigation bar, including the
+ *                   device's safe area (0 on large screens). Everything
+ *                   else sits above it, and the cookie banner too.
  *
  * Stacking from the bottom: banner, the page's round button, Loop, then
  * broadcast cards. Toasts clear the banner.
@@ -26,6 +29,14 @@ function apply() {
   root.style.setProperty("--layer-banner", `${offsets.get("banner") ?? 0}px`);
   root.style.setProperty("--layer-fab", `${offsets.get("fab") ?? 0}px`);
   root.style.setProperty("--layer-loop", `${offsets.get("loop") ?? 0}px`);
+}
+
+/** Height of the phone bottom navigation bar: 4rem plus the device's safe area. */
+export const BOTTOM_NAV_HEIGHT_CSS = "calc(4rem + env(safe-area-inset-bottom, 0px))";
+
+/** The bottom navigation bar reports itself here (on) or when it goes away (off). */
+export function setBottomNavLayer(on: boolean) {
+  document.documentElement.style.setProperty("--layer-nav", on ? BOTTOM_NAV_HEIGHT_CSS : "0px");
 }
 
 export function setFloatingOffset(key: "banner" | "fab" | "loop", px: number) {
@@ -40,8 +51,8 @@ export const FAB_FOOTPRINT_PX = 60;
 export const LOOP_FOOTPRINT_PX = 68;
 
 /** CSS for an element anchored 1.5rem from the bottom, clear of the banner. */
-export const ABOVE_BANNER = "calc(1.5rem + var(--layer-banner, 0px))";
+export const ABOVE_BANNER = "calc(1.5rem + var(--layer-banner, 0px) + var(--layer-nav, 0px))";
 /** CSS for an element stacked above the banner and the page's round button (Loop's own place). */
-export const ABOVE_BANNER_AND_PAGE_FAB = "calc(1.5rem + var(--layer-banner, 0px) + var(--layer-fab, 0px))";
+export const ABOVE_BANNER_AND_PAGE_FAB = "calc(1.5rem + var(--layer-banner, 0px) + var(--layer-nav, 0px) + var(--layer-fab, 0px))";
 /** CSS for an element stacked above the banner, the round button and Loop. */
-export const ABOVE_BANNER_AND_FAB = "calc(1.5rem + var(--layer-banner, 0px) + var(--layer-fab, 0px) + var(--layer-loop, 0px))";
+export const ABOVE_BANNER_AND_FAB = "calc(1.5rem + var(--layer-banner, 0px) + var(--layer-nav, 0px) + var(--layer-fab, 0px) + var(--layer-loop, 0px))";

@@ -3,19 +3,11 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
-import { resolveActor, canAccessConversation, isBlocked, isMessagingSuspended } from "@/lib/messaging";
+import { resolveActor, resolveDisplayName, canAccessConversation, isBlocked, isMessagingSuspended, type ActorType } from "@/lib/messaging";
+import { notifyNewDirectMessage } from "@/lib/messaging/notify";
 
 async function loadConversation(id: string) {
   return prisma.conversation.findUnique({ where: { id }, select: { id: true, type: true, cohortId: true } });
-}
-
-async function resolveDisplayName(type: "TRAINEE" | "STAFF", id: string): Promise<string> {
-  if (type === "TRAINEE") {
-    const t = await prisma.trainee.findUnique({ where: { id }, select: { name: true } });
-    return t?.name ?? "A trainee";
-  }
-  const u = await prisma.user.findUnique({ where: { id }, select: { name: true } });
-  return u?.name ?? "A staff member";
 }
 
 /**
@@ -28,7 +20,7 @@ async function resolveDisplayName(type: "TRAINEE" | "STAFF", id: string): Promis
  */
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
-    const session = await requireRole("TRAINEE", "SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
+    const session = await requireRole("TRAINEE", "EMPLOYER", "SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
     const conversation = await loadConversation(params.id);
     if (!conversation) return NextResponse.json({ error: "Conversation not found." }, { status: 404 });
 
@@ -45,7 +37,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
     });
 
-    const distinctAuthors = Array.from(new Map(messages.map((m) => [`${m.authorType}:${m.authorId}`, { type: m.authorType as "TRAINEE" | "STAFF", id: m.authorId }])).values());
+    const distinctAuthors = Array.from(new Map(messages.map((m) => [`${m.authorType}:${m.authorId}`, { type: m.authorType as ActorType, id: m.authorId }])).values());
     const names = await Promise.all(distinctAuthors.map(async (a) => [`${a.type}:${a.id}`, await resolveDisplayName(a.type, a.id)] as [string, string]));
     const nameMap = new Map<string, string>(names);
 
@@ -71,7 +63,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }
 
     let title = "Conversation";
-    let otherParticipant: { type: "TRAINEE" | "STAFF"; id: string; name: string } | null = null;
+    let otherParticipant: { type: ActorType; id: string; name: string } | null = null;
     if (conversation.type === "COHORT") {
       const cohort = await prisma.cohort.findUnique({ where: { id: conversation.cohortId! }, select: { name: true } });
       title = cohort?.name ?? "Cohort chat";
@@ -81,14 +73,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       if (myParticipant) {
         const other = participants.find((p) => p.id !== myParticipant.id);
         if (other) {
-          const name = await resolveDisplayName(other.participantType as "TRAINEE" | "STAFF", other.participantId);
-          otherParticipant = { type: other.participantType as "TRAINEE" | "STAFF", id: other.participantId, name };
+          const name = await resolveDisplayName(other.participantType as ActorType, other.participantId);
+          otherParticipant = { type: other.participantType as ActorType, id: other.participantId, name };
           title = name;
         }
       } else if (participants.length === 2) {
         // A SUPER_ADMIN observing a DM neither party involves them in —
         // no single "other" to name, so show both.
-        const names = await Promise.all(participants.map((p) => resolveDisplayName(p.participantType as "TRAINEE" | "STAFF", p.participantId)));
+        const names = await Promise.all(participants.map((p) => resolveDisplayName(p.participantType as ActorType, p.participantId)));
         title = names.join(" ↔ ");
       }
     }
@@ -114,7 +106,7 @@ const SendSchema = z.object({ body: z.string().trim().min(1).max(5000) });
  */
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
-    const session = await requireRole("TRAINEE", "SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
+    const session = await requireRole("TRAINEE", "EMPLOYER", "SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
     const conversation = await loadConversation(params.id);
     if (!conversation) return NextResponse.json({ error: "Conversation not found." }, { status: 404 });
 
@@ -141,7 +133,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       const other = participants.find((p) => !(p.participantType === actor.actorType && p.participantId === actor.actorId));
       if (other) {
         const me = { type: actor.actorType, id: actor.actorId };
-        const them = { type: other.participantType as "TRAINEE" | "STAFF", id: other.participantId };
+        const them = { type: other.participantType as ActorType, id: other.participantId };
         if ((await isBlocked(them, me)) || (await isBlocked(me, them))) {
           return NextResponse.json({ error: "You can't message this user." }, { status: 403 });
         }
@@ -161,6 +153,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         update: { lastReadAt: new Date() },
       }),
     ]);
+
+    // Tell the other person in a direct conversation. Cohort chats stay quiet: they would be noise for everyone in the cohort.
+    if (conversation.type === "DIRECT") {
+      const participants = await prisma.conversationParticipant.findMany({ where: { conversationId: conversation.id } });
+      const other = participants.find((p) => !(p.participantType === actor.actorType && p.participantId === actor.actorId));
+      if (other) await notifyNewDirectMessage(conversation.id, { type: actor.actorType, id: actor.actorId, name: actor.name }, { type: other.participantType as ActorType, id: other.participantId });
+    }
 
     return NextResponse.json({ id: message.id, createdAt: message.createdAt }, { status: 201 });
   });

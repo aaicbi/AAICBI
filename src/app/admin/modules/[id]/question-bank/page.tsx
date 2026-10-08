@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import DesktopRecommended from "@/components/pwa/DesktopRecommended";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
@@ -147,6 +148,7 @@ export default function QuestionBankReviewPage({ params }: { params: { id: strin
       <SiteHeader nav={ADMIN_NAV} right={<LogoutButton />} />
       {modal}
       <main className="mx-auto max-w-3xl px-6 py-10">
+        <DesktopRecommended what="Reviewing a question bank" below="lg" />
         <h1 className="text-2xl font-bold text-gray-900">Question Bank Review</h1>
         <p className="text-sm text-gray-500">
           {data.module.courseTitle} — {data.module.title}

@@ -8,6 +8,7 @@ import { parseYouTubeUrl } from "@/lib/ecosystem/youtube";
 import { normalizeSkills } from "@/lib/ecosystem/educationPostCore";
 import { ensureSkill } from "@/lib/ecosystem/skills";
 import { traineeOrganizations } from "@/lib/ecosystem/orgScope";
+import { sendPushForNotification } from "@/lib/push/send";
 import { SubmitVideoSchema, statusAfterSubmission } from "@/lib/ecosystem/videoSubmissionCore";
 
 export const dynamic = "force-dynamic";
@@ -107,11 +108,11 @@ export async function POST(req: NextRequest) {
         },
         select: { id: true },
       });
-      if (!toAdmin && org.staffUserId) {
+      if (!toAdmin) {
         await tx.userNotification.create({
           data: {
-            recipientType: "STAFF",
-            recipientId: org.staffUserId,
+            recipientType: "TRAINING_ORG",
+            recipientId: org.id,
             type: "EDUCATION_TRAINEE_SUBMISSION",
             title: "A trainee sent you a video to review",
             body: `"${d.title}" is waiting for your decision.`,
@@ -121,6 +122,9 @@ export async function POST(req: NextRequest) {
       }
       return created;
     });
+    if (!toAdmin) {
+      await sendPushForNotification("TRAINING_ORG", org.id, { type: "EDUCATION_TRAINEE_SUBMISSION", title: "A trainee sent you a video to review", body: `"${d.title}" is waiting for your decision.`, url: "/admin/education" });
+    }
     return NextResponse.json({ id: post.id, status: statusAfterSubmission(d.sendTo) }, { status: 201 });
   });
 }

@@ -1,0 +1,25 @@
+# Emulated-device checks
+
+Scripted browser runs that drive the real app on emulated phones and tablets (iPhone, Pixel, Galaxy, iPad Mini, iPad), signed in as real seeded accounts, against a real database. They catch layout, navigation, permission and workflow problems that unit tests cannot. They use Chromium with each device's screen size, pixel ratio, touch and user agent, so they do **not** replace testing on real phones (see `docs/pwa-device-testing.md`): Safari's engine, real keyboards, push delivery, "Add to Home Screen" and notches are not covered.
+
+## Setup (a throwaway database; never point this at production)
+
+1. A PostgreSQL 16 with the `vector` extension, empty database `aaicbi_dev`, then `DATABASE_URL=... npx prisma migrate deploy`.
+2. Seed: `npx tsx prisma/seed.ts`, `npx tsx prisma/seed-demo-ecosystem.ts`, and `npx tsx scripts/device-checks/seed-extra.ts` (employer introduction, a job, the organization's public page and an event). The accounts are the `*@dev.test` ones; password `Passw0rd!dev`. The dev accounts come from the dev seed used while building (`super@dev.test`, `org@dev.test`, `employer@dev.test`, `t0@dev.test` ...).
+3. `npx next build` and `npx next start -p 3113` with `DATABASE_URL` and a 32+ character `AUTH_SECRET`.
+
+## Run
+
+Environment: `BASE_URL` (default `http://localhost:3113`), `PSQL_ARGS` (psql connection flags for the throwaway database), `CHROMIUM_PATH` (optional), `OUT_DIR` (screenshots, default `/tmp`).
+
+```
+node scripts/device-checks/trainee.cjs            # phone home, bottom bar, More sheet, iPad portrait vs landscape
+node scripts/device-checks/employer.cjs           # employer home, messaging rules, drafts, offline send
+node scripts/device-checks/forms-and-offline.cjs   # stepped job posting, install card, offline recovery, cache contents, slow 3G
+node scripts/device-checks/organization.cjs       # organization home, messaging scope, profile preview, Loop guide
+node scripts/device-checks/videos-and-reports.cjs # trainee video -> organization -> Super Admin, and reports
+node scripts/device-checks/builder-tools.cjs      # course builder / exam tools on phone and tablet
+node scripts/device-checks/overflow-sweep.cjs     # every page in scripts/a11y-pages.json on iPhone SE and iPad Mini
+```
+
+Each prints `PASS`/`FAIL` lines. The login throttle is cleared in the throwaway database between runs.

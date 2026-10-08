@@ -23,6 +23,10 @@ import Icon from "@/components/ui/Icon";
 import { AchievementIcon, AssessmentIcon } from "@/components/icons/brand";
 import { TRAINEE_NAV } from "@/lib/trainee/nav";
 import { getTraineeExaminationOverview } from "@/lib/trainee/examinationsOverview";
+import DashboardSwitcher from "@/components/mobile/DashboardSwitcher";
+import MobileHome from "@/components/mobile/MobileHome";
+import { nextEventBlock, opportunitiesBlock } from "@/lib/mobile/homeData";
+import type { MobileBlock } from "@/lib/mobile/homeCore";
 
 /**
  * M12 — replaces the M10-era empty shell (browsing-only, no progress)
@@ -262,6 +266,21 @@ export default async function TraineeDashboardPage() {
     { label: "Settings", href: "/trainee/settings", primary: false },
   ];
 
+  // The phone home: the few things that matter most right now, in priority order. The full dashboard below is one tap away.
+  const [eventBlock, jobsBlock] = await Promise.all([nextEventBlock(), opportunitiesBlock()]);
+  const mobileBlocks: MobileBlock[] = [
+    { kind: "welcome", greeting: getTimeOfDayGreeting(), name: trainee.name, line: momentumLine },
+    { kind: "alerts", unread: unreadCount, items: notifications.slice(0, 3).map((n) => ({ title: n.title, href: n.url ?? "/notifications" })) },
+    ...(eventBlock ? [eventBlock] : []),
+    ...(topCourse
+      ? [{ kind: "course" as const, title: topCourse.courseTitle, percent: topCourse.percentComplete, detail: `${topCourse.completedModules} of ${topCourse.totalModules} modules complete`, href: resumeTarget?.url ?? `/trainee/courses/${topCourse.courseId}` }]
+      : []),
+    ...(nextExam ? [{ kind: "assessment" as const, title: nextExam.title, status: nextExam.status === "IN_PROGRESS" ? "Continue" : "Start", href: nextExam.actionHref }] : []),
+    { kind: "messages", href: "/trainee/messages" },
+    ...(jobsBlock ? [jobsBlock] : []),
+    { kind: "actions", items: [{ label: "Explore", href: "/trainee/explore" }, { label: "Certificates", href: "/trainee/certificates" }, { label: "My Videos", href: "/trainee/videos" }, { label: "My Profile", href: "/trainee/profile" }] },
+  ];
+
   return (
     <>
       <TraineeOnboarding shouldShow={!trainee.onboardingCompletedAt} />
@@ -269,6 +288,7 @@ export default async function TraineeDashboardPage() {
         nav={TRAINEE_NAV}
         right={<LogoutButton />}
       />
+      <DashboardSwitcher mobile={<MobileHome role="trainee" blocks={mobileBlocks} />}>
       <main className="mx-auto max-w-3xl px-6 py-12">
         {/* Design-pass — a warmer, more considered hero than a flat
             "Welcome, {name}". Time-of-day greeting (computed
@@ -487,6 +507,7 @@ export default async function TraineeDashboardPage() {
           </Card>
         )}
       </main>
+      </DashboardSwitcher>
     </>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import DesktopRecommended from "@/components/pwa/DesktopRecommended";
 import { useRouter } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
@@ -58,6 +59,7 @@ export default function NewExamPage() {
         right={<LogoutButton />}
       />
       <main className="mx-auto max-w-2xl px-6 py-10">
+        <DesktopRecommended what="Creating an examination" />
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Create Examination</h1>
         <Card className="mt-6">
           <form onSubmit={handleSubmit} className="space-y-5">

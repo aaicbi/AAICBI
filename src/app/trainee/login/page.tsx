@@ -83,8 +83,8 @@ function TraineeLoginForm() {
 
         <Card className="mt-6">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <Input label="Email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <Input label="Password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             {error && <p role="alert" className="text-sm text-brand-rose">{error}</p>}
             <Button type="submit" loading={loading} className="w-full">
               {loading ? "Signing in..." : "Sign in"}

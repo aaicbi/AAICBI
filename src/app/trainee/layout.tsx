@@ -2,7 +2,8 @@ import { headers } from "next/headers";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { SidebarActiveProvider } from "@/components/SidebarActiveContext";
-import SidebarBackBar from "@/components/SidebarBackBar";
+import ShellContent from "@/components/pwa/ShellContent";
+import { TRAINEE_NAV } from "@/lib/trainee/nav";
 import TraineeSidebar from "@/components/trainee/TraineeSidebar";
 import FloatingMessagesButton from "@/components/trainee/FloatingMessagesButton";
 import { pageHasSidebar } from "@/lib/sidebarRoutes";
@@ -48,10 +49,7 @@ export default async function TraineeLayout({ children }: { children: React.Reac
     <SidebarActiveProvider>
       <div className="min-h-screen">
         <TraineeSidebar name={trainee?.name ?? session.email} avatarUrl={trainee?.avatarUrl ?? null} />
-        <div className="lg:pl-64">
-          <SidebarBackBar />
-          {children}
-        </div>
+        <ShellContent role={"trainee"} moreItems={TRAINEE_NAV}>{children}</ShellContent>
         <FloatingMessagesButton />
       </div>
     </SidebarActiveProvider>

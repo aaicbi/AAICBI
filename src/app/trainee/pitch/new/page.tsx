@@ -9,6 +9,8 @@ import { useToast } from "@/components/ui/Toast";
 import PitchLoopPanel from "@/components/trainee/PitchLoopPanel";
 import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
+import FormSteps from "@/components/ui/FormSteps";
+import StickyActions from "@/components/ui/StickyActions";
 import { Input, Textarea } from "@/components/ui/Field";
 const EMPTY_FORM = {
   startupName: "",
@@ -85,25 +87,35 @@ export default function NewPitchPage() {
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Submit a Pitch</h1>
         <p className="mt-1 text-sm text-gray-500">Save a draft any time, or submit when you're ready for review.</p>
 
+        <FormSteps className="" labels={["Startup", "Pitch materials", "Public teaser", "Funding ask"]} footer={<div className="mt-6">
+            <StickyActions className="justify-end">
+              <Button variant="secondary" onClick={() => save(false)} loading={saving === "draft"}>
+                Save Draft
+              </Button>
+              <Button onClick={() => save(true)} loading={saving === "submit"}>
+                Submit for Review
+              </Button>
+            </StickyActions>
+          </div>}>
         <Card className="mt-6 space-y-4">
           <p className={label}>Startup</p>
-          <Input label="Startup / project name" hideLabel compact placeholder="Startup / project name" value={form.startupName} onChange={(e) => set("startupName", e.target.value)} />
-          <Input label="Industry (e.g. HealthTech)" hideLabel compact placeholder="Industry (e.g. HealthTech)" value={form.industry} onChange={(e) => set("industry", e.target.value)} />
-          <Input label="Stage (e.g. Prototype, MVP)" hideLabel compact placeholder="Stage (e.g. Prototype, MVP)" value={form.stage} onChange={(e) => set("stage", e.target.value)} />
-          <Textarea label="Problem you're solving" hideLabel compact rows={2} placeholder="Problem you're solving" value={form.problem} onChange={(e) => set("problem", e.target.value)} />
-          <Textarea label="Your solution" hideLabel compact rows={2} placeholder="Your solution" value={form.solution} onChange={(e) => set("solution", e.target.value)} />
-          <Textarea label="Target market" hideLabel compact rows={2} placeholder="Target market" value={form.targetMarket} onChange={(e) => set("targetMarket", e.target.value)} />
-          <Textarea label="Business model" hideLabel compact rows={2} placeholder="Business model" value={form.businessModel} onChange={(e) => set("businessModel", e.target.value)} />
-          <Textarea label="Traction so far" hideLabel compact rows={2} placeholder="Traction so far" value={form.traction} onChange={(e) => set("traction", e.target.value)} />
-          <Textarea label="Team" hideLabel compact rows={2} placeholder="Team" value={form.teamDescription} onChange={(e) => set("teamDescription", e.target.value)} />
+          <Input label="Startup / project name" value={form.startupName} onChange={(e) => set("startupName", e.target.value)} />
+          <Input label="Industry (e.g. HealthTech)" value={form.industry} onChange={(e) => set("industry", e.target.value)} />
+          <Input label="Stage (e.g. Prototype, MVP)" value={form.stage} onChange={(e) => set("stage", e.target.value)} />
+          <Textarea label="Problem you're solving" rows={2} value={form.problem} onChange={(e) => set("problem", e.target.value)} />
+          <Textarea label="Your solution" rows={2} value={form.solution} onChange={(e) => set("solution", e.target.value)} />
+          <Textarea label="Target market" rows={2} value={form.targetMarket} onChange={(e) => set("targetMarket", e.target.value)} />
+          <Textarea label="Business model" rows={2} value={form.businessModel} onChange={(e) => set("businessModel", e.target.value)} />
+          <Textarea label="Traction so far" rows={2} value={form.traction} onChange={(e) => set("traction", e.target.value)} />
+          <Textarea label="Team" rows={2} value={form.teamDescription} onChange={(e) => set("teamDescription", e.target.value)} />
         </Card>
 
         <Card className="mt-4 space-y-4">
           <p className={label}>Pitch Materials</p>
-          <Input label="Pitch video URL" hideLabel compact placeholder="Pitch video URL" value={form.pitchVideoUrl} onChange={(e) => set("pitchVideoUrl", e.target.value)} />
-          <Input label="Pitch deck URL" hideLabel compact placeholder="Pitch deck URL" value={form.pitchDeckUrl} onChange={(e) => set("pitchDeckUrl", e.target.value)} />
-          <Input label="Demo URL" hideLabel compact placeholder="Demo URL" value={form.demoUrl} onChange={(e) => set("demoUrl", e.target.value)} />
-          <Input label="GitHub URL" hideLabel compact placeholder="GitHub URL" value={form.githubUrl} onChange={(e) => set("githubUrl", e.target.value)} />
+          <Input label="Pitch video URL" value={form.pitchVideoUrl} onChange={(e) => set("pitchVideoUrl", e.target.value)} />
+          <Input label="Pitch deck URL" value={form.pitchDeckUrl} onChange={(e) => set("pitchDeckUrl", e.target.value)} />
+          <Input label="Demo URL" value={form.demoUrl} onChange={(e) => set("demoUrl", e.target.value)} />
+          <Input label="GitHub URL" value={form.githubUrl} onChange={(e) => set("githubUrl", e.target.value)} />
         </Card>
 
         <Card className="mt-4 space-y-4">
@@ -111,18 +123,18 @@ export default function NewPitchPage() {
           <p className="text-xs text-gray-500">
             Shown to every investor browsing, before they request your full pitch — keep this high-level, not how your business works.
           </p>
-          <Input label="Teaser video URL (YouTube or Google-hosted)" hideLabel compact placeholder="Teaser video URL (YouTube or Google-hosted)" value={form.teaserVideoUrl} onChange={(e) => set("teaserVideoUrl", e.target.value)} />
-          <Input label="Projected return, e.g. &quot;Projected ₦150M ARR by Year 3&quot;" hideLabel compact placeholder="Projected return, e.g. &quot;Projected ₦150M ARR by Year 3&quot;" value={form.projectedReturnSummary} onChange={(e) => set("projectedReturnSummary", e.target.value)} />
-          <Textarea label="Public impact statement — outcomes and scale, not mechanism" hideLabel compact rows={2} placeholder="Public impact statement — outcomes and scale, not mechanism" value={form.publicImpactStatement} onChange={(e) => set("publicImpactStatement", e.target.value)} />
+          <Input label="Teaser video URL (YouTube or Google-hosted)" value={form.teaserVideoUrl} onChange={(e) => set("teaserVideoUrl", e.target.value)} />
+          <Input label="Projected return, e.g. &quot;Projected ₦150M ARR by Year 3&quot;" value={form.projectedReturnSummary} onChange={(e) => set("projectedReturnSummary", e.target.value)} />
+          <Textarea label="Public impact statement — outcomes and scale, not mechanism" rows={2} value={form.publicImpactStatement} onChange={(e) => set("publicImpactStatement", e.target.value)} />
         </Card>
 
         <Card className="mt-4 space-y-4">
           <p className={label}>Funding Ask</p>
           <div className="grid grid-cols-2 gap-3">
-            <Input label="Amount requested (₦)" hideLabel compact type="number" min="0" placeholder="Amount requested (₦)" value={form.fundingAmount} onChange={(e) => set("fundingAmount", e.target.value)} />
-            <Input label="Minimum investment (₦)" hideLabel compact type="number" min="0" placeholder="Minimum investment (₦)" value={form.minimumInvestment} onChange={(e) => set("minimumInvestment", e.target.value)} />
+            <Input label="Amount requested (₦)" type="number" min="0" value={form.fundingAmount} onChange={(e) => set("fundingAmount", e.target.value)} />
+            <Input label="Minimum investment (₦)" type="number" min="0" value={form.minimumInvestment} onChange={(e) => set("minimumInvestment", e.target.value)} />
           </div>
-          <Textarea label="Purpose of funding" hideLabel compact rows={2} placeholder="Purpose of funding" value={form.fundingPurpose} onChange={(e) => set("fundingPurpose", e.target.value)} />
+          <Textarea label="Purpose of funding" rows={2} value={form.fundingPurpose} onChange={(e) => set("fundingPurpose", e.target.value)} />
           <div>
             <p className={label}>Funding type</p>
             <div className="mt-2 flex gap-2">
@@ -154,6 +166,8 @@ export default function NewPitchPage() {
           </div>
         </Card>
 
+        </FormSteps>
+
         <PitchLoopPanel
           draft={{
             startupName: form.startupName,
@@ -171,14 +185,6 @@ export default function NewPitchPage() {
           }}
         />
 
-        <div className="mt-6 flex justify-end gap-3">
-          <Button variant="secondary" onClick={() => save(false)} loading={saving === "draft"}>
-            Save Draft
-          </Button>
-          <Button onClick={() => save(true)} loading={saving === "submit"}>
-            Submit for Review
-          </Button>
-        </div>
       </main>
     </>
   );

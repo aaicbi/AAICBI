@@ -3,11 +3,12 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
-import { resolveActor, areCohortMates, canStaffReachTrainee, findOrCreateDirectConversation } from "@/lib/messaging";
+import { resolveActor, areCohortMates, canStaffReachTrainee, findOrCreateDirectConversation, employerTraineeFacts } from "@/lib/messaging";
+import { employerPairVerdict, traineeToEmployerVerdict } from "@/lib/messaging/policy";
 import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
 const BodySchema = z.object({
-  peerType: z.enum(["TRAINEE", "STAFF"]),
+  peerType: z.enum(["TRAINEE", "STAFF", "EMPLOYER"]),
   peerId: z.string().min(1),
 });
 
@@ -20,7 +21,7 @@ const BodySchema = z.object({
  */
 export async function POST(req: NextRequest) {
   return withApiErrors(async () => {
-    const session = await requireRole("TRAINEE", "SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
+    const session = await requireRole("TRAINEE", "EMPLOYER", "SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
     const body = await req.json().catch(() => null);
     const parsed = BodySchema.safeParse(body);
     if (!parsed.success) return NextResponse.json({ error: "A peerType and peerId are required." }, { status: 400 });
@@ -31,7 +32,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "You can't start a conversation with yourself." }, { status: 400 });
     }
 
-    if (peerType === "TRAINEE") {
+    if (me.actorType === "EMPLOYER") {
+      // The employer side: trainees who engaged (accepted introduction or application), and Super Admins for support.
+      if (peerType === "TRAINEE") {
+        const peer = await prisma.trainee.findUnique({ where: { id: peerId }, select: { id: true } });
+        if (!peer) return NextResponse.json({ error: "Trainee not found." }, { status: 404 });
+        const verdict = employerPairVerdict("TRAINEE", await employerTraineeFacts(me.actorId, peerId));
+        if (!verdict.ok) return NextResponse.json({ error: verdict.error }, { status: 403 });
+      } else if (peerType === "STAFF") {
+        const peer = await prisma.user.findUnique({ where: { id: peerId }, select: { role: true } });
+        if (!peer) return NextResponse.json({ error: "Staff member not found." }, { status: 404 });
+        const verdict = employerPairVerdict("STAFF", { staffIsSuperAdmin: peer.role === "SUPER_ADMIN" });
+        if (!verdict.ok) return NextResponse.json({ error: verdict.error }, { status: 403 });
+      } else {
+        return NextResponse.json({ error: "Employers can't message each other here." }, { status: 403 });
+      }
+    } else if (peerType === "EMPLOYER") {
+      // Someone reaching an employer: a trainee who engaged with them, or a Super Admin. Nobody else.
+      const peer = await prisma.employer.findUnique({ where: { id: peerId }, select: { id: true } });
+      if (!peer) return NextResponse.json({ error: "Employer not found." }, { status: 404 });
+      if (me.actorType === "TRAINEE") {
+        const verdict = traineeToEmployerVerdict(await employerTraineeFacts(peerId, me.actorId));
+        if (!verdict.ok) return NextResponse.json({ error: verdict.error }, { status: 403 });
+      } else if (session.role !== "SUPER_ADMIN") {
+        return NextResponse.json({ error: "You can't start a conversation with an employer." }, { status: 403 });
+      }
+    } else if (peerType === "TRAINEE") {
       const peer = await prisma.trainee.findUnique({ where: { id: peerId }, select: { id: true } });
       if (!peer) return NextResponse.json({ error: "Trainee not found." }, { status: 404 });
 

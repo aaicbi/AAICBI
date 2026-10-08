@@ -153,10 +153,10 @@ function Row({ label, checked, onChange }: { label: string; checked: boolean; on
 
 function PostRow({ p, actions, onAct }: { p: Payload["posts"][number]; actions: Array<[string, string]>; onAct: (action: string) => void }) {
   return (
-    <Card className="flex items-center gap-4">
+    <Card className="flex flex-wrap items-center gap-3 sm:gap-4">
       {/* eslint-disable-next-line @next/next/no-img-element -- YouTube thumbnail. */}
       <img src={p.thumbnailUrl} alt="" className="h-16 w-28 shrink-0 rounded object-cover" />
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 basis-48">
         <p className="truncate font-semibold text-brand-ink">{p.title}</p>
         <p className="text-xs text-gray-600">{p.traineeName} · {p.organizationName} {p.isDemo && "· demo"}</p>
         {p.escalatedAt && (

@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
+import FormSteps from "@/components/ui/FormSteps";
+import StickyActions from "@/components/ui/StickyActions";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
@@ -101,6 +103,19 @@ export default function OrgEducationManager() {
           <p className="text-xs text-gray-600">
             {data.verified ? "Your organization is verified: videos publish as soon as the trainee agrees." : "Videos are reviewed by AAICBI after the trainee agrees."}
           </p>
+          <FormSteps
+            className="space-y-4"
+            labels={["Trainee and video", "Details"]}
+            footer={
+              <div className="space-y-3">
+                {error && <p role="alert" className="text-sm text-brand-rose">{error}</p>}
+                <StickyActions>
+                  <Button type="submit" loading={busy} disabled={!data.enabled || !form.traineeId || !form.title || !form.youtubeUrl}>Send for trainee consent</Button>
+                </StickyActions>
+              </div>
+            }
+          >
+            <div className="space-y-4">
           <Select label="Trainee" required value={form.traineeId} onChange={(e) => setForm({ ...form, traineeId: e.target.value })} hint="Only trainees enrolled in your programs are listed.">
             <option value="">Choose a trainee</option>
             {data.trainees.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -114,6 +129,8 @@ export default function OrgEducationManager() {
             <img src={preview.thumbnailUrl} alt="Video thumbnail" className="aspect-video w-full max-w-sm rounded-lg object-cover" />
           )}
           <Input label="Video title" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} maxLength={140} />
+            </div>
+            <div className="space-y-4">
           <Textarea label="Description" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} maxLength={1000} />
           <div className="grid gap-4 sm:grid-cols-2">
             <Select label="Program" value={form.courseId} onChange={(e) => setForm({ ...form, courseId: e.target.value })}>
@@ -123,8 +140,8 @@ export default function OrgEducationManager() {
             <Input label="Module" value={form.moduleName} onChange={(e) => setForm({ ...form, moduleName: e.target.value })} maxLength={120} />
           </div>
           <Input label="Skills" value={form.skills} onChange={(e) => setForm({ ...form, skills: e.target.value })} hint="Comma separated, for example Python, Data Cleaning" />
-          {error && <p role="alert" className="text-sm text-brand-rose">{error}</p>}
-          <Button type="submit" loading={busy} disabled={!data.enabled || !form.traineeId || !form.title || !form.youtubeUrl}>Send for trainee consent</Button>
+            </div>
+          </FormSteps>
         </Card>
       </form>
 
@@ -152,10 +169,10 @@ export default function OrgEducationManager() {
           {data.posts.map((p) => {
             const s = STATUS_LABEL[p.status] ?? { text: p.status, variant: "neutral" as const };
             return (
-              <Card key={p.id} className="flex items-center gap-4">
+              <Card key={p.id} className="flex flex-wrap items-center gap-3 sm:gap-4">
                 {/* eslint-disable-next-line @next/next/no-img-element -- YouTube thumbnail. */}
                 <img src={p.thumbnailUrl} alt="" className="h-16 w-28 shrink-0 rounded object-cover" />
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 basis-40">
                   <p className="truncate font-semibold text-brand-ink">{p.title}</p>
                   <p className="text-xs text-gray-600">{p.trainee.name}{p.course ? ` · ${p.course.title}` : ""} · {p.viewCount} views</p>
                   {p.reviewNote && <p className="text-xs text-gray-600">Note: {p.reviewNote}</p>}

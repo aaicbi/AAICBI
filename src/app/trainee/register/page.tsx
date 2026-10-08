@@ -112,9 +112,9 @@ function TraineeRegisterForm() {
 
         <Card className="mt-6">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Input label="Full name" value={name} onChange={(e) => setName(e.target.value)} required />
-            <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
+            <Input label="Full name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} required />
+            <Input label="Email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <Input label="Password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
             {freeCourses.length > 0 && (
               <Select label="Start a free course now? (optional)" value={courseId} onChange={(e) => setCourseId(e.target.value)}>
                 <option value="">Not right now</option>

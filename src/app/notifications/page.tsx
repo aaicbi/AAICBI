@@ -5,6 +5,8 @@ import TraineeLogoutButton from "@/components/trainee/LogoutButton";
 import EmployerLogoutButton from "@/components/employer/LogoutButton";
 import AdminLogoutButton from "@/components/admin/LogoutButton";
 import NotificationsList from "./NotificationsList";
+import PushNotificationsCard from "@/components/pwa/PushNotificationsCard";
+import { resolveNotificationRecipient } from "@/lib/notifications/recipientScope";
 import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
 const NAV_BY_ROLE: Record<string, { label: string; href: string }[]> = {
@@ -51,14 +53,15 @@ export default async function NotificationsPage() {
     );
   }
 
-  const recipientType = session.role === "TRAINEE" ? "TRAINEE" : session.role === "EMPLOYER" ? "EMPLOYER" : "STAFF";
+  // The same account-to-bucket rule the bell uses, so organizations and investors see their own notifications too.
+  const { recipientType, recipientId } = await resolveNotificationRecipient(session);
   const notifications = await prisma.userNotification.findMany({
-    where: { recipientType, recipientId: session.userId },
+    where: { recipientType, recipientId },
     orderBy: { createdAt: "desc" },
     take: 100,
   });
 
-  const nav = NAV_BY_ROLE[recipientType];
+  const nav = NAV_BY_ROLE[recipientType] ?? NAV_BY_ROLE.STAFF;
   const logoutButton =
     recipientType === "TRAINEE" ? <TraineeLogoutButton /> : recipientType === "EMPLOYER" ? <EmployerLogoutButton /> : <AdminLogoutButton />;
 
@@ -67,6 +70,7 @@ export default async function NotificationsPage() {
       <SiteHeader nav={nav} right={logoutButton} />
       <main className="mx-auto max-w-2xl px-6 py-10">
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Notifications</h1>
+        <div className="mt-4"><PushNotificationsCard /></div>
         <NotificationsList
           initialNotifications={notifications.map((n: (typeof notifications)[number]) => ({
             id: n.id,

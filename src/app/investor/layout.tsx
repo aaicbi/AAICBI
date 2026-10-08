@@ -1,7 +1,8 @@
 import { headers } from "next/headers";
 import { getSession } from "@/lib/auth/session";
 import { SidebarActiveProvider } from "@/components/SidebarActiveContext";
-import SidebarBackBar from "@/components/SidebarBackBar";
+import ShellContent from "@/components/pwa/ShellContent";
+import { INVESTOR_NAV } from "@/lib/investor/nav";
 import InvestorSidebar from "@/components/investor/InvestorSidebar";
 import { getEcosystemFlags } from "@/lib/ecosystem/flags";
 import { pageHasSidebar } from "@/lib/sidebarRoutes";
@@ -33,10 +34,7 @@ export default async function InvestorLayout({ children }: { children: React.Rea
     <SidebarActiveProvider>
       <div className="min-h-screen">
         <InvestorSidebar showOrganizations={(await getEcosystemFlags()).orgPages} />
-        <div className="lg:pl-64">
-          <SidebarBackBar />
-          {children}
-        </div>
+        <ShellContent role={"investor"} moreItems={INVESTOR_NAV}>{children}</ShellContent>
       </div>
     </SidebarActiveProvider>
   );

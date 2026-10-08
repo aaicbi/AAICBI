@@ -4629,3 +4629,21 @@ model GuideUnanswered {
 
   @@index([status, lastAskedAt])
 }
+
+
+/// A browser or installed app that agreed to receive web push notifications for one account.
+/// recipientType/recipientId use the same values as UserNotification, so a push goes to
+/// exactly the people whose in-app bell would show the same notification.
+model PushSubscription {
+  id            String   @id @default(cuid())
+  recipientType String
+  recipientId   String
+  endpoint      String   @unique
+  p256dh        String
+  auth          String
+  userAgent     String?
+  createdAt     DateTime @default(now())
+  lastUsedAt    DateTime @default(now())
+
+  @@index([recipientType, recipientId])
+}

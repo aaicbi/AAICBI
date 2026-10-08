@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import DesktopRecommended from "@/components/pwa/DesktopRecommended";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
 import Card from "@/components/ui/Card";
@@ -342,6 +343,7 @@ export default function CourseExaminationPage({ params }: { params: { id: string
       />
       {modal}
       <main className="mx-auto max-w-3xl px-6 py-10">
+        <DesktopRecommended what="Managing the course examination" />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="font-display text-2xl font-semibold text-brand-ink">{exam.title}</h1>

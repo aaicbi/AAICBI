@@ -96,10 +96,14 @@ export const ADMIN_NAV_COMMAND = [
  * plain ADMIN with no SUPER_ADMIN-only bypass. Deliberately excluded,
  * even though a real staff ADMIN sees them in ADMIN_NAV: Analytics
  * (confirmed unscoped for ADMIN — see the 404 guard this organization's
- * session also hits if it tries the URL directly), Messages (never
- * confirmed scoped, left out conservatively), Showcase, Training
+ * session also hits if it tries the URL directly), Showcase, Training
  * Organizations, and every staff/pitch/command-specific page (none of
  * which make sense for a single external organization anyway).
+ *
+ * Messages is included: the conversations API limits an ADMIN (and so an
+ * organization) to its own cohorts' chats and its own direct messages, and
+ * to trainees in its own cohorts (see src/lib/messaging.ts and
+ * src/app/api/conversations/*), and a test pins that.
  */
 export const ADMIN_NAV_TRAINING_ORG = [
   { label: "Dashboard", href: "/admin/dashboard" },
@@ -239,7 +243,7 @@ const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
     items: [
       { label: "Performance", href: "/admin/performance", audience: "staffAndOrg" },
       { label: "Analytics", href: "/admin/analytics", audience: "staff" },
-      { label: "Messages", href: "/admin/messages", audience: "staff" },
+      { label: "Messages", href: "/admin/messages", audience: "staffAndOrg" },
     ],
   },
   {

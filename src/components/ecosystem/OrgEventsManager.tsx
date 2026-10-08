@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
+import FormSteps from "@/components/ui/FormSteps";
+import StickyActions from "@/components/ui/StickyActions";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
@@ -50,16 +52,25 @@ export default function OrgEventsManager() {
   return (
     <div className="space-y-8">
       <Card>
-        <form onSubmit={create} className="space-y-3">
-          <Input label="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} maxLength={120} required />
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Input label="Starts (UTC)" type="datetime-local" value={form.startsAt} onChange={(e) => setForm({ ...form, startsAt: e.target.value })} required />
-            <Input label="Ends (UTC, optional)" type="datetime-local" value={form.endsAt} onChange={(e) => setForm({ ...form, endsAt: e.target.value })} />
-          </div>
-          <Input label="Place (optional, e.g. Lagos or Online)" value={form.locationText} onChange={(e) => setForm({ ...form, locationText: e.target.value })} maxLength={160} />
-          <Input label="Registration link (optional, https only)" value={form.registrationUrl} onChange={(e) => setForm({ ...form, registrationUrl: e.target.value })} placeholder="https://" />
-          <Textarea label="Details (optional)" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} maxLength={1000} />
-          <Button type="submit" loading={busy}>Publish event</Button>
+        <form onSubmit={create}>
+          <FormSteps
+            className="space-y-3"
+            labels={["What and when", "Where and how"]}
+            footer={<StickyActions><Button type="submit" loading={busy}>Publish event</Button></StickyActions>}
+          >
+            <div className="space-y-3">
+              <Input label="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} maxLength={120} required />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Input label="Starts (UTC)" type="datetime-local" value={form.startsAt} onChange={(e) => setForm({ ...form, startsAt: e.target.value })} required />
+                <Input label="Ends (UTC, optional)" type="datetime-local" value={form.endsAt} onChange={(e) => setForm({ ...form, endsAt: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-3">
+              <Input label="Place (optional, e.g. Lagos or Online)" value={form.locationText} onChange={(e) => setForm({ ...form, locationText: e.target.value })} maxLength={160} />
+              <Input label="Registration link (optional, https only)" type="url" value={form.registrationUrl} onChange={(e) => setForm({ ...form, registrationUrl: e.target.value })} placeholder="https://" />
+              <Textarea label="Details (optional)" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} maxLength={1000} />
+            </div>
+          </FormSteps>
         </form>
       </Card>
       {error ? <ErrorState message="Could not load your events." onRetry={load} /> : events === null ? <SkeletonList rows={2} /> : events.length === 0 ? (

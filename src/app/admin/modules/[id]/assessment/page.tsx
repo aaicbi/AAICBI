@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
+import DesktopRecommended from "@/components/pwa/DesktopRecommended";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
@@ -292,6 +293,7 @@ export default function ModuleAssessmentPage({ params }: { params: { id: string 
       />
       {modal}
       <main className="mx-auto max-w-3xl px-6 py-10">
+        <DesktopRecommended what="Building a module assessment" />
         {courseId && (
           <BackLink href={`/admin/courses/${courseId}`} className="text-sm text-brand-teal hover:underline">
             Back to course

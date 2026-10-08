@@ -6,7 +6,7 @@ import { withApiErrors } from "@/lib/apiError";
 import { resolveActor } from "@/lib/messaging";
 
 const BodySchema = z.object({
-  blockedType: z.enum(["TRAINEE", "STAFF"]),
+  blockedType: z.enum(["TRAINEE", "STAFF", "EMPLOYER"]),
   blockedId: z.string().min(1),
 });
 
@@ -14,7 +14,7 @@ const BodySchema = z.object({
  * Idempotent (upsert on the ordered pair). */
 export async function POST(req: NextRequest) {
   return withApiErrors(async () => {
-    const session = await requireRole("TRAINEE", "SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
+    const session = await requireRole("TRAINEE", "EMPLOYER", "SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
     const body = await req.json().catch(() => null);
     const parsed = BodySchema.safeParse(body);
     if (!parsed.success) return NextResponse.json({ error: "A blockedType and blockedId are required." }, { status: 400 });
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 /** DELETE /api/conversations/block — unblock. */
 export async function DELETE(req: NextRequest) {
   return withApiErrors(async () => {
-    const session = await requireRole("TRAINEE", "SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
+    const session = await requireRole("TRAINEE", "EMPLOYER", "SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
     const body = await req.json().catch(() => null);
     const parsed = BodySchema.safeParse(body);
     if (!parsed.success) return NextResponse.json({ error: "A blockedType and blockedId are required." }, { status: 400 });

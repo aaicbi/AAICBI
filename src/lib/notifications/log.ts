@@ -7,6 +7,7 @@
  * unlocking, or exam submission, the flows this gets called from.
  */
 import { prisma } from "@/lib/prisma";
+import { sendPushForNotification } from "@/lib/push/send";
 import { sendEmail } from "@/lib/notifications/email";
 import { redactEmails, redactPhoneNumbers } from "@/lib/notifications/redact";
 import { sendWhatsApp } from "@/lib/notifications/whatsapp";
@@ -297,6 +298,8 @@ export async function notifyByEmail(input: NotifyByEmailInput): Promise<void> {
           senderLabel: input.senderLabel ?? null,
         },
       });
+      // Also a web push, for people who turned notifications on for a device.
+      await sendPushForNotification(input.recipientType, input.recipientId, { type: input.type, title: input.subject, body: input.text, url: input.url });
     } catch (e) {
       console.error("Failed to write UserNotification:", e);
     }

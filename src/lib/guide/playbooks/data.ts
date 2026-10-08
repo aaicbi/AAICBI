@@ -95,6 +95,22 @@ export const PLAYBOOKS: Playbook[] = [
     ],
   },
   {
+    id: "message-trainees",
+    audience: "organization",
+    title: "Message your trainees",
+    question: "How do I message my trainees?",
+    summary: "You can chat with the trainees in your cohorts, one to one or in each cohort's group chat. You only see your own cohorts and your own conversations.",
+    keywords: ["message", "messages", "chat", "talk to trainees", "contact trainees", "announce", "group chat", "cohort chat", "dm", "communicate", "reply"],
+    steps: [
+      { title: "Open Messages", text: "In the menu choose **Messages**. On a phone it is on the bottom bar.", href: "/admin/messages", hrefLabel: "Open Messages" },
+      { title: "Find a conversation", text: "Your cohorts' group chats are listed for you. Use the search box to find a person or a message; unread conversations come first." },
+      { title: "Start a chat", text: "Press **New chat** and choose a trainee from one of your cohorts.", tip: "Trainees appear here once they are in one of your cohorts. Add them under Cohorts / Intakes on a course." },
+      { title: "Write and send", text: "Type in the box and press **Send**. The trainee gets a notification that says you wrote, never the message itself." },
+      { title: "If someone misbehaves", text: "Open the menu at the top of a conversation to **Block** the person, or press **Report** under a message." },
+    ],
+    next: ["enroll-trainees"],
+  },
+  {
     id: "enroll-trainees",
     audience: "organization",
     title: "Enroll trainees and make cohorts",
@@ -391,7 +407,7 @@ export const PLAYBOOKS: Playbook[] = [
     summary: "There are a few ways to ask for help, depending on what you need.",
     keywords: ["message", "messages", "chat", "help", "support", "instructor", "question", "contact", "admin", "report", "block"],
     steps: [
-      { title: "Chat with others", text: "Open **Messages**, press **New chat**, and pick someone from the list. Staff are tagged **Staff**. Type in **Write a message…** and press **Send**.", href: "/trainee/messages", hrefLabel: "Open Messages" },
+      { title: "Chat with others", text: "Open **Messages**, press **New chat**, and pick someone from the list. Staff are tagged **Staff** and employers **Employer**. Type in **Write a message…** and press **Send**.", href: "/trainee/messages", hrefLabel: "Open Messages", tip: "Employers appear in the list once you accept their introduction or apply to their job." },
       { title: "Ask about a lesson", text: "Use **Q&A** on the lesson in your course to ask a question your instructor and others can see." },
       { title: "Contact the platform team", text: "In **Settings**, under **Support**, fill in **Subject** and your message and press **Send message**.", href: "/trainee/settings", hrefLabel: "Open Settings" },
       { title: "Ask Loop about your progress", text: "**Ask Loop** in the menu is your learning buddy for questions about your own progress. Turn on **AI Study Buddy** in Settings first.", href: "/trainee/buddy", hrefLabel: "Open Ask Loop" },

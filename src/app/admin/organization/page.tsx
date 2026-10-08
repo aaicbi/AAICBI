@@ -8,6 +8,12 @@ import { shouldShowCertWatermark } from "@/lib/trainingOrgBilling";
 import Card from "@/components/ui/Card";
 import { CourseProgressTable, RecentTraineesTable, CohortsTable } from "@/components/org/OrgOverviewTables";
 import EmptyState from "@/components/ui/EmptyState";
+import DashboardSwitcher from "@/components/mobile/DashboardSwitcher";
+import MobileHome from "@/components/mobile/MobileHome";
+import { getRecentNotifications, getUnreadNotificationCount } from "@/lib/dashboard/recentNotifications";
+import { getTimeOfDayGreeting } from "@/lib/dashboardHelpers";
+import { nextEventBlock } from "@/lib/mobile/homeData";
+import type { MobileBlock } from "@/lib/mobile/homeCore";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 
 export const metadata = { title: "Organization overview" };
@@ -83,7 +89,25 @@ export default async function OrganizationOverviewPage() {
   const watermarkOn = shouldShowCertWatermark(org);
   const publishedCount = courses.filter((c) => c.published).length;
 
+  // The phone home for an organization: its own bell (not the staff one), its trainees' activity, messages, events, training.
+  const [alerts, unreadAlerts, eventBlock] = await Promise.all([
+    getRecentNotifications("TRAINING_ORG", org.id, 3),
+    getUnreadNotificationCount("TRAINING_ORG", org.id),
+    nextEventBlock(),
+  ]);
+  const completionPercent = percent(sum(completed), sum(enrolled));
+  const mobileBlocks: MobileBlock[] = [
+    { kind: "welcome", greeting: getTimeOfDayGreeting(), name: org.name, line: null },
+    { kind: "alerts", unread: unreadAlerts, items: alerts.map((n) => ({ title: n.title, href: n.url ?? "/notifications" })) },
+    { kind: "trainees", href: "/admin/organization", stats: [{ label: "Active trainees", value: activeTrainees }, { label: "Certificates issued", value: certificatesIssued }] },
+    { kind: "messages", href: "/admin/messages" },
+    ...(eventBlock ? [eventBlock] : []),
+    { kind: "training", href: "/admin/courses", stats: [{ label: "Courses", value: courses.length }, { label: "Published", value: publishedCount }, { label: "Completion", value: `${completionPercent}%` }, { label: "Cohorts", value: cohorts.length }] },
+    { kind: "actions", items: [{ label: "Courses", href: "/admin/courses" }, { label: "Public profile", href: "/admin/organization/profile" }, { label: "Events", href: "/admin/organization/events" }, { label: "Team", href: "/admin/organization/team" }] },
+  ];
+
   return (
+    <DashboardSwitcher mobile={<MobileHome role="organization" blocks={mobileBlocks} />}>
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <h1 className="font-display text-2xl font-semibold text-brand-ink">{org.name}</h1>
       <p className="mt-1 text-sm text-gray-600">Your trainees, their progress and your plan at a glance.</p>
@@ -250,6 +274,7 @@ export default async function OrganizationOverviewPage() {
         </div>
       </Card>
     </main>
+    </DashboardSwitcher>
   );
 }
 
