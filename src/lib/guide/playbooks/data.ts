@@ -278,7 +278,7 @@ export const PLAYBOOKS: Playbook[] = [
     summary: "Free courses open straight away. Paid courses are paid for securely online, and some let you try the first modules free.",
     keywords: ["enroll", "enrol", "join course", "join a course", "register for course", "pay", "payment", "paystack", "free preview", "unlock", "unlock code", "buy course", "renew"],
     steps: [
-      { title: "Find the course", text: "Use **Search courses…** on the courses page, or browse **Available Courses**. Open one to read **About this course**, **What you'll learn** and **Course outline**.", href: "/courses", hrefLabel: "Browse courses" },
+      { title: "Find the course", text: "Use **Search courses…** on the courses page, or browse **Available Courses**. Open one to read its overview (tap **Read more** for the full text), **What you'll learn** and **Course outline**.", href: "/courses", hrefLabel: "Browse courses" },
       { title: "Sign in to enroll", text: "If you are not signed in you will see **Log in to Enroll**. Sign in, or create an account first.", tip: "If registration is closed or has not opened you will see a message instead of a button." },
       { title: "Free course", text: "Press **Enroll**. The course opens straight away." },
       { title: "Paid course", text: "Press **Pay & Enroll** and complete the payment in the popup. You will get an email with a 6-digit code and an **Unlock the Course** button. Open it, enter the code and press **Unlock**.", tip: "The code expires after 15 minutes. If your payment seems stuck, use **Recheck my payment**." },

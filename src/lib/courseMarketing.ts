@@ -84,6 +84,8 @@ export interface MarketingView {
   trainingFormat: string | null;
   instructorNames: string | null;
   flyerUrl: string | null;
+  /** Training organization (or AAICBI) running the course. */
+  publisherName: string | null;
   curriculumUrl: string | null;
   curriculumUploadedAt: Date | string | null;
   skillsGained: string[];
@@ -103,8 +105,9 @@ export interface MarketingView {
   lifecyclePhase: CourseLifecyclePhase | null;
 }
 
-export function buildMarketingView(course: MarketingSourceCourse): MarketingView {
+export function buildMarketingView(course: MarketingSourceCourse, publisherName: string | null = null): MarketingView {
   return {
+    publisherName,
     id: course.id,
     title: course.title,
     description: course.description,

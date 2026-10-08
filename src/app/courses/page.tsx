@@ -1,13 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
-import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Icon from "@/components/ui/Icon";
 import EmptyState from "@/components/ui/EmptyState";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import UpcomingCourseCard, { type UpcomingCourseRow } from "@/components/courses/UpcomingCourseCard";
 import PriceTag from "@/components/courses/PriceTag";
+import CourseCard from "@/components/courses/CourseCard";
 import AttentionPulse from "@/components/ui/AttentionPulse";
 import { CalendarClock, ArrowRight, Search, Sparkles } from "lucide-react";
 import { trackVisitorEvent } from "@/lib/analytics/visitorTrackClient";
@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/Field";
 interface PublicCourseRow extends UpcomingCourseRow {
   level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | null;
   moduleCount: number;
+  publisherName: string | null;
   // Free preview modules
   freePreviewModuleCount: number | null;
 }
@@ -26,6 +27,31 @@ function FreePreviewNote({ count }: { count: number }) {
       <AttentionPulse icon={Sparkles} />
       Try the first {count} module{count === 1 ? "" : "s"} free
     </p>
+  );
+}
+
+function PublicCourseCard({ course }: { course: PublicCourseRow }) {
+  return (
+    <CourseCard
+      href={`/courses/${course.id}`}
+      title={course.title}
+      publisher={course.publisherName}
+      description={course.description}
+      imageUrl={course.flyerUrl}
+      badges={
+        <>
+          {course.isFree && <Badge variant="success">Free</Badge>}
+          {course.level && <Badge variant="neutral">{LEVEL_LABEL[course.level]}</Badge>}
+        </>
+      }
+      price={
+        !course.isFree && course.priceKobo != null ? (
+          <PriceTag priceKobo={course.priceKobo} discountPercent={course.discountPercent} effectivePriceKobo={course.effectivePriceKobo} billingInterval={course.billingInterval} size="sm" />
+        ) : null
+      }
+      note={!course.isFree && !!course.freePreviewModuleCount ? <FreePreviewNote count={course.freePreviewModuleCount} /> : null}
+      meta={[course.category, `${course.moduleCount} module${course.moduleCount === 1 ? "" : "s"}`]}
+    />
   );
 }
 
@@ -100,7 +126,7 @@ export default function PublicCoursesPage() {
           { label: "Staff Login", href: "/admin/login" },
         ]}
       />
-      <main className="mx-auto max-w-4xl px-6 py-10">
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Courses</h1>
         <p className="mt-1 text-sm text-gray-500">Browse what&apos;s available — sign up when you&apos;re ready to enroll.</p>
 
@@ -119,23 +145,9 @@ export default function PublicCoursesPage() {
                 <EmptyState title="No courses matched" description="Try a different search term, or browse everything below." />
               </div>
             ) : (
-              <div className="mt-6 space-y-4">
+              <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {searchResults.map((course) => (
-                  <a key={course.id} href={`/courses/${course.id}`}>
-                    <Card interactive className="flex items-center gap-4 hover:border-brand-teal">
-                      <div className="flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-display font-semibold text-brand-ink">{course.title}</span>
-                          {course.isFree && <Badge variant="success">Free</Badge>}
-                        </div>
-                        {course.description && <p className="mt-1 line-clamp-2 text-sm text-gray-600">{course.description}</p>}
-                        {course.category && <p className="mt-1 text-xs text-gray-500">{course.category}</p>}
-                        {!course.isFree && !!course.freePreviewModuleCount && (
-                          <FreePreviewNote count={course.freePreviewModuleCount} />
-                        )}
-                      </div>
-                    </Card>
-                  </a>
+                  <PublicCourseCard key={course.id} course={course} />
                 ))}
               </div>
             )}
@@ -144,51 +156,14 @@ export default function PublicCoursesPage() {
           <>
             <h2 className="mt-10 font-display text-lg font-semibold text-brand-ink">Available Courses</h2>
 
-            {/* Explicit 216px (72px + a further +144px) per direct request —
-                not on Tailwind's default spacing scale, hence the
-                arbitrary-value syntax rather than a named step. */}
-            <div className="mt-8 space-y-[216px]">
+            <div className="mt-6">
               {courses === null && <SkeletonList rows={4} />}
               {courses?.length === 0 && <EmptyState title="No courses available yet" description="Check back soon." />}
-
-              {availableCourses.map((course) => (
-                <a key={course.id} href={`/courses/${course.id}`}>
-                  <Card interactive className="flex items-center gap-4 hover:border-brand-teal">
-                    {course.flyerUrl && (
-                      <div className="h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-brand-mint">
-                        {/* eslint-disable-next-line @next/next/no-img-element -- a real, dynamically-uploaded external URL. */}
-                        <img src={course.flyerUrl} alt="" className="h-full w-full object-cover" />
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-display font-semibold text-brand-ink">{course.title}</span>
-                        {course.isFree && <Badge variant="success">Free</Badge>}
-                        {course.level && <Badge variant="neutral">{LEVEL_LABEL[course.level]}</Badge>}
-                      </div>
-                      {course.description && <p className="mt-1 line-clamp-2 text-sm text-gray-600">{course.description}</p>}
-                      {!course.isFree && course.priceKobo != null && (
-                        <div className="mt-1.5">
-                          <PriceTag
-                            priceKobo={course.priceKobo}
-                            discountPercent={course.discountPercent}
-                            effectivePriceKobo={course.effectivePriceKobo}
-                            billingInterval={course.billingInterval}
-                            size="sm"
-                          />
-                        </div>
-                      )}
-                      {!course.isFree && !!course.freePreviewModuleCount && (
-                        <FreePreviewNote count={course.freePreviewModuleCount} />
-                      )}
-                      <p className="mt-1 text-xs text-gray-500">
-                        {course.category && `${course.category} · `}
-                        {course.moduleCount} module{course.moduleCount === 1 ? "" : "s"}
-                      </p>
-                    </div>
-                  </Card>
-                </a>
-              ))}
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {availableCourses.map((course) => (
+                  <PublicCourseCard key={course.id} course={course} />
+                ))}
+              </div>
             </div>
 
             {/* Coming Soon Courses — a horizontal carousel of upcoming
@@ -211,7 +186,7 @@ export default function PublicCoursesPage() {
                 </div>
                 <div className="mt-4 flex snap-x gap-4 overflow-x-auto pb-4">
                   {upcomingCourses.map((course) => (
-                    <div key={course.id} className="w-64 shrink-0 snap-start">
+                    <div key={course.id} className="w-72 shrink-0 snap-start">
                       <UpcomingCourseCard course={course} />
                     </div>
                   ))}

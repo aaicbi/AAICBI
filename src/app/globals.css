@@ -521,3 +521,6 @@ body::after { content: ""; display: block; height: var(--layer-nav, 0px); }
 
 /* Keep anything scrolled or focused into view clear of the phone bottom navigation bar. */
 html { scroll-padding-bottom: var(--layer-nav, 0px); }
+
+/* Long words, URLs and unbroken strings wrap inside their containers instead of overflowing cards. */
+h1, h2, h3, h4, h5, h6, p, li, dd, dt, label, blockquote { overflow-wrap: anywhere; }

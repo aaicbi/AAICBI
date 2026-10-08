@@ -67,3 +67,10 @@ Each new direct message creates (or refreshes) one unread notification for the o
 ## "Add to home screen" button
 
 `AddToHomeScreenButton` is always visible on phones and tablets until the app is installed: in the top bar of every page (label "Install app") and in the bottom bar's More sheet. One tap opens the browser's own install dialog where the browser allows it. On iPhone/iPad (no such dialog exists for web pages) and on browsers that withhold it, a sheet shows the exact steps (Safari: Share → Add to Home Screen; others: browser menu → Install app). It is hidden once installed and on laptops without an install prompt. A browser cannot place an icon silently: the person always confirms.
+
+## Course pages and video
+
+- `CourseCard` is the one card for every course list (trainee and public): 16:9 picture or a branded fallback, title clamped to two lines, publisher, description clamped to three, facts, and a call to action pinned to the bottom. Long words and URLs wrap instead of overflowing.
+- `CourseHero` tops both the pre-enrollment page and the enrolled course page; long overviews show a **Read more** toggle.
+- `VideoPlayer` plays lesson and learn-page videos inside the platform: a poster that loads nothing from YouTube until tapped, an embedded player (`playsinline`, its own fullscreen button), and an **Expand** button for a large modal. Nothing links out to youtube.com, so the YouTube app is never launched. Rules are in `src/lib/video/embed.ts`.
+- Publisher names come from `publisherNames()` in `src/lib/courseOrg.ts` (training organization, else AAICBI).

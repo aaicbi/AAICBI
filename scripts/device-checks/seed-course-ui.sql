@@ -1,0 +1,11 @@
+update "Course" set status='PUBLISHED', "flyerUrl"='/icons/icon-512.png', "showFlyer"=true, description='Learn Python from the ground up with hands-on exercises, real projects and a final assessment. This is a deliberately long description to prove the card keeps it to a few lines and that the course page shows a Read more control instead of stretching the page down the screen for pages and pages of repeated text that nobody scrolls. https://example.com/a/very/long/url/that/has/no/spaces/at/all/and/keeps/going/and/going/forever/and/ever/unbroken' where id='cmuznki4u000ip61x2v21ycrq';
+insert into "Material" (id,"lessonId",type,title,url,"order","updatedAt") select 'mat_video_test', l.id, 'VIDEO', 'Lesson video', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 0, now() from "Lesson" l join "Module" m on l."moduleId"=m.id where m."courseId"='cmuznki4u000ip61x2v21ycrq' limit 1 on conflict do nothing;
+create temp table t1 as select * from "Course" where id='cmuznkiy30008nwm287j3g2hi';
+update t1 set id='c_short', title='Introduction to Data Analytics', "flyerUrl"=null, description='Short.', status='PUBLISHED';
+insert into "Course" select * from t1;
+create temp table t2 as select * from "Course" where id='cmuznkiy30008nwm287j3g2hi';
+update t2 set id='c_med', title='Professional Data Analytics and Business Intelligence Training', "flyerUrl"='/icons/icon-512.png', description='Medium length description about analytics, dashboards and reporting for working professionals who want practical skills quickly.', status='PUBLISHED';
+insert into "Course" select * from t2;
+create temp table t3 as select * from "Course" where id='cmuznkiy30008nwm287j3g2hi';
+update t3 set id='c_long', title='Advanced Professional Training Programme in Data Analytics, Business Intelligence, Machine Learning and Artificial Intelligence', "flyerUrl"='https://invalid.example/missing.png', description=repeat('Extremely long description text that keeps going. ',40) || 'Supercalifragilisticexpialidocious_unbroken_string_with_no_spaces_at_all_to_test_wrapping_inside_the_card_boundary_properly', status='PUBLISHED';
+insert into "Course" select * from t3;

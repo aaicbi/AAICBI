@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { buildMarketingView } from "@/lib/courseMarketing";
+import { publisherNames } from "@/lib/courseOrg";
 
 /**
  * GET /api/admin/courses/[id]/preview — "Preview as Trainee." The one
@@ -39,6 +40,6 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ error: "Course not found." }, { status: 404 });
     }
 
-    return NextResponse.json(buildMarketingView(course));
+    return NextResponse.json(buildMarketingView(course, (await publisherNames([{ id: course.id, createdById: course.createdById }])).get(course.id) ?? null));
   });
 }

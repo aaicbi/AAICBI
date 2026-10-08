@@ -16,6 +16,7 @@ import { ReactionButtons } from "@/components/ecosystem/EngageButtons";
 import EducationVideoCard from "@/components/ecosystem/EducationVideoCard";
 import { jobsForSkills, recommendPrograms, similarVideos } from "@/lib/ecosystem/recommend";
 import { resolveViewer } from "@/lib/ecosystem/feed";
+import VideoPlayer from "@/components/video/VideoPlayer";
 
 export const dynamic = "force-dynamic";
 
@@ -77,16 +78,7 @@ export default async function WatchPage({ params }: { params: { id: string } }) 
     <>
       <SiteHeader nav={[{ label: "Learn", href: "/learn" }, { label: "Organizations", href: "/organizations" }]} />
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
-        <div className="aspect-video overflow-hidden rounded-xl bg-black">
-          <iframe
-            src={`https://www.youtube-nocookie.com/embed/${post.youtubeId}`}
-            title={post.title}
-            className="h-full w-full"
-            allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            referrerPolicy="strict-origin-when-cross-origin"
-          />
-        </div>
+        <VideoPlayer source={{ kind: "youtube", id: post.youtubeId }} title={post.title} />
         <ViewBeacon postId={post.id} />
 
         <h1 className="mt-5 font-display text-2xl font-semibold text-brand-ink">{post.title}</h1>

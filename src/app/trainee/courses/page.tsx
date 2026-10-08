@@ -1,17 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/trainee/LogoutButton";
-import Card from "@/components/ui/Card";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 import CorrectnessMark from "@/components/ui/CorrectnessMark";
-import Icon from "@/components/ui/Icon";
 import PriceTag from "@/components/courses/PriceTag";
-import { ArrowRight } from "lucide-react";
+import CourseCard from "@/components/courses/CourseCard";
 import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
 interface CourseRow {
@@ -30,6 +27,7 @@ interface CourseRow {
   category: string | null;
   level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | null;
   flyerUrl: string | null;
+  publisherName: string | null;
   _count: { modules: number };
 }
 
@@ -66,7 +64,7 @@ export default function TraineeCoursesPage() {
         nav={TRAINEE_NAV}
         right={<LogoutButton />}
       />
-      <main className="mx-auto max-w-3xl px-6 py-10">
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Courses</h1>
 
         <div className="mt-6 space-y-3">
@@ -84,60 +82,41 @@ export default function TraineeCoursesPage() {
             />
           )}
 
-          {courses?.map((course) => (
-            <Link key={course.id} href={`/trainee/courses/${course.id}`}>
-              <Card interactive className="flex items-center gap-4 hover:border-brand-teal">
-                {course.flyerUrl && (
-                  <div className="h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-brand-mint">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- a real, dynamically-uploaded external URL. */}
-                    <img src={course.flyerUrl} alt="" className="h-full w-full object-cover" />
-                  </div>
-                )}
-                <div className="flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-display text-base font-semibold text-brand-ink">{course.title}</span>
-                    {course.isPaid && course.isEnrolled ? (
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-brand-mint px-2 py-0.5 text-xs font-semibold text-brand-teal">
-                        PAID <CorrectnessMark state="correct" label={undefined} />
-                      </span>
-                    ) : course.isExpired ? (
-                      <span className="rounded-full bg-brand-roseLight px-2 py-0.5 text-xs font-semibold text-brand-rose">
-                        EXPIRED
-                      </span>
-                    ) : course.isFree ? (
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">
-                        FREE
-                      </span>
-                    ) : null}
-                    {course.level && (
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">
-                        {LEVEL_LABEL[course.level]}
-                      </span>
-                    )}
-                  </div>
-                  {course.description && <div className="mt-0.5 text-sm text-gray-600">{course.description}</div>}
-                  {!course.isFree && !course.isEnrolled && course.priceKobo != null && (
-                    <div className="mt-1.5">
-                      <PriceTag
-                        priceKobo={course.priceKobo}
-                        discountPercent={course.discountPercent}
-                        effectivePriceKobo={course.effectivePriceKobo}
-                        billingInterval={course.billingInterval}
-                        size="sm"
-                      />
-                    </div>
-                  )}
-                  <div className="mt-1.5 text-xs text-gray-500">
-                    {course.category && `${course.category} · `}
-                    {course._count.modules} module{course._count.modules === 1 ? "" : "s"}
-                  </div>
-                </div>
-                <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-teal">
-                  View <Icon icon={ArrowRight} size="sm" />
-                </span>
-              </Card>
-            </Link>
-          ))}
+          {courses && courses.length > 0 && (
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {courses.map((course) => (
+                <CourseCard
+                  key={course.id}
+                  href={`/trainee/courses/${course.id}`}
+                  title={course.title}
+                  publisher={course.publisherName}
+                  description={course.description}
+                  imageUrl={course.flyerUrl}
+                  badges={
+                    <>
+                      {course.isPaid && course.isEnrolled ? (
+                        <span className="inline-flex items-center gap-0.5 rounded-full bg-brand-mint px-2 py-0.5 text-xs font-semibold text-brand-teal">
+                          PAID <CorrectnessMark state="correct" label={undefined} />
+                        </span>
+                      ) : course.isExpired ? (
+                        <span className="rounded-full bg-brand-roseLight px-2 py-0.5 text-xs font-semibold text-brand-rose">EXPIRED</span>
+                      ) : course.isFree ? (
+                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">FREE</span>
+                      ) : null}
+                      {course.level && <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">{LEVEL_LABEL[course.level]}</span>}
+                    </>
+                  }
+                  price={
+                    !course.isFree && !course.isEnrolled && course.priceKobo != null ? (
+                      <PriceTag priceKobo={course.priceKobo} discountPercent={course.discountPercent} effectivePriceKobo={course.effectivePriceKobo} billingInterval={course.billingInterval} size="sm" />
+                    ) : null
+                  }
+                  meta={[course.category, `${course._count.modules} module${course._count.modules === 1 ? "" : "s"}`]}
+                  cta={course.isEnrolled ? "Continue learning" : "View course"}
+                />
+              ))}
+            </div>
+          )}
             </>
           )}
         </div>

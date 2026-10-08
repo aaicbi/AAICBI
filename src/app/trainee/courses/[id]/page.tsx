@@ -18,6 +18,8 @@ import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 import LockedDoodle from "@/components/doodles/LockedDoodle";
 import AchievementDoodle from "@/components/doodles/AchievementDoodle";
 import { extractYouTubeId, extractGoogleDriveFileId } from "@/lib/materialUrl";
+import VideoPlayer from "@/components/video/VideoPlayer";
+import CourseHero from "@/components/courses/CourseHero";
 import { useToast } from "@/components/ui/Toast";
 import CourseMarketingView from "@/components/courses/CourseMarketingView";
 import type { MarketingView } from "@/lib/courseMarketing";
@@ -137,6 +139,10 @@ interface CourseDto {
   description: string | null;
   createdBy: { name: string };
   instructorNames: string | null;
+  flyerUrl?: string | null;
+  showFlyer?: boolean;
+  category?: string | null;
+  publisherName?: string | null;
   modules: ModuleDto[];
   certificate: CertificateDto | null;
   badges: BadgeDto[];
@@ -170,150 +176,12 @@ interface CourseDto {
  * silently show a broken embed.
  */
 /**
- * Click-to-play thumbnail, not the player loading immediately —
- * closer to how a shared YouTube link actually behaves in a chat app,
- * and it means a trainee just skimming a lesson doesn't have YouTube's
- * player chrome loading in the background for every video on the page
- * whether they intend to watch it or not. Genuinely complementary to
- * M39's low-bandwidth mode, not overlapping with it — this is about
- * *when* the embed loads, M39 is about lesson content in general.
- *
- * The thumbnail itself (img.youtube.com) is a plain static image
- * request — meaningfully lower tracking surface than loading the full
- * player, which is exactly why "click to load" patterns use a
- * thumbnail rather than a paused, already-loaded iframe. The actual
- * player still only ever loads from youtube-nocookie.com, unchanged
- * from before, and only once the trainee has actually chosen to watch.
+ * Lesson videos play inside the platform (see src/components/video/VideoPlayer.tsx):
+ * a large 16:9 poster that loads nothing from YouTube or Drive until tapped,
+ * an embedded player with its own fullscreen button, and an Expand button
+ * for a large modal. Drive videos need "Anyone with the link" sharing for
+ * the poster to show; without it the player falls back to a plain tap target.
  */
-function YouTubeThumbnailPlayer({ videoId, title, lowBandwidthMode }: { videoId: string; title: string; lowBandwidthMode: boolean }) {
-  const [playing, setPlaying] = useState(false);
-
-  if (playing) {
-    return (
-      <iframe
-        src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1`}
-        title={title}
-        className="h-full w-full"
-        allow="accelerated-video; autoplay; encrypted-media; picture-in-picture"
-        allowFullScreen
-      />
-    );
-  }
-
-  // M39 — in low-bandwidth mode, don't even fetch the thumbnail image
-  // (img.youtube.com) until the trainee has actually chosen to play —
-  // a genuine, if small, network request saved on top of the iframe
-  // itself already never auto-loading for anyone. A plain icon and
-  // label instead, same tap target, same result once tapped.
-  if (lowBandwidthMode) {
-    return (
-      <button
-        type="button"
-        onClick={() => setPlaying(true)}
-        aria-label={`Play video: ${title}`}
-        className="flex h-full w-full flex-col items-center justify-center gap-2 bg-[#111827] text-white/80 transition-colors hover:bg-[#1f2937]"
-      >
-        <svg viewBox="0 0 24 24" fill="currentColor" className="h-10 w-10">
-          <path d="M8 5v14l11-7z" />
-        </svg>
-        <span className="text-xs">Tap to load video</span>
-      </button>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={() => setPlaying(true)}
-      aria-label={`Play video: ${title}`}
-      className="group relative h-full w-full cursor-pointer overflow-hidden bg-black"
-    >
-      <img
-        src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
-        alt=""
-        className="h-full w-full object-cover opacity-90 transition-opacity group-hover:opacity-70"
-      />
-      <span className="absolute inset-0 flex items-center justify-center">
-        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-black/60 text-white transition-transform group-hover:scale-110">
-          <svg viewBox="0 0 24 24" fill="currentColor" className="ml-1 h-6 w-6">
-            <path d="M8 5v14l11-7z" />
-          </svg>
-        </span>
-      </span>
-    </button>
-  );
-}
-
-/**
- * The Drive counterpart to YouTubeThumbnailPlayer right above — same
- * shape and behavior deliberately, not a different UI pattern: a
- * thumbnail with a play overlay, click-to-play swaps in a real
- * embedded player, and the same low-bandwidth skip-the-thumbnail
- * treatment. Two real differences from the YouTube version, both
- * because Drive genuinely isn't built to be a video host the way
- * YouTube is — confirmed directly before building this, not assumed:
- * the thumbnail only renders if the file's sharing is set to "Anyone
- * with the link" (a real admin-side requirement, not something this
- * app can control), so `onError` falls back to a plain placeholder
- * rather than a broken image icon; and Drive enforces its own
- * playback quotas on heavily-viewed files, a real, occasional-failure
- * risk YouTube doesn't have at this app's likely scale.
- */
-function GoogleDriveThumbnailPlayer({ fileId, title, lowBandwidthMode }: { fileId: string; title: string; lowBandwidthMode: boolean }) {
-  const [playing, setPlaying] = useState(false);
-  const [thumbnailFailed, setThumbnailFailed] = useState(false);
-
-  if (playing) {
-    return (
-      <iframe
-        src={`https://drive.google.com/file/d/${fileId}/preview`}
-        title={title}
-        className="h-full w-full"
-        allow="autoplay"
-        allowFullScreen
-      />
-    );
-  }
-
-  if (lowBandwidthMode || thumbnailFailed) {
-    return (
-      <button
-        type="button"
-        onClick={() => setPlaying(true)}
-        aria-label={`Play video: ${title}`}
-        className="flex h-full w-full flex-col items-center justify-center gap-2 bg-[#111827] text-white/80 transition-colors hover:bg-[#1f2937]"
-      >
-        <svg viewBox="0 0 24 24" fill="currentColor" className="h-10 w-10">
-          <path d="M8 5v14l11-7z" />
-        </svg>
-        <span className="text-xs">{thumbnailFailed ? "Tap to play video" : "Tap to load video"}</span>
-      </button>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={() => setPlaying(true)}
-      aria-label={`Play video: ${title}`}
-      className="group relative h-full w-full cursor-pointer overflow-hidden bg-black"
-    >
-      <img
-        src={`https://drive.google.com/thumbnail?id=${fileId}`}
-        alt=""
-        onError={() => setThumbnailFailed(true)}
-        className="h-full w-full object-cover opacity-90 transition-opacity group-hover:opacity-70"
-      />
-      <span className="absolute inset-0 flex items-center justify-center">
-        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-black/60 text-white transition-transform group-hover:scale-110">
-          <svg viewBox="0 0 24 24" fill="currentColor" className="ml-1 h-6 w-6">
-            <path d="M8 5v14l11-7z" />
-          </svg>
-        </span>
-      </span>
-    </button>
-  );
-}
 
 /**
  * M40 — the real download trigger, shown alongside every material
@@ -429,9 +297,7 @@ function MaterialItem({ material, lowBandwidthMode }: { material: MaterialDto; l
           <p className="flex items-center gap-1.5 text-sm font-medium text-brand-ink">
             <MaterialTypeIcon type="VIDEO" /> {material.title}
           </p>
-          <div className="aspect-video w-full overflow-hidden rounded-lg border border-brand-gray bg-black">
-            <YouTubeThumbnailPlayer videoId={videoId} title={material.title} lowBandwidthMode={lowBandwidthMode} />
-          </div>
+          <VideoPlayer source={{ kind: "youtube", id: videoId }} title={material.title} lowBandwidthMode={lowBandwidthMode} className="-mx-3 !w-[calc(100%+1.5rem)] !max-w-none rounded-none border-x-0 sm:mx-0 sm:!w-full sm:rounded-xl sm:border-x" />
           {/* No download button here — YouTube's Terms of Service don't
               allow downloading video content, and there's no legitimate
               way to fetch raw file bytes from a watch URL, so this
@@ -451,9 +317,7 @@ function MaterialItem({ material, lowBandwidthMode }: { material: MaterialDto; l
           <p className="flex items-center gap-1.5 text-sm font-medium text-brand-ink">
             <MaterialTypeIcon type="VIDEO" /> {material.title}
           </p>
-          <div className="aspect-video w-full overflow-hidden rounded-lg border border-brand-gray bg-black">
-            <GoogleDriveThumbnailPlayer fileId={driveFileId} title={material.title} lowBandwidthMode={lowBandwidthMode} />
-          </div>
+          <VideoPlayer source={{ kind: "drive", id: driveFileId }} title={material.title} lowBandwidthMode={lowBandwidthMode} className="-mx-3 !w-[calc(100%+1.5rem)] !max-w-none rounded-none border-x-0 sm:mx-0 sm:!w-full sm:rounded-xl sm:border-x" />
           <DownloadButton materialId={material.id} title={material.title} materialType={material.type} />
         </div>
       );
@@ -834,40 +698,46 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
   return (
     <>
       <SiteHeader nav={TRAINEE_NAV} right={<LogoutButton />} />
-      <main className="mx-auto max-w-3xl px-6 py-10">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="font-display text-2xl font-semibold text-brand-ink">{course.title}</h1>
-          <div className="flex items-center gap-2">
-            {course.isPaid ? (
-              <Badge variant="success">
-                PAID <CorrectnessMark state="correct" label={undefined} />
-              </Badge>
-            ) : course.isFree ? (
-              <Badge variant="neutral">FREE</Badge>
-            ) : null}
-            {course.enrollmentStatus === "EXPIRED" ? (
-              <Badge variant="danger">EXPIRED</Badge>
-            ) : course.enrollmentStatus === "ACTIVE" ? (
-              <Badge variant="success">ACCESS ACTIVE</Badge>
-            ) : course.enrollmentStatus === "COMPLETED" ? (
-              <Badge variant="gold">
-                COMPLETED <Icon icon={AchievementIcon} size="sm" className="inline align-text-bottom" />
-              </Badge>
-            ) : null}
-          </div>
-        </div>
-        {/* Bug fix: this used to always show course.createdBy.name —
-            whichever admin/instructor account built the course in the
-            builder, not necessarily who actually teaches it. Prefers
-            the real, admin-typed instructorNames field (see its own
-            schema comment — free-text display copy, deliberately not
-            tied to a staff account) and only falls back to the
-            creator's name for a course that hasn't set it yet, so
-            nothing regresses to blank. */}
-        <p className="mt-1 text-xs text-gray-500">
-          Taught by {course.instructorNames || course.createdBy.name} · AAICBI Staff
-        </p>
-        {course.description && <p className="mt-1 text-sm text-gray-600">{course.description}</p>}
+      <main className="mx-auto max-w-5xl px-3 py-6 sm:px-6 sm:py-10">
+        <CourseHero
+          title={course.title}
+          imageUrl={course.showFlyer === false ? null : course.flyerUrl}
+          publisher={course.publisherName}
+          category={course.category}
+          overview={course.description}
+          badges={
+            <>
+              {course.isPaid ? (
+                <Badge variant="success">
+                  PAID <CorrectnessMark state="correct" label={undefined} />
+                </Badge>
+              ) : course.isFree ? (
+                <Badge variant="neutral">FREE</Badge>
+              ) : null}
+              {course.enrollmentStatus === "EXPIRED" ? (
+                <Badge variant="danger">EXPIRED</Badge>
+              ) : course.enrollmentStatus === "ACTIVE" ? (
+                <Badge variant="success">ACCESS ACTIVE</Badge>
+              ) : course.enrollmentStatus === "COMPLETED" ? (
+                <Badge variant="gold">
+                  COMPLETED <Icon icon={AchievementIcon} size="sm" className="inline align-text-bottom" />
+                </Badge>
+              ) : null}
+            </>
+          }
+        >
+          {/* Bug fix: this used to always show course.createdBy.name —
+              whichever admin/instructor account built the course in the
+              builder, not necessarily who actually teaches it. Prefers
+              the real, admin-typed instructorNames field (see its own
+              schema comment — free-text display copy, deliberately not
+              tied to a staff account) and only falls back to the
+              creator's name for a course that hasn't set it yet, so
+              nothing regresses to blank. */}
+          <p className="mt-3 break-words text-xs text-gray-500 [overflow-wrap:anywhere]">
+            Taught by {course.instructorNames || course.createdBy.name}
+          </p>
+        </CourseHero>
 
         {/* WhatsApp group-study link — only ever shown here, on the
             already-enrolled trainee's own course page, never on the
@@ -1065,13 +935,13 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
 
         <div className="mt-8 space-y-3">
           {course.modules.map((mod, i) => (
-            <Card key={mod.id} className={`overflow-hidden p-0 ${mod.unlocked ? "" : "bg-gray-50/60"}`}>
+            <Card key={mod.id} className={`overflow-hidden !p-0 ${mod.unlocked ? "" : "bg-gray-50/60"}`}>
               <button
                 onClick={() => setOpenModule(openModule === mod.id ? null : mod.id)}
                 className="flex w-full items-center justify-between p-4 text-left"
               >
-                <div>
-                  <div className={`flex flex-wrap items-center gap-1.5 font-display font-semibold ${mod.unlocked ? "text-brand-ink" : "text-gray-500"}`}>
+                <div className="min-w-0">
+                  <div className={`flex flex-wrap items-center gap-1.5 break-words font-display font-semibold [overflow-wrap:anywhere] ${mod.unlocked ? "text-brand-ink" : "text-gray-500"}`}>
                     <span className="inline-flex items-center gap-1">
                       <Icon icon={openModule === mod.id ? ChevronDown : ChevronRight} size="sm" /> Module {i + 1}: {mod.title}
                     </span>
@@ -1118,14 +988,16 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
               )}
 
               {openModule === mod.id && mod.unlocked && (
-                <div className="space-y-3 border-t border-brand-gray bg-gray-50/60 p-4">
-                  <ModuleAssessmentStrip courseId={course.id} moduleId={mod.id} />
+                <div className="space-y-0 border-t border-brand-gray bg-gray-50/60 p-0 sm:space-y-3 sm:p-4">
+                  <div className="p-3 sm:p-0">
+                    <ModuleAssessmentStrip courseId={course.id} moduleId={mod.id} />
+                  </div>
                   {mod.lessons.map((lesson) => (
-                    <Card key={lesson.id} id={`lesson-${lesson.id}`} className="p-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="text-sm font-semibold text-brand-ink">{lesson.title}</div>
-                          {lesson.description && <div className="text-xs text-gray-600">{lesson.description}</div>}
+                    <div key={lesson.id} id={`lesson-${lesson.id}`} className="border-b border-brand-gray bg-brand-surface p-3 last:border-b-0 sm:rounded-xl sm:border sm:p-4 sm:last:border-b">
+                      <div className="flex flex-col items-start gap-2 sm:flex-row sm:justify-between sm:gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="break-words text-sm font-semibold text-brand-ink [overflow-wrap:anywhere]">{lesson.title}</div>
+                          {lesson.description && <div className="mt-0.5 line-clamp-3 break-words text-xs text-gray-600 [overflow-wrap:anywhere]">{lesson.description}</div>}
                         </div>
                         <LessonCompleteToggle
                           lessonId={lesson.id}
@@ -1150,7 +1022,7 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
                       ) : (
                         <p className="mt-1 text-xs text-gray-400">No materials attached yet.</p>
                       )}
-                    </Card>
+                    </div>
                   ))}
                   {mod.lessons.length === 0 && (
                     <p className="text-xs text-gray-400">No lessons in this module yet.</p>
