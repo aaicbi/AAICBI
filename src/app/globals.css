@@ -498,8 +498,10 @@ table {
   table[data-cards="true"] > tbody > tr > td[data-label=""] { justify-content: flex-end; }
 }
 
-/* Room for the phone bottom navigation bar (it sets --layer-nav; 0 when absent or on large screens). */
-body { padding-bottom: var(--layer-nav, 0px); }
+/* Room for the phone bottom navigation bar (it sets --layer-nav; 0 when absent or on large screens).
+   html and body are 100% tall here, so padding on body would not extend the scrollable area; a spacer after
+   the content does. */
+body::after { content: ""; display: block; height: var(--layer-nav, 0px); }
 
 /* Phones: forms. Inputs stay at 16px (below that, iOS zooms the page when a field is focused) and, on
    touch screens, are at least 44px tall so they are easy to hit. Checkboxes, radios and colour pickers are left alone. */
@@ -516,3 +518,6 @@ body { padding-bottom: var(--layer-nav, 0px); }
     min-height: 44px;
   }
 }
+
+/* Keep anything scrolled or focused into view clear of the phone bottom navigation bar. */
+html { scroll-padding-bottom: var(--layer-nav, 0px); }

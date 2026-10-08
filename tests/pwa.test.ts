@@ -205,9 +205,21 @@ describe("phone forms", () => {
     }
   });
   it("long forms are stepped on phones and keep a pinned submit", () => {
-    for (const f of ["src/app/org/register/page.tsx", "src/app/employer/register/page.tsx", "src/app/trainee/pitch/new/page.tsx"]) {
+    for (const f of [
+      "src/app/org/register/page.tsx", "src/app/employer/register/page.tsx", "src/app/trainee/pitch/new/page.tsx", "src/app/trainee/pitch/[id]/edit/page.tsx",
+      "src/app/employer/job-postings/page.tsx", "src/components/ecosystem/OrgEventsManager.tsx", "src/components/ecosystem/OrgEducationManager.tsx", "src/components/ecosystem/TraineeVideos.tsx",
+    ]) {
       expect(read(f), f).toMatch(/<FormSteps/);
       expect(read(f), f).toMatch(/StickyActions/);
     }
+  });
+});
+
+describe("room for the bottom bar", () => {
+  it("is a spacer after the content, because html and body are fixed to 100% height", () => {
+    const css = read("src/app/globals.css");
+    expect(css).toMatch(/body::after \{ content: ""; display: block; height: var\(--layer-nav, 0px\); \}/);
+    expect(css).not.toMatch(/body \{ padding-bottom: var\(--layer-nav/);
+    expect(css).toMatch(/html \{ scroll-padding-bottom: var\(--layer-nav, 0px\); \}/);
   });
 });

@@ -445,7 +445,7 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
       />
       <main className="mx-auto max-w-3xl px-6 py-10">
         <DesktopRecommended what="Building a course" />
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex-1">
             {editingCourse ? (
               <AddForm
@@ -463,68 +463,68 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
               </button>
             )}
           </div>
-          <div className="shrink-0 text-right">
+          <div className="grid w-full grid-cols-2 gap-2 sm:block sm:w-auto sm:shrink-0 sm:text-right">
             <button
               onClick={copyTraineeLink}
-              className="mb-2 block w-full text-right text-xs font-semibold text-brand-teal hover:underline"
+              className="flex min-h-[44px] w-full items-center justify-center rounded-lg border border-brand-gray px-3 text-center text-sm font-semibold text-brand-teal hover:underline sm:mb-2 sm:block sm:min-h-0 sm:rounded-none sm:border-0 sm:px-0 sm:text-right sm:text-xs"
             >
               <Icon icon={LinkIcon} size="sm" className="mr-1 inline align-text-bottom" /> Copy Trainee Link
             </button>
             <a
               href={`/admin/courses/${params.id}/certificates`}
-              className="mb-2 block text-xs font-semibold text-brand-teal hover:underline"
+              className="flex min-h-[44px] items-center justify-center rounded-lg border border-brand-gray px-3 text-center text-sm font-semibold text-brand-teal hover:underline sm:mb-2 sm:block sm:min-h-0 sm:rounded-none sm:border-0 sm:px-0 sm:text-right sm:text-xs"
             >
               <Icon icon={AchievementIcon} size="sm" className="mr-1 inline align-text-bottom" /> Certificates Issued
             </a>
             <a
               href={`/admin/courses/${params.id}/qa`}
-              className="mb-2 block text-xs font-semibold text-brand-teal hover:underline"
+              className="flex min-h-[44px] items-center justify-center rounded-lg border border-brand-gray px-3 text-center text-sm font-semibold text-brand-teal hover:underline sm:mb-2 sm:block sm:min-h-0 sm:rounded-none sm:border-0 sm:px-0 sm:text-right sm:text-xs"
             >
               <Icon icon={MessageSquare} size="sm" className="mr-1 inline align-text-bottom" /> Q&amp;A
             </a>
             <a
               href={`/admin/courses/${params.id}/enrollments`}
-              className="mb-2 block text-xs font-semibold text-brand-teal hover:underline"
+              className="flex min-h-[44px] items-center justify-center rounded-lg border border-brand-gray px-3 text-center text-sm font-semibold text-brand-teal hover:underline sm:mb-2 sm:block sm:min-h-0 sm:rounded-none sm:border-0 sm:px-0 sm:text-right sm:text-xs"
             >
               <Icon icon={Key} size="sm" className="mr-1 inline align-text-bottom" /> Enrollments
             </a>
             <a
               href={`/admin/courses/${params.id}/cohorts`}
-              className="mb-2 block text-xs font-semibold text-brand-teal hover:underline"
+              className="flex min-h-[44px] items-center justify-center rounded-lg border border-brand-gray px-3 text-center text-sm font-semibold text-brand-teal hover:underline sm:mb-2 sm:block sm:min-h-0 sm:rounded-none sm:border-0 sm:px-0 sm:text-right sm:text-xs"
             >
               <Icon icon={CohortIcon} size="sm" className="mr-1 inline align-text-bottom" /> Cohorts / Intakes
             </a>
             <a
               href={`/admin/courses/${params.id}/early-warnings`}
-              className="mb-2 block text-xs font-semibold text-brand-teal hover:underline"
+              className="flex min-h-[44px] items-center justify-center rounded-lg border border-brand-gray px-3 text-center text-sm font-semibold text-brand-teal hover:underline sm:mb-2 sm:block sm:min-h-0 sm:rounded-none sm:border-0 sm:px-0 sm:text-right sm:text-xs"
             >
               <Icon icon={AlertTriangle} size="sm" className="mr-1 inline align-text-bottom" /> Early Warnings
             </a>
             <a
               href={`/admin/courses/${params.id}/performance`}
-              className="mb-2 block text-xs font-semibold text-brand-teal hover:underline"
+              className="flex min-h-[44px] items-center justify-center rounded-lg border border-brand-gray px-3 text-center text-sm font-semibold text-brand-teal hover:underline sm:mb-2 sm:block sm:min-h-0 sm:rounded-none sm:border-0 sm:px-0 sm:text-right sm:text-xs"
             >
               <Icon icon={LineChart} size="sm" className="mr-1 inline align-text-bottom" /> Performance
             </a>
             <a
               href={`/admin/courses/${params.id}/examination`}
-              className="mb-2 block text-xs font-semibold text-brand-teal hover:underline"
+              className="flex min-h-[44px] items-center justify-center rounded-lg border border-brand-gray px-3 text-center text-sm font-semibold text-brand-teal hover:underline sm:mb-2 sm:block sm:min-h-0 sm:rounded-none sm:border-0 sm:px-0 sm:text-right sm:text-xs"
             >
               <Icon icon={AssessmentIcon} size="sm" className="mr-1 inline align-text-bottom" /> Course Examination
             </a>
             <a
               href={`/admin/courses/${params.id}/preview`}
-              className="mb-2 block text-xs font-semibold text-brand-teal hover:underline"
+              className="flex min-h-[44px] items-center justify-center rounded-lg border border-brand-gray px-3 text-center text-sm font-semibold text-brand-teal hover:underline sm:mb-2 sm:block sm:min-h-0 sm:rounded-none sm:border-0 sm:px-0 sm:text-right sm:text-xs"
             >
               <Icon icon={Eye} size="sm" className="mr-1 inline align-text-bottom" /> Preview as Trainee
             </a>
-            <Select label="Status" compact controlClassName="font-semibold" value={course.status} onChange={(e) => changeStatus(e.target.value as CourseStatus)}>
+            <div className="col-span-2 sm:col-auto"><Select label="Status" compact controlClassName="font-semibold" value={course.status} onChange={(e) => changeStatus(e.target.value as CourseStatus)}>
               {COURSE_STATUS_VALUES.map((s) => (
                 <option key={s} value={s}>
                   {COURSE_STATUS_LABEL[s]}
                 </option>
               ))}
-            </Select>
+            </Select></div>
             {course.status === "UNLISTED" && (
               <p className="mt-1 max-w-[16rem] text-xs text-gray-500">
                 Hidden from the public catalog. Only trainees you grant access to (via Enrollments, below) can reach it.

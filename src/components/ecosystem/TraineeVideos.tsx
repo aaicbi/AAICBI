@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
+import FormSteps from "@/components/ui/FormSteps";
+import StickyActions from "@/components/ui/StickyActions";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
@@ -103,23 +105,38 @@ export default function TraineeVideos() {
             <p className="text-sm text-gray-700">You can share a video once you are enrolled in a course from a training organization.</p>
           ) : (
             <>
+              <FormSteps
+                className="space-y-4"
+                labels={["The video", "About it", "Where it goes"]}
+                footer={
+                  <div className="space-y-3">
+                    {error && <p role="alert" className="text-sm text-brand-rose">{error}</p>}
+                    <StickyActions><Button type="submit" loading={busy} disabled={!data.enabled || !form.trainingOrganizationId || !form.title || !form.youtubeUrl}>
+                {toAdmin ? "Send to AAICBI" : "Send for review"}
+                    </Button></StickyActions>
+                  </div>
+                }
+              >
+                <div className="space-y-4">
               <Select label="Training organization" value={form.trainingOrganizationId} onChange={(e) => setForm({ ...form, trainingOrganizationId: e.target.value })} required>
                 <option value="">Choose an organization</option>
                 {data.organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
               </Select>
               <Input label="Video title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} maxLength={140} required />
               <Input label="YouTube link" value={form.youtubeUrl} onChange={(e) => setForm({ ...form, youtubeUrl: e.target.value })} placeholder="https://youtube.com/watch?v=..." required />
+                </div>
+                <div className="space-y-4">
               <Textarea label="Description" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} maxLength={1000} />
               <Input label="Skills" value={form.skills} onChange={(e) => setForm({ ...form, skills: e.target.value })} hint="Comma separated, for example Python, Data Cleaning" />
+                </div>
+                <div className="space-y-4">
               <Select label="Send it to" value={form.sendTo} onChange={(e) => setForm({ ...form, sendTo: e.target.value })} hint="Most videos go to your organization first. Choose AAICBI directly if you cannot reach them or have had trouble.">
                 <option value="organization">My training organization</option>
                 <option value="admin">AAICBI (Super Admin) directly</option>
               </Select>
               {toAdmin && <Textarea label="Why are you sending it to AAICBI? (optional)" rows={2} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} maxLength={500} />}
-              {error && <p role="alert" className="text-sm text-brand-rose">{error}</p>}
-              <Button type="submit" loading={busy} disabled={!data.enabled || !form.trainingOrganizationId || !form.title || !form.youtubeUrl}>
-                {toAdmin ? "Send to AAICBI" : "Send for review"}
-              </Button>
+                </div>
+              </FormSteps>
             </>
           )}
         </Card>
@@ -135,16 +152,16 @@ export default function TraineeVideos() {
             const canWithdraw = v.submittedByTrainee && (canEscalate || v.status === "PENDING_REVIEW");
             return (
               <Card key={v.id} className="space-y-3">
-                <div className="flex items-start gap-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
                   {/* eslint-disable-next-line @next/next/no-img-element -- YouTube thumbnail. */}
-                  <img src={v.thumbnailUrl} alt="" className="h-16 w-28 shrink-0 rounded object-cover" />
+                  <img src={v.thumbnailUrl} alt="" className="aspect-video w-full max-w-[14rem] shrink-0 rounded object-cover sm:h-16 sm:w-28 sm:max-w-none" />
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-brand-ink">{v.title}</p>
                     <p className="text-xs text-gray-600">{v.organizationName}{v.submittedByTrainee ? "" : " · posted by your organization"}</p>
+                    <div className="mt-1.5"><Badge variant={s.variant}>{s.text}</Badge></div>
                     {v.orgDecisionNote && <p className="mt-1 text-xs text-gray-700">Organization said: {v.orgDecisionNote}</p>}
                     {v.reviewNote && <p className="mt-1 text-xs text-gray-700">AAICBI said: {v.reviewNote}</p>}
                   </div>
-                  <Badge variant={s.variant}>{s.text}</Badge>
                 </div>
                 {(canEscalate || canWithdraw) && escalating !== v.id && (
                   <div className="flex flex-wrap gap-2">

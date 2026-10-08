@@ -304,9 +304,9 @@ export default function CertificateTemplatesPage({ params }: { params: { id: str
       <Card className="mt-4">
         {isLocked && <p className="mb-3 text-xs font-semibold text-brand-teal">This template is approved and locked.</p>}
         <div className="flex flex-wrap items-end gap-3">
-          <Input label="Template name, e.g. Default" hideLabel wrapperClassName="flex-1" controlClassName="disabled:opacity-60" value={name} onChange={(e) => setName(e.target.value)} placeholder="Template name, e.g. Default" disabled={isLocked} />
-          <Input label="Signatory name (optional)" hideLabel wrapperClassName="flex-1" controlClassName="disabled:opacity-60" value={signatoryName} onChange={(e) => setSignatoryName(e.target.value)} placeholder="Signatory name (optional)" disabled={isLocked} />
-          <Input label="Signatory title (optional)" hideLabel wrapperClassName="flex-1" controlClassName="disabled:opacity-60" value={signatoryTitle} onChange={(e) => setSignatoryTitle(e.target.value)} placeholder="Signatory title (optional)" disabled={isLocked} />
+          <Input label="Template name, e.g. Default" hideLabel wrapperClassName="w-full flex-1 sm:w-auto sm:min-w-[11rem]" controlClassName="disabled:opacity-60" value={name} onChange={(e) => setName(e.target.value)} placeholder="Template name, e.g. Default" disabled={isLocked} />
+          <Input label="Signatory name (optional)" hideLabel wrapperClassName="w-full flex-1 sm:w-auto sm:min-w-[11rem]" controlClassName="disabled:opacity-60" value={signatoryName} onChange={(e) => setSignatoryName(e.target.value)} placeholder="Signatory name (optional)" disabled={isLocked} />
+          <Input label="Signatory title (optional)" hideLabel wrapperClassName="w-full flex-1 sm:w-auto sm:min-w-[11rem]" controlClassName="disabled:opacity-60" value={signatoryTitle} onChange={(e) => setSignatoryTitle(e.target.value)} placeholder="Signatory title (optional)" disabled={isLocked} />
           {selected && (
             <div>
               <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadLogo} className="hidden" />

@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import FormSteps from "@/components/ui/FormSteps";
+import StickyActions from "@/components/ui/StickyActions";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/employer/LogoutButton";
 import Card from "@/components/ui/Card";
@@ -169,16 +171,33 @@ export default function EmployerJobPostingsPage() {
 
         <Card className="mt-4">
           <p className="font-display font-semibold text-brand-ink">Post a Vacancy</p>
-          <form onSubmit={submit} className="mt-3 space-y-3">
-            <Input label="Job title" value={title} onChange={(e) => setTitle(e.target.value)} required />
-            <Textarea label="Job description" hideLabel compact value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Job description" rows={4} required />
-            <Input label="Skills you're hiring for (comma-separated, optional)" value={skills} onChange={(e) => setSkills(e.target.value)} placeholder="e.g. React, SQL, Data Analysis" />
-            <Input label="Closing date" compact type="date" value={closingDate} onChange={(e) => setClosingDate(e.target.value)} required />
-            <JobPostingMediaPicker staged={stagedMedia} onChange={setStagedMedia} />
-            {error && <p className="text-sm text-brand-rose">{error}</p>}
-            <Button type="submit" loading={posting}>
-              Submit for Review
-            </Button>
+          <form onSubmit={submit} className="mt-3">
+            <FormSteps
+              className="space-y-3"
+              labels={["The role", "Skills and deadline", "Pictures and videos"]}
+              footer={
+                <div className="space-y-3">
+                  {error && <p role="alert" className="text-sm text-brand-rose">{error}</p>}
+                  <StickyActions>
+                    <Button type="submit" loading={posting}>
+                      Submit for Review
+                    </Button>
+                  </StickyActions>
+                </div>
+              }
+            >
+              <div className="space-y-3">
+                <Input label="Job title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+                <Textarea label="Job description" value={description} onChange={(e) => setDescription(e.target.value)} rows={4} required />
+              </div>
+              <div className="space-y-3">
+                <Input label="Skills you're hiring for (comma-separated, optional)" value={skills} onChange={(e) => setSkills(e.target.value)} placeholder="e.g. React, SQL, Data Analysis" />
+                <Input label="Closing date" type="date" value={closingDate} onChange={(e) => setClosingDate(e.target.value)} required />
+              </div>
+              <div className="space-y-3">
+                <JobPostingMediaPicker staged={stagedMedia} onChange={setStagedMedia} />
+              </div>
+            </FormSteps>
           </form>
         </Card>
 
