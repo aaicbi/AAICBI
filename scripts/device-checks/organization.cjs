@@ -5,12 +5,12 @@ const { B, log, launch, device, signedIn } = require('./lib.cjs');
   let p = await ctx.newPage(); p.setDefaultTimeout(20000);
   const errors = []; p.on('pageerror', e => errors.push(e.message));
   await p.goto(B + '/admin/organization', { waitUntil: 'load' }); await p.waitForTimeout(2000);
-  const tabs = (await p.getByRole('navigation', { name: 'Main' }).locator('a, button').allInnerTexts()).map(t => t.trim());
+  const tabs = (await p.getByRole('navigation', { name: 'Main' }).locator('a, button').allInnerTexts()).map(t => t.replace(/\d+\s*unread\s*/i, '').trim());
   log(JSON.stringify(tabs) === JSON.stringify(['Overview', 'Messages', 'Events', 'Alerts', 'More']), 'Galaxy S9+ organization tabs: ' + JSON.stringify(tabs));
   const heads = await p.evaluate(() => [...document.querySelectorAll('main h2')].map(e => e.textContent.trim()));
   console.log('   org phone home:', JSON.stringify(heads));
   log(heads[0]?.startsWith('Alerts') && heads.includes('Trainees') && heads.indexOf('Trainees') < heads.indexOf('Messages'), 'org home: Alerts, Trainees, then Messages');
-  await p.screenshot({ path: (process.env.OUT_DIR || '/tmp') + '/org-phone-home.png' });
+  await p.screenshot({ path: '/tmp/dev/org-phone-home.png' });
   await p.evaluate(() => window.scrollTo(0, 0));
   // full dashboard on a phone: tables become cards
   await p.evaluate(() => window.scrollTo(0, document.body.scrollHeight)); await p.waitForTimeout(300);
@@ -20,7 +20,7 @@ const { B, log, launch, device, signedIn } = require('./lib.cjs');
   console.log('   tables:', JSON.stringify(cards));
   log(cards.some(c => c[0] === 'true'), 'org full dashboard on a phone: tables become cards');
   log(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'org full dashboard: no horizontal scroll');
-  await p.screenshot({ path: (process.env.OUT_DIR || '/tmp') + '/org-phone-full.png', fullPage: false });
+  await p.screenshot({ path: '/tmp/dev/org-phone-full.png', fullPage: false });
 
   // Messages for organizations
   await p.goto(B + '/admin/messages', { waitUntil: 'load' }); await p.waitForTimeout(1500);
@@ -41,7 +41,7 @@ const { B, log, launch, device, signedIn } = require('./lib.cjs');
   await p.getByRole('button', { name: 'Phone' }).click();
   const w = await p.evaluate(() => Math.round(document.querySelector('#profile-preview-heading').closest('section').querySelector('.mx-auto').getBoundingClientRect().width));
   console.log('   preview width (phone toggle):', w);
-  await p.screenshot({ path: (process.env.OUT_DIR || '/tmp') + '/org-profile-phone.png' });
+  await p.screenshot({ path: '/tmp/dev/org-profile-phone.png' });
   const sticky = await p.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === 'Save'); const r = b.getBoundingClientRect(); return [Math.round(r.bottom), innerHeight]; });
   log(sticky[0] <= sticky[1], 'profile Save button is on screen without scrolling to it (' + sticky.join('/') + ')');
 
@@ -56,7 +56,7 @@ const { B, log, launch, device, signedIn } = require('./lib.cjs');
   log(await card.getByText('Step 1 of 10').isVisible(), 'Loop starts the upload-a-course guide');
   await card.getByRole('button', { name: /Next/ }).click();
   log(await card.getByText('Step 2 of 10').isVisible(), 'guide moves to step 2');
-  await p.screenshot({ path: (process.env.OUT_DIR || '/tmp') + '/org-loop-guide-phone.png' });
+  await p.screenshot({ path: '/tmp/dev/org-loop-guide-phone.png' });
   const panel = await p.locator('#loop-panel').boundingBox(); const nav = await p.getByRole('navigation', { name: 'Main' }).boundingBox();
   log(panel && nav && panel.y + panel.height <= nav.y + 1, `Loop chat sits above the bottom bar (${panel && Math.round(panel.y + panel.height)} <= ${nav && Math.round(nav.y)})`);
   console.log('page errors:', errors.length ? errors : 'none');

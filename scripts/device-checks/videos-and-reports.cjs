@@ -1,6 +1,6 @@
 const { B, log, launch, device, signedIn } = require('./lib.cjs');
 const { execFileSync } = require('child_process');
-const sql = (q) => execFileSync('psql', [...(process.env.PSQL_ARGS || '-h 127.0.0.1 -p 5544 -U dev -d aaicbi_dev').split(' '), '-At', '-c', q]).toString().trim();
+const sql = (q) => execFileSync('/usr/lib/postgresql/16/bin/psql', ['-h', '127.0.0.1', '-p', '5544', '-U', 'dev', '-d', 'aaicbi_dev', '-At', '-c', q]).toString().trim();
 (async () => {
   sql(`delete from "EducationPost" where "submittedByTrainee" = true`); sql(`delete from "OrganizationReport"`);
   const br = await launch();
@@ -13,7 +13,7 @@ const sql = (q) => execFileSync('psql', [...(process.env.PSQL_ARGS || '-h 127.0.
   console.log('   explore:', JSON.stringify(tiles.map(t => t.split('\n')[0])));
   for (const t of ['Jobs and opportunities', 'Training organizations', 'Trainee videos', 'Events']) log(tiles.some(x => x.startsWith(t)), 'Explore offers: ' + t);
   log(tiles.some(x => x.startsWith('Share a video')) && tiles.some(x => x.startsWith('Report a concern')), 'Explore offers Share a video and Report a concern');
-  await p.screenshot({ path: (process.env.OUT_DIR || '/tmp') + '/explore-phone.png' });
+  await p.screenshot({ path: '/tmp/dev/explore-phone.png' });
   await p.goto(B + '/trainee/videos', { waitUntil: 'load' }); await p.waitForTimeout(1000);
   const submit = async (title, url) => {
     await p.getByLabel('Training organization').selectOption({ label: 'Northwind Academy' });
@@ -27,7 +27,7 @@ const sql = (q) => execFileSync('psql', [...(process.env.PSQL_ARGS || '-h 127.0.
   await submit('My second project', 'https://youtu.be/9bZkp7q19f0');
   const orgNotice = sql(`select count(*) from "UserNotification" where type='EDUCATION_TRAINEE_SUBMISSION' and "recipientType"='TRAINING_ORG'`);
   log(Number(orgNotice) >= 2, 'organization is notified in its own bell (' + orgNotice + ')');
-  await p.screenshot({ path: (process.env.OUT_DIR || '/tmp') + '/trainee-videos-phone.png', fullPage: true });
+  await p.screenshot({ path: '/tmp/dev/trainee-videos-phone.png', fullPage: true });
   // duplicate refused
   await p.getByLabel('Training organization').selectOption({ label: 'Northwind Academy' });
   await p.getByLabel('Video title').fill('Duplicate'); await p.getByLabel('YouTube link').fill('https://youtu.be/dQw4w9WgXcQ');
@@ -69,7 +69,7 @@ const sql = (q) => execFileSync('psql', [...(process.env.PSQL_ARGS || '-h 127.0.
   await p.getByLabel('Tell us what happened').fill('My assessment was marked down without explanation and my questions were ignored.');
   await p.getByRole('button', { name: 'Send report' }).click(); await p.waitForTimeout(1200);
   log(await p.getByText('Your reports').isVisible(), 'report is sent and listed for the trainee');
-  await p.screenshot({ path: (process.env.OUT_DIR || '/tmp') + '/report-phone.png', fullPage: true });
+  await p.screenshot({ path: '/tmp/dev/report-phone.png', fullPage: true });
   // the organization must never see it
   const orgApis = ['/api/org/education-posts', '/api/org/insights', '/api/org/profile'];
   let leaked = false; for (const a of orgApis) { const t = await (await octx.request.get(B + a)).text(); if (/UNFAIR_TREATMENT|My assessment was marked down|OrganizationReport/.test(t)) leaked = true; }
@@ -83,7 +83,7 @@ const sql = (q) => execFileSync('psql', [...(process.env.PSQL_ARGS || '-h 127.0.
   log(await sp.getByText(/Organization said: Please add captions/).isVisible(), 'super admin also sees what the organization said');
   log(await sp.getByRole('heading', { name: /Reports about organizations \(1\)/ }).isVisible(), 'super admin sees the report');
   log(await sp.getByText(/Reported by Amara Nwosu/).isVisible(), 'super admin sees who reported');
-  await sp.screenshot({ path: (process.env.OUT_DIR || '/tmp') + '/superadmin-ecosystem.png', fullPage: false });
+  await sp.screenshot({ path: '/tmp/dev/superadmin-ecosystem.png', fullPage: false });
   await sp.getByRole('button', { name: 'Mark resolved' }).click(); await sp.waitForTimeout(1200);
   log(sql(`select status from "OrganizationReport" limit 1`) === 'RESOLVED', 'super admin resolves the report');
   const rn = sql(`select title from "UserNotification" where type='ORG_REPORT_UPDATE' order by "createdAt" desc limit 1`);

@@ -1,5 +1,5 @@
 const { B, log, launch, device, signedIn } = require('./lib.cjs');
-const cfg = require('../a11y-pages.json').roles;
+const cfg = require('/home/user/AAICBI/scripts/a11y-pages.json').roles;
 const roles = [
   ['trainee', '/api/auth/trainee-login', 't0@dev.test', cfg.trainee.paths],
   ['employer', '/api/auth/employer-login', 'employer@dev.test', cfg.employer.paths],

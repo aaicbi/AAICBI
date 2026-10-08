@@ -5,12 +5,12 @@ const { B, log, launch, device, signedIn } = require('./lib.cjs');
   let p = await ctx.newPage(); p.setDefaultTimeout(20000);
   const errors = []; p.on('pageerror', e => errors.push(e.message));
   await p.goto(B + '/employer/dashboard', { waitUntil: 'load' });
-  const tabs = (await p.getByRole('navigation', { name: 'Main' }).locator('a, button').allInnerTexts()).map(t => t.trim());
+  const tabs = (await p.getByRole('navigation', { name: 'Main' }).locator('a, button').allInnerTexts()).map(t => t.replace(/\d+\s*unread\s*/i, '').trim());
   log(JSON.stringify(tabs) === JSON.stringify(['Home', 'Messages', 'Talent', 'Alerts', 'More']), 'Pixel 7 employer tabs: ' + JSON.stringify(tabs));
   const heads = await p.evaluate(() => [...document.querySelectorAll('main h2')].map(e => e.textContent.trim()));
   console.log('   employer phone home:', JSON.stringify(heads));
   log(heads[0]?.startsWith('Alerts') && heads[1] === 'Messages', 'employer home leads with Alerts then Messages');
-  await p.screenshot({ path: (process.env.OUT_DIR || '/tmp') + '/employer-phone-home.png' });
+  await p.screenshot({ path: '/tmp/dev/employer-phone-home.png' });
 
   // ---- messaging permissions through the real API
   const post = (path, data) => ctx.request.post(B + path, { data });
@@ -21,7 +21,7 @@ const { B, log, launch, device, signedIn } = require('./lib.cjs');
   log(!contacts.some(c => c.name === 'Ngozi Eze'), 'employer cannot see a trainee they have no relationship with');
   // find t5 id through the superadmin-free route: use prisma-free lookup by trying a known-bad id via the trainee list is not available, so use DB
   const { execFileSync } = require('child_process');
-  const sql = (q) => execFileSync('psql', [...(process.env.PSQL_ARGS || '-h 127.0.0.1 -p 5544 -U dev -d aaicbi_dev').split(' '), '-At', '-c', q]).toString().trim();
+  const sql = (q) => execFileSync('/usr/lib/postgresql/16/bin/psql', ['-h', '127.0.0.1', '-p', '5544', '-U', 'dev', '-d', 'aaicbi_dev', '-At', '-c', q]).toString().trim();
   const t5 = sql(`select id from "Trainee" where email='t5@dev.test'`);
   const denied = await post('/api/conversations/direct', { peerType: 'TRAINEE', peerId: t5 });
   log(denied.status() === 403, 'employer cannot open a chat with an unrelated trainee (' + denied.status() + ')');
@@ -51,7 +51,7 @@ const { B, log, launch, device, signedIn } = require('./lib.cjs');
   log(await p.getByText(/You're offline/).first().isVisible(), 'offline notice is shown');
   await ctx.setOffline(false);
   await p.waitForTimeout(800);
-  await p.screenshot({ path: (process.env.OUT_DIR || '/tmp') + '/employer-thread-phone.png' });
+  await p.screenshot({ path: '/tmp/dev/employer-thread-phone.png' });
 
   // ---- the trainee is notified, without the text
   const n = sql(`select title || ' | ' || body from "UserNotification" where "recipientType"='TRAINEE' and type='NEW_MESSAGE' order by "createdAt" desc limit 1`);
@@ -63,13 +63,14 @@ const { B, log, launch, device, signedIn } = require('./lib.cjs');
   ctx = await signedIn(br, device('iPhone 13'), '/api/auth/trainee-login', 't0@dev.test');
   p = await ctx.newPage(); p.setDefaultTimeout(20000);
   await p.goto(B + '/trainee/messages', { waitUntil: 'load' });
+  await p.getByText('Kora Analytics').first().waitFor({ timeout: 10000 }).catch(() => {});
   log(await p.getByText('Kora Analytics').first().isVisible(), 'trainee inbox lists the employer conversation');
   log(await p.getByText(/unread/).first().isVisible(), 'trainee inbox shows an unread count');
   await p.getByPlaceholder('Search people and messages').fill('kora');
   log(await p.getByText('Kora Analytics').first().isVisible(), 'inbox search finds it');
   await p.getByPlaceholder('Search people and messages').fill('zzzz');
   log(await p.getByText(/Nothing matches/).isVisible(), 'inbox search shows a message when nothing matches');
-  await p.screenshot({ path: (process.env.OUT_DIR || '/tmp') + '/trainee-inbox-phone.png' });
+  await p.screenshot({ path: '/tmp/dev/trainee-inbox-phone.png' });
   const alerts = await (await ctx.request.get(B + '/api/notifications')).json();
   log(alerts.unreadCount > 0, 'trainee alerts count includes the new message (' + alerts.unreadCount + ')');
   console.log('page errors:', errors.length ? errors : 'none');

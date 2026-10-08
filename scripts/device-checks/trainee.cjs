@@ -11,7 +11,7 @@ const { B, log, launch, device, signedIn } = require('./lib.cjs');
   console.log('   order:', JSON.stringify(order));
   log(await p.getByRole('button', { name: 'Show full dashboard' }).isVisible(), 'iPhone: "Show full dashboard" offered');
   log(await p.getByRole('navigation', { name: 'Main' }).isVisible(), 'iPhone: bottom navigation visible');
-  const tabs = await p.getByRole('navigation', { name: 'Main' }).locator('a, button').allInnerTexts();
+  const tabs = (await p.getByRole('navigation', { name: 'Main' }).locator('a, button').allInnerTexts()).map(t => t.replace(/\d+\s*unread\s*/i, ''));
   log(JSON.stringify(tabs.map(t => t.trim())) === JSON.stringify(['Home', 'Messages', 'Events', 'Alerts', 'More']), 'iPhone: tabs are Home, Messages, Events, Alerts, More -> ' + JSON.stringify(tabs.map(t => t.trim())));
   // tap targets
   const small = await p.evaluate(() => [...document.querySelectorAll('nav[aria-label="Main"] a, nav[aria-label="Main"] button')].map(e => e.getBoundingClientRect()).filter(r => r.height < 44 || r.width < 44).length);
@@ -27,9 +27,9 @@ const { B, log, launch, device, signedIn } = require('./lib.cjs');
   log(!(await p.getByRole('dialog', { name: 'More' }).isVisible()), 'iPhone: Escape closes More');
   await p.evaluate(() => window.scrollTo(0, document.body.scrollHeight)); await p.getByRole('button', { name: 'Show full dashboard' }).click();
   log(await p.getByRole('button', { name: 'Back to simple view' }).isVisible(), 'iPhone: full dashboard can be opened and left again');
-  await p.screenshot({ path: (process.env.OUT_DIR || '/tmp') + '/trainee-phone-full.png' });
+  await p.screenshot({ path: '/tmp/dev/trainee-phone-full.png' });
   await p.getByRole('button', { name: 'Back to simple view' }).click();
-  await p.screenshot({ path: (process.env.OUT_DIR || '/tmp') + '/trainee-phone-home.png' });
+  await p.screenshot({ path: '/tmp/dev/trainee-phone-home.png' });
   log(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'iPhone: no horizontal scroll on the home');
   console.log('page errors:', errors.length ? errors : 'none');
   await ctx.close();
@@ -39,7 +39,7 @@ const { B, log, launch, device, signedIn } = require('./lib.cjs');
   await p.goto(B + '/trainee/dashboard', { waitUntil: 'load' });
   log(!(await p.getByRole('navigation', { name: 'Main' }).isVisible().catch(() => false)), 'laptop: no bottom navigation');
   log(!(await p.getByRole('button', { name: 'Show full dashboard' }).isVisible()), 'laptop: no phone home controls');
-  log(await p.getByText('Quick Actions').first().isVisible(), 'laptop: the full dashboard is shown');
+  log(await p.getByText('Quick Actions', { exact: true }).filter({ visible: true }).first().isVisible(), 'laptop: the full dashboard is shown');
   await ctx.close();
   // ===== iPad portrait vs landscape
   for (const [label, d] of [['iPad portrait', device('iPad (gen 7)')], ['iPad landscape', device('iPad (gen 7) landscape')]]) {
@@ -49,7 +49,7 @@ const { B, log, launch, device, signedIn } = require('./lib.cjs');
     const w = await p.evaluate(() => innerWidth);
     const navVisible = await p.getByRole('navigation', { name: 'Main' }).isVisible().catch(() => false);
     log(navVisible === (w < 1024), `${label} (${w}px): bottom nav ${navVisible ? 'shown' : 'hidden'} as expected`);
-    await p.screenshot({ path: `${process.env.OUT_DIR || '/tmp'}/${label.replace(' ', '-')}.png` });
+    await p.screenshot({ path: `/tmp/dev/${label.replace(' ', '-')}.png` });
     await ctx.close();
   }
   await br.close();
