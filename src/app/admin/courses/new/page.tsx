@@ -105,8 +105,8 @@ export default function NewCoursePage() {
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Create Course</h1>
         <Card className="mt-6">
           <form onSubmit={handleSubmit} className="space-y-5">
-            <Input label="Course Title" id="new-course-title" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Excel for Data Analytics" />
-            <Textarea label="Description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+            <Input label="Course Title" id="new-course-title" data-guide-target="course-title" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Excel for Data Analytics" />
+            <Textarea label="Description" data-guide-target="course-description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
 
             <div className="rounded-lg border border-brand-gray bg-gray-50 p-4">
               <Checkbox label="This course is free (lifetime access, no payment)" checked={isFree} onChange={(e) => setIsFree(e.target.checked)} />
@@ -184,7 +184,7 @@ export default function NewCoursePage() {
 
             {error && <p className="text-sm text-brand-rose">{error}</p>}
             <StickyActions>
-              <Button type="submit" loading={loading} className="w-full">
+              <Button type="submit" loading={loading} className="w-full" data-guide-target="create-course-submit">
                 {loading ? "Creating..." : "Create & Add Modules"}
               </Button>
             </StickyActions>

@@ -7,6 +7,7 @@ import Icon from "@/components/ui/Icon";
 import { setBottomNavLayer } from "@/lib/floatingLayers";
 import { BOTTOM_NAV, MORE_EXTRAS, bottomNavHidden, isTabActive, unreadLabel, type NavIconKey, type NavRole } from "@/lib/pwa/mobileNav";
 import AddToHomeScreenButton from "@/components/pwa/AddToHomeScreenButton";
+import { navTarget } from "@/lib/guide/navigation";
 
 const ICONS: Record<NavIconKey, typeof Home> = {
   home: Home, messages: MessageSquare, events: CalendarDays, talent: Users, jobs: Briefcase, courses: BookOpen, organizations: Building2, alerts: Bell,
@@ -106,7 +107,7 @@ export default function MobileBottomNav({ role, moreItems }: { role: NavRole; mo
             <ul className="mt-2 grid grid-cols-2 gap-2">
               {[...moreItems, ...extras].map((item) => (
                 <li key={item.href}>
-                  <Link href={item.href} className="flex min-h-[48px] items-center rounded-xl border border-brand-gray px-3 text-sm font-semibold text-brand-ink hover:border-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
+                  <Link href={item.href} data-guide-target={navTarget(item.href)} className="flex min-h-[48px] items-center rounded-xl border border-brand-gray px-3 text-sm font-semibold text-brand-ink hover:border-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
                     {item.label}
                   </Link>
                 </li>
@@ -124,7 +125,7 @@ export default function MobileBottomNav({ role, moreItems }: { role: NavRole; mo
             const TabIcon = ICONS[t.key];
             return (
               <li key={t.href} className="flex flex-1">
-                <Link href={t.href} aria-current={active ? "page" : undefined} className={tabClass(active)}>
+                <Link href={t.href} data-guide-target={navTarget(t.href)} aria-current={active ? "page" : undefined} className={tabClass(active)}>
                   <span className="relative">
                     <TabIcon aria-hidden="true" width={22} height={22} strokeWidth={active ? 2.5 : 2} />
                     {t.key === "alerts" && unread > 0 && (
@@ -140,7 +141,7 @@ export default function MobileBottomNav({ role, moreItems }: { role: NavRole; mo
             );
           })}
           <li className="flex flex-1">
-            <button ref={moreButton} type="button" onClick={() => setMoreOpen((o) => !o)} aria-expanded={moreOpen} aria-haspopup="dialog" className={tabClass(moreOpen)}>
+            <button ref={moreButton} data-guide-target="more" type="button" onClick={() => setMoreOpen((o) => !o)} aria-expanded={moreOpen} aria-haspopup="dialog" className={tabClass(moreOpen)}>
               <LayoutGrid aria-hidden="true" width={22} height={22} />
               More
             </button>

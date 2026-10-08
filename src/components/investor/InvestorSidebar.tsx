@@ -11,6 +11,7 @@ import MobileDrawer from "@/components/ui/MobileDrawer";
 import CommandPalette, { PaletteTrigger } from "@/components/ui/CommandPalette";
 import { INVESTOR_NAV, INVESTOR_ORGANIZATIONS_NAV } from "@/lib/investor/nav";
 import { getSidebarTourGuideContent } from "@/lib/tourGuideContent";
+import { navTarget } from "@/lib/guide/navigation";
 
 /**
  * Sidebar rollout (Phase 2) — the investor counterpart to
@@ -68,6 +69,7 @@ export default function InvestorSidebar({ showOrganizations = false }: { showOrg
           <Link
             key={item.href}
             href={item.href}
+            data-guide-target={navTarget(item.href)}
             onClick={() => setMobileOpen(false)}
             className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold ${
               isActive(item.href)

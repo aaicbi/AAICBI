@@ -1,9 +1,10 @@
 "use client";
 import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Eye } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import { getPlaybook } from "@/lib/guide/playbooks";
+import { startTour } from "@/lib/guide/interactionStore";
 
 const STORE = "loop-playbook-v1";
 
@@ -42,7 +43,7 @@ export function Marked({ text }: { text: string }) {
  * Back / Next. The step is remembered for the visit, so closing Loop to try
  * a step and coming back picks up where you were.
  */
-export default function PlaybookCard({ id, onNavigate, onAsk }: { id: string; onNavigate: () => void; onAsk: (q: string) => void }) {
+export default function PlaybookCard({ id, onNavigate, onAsk, onShow }: { id: string; onNavigate: () => void; onAsk: (q: string) => void; onShow?: () => void }) {
   const book = getPlaybook(id);
   const [step, setStep] = useState(0);
   useEffect(() => {
@@ -56,6 +57,13 @@ export default function PlaybookCard({ id, onNavigate, onAsk }: { id: string; on
   const go = (n: number) => {
     setStep(n);
     saveStep(id, n);
+  };
+  const canShow = book.steps.some((x) => x.target);
+  const showMe = () => {
+    fetch("/api/guide/event", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "tour" }), keepalive: true }).catch(() => {});
+    startTour(book.id, step);
+    onNavigate();
+    onShow?.();
   };
   const nextBooks = (book.next ?? []).map((n) => getPlaybook(n)).filter((b): b is NonNullable<typeof b> => !!b);
 
@@ -76,6 +84,14 @@ export default function PlaybookCard({ id, onNavigate, onAsk }: { id: string; on
           <span className="font-semibold">Good to know: </span>
           <Marked text={s.tip} />
         </p>
+      )}
+      {canShow && (
+        <button type="button" onClick={showMe} className="mt-2.5 inline-flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg bg-brand-teal px-3 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
+          <span className="inline-flex items-center gap-1.5">
+            <Eye size={16} aria-hidden="true" /> Show me on screen
+          </span>
+          <ArrowRight size={16} aria-hidden="true" />
+        </button>
       )}
       {s.href && (
         <Link href={s.href} onClick={onNavigate} className="mt-2.5 inline-flex min-h-[40px] w-full items-center justify-between gap-2 rounded-lg border border-brand-teal bg-brand-surface px-3 text-sm font-semibold text-brand-teal hover:bg-brand-mint focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">

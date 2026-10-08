@@ -37,6 +37,7 @@ export function playbooksFor(audience: "organization" | "trainee"): Playbook[] {
  */
 export function entriesForAudience(entries: GuideEntry[], me: string | null): GuideEntry[] {
   return entries.filter((e) => {
+    if (e.roles && e.roles.length > 0 && !(me && e.roles.includes(me))) return false;
     if (!e.audience) return true;
     if (e.audience === "organization") return me === "organization";
     return me !== "organization";

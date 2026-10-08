@@ -1,6 +1,8 @@
 import { filterLinks } from "@/lib/guide/links";
+import { canOpen, deniedReply, GUIDE_DESTINATIONS, areaOf, navTarget } from "@/lib/guide/navigation";
+import type { MeKind } from "@/lib/guide/context";
 import { rawWords, STOP, stripAccents, tokens } from "@/lib/guide/text";
-import type { GuideEntry, GuideLink, GuideReply, GuideSwitches } from "@/lib/guide/types";
+import type { GuideAction, GuideEntry, GuideLink, GuideReply, GuideSwitches } from "@/lib/guide/types";
 
 /**
  * How Loop finds an answer, with no AI service involved.
@@ -17,6 +19,8 @@ import type { GuideEntry, GuideLink, GuideReply, GuideSwitches } from "@/lib/gui
  */
 
 export const ANSWER_MIN = 0.5;
+/** An answer scoring below this is given with a "is this what you meant?" note and also recorded for the team. */
+export const ANSWER_CONFIDENT = 0.62;
 export const RELATED_MIN = 0.28;
 /** An answer a SUPER_ADMIN wrote wins a near tie against a built-in one. */
 export const CUSTOM_BOOST = 0.04;
@@ -46,8 +50,9 @@ const stemLoose = (w: string) => w.replace(/(?:ies|es|s)$/, "");
 export function buildIndex(entries: GuideEntry[], skillNames: string[] = []): GuideIndex {
   const items: Indexed[] = entries.map((entry) => {
     const qSet = new Set(tokens(entry.question));
-    const allSet = new Set([...qSet, ...entry.keywords.flatMap((k) => tokens(k))]);
-    const words = [...rawWords(entry.question), ...entry.keywords.flatMap((k) => rawWords(k))];
+    const alt = [...entry.keywords, ...(entry.relatedQuestions ?? [])];
+    const allSet = new Set([...qSet, ...alt.flatMap((k) => tokens(k))]);
+    const words = [...rawWords(entry.question), ...alt.flatMap((k) => rawWords(k))];
     return { entry, qSet, allSet, words };
   });
   const df = new Map<string, number>();
@@ -188,7 +193,26 @@ export function startHere(on: GuideSwitches): GuideLink[] {
   return filterLinks(START_HERE, on);
 }
 
-export function answerQuestion(question: string, index: GuideIndex, on: GuideSwitches): GuideReply {
+/**
+ * Buttons for an answer that names a place: "Take me there", and "Show me"
+ * when a control on that page is known. A place the account may not open
+ * gets no button; the text says why instead.
+ */
+export function actionsFor(entry: GuideEntry, me: MeKind | null): { actions: GuideAction[]; note: string | null } {
+  if (!entry.navHref) return { actions: [], note: null };
+  const href = entry.navHref;
+  if (!canOpen(href, me)) {
+    const known = GUIDE_DESTINATIONS.find((d) => d.href === href.split("#")[0].split("?")[0]);
+    const denied = deniedReply(known ?? { label: entry.navLabel ?? "That page", href, audience: [areaOf(href)], aliases: [], target: navTarget(href) }, areaOf(href), me);
+    return { actions: [], note: denied.text };
+  }
+  const label = entry.navLabel?.trim() || "Take me there";
+  const actions: GuideAction[] = [{ kind: "go", label, href }];
+  if (entry.target) actions.push({ kind: "show", label: "Show me", href, target: entry.target });
+  return { actions, note: null };
+}
+
+export function answerQuestion(question: string, index: GuideIndex, on: GuideSwitches, me: MeKind | null = null): GuideReply {
   const ranked = rank(question, index);
   const best = ranked[0];
   const skill = detectSkill(question, index);
@@ -198,30 +222,39 @@ export function answerQuestion(question: string, index: GuideIndex, on: GuideSwi
       .filter((s) => s.score >= RELATED_MIN)
       .slice(0, 3)
       .map((s) => s.it.entry.question);
+  const confidence = best ? Math.min(1, best.score) : 0;
 
   // "python jobs", "I want to learn SQL": a skill and nothing but what to look for. Go straight to it.
   if (skill && isSkillOnlyQuestion(question, skill)) {
-    return { kind: "topic", text: `Here is where you can explore ${skill}:`, links: dedupe(topicLinks(skill, question, on)), related: [] };
+    return { kind: "topic", text: `Here is where you can explore ${skill}:`, links: dedupe(topicLinks(skill, question, on)), related: [], confidence: 1, lowConfidence: false, actions: [] };
   }
 
   if (best && best.score >= ANSWER_MIN) {
     const e = best.it.entry;
+    const lowConfidence = best.score < ANSWER_CONFIDENT;
     if (e.playbookId) {
-      return { kind: "playbook", text: e.answer, links: [], playbookId: e.playbookId, matchedQuestion: e.question, related: related(true) };
+      return { kind: "playbook", text: e.answer, links: [], playbookId: e.playbookId, matchedQuestion: e.question, related: related(true), confidence, lowConfidence: false, actions: [] };
     }
     const links = filterLinks(e.links, on);
+    const { actions, note } = actionsFor(e, me);
+    const text = note ? `${e.answer}\n\n${note}` : e.answer;
+    const shared = { matchedQuestion: e.question, related: related(true), confidence, lowConfidence, actions, entryDbId: e.dbId, attempted: lowConfidence ? e.question : undefined };
     if (skill && best.score < 0.85) {
-      return { kind: "answer", text: e.answer, links: dedupe([...topicLinks(skill, question, on).slice(0, 2), ...links]), matchedQuestion: e.question, related: related(true) };
+      return { kind: "answer", text, links: dedupe([...topicLinks(skill, question, on).slice(0, 2), ...links]), ...shared };
     }
-    return { kind: "answer", text: e.answer, links: dedupe(links), matchedQuestion: e.question, related: related(true) };
+    return { kind: "answer", text, links: dedupe(links), ...shared };
   }
   if (skill) {
-    return { kind: "topic", text: `Here is where you can explore ${skill}:`, links: dedupe(topicLinks(skill, question, on)), related: related(false) };
+    return { kind: "topic", text: `Here is where you can explore ${skill}:`, links: dedupe(topicLinks(skill, question, on)), related: related(false), confidence: Math.max(confidence, 0.5), lowConfidence: false, actions: [] };
   }
   return {
     kind: "fallback",
-    text: "I don't have a written answer for that yet. I've noted your question for the team. These are good places to start:",
+    text: "I don't have a reliable answer for that yet, but I've recorded your question so the platform team can review it. These are good places to start:",
     links: startHere(on),
     related: related(false),
+    confidence,
+    lowConfidence: true,
+    attempted: best && best.score >= RELATED_MIN ? best.it.entry.question : undefined,
+    actions: [],
   };
 }

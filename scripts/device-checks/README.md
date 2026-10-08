@@ -20,6 +20,10 @@ node scripts/device-checks/add-to-home-screen.cjs   # Install app button, steps 
 node scripts/device-checks/theme-and-hydration.cjs   # dark theme kept and no hydration errors on public pages, three device types
 node scripts/device-checks/course-cards.cjs        # course cards: no overflow at 5 sizes (load seed-course-ui.sql first)
 node scripts/device-checks/course-video.cjs        # lesson video: 16:9, modal, fullscreen, plays in-platform
+node scripts/device-checks/guide-knowledge-api.cjs   # review queue, grouping, approval, versions, restore, privacy, access
+node scripts/device-checks/guide-chat.cjs            # Take me there / Show me, role-aware answers, honest unknowns
+node scripts/device-checks/guide-tour.cjs            # multi-step tour, auto-advance, reduced motion, phone More fallback
+node scripts/device-checks/guide-admin.cjs           # Guide Bot Knowledge screens
 node scripts/device-checks/organization.cjs       # organization home, messaging scope, profile preview, Loop guide
 node scripts/device-checks/videos-and-reports.cjs # trainee video -> organization -> Super Admin, and reports
 node scripts/device-checks/builder-tools.cjs      # course builder / exam tools on phone and tablet

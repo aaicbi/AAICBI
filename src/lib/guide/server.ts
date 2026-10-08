@@ -6,12 +6,10 @@ import { DEFAULT_ENTRIES } from "@/lib/guide/defaults";
 import { playbookEntries } from "@/lib/guide/playbooks";
 import type { MeKind } from "@/lib/guide/context";
 import { sanitizeLinks } from "@/lib/guide/links";
-import { scrubQuestion } from "@/lib/guide/scrub";
 import type { GuideEntry, GuideSwitches } from "@/lib/guide/types";
 
 /** The most written answers a SUPER_ADMIN can add, so the answer bank stays small enough to send to the browser. */
 export const MAX_CUSTOM_ENTRIES = 200;
-const MAX_OPEN_UNANSWERED = 2000;
 
 export interface GuideConfig {
   enabled: boolean;
@@ -20,8 +18,11 @@ export interface GuideConfig {
   skills: string[];
 }
 
-export function toEntry(row: { id: string; question: string; answer: string; links: unknown; keywords: string[] }): GuideEntry {
-  return { id: `custom:${row.id}`, question: row.question, answer: row.answer, links: sanitizeLinks(row.links), keywords: row.keywords, source: "custom" };
+export function toEntry(row: { id: string; question: string; answer: string; links: unknown; keywords: string[]; category?: string | null; navHref?: string | null; navLabel?: string | null; target?: string | null; relatedQuestions?: string[]; roles?: string[] }): GuideEntry {
+  return {
+    id: `custom:${row.id}`, dbId: row.id, question: row.question, answer: row.answer, links: sanitizeLinks(row.links), keywords: row.keywords, source: "custom",
+    category: row.category ?? null, navHref: row.navHref ?? null, navLabel: row.navLabel ?? null, target: row.target ?? null, relatedQuestions: row.relatedQuestions ?? [], roles: row.roles ?? [],
+  };
 }
 
 /** Everything the browser needs to answer questions: the switch, the written answers, and the skills the platform has. */
@@ -35,7 +36,7 @@ export async function loadGuideConfig(): Promise<GuideConfig> {
   if (!enabled) return { enabled: false, switches, entries: [], skills: [] };
 
   const [custom, skills] = await Promise.all([
-    prisma.guideEntry.findMany({ where: { enabled: true }, orderBy: { createdAt: "asc" }, take: MAX_CUSTOM_ENTRIES, select: { id: true, question: true, answer: true, links: true, keywords: true } }).catch(() => []),
+    prisma.guideEntry.findMany({ where: { enabled: true }, orderBy: { createdAt: "asc" }, take: MAX_CUSTOM_ENTRIES, select: { id: true, question: true, answer: true, links: true, keywords: true, category: true, navHref: true, navLabel: true, target: true, relatedQuestions: true, roles: true } }).catch(() => []),
     prisma.skill
       .findMany({
         where: { OR: [{ courseSkills: { some: {} } }, { jobPostingSkills: { some: {} } }, { educationPostSkills: { some: {} } }, { traineeSkills: { some: {} } }] },
@@ -61,26 +62,4 @@ export async function whoAmI(): Promise<MeKind | null> {
       return org ? "organization" : "staff";
     }
   }
-}
-
-/**
- * Remembers a question Loop could not answer, grouped with identical ones so
- * the team sees a count. Returns false when the question is not worth
- * keeping or the queue is full. Stores only scrubbed text: no account, no
- * address, nothing else about who asked.
- */
-export async function recordUnanswered(question: string): Promise<boolean> {
-  const text = scrubQuestion(question);
-  if (!text) return false;
-  const existing = await prisma.guideUnanswered.findUnique({ where: { text }, select: { id: true } });
-  if (!existing) {
-    const open = await prisma.guideUnanswered.count({ where: { status: "OPEN" } });
-    if (open >= MAX_OPEN_UNANSWERED) return false;
-  }
-  await prisma.guideUnanswered.upsert({
-    where: { text },
-    create: { text },
-    update: { asked: { increment: 1 }, lastAskedAt: new Date() },
-  });
-  return true;
 }

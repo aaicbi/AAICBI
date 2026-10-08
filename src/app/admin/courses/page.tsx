@@ -50,7 +50,7 @@ export default function AdminCoursesPage() {
       <main className="mx-auto max-w-4xl px-6 py-10">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="font-display text-2xl font-semibold text-brand-ink">Courses</h1>
-          <Button href="/admin/courses/new">+ Create Course</Button>
+          <Button href="/admin/courses/new" data-guide-target="create-course">+ Create Course</Button>
         </div>
 
         <div className="mt-8 space-y-3">

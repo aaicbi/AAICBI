@@ -524,3 +524,60 @@ html { scroll-padding-bottom: var(--layer-nav, 0px); }
 
 /* Long words, URLs and unbroken strings wrap inside their containers instead of overflowing cards. */
 h1, h2, h3, h4, h5, h6, p, li, dd, dt, label, blockquote { overflow-wrap: anywhere; }
+
+/* ---------------------------------------------------------------
+   Guided interaction: the soft beam Loop draws around the control it is
+   pointing at. A slow light sweeps round a teal ring with a gentle halo.
+   Never flashes. With reduced motion it is a plain, high-contrast double
+   outline with no movement at all.
+   --------------------------------------------------------------- */
+@property --guide-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+.guide-beam {
+  position: fixed;
+  z-index: 85;
+  pointer-events: none;
+  border-radius: var(--guide-radius, 12px);
+  box-shadow: 0 0 0 2px rgb(var(--brand-teal) / 0.95), 0 0 0 5px rgb(var(--brand-surface) / 0.85), 0 0 22px 6px rgb(var(--brand-teal) / 0.4);
+  animation: guide-halo 2.8s ease-in-out infinite;
+  transition: top 0.12s linear, left 0.12s linear, width 0.12s linear, height 0.12s linear;
+}
+.guide-beam::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  padding: 3px;
+  background: conic-gradient(from var(--guide-angle), transparent 0 62%, rgb(var(--brand-teal) / 0.2) 74%, rgb(255 255 255 / 0.95) 90%, rgb(var(--brand-teal)) 96%, transparent 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: guide-sweep 3.6s linear infinite;
+}
+@keyframes guide-sweep {
+  to {
+    --guide-angle: 360deg;
+  }
+}
+@keyframes guide-halo {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgb(var(--brand-teal) / 0.95), 0 0 0 5px rgb(var(--brand-surface) / 0.85), 0 0 14px 3px rgb(var(--brand-teal) / 0.28);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgb(var(--brand-teal) / 0.95), 0 0 0 5px rgb(var(--brand-surface) / 0.85), 0 0 28px 9px rgb(var(--brand-teal) / 0.5);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .guide-beam {
+    animation: none;
+    transition: none;
+    box-shadow: 0 0 0 3px rgb(var(--brand-teal)), 0 0 0 6px rgb(var(--brand-surface));
+  }
+  .guide-beam::before {
+    animation: none;
+    display: none;
+  }
+}
