@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiErrors } from "@/lib/apiError";
@@ -8,10 +9,24 @@ import { RankingConfigSchema, pickFeatured } from "@/lib/ecosystem/visibilityCor
 
 export const dynamic = "force-dynamic";
 
+const FLAG_SELECT = {
+  ecosystemOrgPagesEnabled: true,
+  ecosystemEducationEnabled: true,
+  ecosystemFeedEnabled: true,
+  ecosystemLandingEnabled: true,
+  ecosystemLandingPlaceholders: true,
+  ecosystemPublicJobsEnabled: true,
+  ecosystemPublicTraineesEnabled: true,
+} as const;
+
 const FlagsSchema = z.object({
   ecosystemOrgPagesEnabled: z.boolean().optional(),
   ecosystemEducationEnabled: z.boolean().optional(),
   ecosystemFeedEnabled: z.boolean().optional(),
+  ecosystemLandingEnabled: z.boolean().optional(),
+  ecosystemLandingPlaceholders: z.boolean().optional(),
+  ecosystemPublicJobsEnabled: z.boolean().optional(),
+  ecosystemPublicTraineesEnabled: z.boolean().optional(),
   rankingConfig: RankingConfigSchema.optional(),
 });
 
@@ -27,7 +42,7 @@ export async function GET() {
     const [settings, orgs, posts, rated, comments, events] = await Promise.all([
       prisma.platformSettings.findUnique({
         where: { id: "singleton" },
-        select: { ecosystemOrgPagesEnabled: true, ecosystemEducationEnabled: true, ecosystemFeedEnabled: true },
+        select: FLAG_SELECT,
       }),
       prisma.trainingOrganization.findMany({
         where: { approvalState: "APPROVED" },
@@ -61,9 +76,13 @@ export async function GET() {
       rankingConfig: config,
       ratings: rated.map((r) => ({ id: r.id, name: r.name, score: r.score, components: r.result.components, publishedVideos: r.publishedVideos, badges: r.badges, featured: featuredIds.has(r.id) })).sort((a, b) => b.score - a.score),
       flags: {
-        ecosystemOrgPagesEnabled: settings?.ecosystemOrgPagesEnabled ?? false,
-        ecosystemEducationEnabled: settings?.ecosystemEducationEnabled ?? false,
-        ecosystemFeedEnabled: settings?.ecosystemFeedEnabled ?? false,
+        ecosystemOrgPagesEnabled: settings?.ecosystemOrgPagesEnabled ?? true,
+        ecosystemEducationEnabled: settings?.ecosystemEducationEnabled ?? true,
+        ecosystemFeedEnabled: settings?.ecosystemFeedEnabled ?? true,
+        ecosystemLandingEnabled: settings?.ecosystemLandingEnabled ?? true,
+        ecosystemLandingPlaceholders: settings?.ecosystemLandingPlaceholders ?? true,
+        ecosystemPublicJobsEnabled: settings?.ecosystemPublicJobsEnabled ?? true,
+        ecosystemPublicTraineesEnabled: settings?.ecosystemPublicTraineesEnabled ?? true,
       },
       organizations: orgs,
       posts: posts.map((p) => ({ ...p, traineeName: p.trainee.name, organizationName: p.trainingOrganization.name, trainee: undefined, trainingOrganization: undefined })),
@@ -82,8 +101,12 @@ export async function PUT(req: NextRequest) {
       where: { id: "singleton" },
       create: { id: "singleton", ...data },
       update: data,
-      select: { ecosystemOrgPagesEnabled: true, ecosystemEducationEnabled: true, ecosystemFeedEnabled: true },
+      select: FLAG_SELECT,
     });
+    // The landing page and the public job and trainee pages are cached for a
+    // few minutes; a switch change should show at once.
+    revalidateTag("landing");
+    for (const path of ["/", "/jobs", "/trainees"]) revalidatePath(path);
     return NextResponse.json({ flags: settings });
   });
 }

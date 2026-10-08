@@ -10,12 +10,31 @@ import { useToast } from "@/components/ui/Toast";
 import { Input } from "@/components/ui/Field";
 import { COMPONENTS, COMPONENT_LABELS, DEFAULT_RANKING_CONFIG, BADGE_LABELS, type BadgeKey, type Component, type RankingConfig } from "@/lib/ecosystem/visibilityCore";
 
+type FlagKey =
+  | "ecosystemOrgPagesEnabled"
+  | "ecosystemEducationEnabled"
+  | "ecosystemFeedEnabled"
+  | "ecosystemLandingEnabled"
+  | "ecosystemLandingPlaceholders"
+  | "ecosystemPublicJobsEnabled"
+  | "ecosystemPublicTraineesEnabled";
+
+const SWITCHES: Array<{ key: FlagKey; label: string }> = [
+  { key: "ecosystemOrgPagesEnabled", label: "Public organization pages (/organizations)" },
+  { key: "ecosystemEducationEnabled", label: "Trainee education videos (/learn)" },
+  { key: "ecosystemFeedEnabled", label: "Community feed (/feed)" },
+  { key: "ecosystemLandingEnabled", label: "Landing page ecosystem sections (off = the original landing page)" },
+  { key: "ecosystemLandingPlaceholders", label: "Labelled example placeholders where there is little real content yet" },
+  { key: "ecosystemPublicJobsEnabled", label: "Public job board (/jobs); applying always needs an account" },
+  { key: "ecosystemPublicTraineesEnabled", label: "Public trainee directory (/trainees); only trainees who chose Public appear" },
+];
+
 interface Payload {
   rankingConfig: RankingConfig;
   comments: Array<{ id: string; body: string; isDemo: boolean; authorName: string; videoTitle: string }>;
   events: Array<{ id: string; title: string; startsAt: string; isDemo: boolean; organizationName: string }>;
   ratings: Array<{ id: string; name: string; score: number; components: Record<Component, number>; publishedVideos: number; badges: BadgeKey[]; featured: boolean }>;
-  flags: { ecosystemOrgPagesEnabled: boolean; ecosystemEducationEnabled: boolean; ecosystemFeedEnabled: boolean };
+  flags: Record<FlagKey, boolean>;
   organizations: Array<{ id: string; name: string; isDemo: boolean; publicProfile: { slug: string; publicEnabled: boolean; verified: boolean } | null }>;
   posts: Array<{ id: string; title: string; status: string; youtubeUrl: string; thumbnailUrl: string; traineeName: string; organizationName: string; isDemo: boolean }>;
 }
@@ -45,10 +64,10 @@ export default function EcosystemAdmin() {
     <div className="space-y-8">
       <Card className="space-y-4">
         <h2 className="font-display text-lg font-semibold text-brand-ink">Feature switches</h2>
-        <p className="text-sm text-gray-600">All three are off until you turn them on. Turning one off hides the public pages again immediately; no data is deleted.</p>
-        <Row label="Public organization pages (/organizations)" checked={data.flags.ecosystemOrgPagesEnabled} onChange={(v) => call("/api/admin/ecosystem", "PUT", { ecosystemOrgPagesEnabled: v })} />
-        <Row label="Trainee education videos (/learn)" checked={data.flags.ecosystemEducationEnabled} onChange={(v) => call("/api/admin/ecosystem", "PUT", { ecosystemEducationEnabled: v })} />
-        <Row label="Community feed (/feed)" checked={data.flags.ecosystemFeedEnabled} onChange={(v) => call("/api/admin/ecosystem", "PUT", { ecosystemFeedEnabled: v })} />
+        <p className="text-sm text-gray-600">All of these start on. Turning one off hides the matching public pages again immediately; no data is deleted.</p>
+        {SWITCHES.map((sw) => (
+          <Row key={sw.key} label={sw.label} checked={data.flags[sw.key]} onChange={(v) => call("/api/admin/ecosystem", "PUT", { [sw.key]: v })} />
+        ))}
       </Card>
 
       <PlatformAnalytics />

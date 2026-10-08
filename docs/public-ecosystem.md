@@ -1,12 +1,12 @@
 # Public ecosystem (phases 0 to 8)
 
-Organization public pages, trainee education videos, the community feed, and a demo world to try them with. Everything ships **off**.
+Organization public pages, trainee education videos, the community feed, and a demo world to try them with. The switches start **on** (since the landing page redesign); SUPER_ADMIN can turn any of them off.
 
 ## Rolling out
 
 1. Migrations are applied automatically by the production build (see *Database migrations on deploy* below). To run them by hand instead, `prisma migrate deploy` (migrations `20261009090000_public_ecosystem`, `20261009100000_ecosystem_feed` and `20261009110000_course_skills` and `20261009120000_ranking_config` and `20261009130000_org_watchlist` and `20261009140000_ecosystem_events` and `20261009150000_comments_events`). It only adds tables and columns with defaults, so the current site is unaffected.
 2. Deploy the code. Nothing public changes yet: `/organizations` and `/learn` return 404.
-3. As SUPER_ADMIN open **Platform > Ecosystem** and switch on public organization pages, education videos and/or the community feed. Switching them off again hides the pages at once; no data is deleted.
+3. The switches start on. As SUPER_ADMIN open **Platform > Ecosystem** to turn any off (public organization pages, education videos, community feed, landing page sections, example placeholders, public job board, public trainee directory). Switching one off hides the pages at once; no data is deleted. Migration `20261010090000_landing_ecosystem_switches` also turns the three original switches on in the existing settings row.
 
 ## How it works
 
@@ -53,6 +53,17 @@ Organization public pages, trainee education videos, the community feed, and a d
 - **Search** (`/search`): one box over public organizations, videos, programs and events, with type filters. Plain case-insensitive matching on what each public page already shows (names, taglines, places, titles, skills); no new index or extension, and nothing a visitor could not already open. Hidden when organization pages are off; videos only when education is on.
 - **Comments**: on `/learn/[id]`, readable by anyone and written by signed-in trainees only. Plain text, 2 to 500 characters, links rejected, ten per hour per person. Authors can delete their own; anyone signed in can report a comment, which lands in the existing report queue (context `EDUCATION_COMMENT`, one open report per person and comment); SUPER_ADMIN can hide any comment from *Ecosystem*.
 - **Events**: organizations add events under *Organization > Events* (title, UTC start and optional end, place, optional https registration link). They show on the organization's *Events* tab and on `/events`. Registration happens on the organization's own link; nothing is collected here. Events are listed until they are over; SUPER_ADMIN can take any down.
+
+## Landing page, public jobs and public trainees
+
+The landing page is an entry point into the ecosystem: a hero with a map of how the parts fit together, a "what's happening" strip, tabs to explore programs, opportunities, organizations, trainees, events and videos, a drawn walkthrough, and a role chooser for signing up. It is the original landing page when the **Landing page ecosystem sections** switch is off.
+
+- **Real data only.** Programs are the published courses, opportunities are approved unexpired jobs of approved employers, organizations/events/videos come from the public ecosystem, and trainees are those who set their profile to **Public**. Counts and "trending skills" are real and hidden when zero. On a production deployment, seeded demo rows are never shown.
+- **Labelled placeholders.** While a section has fewer real items than its minimum (programs, opportunities, organizations and videos 3; trainees 4; events 2; activity 4), it is topped up with examples drawn in the platform's own style. Every example carries an "Example" tag, uses a fictional generic name, makes no statistic, rating, price or date claim, and links only to a sign-up page. Real items always come first; once a section has enough real items it shows no examples. Turn **example placeholders** off to show only real content. Rules are in `src/lib/landing/core.ts` and `samples.ts` and enforced by `tests/landingCore.test.ts`.
+- **Public job board** (`/jobs`, `/jobs/[id]`): readable by anyone; **Apply** opens a dialog asking for an account (a signed-in trainee goes to the existing application flow, which asks what to share). Employer contact details are never shown.
+- **Public trainee directory** (`/trainees`): only trainees who set profile visibility to Public (their own choice, private by default) and have a username and verified email. Name, photo or initials, place and skills; contact details are never selected.
+- **Caching.** The page is cached five minutes and cleared at once when a switch changes in Platform > Ecosystem.
+- **Switches** (all start on): organization pages, education videos, feed, landing sections, example placeholders, public job board, public trainee directory.
 
 ## Demo accounts
 

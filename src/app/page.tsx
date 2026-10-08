@@ -13,7 +13,21 @@ import { prisma } from "@/lib/prisma";
 import VisitorTracker from "@/components/analytics/VisitorTracker";
 import RegisterCta from "@/components/analytics/RegisterCta";
 import ProgressSurface from "@/components/progress/ProgressSurface";
+import EcosystemHero from "@/components/landing/EcosystemHero";
+import ActivityStrip from "@/components/landing/ActivityStrip";
+import DiscoveryTabs from "@/components/landing/DiscoveryTabs";
+import HowItWorks from "@/components/landing/HowItWorks";
+import JoinChooser from "@/components/landing/JoinChooser";
+import SampleNote from "@/components/landing/SampleNote";
+import { getLandingView } from "@/lib/landing/data";
 import type { ProgressSurfaceData } from "@/lib/trainee/progressSurface";
+
+/**
+ * Served from a cache that refreshes every five minutes, and at once when
+ * SUPER_ADMIN changes an ecosystem switch. Nothing on this page reads the
+ * visitor's cookies, which is what keeps it cacheable.
+ */
+export const revalidate = 300;
 
 /** Illustrative only. Shown on the landing page, labelled as a sample. */
 const SAMPLE_PROGRESS: ProgressSurfaceData = {
@@ -94,24 +108,55 @@ export default async function LandingPage() {
     testimonials = [];
   }
 
+  // The ecosystem sections, or null when SUPER_ADMIN has switched them off,
+  // in which case the page below is the original landing page, unchanged.
+  const landing = await getLandingView().catch(() => null);
+  const eco = landing?.view ?? null;
+  const flags = landing?.flags ?? null;
+
+  const ecosystemNav = flags
+    ? [
+        { label: "Training", href: "/courses" },
+        ...(flags.publicJobs ? [{ label: "Opportunities", href: "/jobs" }] : []),
+        ...(flags.orgPages ? [{ label: "Organizations", href: "/organizations" }] : []),
+        ...(flags.publicTrainees ? [{ label: "Trainees", href: "/trainees" }] : []),
+      ]
+    : [];
+
   return (
     <>
       <VisitorTracker path="/" />
       <SiteHeader
         nav={[
+          ...ecosystemNav,
           { label: "Verify a Certificate", href: "/certificate" },
           // Links to the "For Organizations" section lower on this same
           // page (#for-organizations) rather than straight to
           // /org/register or /org/login — unlike Employer/Staff Login,
           // there are two real actions here (register or sign in), so
           // the nav link surfaces the choice instead of guessing one.
-          { label: "Training Organizations", href: "#for-organizations" },
+          ...(flags?.orgPages ? [] : [{ label: "Training Organizations", href: "#for-organizations" }]),
           { label: "Employer Login", href: "/employer/login" },
           { label: "Staff Login", href: "/admin/login" },
         ]}
       />
       <main>
-        {/* Hero */}
+        {eco && flags ? (
+          <>
+            <EcosystemHero
+              stats={eco.stats}
+              links={{ courses: true, jobs: flags.publicJobs, organizations: flags.orgPages, trainees: flags.publicTrainees, events: flags.orgPages }}
+            />
+            <ActivityStrip items={eco.activity} skills={eco.skills} searchable={flags.orgPages} />
+            <DiscoveryTabs
+              view={eco}
+              show={{ jobs: flags.publicJobs, organizations: flags.orgPages, trainees: flags.publicTrainees, events: flags.orgPages, videos: flags.orgPages && flags.education }}
+            />
+            <HowItWorks />
+            {eco.hasSamples && <SampleNote />}
+          </>
+        ) : (
+          <>
         <section className="mx-auto flex max-w-3xl flex-col items-center px-6 py-20 text-center sm:py-28">
           <span className="text-xs font-semibold uppercase tracking-widest text-brand-teal">
             Africa&apos;s AI Capacity Building Initiative
@@ -137,6 +182,9 @@ export default async function LandingPage() {
             </Button>
           </div>
         </section>
+
+          </>
+        )}
 
         {/* Feature grid */}
         <section className="mx-auto max-w-5xl px-6 pb-20">
@@ -269,7 +317,10 @@ export default async function LandingPage() {
           </section>
         )}
 
-        {/* Closing CTA */}
+        {eco ? (
+          <JoinChooser />
+        ) : (
+          <>
         <section className="mx-auto flex max-w-2xl flex-col items-center px-6 py-20 text-center">
           <GrowthPathDoodle className="h-24 w-24" />
           <h2 className="mt-4 font-display text-2xl font-semibold text-brand-ink">Start where you are.</h2>
@@ -285,6 +336,8 @@ export default async function LandingPage() {
             </Button>
           </div>
         </section>
+          </>
+        )}
       </main>
     </>
   );
