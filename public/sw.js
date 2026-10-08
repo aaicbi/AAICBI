@@ -45,11 +45,11 @@ self.addEventListener("fetch", (event) => {
 
   if (isStaticAsset(url)) {
     event.respondWith(
-      caches.open(STATIC_CACHE).then(async (cache) => {
-        const hit = await cache.match(req);
+      // Look in every cache first: the icons were stored with the offline page, the rest as they were used.
+      caches.match(req).then(async (hit) => {
         if (hit) return hit;
         const res = await fetch(req);
-        if (res.ok) cache.put(req, res.clone());
+        if (res.ok) caches.open(STATIC_CACHE).then((c) => c.put(req, res.clone()));
         return res;
       }),
     );
