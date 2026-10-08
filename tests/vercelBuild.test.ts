@@ -35,3 +35,18 @@ describe("vercel build plan", () => {
     expect(() => planSteps({ VERCEL_ENV: "production" })).toThrow(/DATABASE_URL/);
   });
 });
+
+describe("Neon pooled connection for migrations", () => {
+  const pooled = "postgresql://u:p@ep-falling-butterfly-b1rpavsf-pooler.c-5.eu-central-1.aws.neon.tech:5432/db?sslmode=require";
+  it("migrates over the direct host when only the pooled URL is set", async () => {
+    const m = plan({ VERCEL_ENV: "production", DATABASE_URL: pooled }).find((s) => s.label === "Apply database migrations")!;
+    expect(m.env!.DATABASE_URL).toBe("postgresql://u:p@ep-falling-butterfly-b1rpavsf.c-5.eu-central-1.aws.neon.tech:5432/db?sslmode=require");
+  });
+  it("leaves other hosts and an explicit MIGRATE_DATABASE_URL alone", async () => {
+    const { directNeonUrl } = await import("../scripts/vercel-build.mjs");
+    expect(directNeonUrl("postgresql://u:p@db.example.com:5432/x")).toBe("postgresql://u:p@db.example.com:5432/x");
+    expect(directNeonUrl("not a url")).toBe("not a url");
+    const m = plan({ VERCEL_ENV: "production", DATABASE_URL: pooled, MIGRATE_DATABASE_URL: "postgresql://mine" }).find((s) => s.label === "Apply database migrations")!;
+    expect(m.env!.DATABASE_URL).toBe("postgresql://mine");
+  });
+});

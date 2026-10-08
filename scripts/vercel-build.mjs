@@ -12,6 +12,7 @@
  * half-reviewed branch must not change it.
  *
  * Settings (all optional, set in Vercel > Project > Settings > Environment Variables):
+ *   (Neon pooled URLs are switched to the direct host automatically.)
  *   MIGRATE_DATABASE_URL  Use this connection for migrations instead of
  *                         DATABASE_URL. Point it at Neon's direct (non-pooler)
  *                         host; migrations take a lock that pooled connections
@@ -21,11 +22,28 @@
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
+/**
+ * Neon's pooled host ("...-pooler...") sits behind pgbouncer, which cannot
+ * hold the advisory lock `prisma migrate deploy` takes (error P1002). Its
+ * direct host is the same name without "-pooler". Only that exact Neon
+ * pattern is rewritten; any other URL is returned untouched.
+ */
+export function directNeonUrl(url) {
+  try {
+    const u = new URL(url);
+    if (!/-pooler\./.test(u.hostname) || !u.hostname.endsWith(".neon.tech")) return url;
+    u.hostname = u.hostname.replace("-pooler.", ".");
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
 /** The commands to run, in order, for a given environment. Pure so it can be tested. */
 export function planSteps(env) {
   const steps = [{ label: "Generate the Prisma client", cmd: "npx", args: ["prisma", "generate"] }];
   if (env.VERCEL_ENV === "production" && env.SKIP_DB_MIGRATE !== "1") {
-    const url = env.MIGRATE_DATABASE_URL || env.DATABASE_URL;
+    const url = env.MIGRATE_DATABASE_URL || (env.DATABASE_URL ? directNeonUrl(env.DATABASE_URL) : undefined);
     if (!url) throw new Error("Production build needs DATABASE_URL (or MIGRATE_DATABASE_URL) to apply migrations.");
     steps.push({
       label: "Apply database migrations",
@@ -51,7 +69,15 @@ function main() {
   }
   for (const step of steps) {
     console.log(`\n> ${step.label}`);
-    const r = spawnSync(step.cmd, step.args, { stdio: "inherit", env: { ...process.env, ...step.env }, shell: process.platform === "win32" });
+    // A sleeping Neon database can miss the first migration lock; retry that step only.
+    const attempts = step.label === "Apply database migrations" ? 3 : 1;
+    let r;
+    for (let i = 1; i <= attempts; i++) {
+      r = spawnSync(step.cmd, step.args, { stdio: "inherit", env: { ...process.env, ...step.env }, shell: process.platform === "win32" });
+      if (r.status === 0) break;
+      if (i < attempts) console.log(`\nAttempt ${i} of ${attempts} failed; trying again in 5 seconds.`);
+      if (i < attempts) spawnSync("node", ["-e", "setTimeout(()=>{},5000)"]);
+    }
     if (r.status !== 0) {
       console.error(`\n"${step.label}" failed (exit ${r.status ?? "signal"}). Stopping the build.`);
       process.exit(r.status ?? 1);
