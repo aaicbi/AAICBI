@@ -1,5 +1,5 @@
 import type { ComponentType, SVGProps } from "react";
-import { Download, LayoutGrid } from "lucide-react";
+import { Download, Flag, LayoutGrid } from "lucide-react";
 import {
   AchievementIcon,
   AssessmentIcon,
@@ -78,6 +78,9 @@ const BY_PATH: Record<string, IconComponent> = {
   "/job-postings": BriefcaseIcon,
   "/status": OrganizationIcon,
   "/organizations": OrganizationIcon,
+  "/explore": RocketIcon,
+  "/videos": VideoIcon,
+  "/report": Flag,
 };
 
 export function getNavIcon(href: string): IconComponent {

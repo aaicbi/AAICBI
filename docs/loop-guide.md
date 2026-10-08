@@ -39,3 +39,9 @@ Loop walks a signed-in training organization through its workspace one step at a
 - **Keeping it true:** `tests/guidePlaybooks.test.ts` fails if a bold label no longer exists in the source, if a step links to a page that does not exist, or if a guide stops being found by its question. Rename a button and the test tells you which guide to update.
 - **Guides today:** workspace tour, upload and publish a course, module assessment, final course examination, price/schedule/details, enroll trainees and cohorts, certificates, public page, invite a teammate, trainee education video, program skills, events, content and visibility, payments and reports.
 - **Things the guides say plainly:** a new course is a draft; publishing needs at least one module; module assessment questions come from an uploaded Word document (no typed entry); the final exam is generated from published module assessments and must be reviewed.
+
+### Trainee guides
+
+The same playbook engine has guides for trainees (`audience: "trainee"` in `data.ts`): tour of the trainee area, getting started, enrolling (free, paid, free preview, unlock code), lessons and unlocking modules, module assessments, the course examination and certificate, assignments, sharing a certificate, profile visibility, jobs and introductions, getting help, and settings. A signed-in trainee gets "Guide me" shortcuts on each trainee page. Loop still stays hidden on live exams, assessments and the assignment workspace.
+
+Guides are matched by audience (`entriesForAudience`): organizations only see organization guides, everyone else sees trainee guides, so similar questions reach the right one. A test checks that no guide ever takes over a plain written answer.

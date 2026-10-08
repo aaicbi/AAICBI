@@ -62,6 +62,10 @@ export default function CertificateLayoutRenderer({ layout, logoUrl, qrDataUrl, 
         className="absolute left-0 top-0 overflow-hidden rounded-2xl print:border print:shadow-none animate-[modal-in_0.4s_ease-out]"
         style={{ width: layout.width, height: layout.height, backgroundColor: layout.backgroundColor, transform: `scale(${scale})`, transformOrigin: "top left" }}
       >
+        {layout.backgroundImageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element -- an uploaded certificate design, drawn edge to edge behind the fields.
+          <img src={layout.backgroundImageUrl} alt="" className="absolute left-0 top-0 select-none" style={{ width: layout.width, height: layout.height }} draggable={false} />
+        )}
         {layout.elements.map((el) => (
           <ElementNode key={el.id} element={el} logoUrl={logoUrl} qrDataUrl={qrDataUrl} data={data} />
         ))}

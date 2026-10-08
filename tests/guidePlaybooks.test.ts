@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { PLAYBOOKS, playbookEntries } from "@/lib/guide/playbooks";
+import { PLAYBOOKS, playbookEntries, entriesForAudience } from "@/lib/guide/playbooks";
 import { answerQuestion, buildIndex } from "@/lib/guide/match";
 import { DEFAULT_ENTRIES } from "@/lib/guide/defaults";
 
@@ -64,7 +64,7 @@ describe("organization playbooks", () => {
   });
 
   it("are found by the questions an organization would ask", () => {
-    const index = buildIndex([...DEFAULT_ENTRIES, ...playbookEntries()], []);
+    const index = buildIndex(entriesForAudience([...DEFAULT_ENTRIES, ...playbookEntries()], "organization"), []);
     const cases: Record<string, string> = {
       "How do I upload a course?": "upload-course",
       "how can i post my course": "upload-course",
@@ -89,5 +89,46 @@ describe("organization playbooks", () => {
     for (const q of ["How do I create an account?", "How do I verify a certificate?", "Is it free to join?"]) {
       expect(answerQuestion(q, index, ON).kind, q).not.toBe("playbook");
     }
+  });
+
+  it("are found by the questions a trainee would ask", () => {
+    const index = buildIndex(entriesForAudience([...DEFAULT_ENTRIES, ...playbookEntries()], "trainee"), []);
+    const cases: Record<string, string> = {
+      "Show me around my trainee dashboard": "trainee-tour",
+      "how do i get started as a trainee": "trainee-start",
+      "How do I enroll in a course?": "trainee-enroll",
+      "how do i pay for a course": "trainee-enroll",
+      "How do I take lessons and unlock the next module?": "trainee-learn",
+      "How do I take a module assessment?": "trainee-assessment",
+      "how do i take the course examination": "trainee-exam",
+      "how do I submit an assignment": "trainee-assignment",
+      "how do i print my certificate": "trainee-certificate",
+      "how do I choose who can see my profile": "trainee-profile",
+      "how do i answer an employer introduction": "trainee-jobs",
+      "how do i message my instructor": "trainee-help",
+      "how do I change my notifications": "trainee-settings",
+    };
+    for (const [q, id] of Object.entries(cases)) {
+      const r = answerQuestion(q, index, ON);
+      expect(r.playbookId, q).toBe(id);
+    }
+  });
+
+  it("never take over a plain written answer, for any kind of account", () => {
+    for (const me of [null, "trainee", "organization"]) {
+      const index = buildIndex(entriesForAudience([...DEFAULT_ENTRIES, ...playbookEntries()], me), []);
+      for (const e of DEFAULT_ENTRIES) {
+        const r = answerQuestion(e.question, index, ON);
+        expect(r.kind, `${me}: ${e.question}`).not.toBe("playbook");
+      }
+    }
+  });
+
+  it("keep organization guides away from trainees and the reverse", () => {
+    const asTrainee = entriesForAudience(playbookEntries(), "trainee").map((e) => e.audience);
+    expect(asTrainee.every((a) => a === "trainee")).toBe(true);
+    const asOrg = entriesForAudience(playbookEntries(), "organization").map((e) => e.audience);
+    expect(asOrg.every((a) => a === "organization")).toBe(true);
+    expect(entriesForAudience(playbookEntries(), null).every((e) => e.audience === "trainee")).toBe(true);
   });
 });

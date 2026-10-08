@@ -5,7 +5,7 @@
     },
     "trainee": {
       "login": { "url": "/api/auth/trainee-login", "email": "t0@dev.test" },
-      "paths": ["/trainee/dashboard", "/trainee/courses", "/trainee/examinations", "/trainee/assignments", "/trainee/certificates", "/trainee/progress", "/trainee/my-activity", "/trainee/messages", "/trainee/profile", "/trainee/settings", "/trainee/pitch/new"]
+      "paths": ["/trainee/dashboard", "/trainee/courses", "/trainee/examinations", "/trainee/assignments", "/trainee/certificates", "/trainee/progress", "/trainee/my-activity", "/trainee/messages", "/trainee/profile", "/trainee/settings", "/trainee/pitch/new", "/trainee/explore", "/trainee/videos", "/trainee/report"]
     },
     "staff": {
       "login": { "url": "/api/auth/login", "email": "super@dev.test" },
@@ -13,7 +13,7 @@
     },
     "organization": {
       "login": { "url": "/api/auth/training-org-login", "email": "org@dev.test" },
-      "paths": ["/admin/organization", "/admin/organization/team", "/admin/courses", "/admin/exams", "/admin/settings", "/org/billing"]
+      "paths": ["/admin/organization", "/admin/organization/team", "/admin/organization/profile", "/admin/education", "/admin/courses", "/admin/exams", "/admin/settings", "/org/billing"]
     },
     "employer": {
       "login": { "url": "/api/auth/employer-login", "email": "employer@dev.test" },

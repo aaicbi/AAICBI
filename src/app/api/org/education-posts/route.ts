@@ -25,6 +25,7 @@ export async function GET() {
         orderBy: { createdAt: "desc" },
         select: {
           id: true, title: true, status: true, thumbnailUrl: true, viewCount: true, createdAt: true, publishedAt: true, reviewNote: true,
+          youtubeUrl: true, description: true, submittedByTrainee: true, orgDecisionNote: true, escalatedAt: true,
           trainee: { select: { name: true } },
           course: { select: { title: true } },
         },

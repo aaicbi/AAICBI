@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/Toast";
 
 interface PostRow {
   id: string; title: string; status: string; thumbnailUrl: string; viewCount: number; createdAt: string; reviewNote: string | null;
+  youtubeUrl: string; description: string | null; submittedByTrainee: boolean; orgDecisionNote: string | null; escalatedAt: string | null;
   trainee: { name: string }; course: { title: string } | null;
 }
 interface Payload {
@@ -19,6 +20,8 @@ interface Preview { id: string; thumbnailUrl: string; title: string | null }
 
 const STATUS_LABEL: Record<string, { text: string; variant: "success" | "warning" | "danger" | "neutral" }> = {
   AWAITING_CONSENT: { text: "Waiting for trainee", variant: "warning" },
+  AWAITING_ORG: { text: "Waiting for your decision", variant: "warning" },
+  ORG_DECLINED: { text: "You declined", variant: "danger" },
   DECLINED: { text: "Trainee declined", variant: "danger" },
   PENDING_REVIEW: { text: "In review", variant: "warning" },
   PUBLISHED: { text: "Published", variant: "success" },
@@ -125,6 +128,23 @@ export default function OrgEducationManager() {
         </Card>
       </form>
 
+      {data.posts.some((p) => p.status === "AWAITING_ORG" && p.submittedByTrainee) && (
+        <section aria-labelledby="trainee-sent">
+          <h2 id="trainee-sent" className="font-display text-lg font-semibold text-brand-ink">Videos trainees sent you</h2>
+          <p className="text-sm text-gray-600">Trainees posted these themselves. Approve to publish (or send on for AAICBI&apos;s check if your organization is not verified), or decline with a short reason.</p>
+          <div className="mt-3 space-y-3">
+            {data.posts.filter((p) => p.status === "AWAITING_ORG" && p.submittedByTrainee).map((p) => (
+              <SubmissionRow key={p.id} p={p} onDecide={async (action, note) => {
+                const res = await fetch(`/api/org/education-posts/${p.id}/decision`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, note }) });
+                if (!res.ok) showToast((await res.json().catch(() => ({}))).error ?? "Could not save your decision.", "error");
+                else showToast(action === "approve" ? "Video approved." : "Video declined. The trainee has been told why.", "success");
+                load();
+              }} />
+            ))}
+          </div>
+        </section>
+      )}
+
       <section aria-labelledby="your-videos">
         <h2 id="your-videos" className="font-display text-lg font-semibold text-brand-ink">Your videos</h2>
         <div className="mt-3 space-y-3">
@@ -148,5 +168,34 @@ export default function OrgEducationManager() {
         </div>
       </section>
     </div>
+  );
+}
+
+function SubmissionRow({ p, onDecide }: { p: PostRow; onDecide: (action: "approve" | "decline", note: string) => Promise<void> }) {
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState<"approve" | "decline" | null>(null);
+  async function go(action: "approve" | "decline") {
+    setBusy(action);
+    await onDecide(action, note);
+    setBusy(null);
+  }
+  return (
+    <Card className="space-y-3">
+      <div className="flex items-start gap-4">
+        {/* eslint-disable-next-line @next/next/no-img-element -- YouTube thumbnail. */}
+        <img src={p.thumbnailUrl} alt="" className="h-16 w-28 shrink-0 rounded object-cover" />
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-brand-ink">{p.title}</p>
+          <p className="text-xs text-gray-600">From {p.trainee.name}{p.course ? ` · ${p.course.title}` : ""}</p>
+          {p.description && <p className="mt-1 text-sm text-gray-700">{p.description}</p>}
+          <a href={p.youtubeUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-brand-teal hover:underline">Watch on YouTube</a>
+        </div>
+      </div>
+      <Input label="Note to the trainee (needed if you decline)" value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} />
+      <div className="flex gap-2">
+        <Button size="sm" loading={busy === "approve"} disabled={busy !== null} onClick={() => go("approve")}>Approve</Button>
+        <Button size="sm" variant="secondary" loading={busy === "decline"} disabled={busy !== null || note.trim().length < 3} onClick={() => go("decline")}>Decline</Button>
+      </div>
+    </Card>
   );
 }

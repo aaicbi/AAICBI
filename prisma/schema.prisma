@@ -400,6 +400,7 @@ model Trainee {
   // Public ecosystem — seeded demo rows only; see prisma/seed-demo-ecosystem.ts.
   isDemo         Boolean  @default(false)
   educationPosts EducationPost[]
+  organizationReports OrganizationReport[]
   orgFollows     OrganizationFollow[]
   postReactions  EducationPostReaction[]
   educationComments EducationPostComment[]
@@ -3258,6 +3259,7 @@ model TrainingOrganization {
   isDemo         Boolean                    @default(false)
   publicProfile  OrganizationPublicProfile?
   educationPosts EducationPost[]
+  organizationReports OrganizationReport[]
   followers      OrganizationFollow[]
   watchedByInvestors OrganizationWatchlistItem[]
   ecosystemEvents    EcosystemEvent[]
@@ -4364,6 +4366,10 @@ model OrganizationPublicProfile {
 
 enum EducationPostStatus {
   AWAITING_CONSENT
+  /// Sent by the trainee, waiting for the training organization to review it.
+  AWAITING_ORG
+  /// The training organization declined a trainee's video; the trainee may send it to SUPER_ADMIN.
+  ORG_DECLINED
   DECLINED
   PENDING_REVIEW
   PUBLISHED
@@ -4399,6 +4405,13 @@ model EducationPost {
   publishedAt            DateTime?
   viewCount              Int                  @default(0)
   isDemo                 Boolean              @default(false)
+  /// True when the trainee posted the video themselves (organizations post on a trainee's behalf otherwise).
+  submittedByTrainee     Boolean              @default(false)
+  orgDecidedAt           DateTime?
+  orgDecisionNote        String?
+  /// Set when the trainee sent the video to SUPER_ADMIN, with their reason.
+  escalatedAt            DateTime?
+  escalationNote         String?
   createdAt              DateTime             @default(now())
   updatedAt              DateTime             @updatedAt
 
@@ -4409,6 +4422,35 @@ model EducationPost {
   @@index([trainingOrganizationId, status])
   @@index([traineeId, status])
   @@index([status, publishedAt])
+}
+
+enum OrganizationReportStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+/// A trainee's confidential report about a training organization, read only by SUPER_ADMIN.
+/// The organization never sees who reported it.
+model OrganizationReport {
+  id                     String                   @id @default(cuid())
+  traineeId              String
+  trainee                Trainee                  @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  trainingOrganizationId String
+  trainingOrganization   TrainingOrganization     @relation(fields: [trainingOrganizationId], references: [id], onDelete: Cascade)
+  category               String
+  details                String
+  status                 OrganizationReportStatus @default(OPEN)
+  adminNote              String?
+  handledById            String?
+  resolvedAt             DateTime?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+
+  @@index([status, createdAt])
+  @@index([trainingOrganizationId])
+  @@index([traineeId])
 }
 
 model EducationPostSkill {

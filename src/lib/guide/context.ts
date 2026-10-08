@@ -107,6 +107,37 @@ function orgWorkspaceContext(pathname: string): PageContext {
   };
 }
 
+const TRAINEE_GUIDES: QuickAction[] = [
+  { label: "Show me around", ask: "Show me around my trainee dashboard" },
+  { label: "Enroll in a course", ask: "How do I enroll in a course?" },
+  { label: "Learn through a course", ask: "How do I take lessons and unlock the next module?" },
+  { label: "Get my certificate", ask: "How do I take the course examination and earn a certificate?" },
+];
+
+/** Hints and starting actions for a signed-in trainee working in their own area. */
+function traineeWorkspaceContext(pathname: string): PageContext {
+  const [, second] = segments(pathname);
+  const here: QuickAction[] = [];
+  const add = (label: string, ask: string) => here.push({ label, ask });
+  if (second === "courses") add("Guide me: enroll and learn", "How do I enroll in a course?");
+  else if (second === "examinations") add("Guide me: take an assessment", "How do I take a module assessment?");
+  else if (second === "assignments") add("Guide me: do an assignment", "How do I do and submit an assignment?");
+  else if (second === "certificates") add("Guide me: share my certificate", "How do I share or print my certificate?");
+  else if (second === "profile") add("Guide me: who sees my profile", "How do I set up my profile and choose who can see it?");
+  else if (second === "job-postings" || second === "introductions") add("Guide me: jobs and introductions", "How do I answer an employer introduction?");
+  else if (second === "messages") add("Guide me: get help", "How do I message my instructor or get help?");
+  else if (second === "explore") add("Guide me: explore", "How do I explore the ecosystem and see job listings?");
+  else if (second === "videos") add("Guide me: post a video", "How do I post my video and send it to my training organization?");
+  else if (second === "report") add("Guide me: report a concern", "How do I report an abusive training organization?");
+  else if (second === "settings") add("Guide me: my settings", "How do I change my settings and notifications?");
+  return {
+    key: "trainee-workspace",
+    greeting: "Hi, I'm Loop. I can walk you through the platform step by step: joining a course, lessons, assessments, assignments, your certificate and more. What would you like to do?",
+    bubbles: ["New here? I can show you around step by step.", "Want a hand with your course? Ask me."],
+    quick: [...here, ...TRAINEE_GUIDES],
+  };
+}
+
 /** Hints and starting actions for the page someone is on, tuned a little for who they are. */
 export function contextFor(pathname: string, on: GuideSwitches, me: MeKind | null = null): PageContext {
   const [first, second] = segments(pathname);
@@ -197,6 +228,8 @@ export function contextFor(pathname: string, on: GuideSwitches, me: MeKind | nul
         { label: "How do I sign in?", ask: "How do I sign in?" },
       ],
     };
+  } else if (first === "trainee" && me === "trainee") {
+    ctx = traineeWorkspaceContext(pathname);
   } else if (first === "trainee") {
     ctx = {
       key: "trainee-area",

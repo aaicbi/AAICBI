@@ -39,7 +39,7 @@ export async function GET() {
   return withApiErrors(async () => {
     await requireRole("SUPER_ADMIN");
     const config = await getRankingConfig();
-    const [settings, orgs, posts, rated, comments, events] = await Promise.all([
+    const [settings, orgs, posts, rated, comments, events, reports] = await Promise.all([
       prisma.platformSettings.findUnique({
         where: { id: "singleton" },
         select: FLAG_SELECT,
@@ -54,7 +54,7 @@ export async function GET() {
         orderBy: { createdAt: "desc" },
         take: 100,
         select: {
-          id: true, title: true, status: true, youtubeUrl: true, thumbnailUrl: true, description: true, createdAt: true, isDemo: true,
+          id: true, title: true, status: true, youtubeUrl: true, thumbnailUrl: true, description: true, createdAt: true, isDemo: true, submittedByTrainee: true, escalatedAt: true, escalationNote: true, orgDecisionNote: true,
           trainee: { select: { name: true } },
           trainingOrganization: { select: { name: true } },
         },
@@ -67,6 +67,16 @@ export async function GET() {
       prisma.organizationEvent.findMany({
         where: { status: "PUBLISHED", startsAt: { gte: new Date(Date.now() - 24 * 3600 * 1000) } }, orderBy: { startsAt: "asc" }, take: 30,
         select: { id: true, title: true, startsAt: true, isDemo: true, trainingOrganization: { select: { name: true } } },
+      }),
+      prisma.organizationReport.findMany({
+        where: { status: { in: ["OPEN", "IN_REVIEW"] } },
+        orderBy: { createdAt: "asc" },
+        take: 100,
+        select: {
+          id: true, category: true, details: true, status: true, createdAt: true, adminNote: true,
+          trainee: { select: { name: true, email: true } },
+          trainingOrganization: { select: { name: true } },
+        },
       }),
     ]);
     const featuredIds = new Set(pickFeatured(rated, config).map((r) => r.id));
@@ -85,6 +95,7 @@ export async function GET() {
         ecosystemPublicTraineesEnabled: settings?.ecosystemPublicTraineesEnabled ?? true,
       },
       organizations: orgs,
+      reports: reports.map(({ trainee, trainingOrganization, ...r }) => ({ ...r, reporterName: trainee.name, reporterEmail: trainee.email, organizationName: trainingOrganization.name })),
       posts: posts.map((p) => ({ ...p, traineeName: p.trainee.name, organizationName: p.trainingOrganization.name, trainee: undefined, trainingOrganization: undefined })),
     });
   });

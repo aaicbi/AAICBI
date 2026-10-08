@@ -36,7 +36,8 @@ interface Payload {
   ratings: Array<{ id: string; name: string; score: number; components: Record<Component, number>; publishedVideos: number; badges: BadgeKey[]; featured: boolean }>;
   flags: Record<FlagKey, boolean>;
   organizations: Array<{ id: string; name: string; isDemo: boolean; publicProfile: { slug: string; publicEnabled: boolean; verified: boolean } | null }>;
-  posts: Array<{ id: string; title: string; status: string; youtubeUrl: string; thumbnailUrl: string; traineeName: string; organizationName: string; isDemo: boolean }>;
+  posts: Array<{ id: string; title: string; status: string; youtubeUrl: string; thumbnailUrl: string; traineeName: string; organizationName: string; isDemo: boolean; submittedByTrainee: boolean; escalatedAt: string | null; escalationNote: string | null; orgDecisionNote: string | null }>;
+  reports: Array<{ id: string; category: string; details: string; status: string; createdAt: string; adminNote: string | null; reporterName: string; reporterEmail: string; organizationName: string }>;
 }
 
 export default function EcosystemAdmin() {
@@ -111,6 +112,17 @@ export default function EcosystemAdmin() {
         </div>
       </section>
 
+      <section aria-labelledby="reports">
+        <h2 id="reports" className="font-display text-lg font-semibold text-brand-ink">Reports about organizations ({data.reports.length})</h2>
+        <p className="mt-1 text-sm text-gray-600">Sent in confidence by trainees. The organization is never told who reported it.</p>
+        <div className="mt-3 space-y-3">
+          {data.reports.length === 0 && <p className="text-sm text-gray-600">No open reports.</p>}
+          {data.reports.map((r) => (
+            <ReportRow key={r.id} r={r} onAct={(action, note) => call(`/api/admin/ecosystem/reports/${r.id}`, "POST", { action, note })} />
+          ))}
+        </div>
+      </section>
+
       <section aria-labelledby="queue">
         <h2 id="queue" className="font-display text-lg font-semibold text-brand-ink">Videos awaiting review ({pending.length})</h2>
         <div className="mt-3 space-y-3">
@@ -147,6 +159,12 @@ function PostRow({ p, actions, onAct }: { p: Payload["posts"][number]; actions: 
       <div className="min-w-0 flex-1">
         <p className="truncate font-semibold text-brand-ink">{p.title}</p>
         <p className="text-xs text-gray-600">{p.traineeName} · {p.organizationName} {p.isDemo && "· demo"}</p>
+        {p.escalatedAt && (
+          <p className="mt-0.5 text-xs font-semibold text-brand-goldText">
+            Sent to AAICBI by the trainee: {p.escalationNote}
+            {p.orgDecisionNote && <span className="font-normal text-gray-600"> · Organization said: {p.orgDecisionNote}</span>}
+          </p>
+        )}
         <a href={p.youtubeUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-brand-teal hover:underline">Open on YouTube</a>
       </div>
       <div className="flex gap-2">
@@ -237,5 +255,26 @@ function PlatformAnalytics() {
         <p className="text-sm text-gray-700">Most visited: {a.topOrganizations.map((o) => `${o.name} (${o.interactions})`).join(", ")}</p>
       )}
     </section>
+  );
+}
+
+function ReportRow({ r, onAct }: { r: Payload["reports"][number]; onAct: (action: "in_review" | "resolve" | "dismiss", note: string) => void }) {
+  const [note, setNote] = useState("");
+  return (
+    <Card className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="font-semibold text-brand-ink">{r.organizationName}</p>
+        <Badge variant={r.status === "IN_REVIEW" ? "warning" : "neutral"}>{r.status === "IN_REVIEW" ? "In review" : "New"}</Badge>
+        <span className="text-xs text-gray-600">{r.category.replace(/_/g, " ").toLowerCase()} · {new Date(r.createdAt).toLocaleDateString("en-GB", { dateStyle: "medium" })}</span>
+      </div>
+      <p className="whitespace-pre-line text-sm text-gray-700">{r.details}</p>
+      <p className="text-xs text-gray-600">Reported by {r.reporterName} ({r.reporterEmail})</p>
+      <Input label="Note (kept with the report)" value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} />
+      <div className="flex flex-wrap gap-2">
+        {r.status === "OPEN" && <Button size="sm" variant="secondary" onClick={() => onAct("in_review", note)}>Start review</Button>}
+        <Button size="sm" onClick={() => onAct("resolve", note)}>Mark resolved</Button>
+        <Button size="sm" variant="secondary" onClick={() => onAct("dismiss", note)}>Dismiss</Button>
+      </div>
+    </Card>
   );
 }

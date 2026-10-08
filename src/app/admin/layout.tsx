@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { SidebarActiveProvider } from "@/components/SidebarActiveContext";
+import SidebarBackBar from "@/components/SidebarBackBar";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import { pageHasSidebar } from "@/lib/sidebarRoutes";
 import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
@@ -47,6 +48,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const isStaff = !!session && ALLOWED_ROLES.includes(session.role);
   const pathname = headers().get("x-pathname") ?? "";
 
+  // Trainees, employers and investors have no business in the staff area
+  // (certificate design included). Their API calls were always refused;
+  // now the pages themselves send them home instead of showing a shell.
+  if (session && !isStaff && pageHasSidebar(pathname)) {
+    redirect(session.role === "TRAINEE" ? "/trainee/dashboard" : session.role === "EMPLOYER" ? "/employer/dashboard" : session.role === "INVESTOR" ? "/investor/dashboard" : "/");
+  }
+
   if (!isStaff || !pageHasSidebar(pathname)) {
     return <>{children}</>;
   }
@@ -88,7 +96,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           role={session.role}
           isTrainingOrg={!!trainingOrg}
         />
-        <div className="lg:pl-64">{children}</div>
+        <div className="lg:pl-64">
+          <SidebarBackBar />
+          {children}
+        </div>
       </div>
     </SidebarActiveProvider>
   );
