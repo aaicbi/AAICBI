@@ -3,9 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { requireOwnedModule } from "@/lib/courseOwnership";
-import { extractTextFromDocx, splitIntoQuestionBlocks, DocxParseError } from "@/lib/parsing/docxParser";
-import { extractQuestionsBatch } from "@/lib/ai/extractQuestions";
-import { embeddingsEnabled, findDuplicatesForBatch, saveQuestionEmbedding } from "@/lib/embeddings";
+import { splitIntoQuestionBlocks, DocxParseError } from "@/lib/parsing/docxParser";
+import { extractTextFromQuestionFile, questionFileKind, QUESTION_FILE_ERROR } from "@/lib/parsing/questionFile";
+import { importQuestionsIntoExam } from "@/lib/questionImport";
 
 const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_BYTES ?? 10 * 1024 * 1024);
 
@@ -90,11 +90,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (!(file instanceof File)) {
       return NextResponse.json({ error: "No file was uploaded." }, { status: 400 });
     }
-    if (!file.name.toLowerCase().endsWith(".docx")) {
-      return NextResponse.json(
-        { error: "Invalid file. Please upload a Microsoft Word (.docx) document." },
-        { status: 400 }
-      );
+    const kind = questionFileKind(file.name);
+    if (!kind) {
+      return NextResponse.json({ error: QUESTION_FILE_ERROR }, { status: 400 });
     }
     if (file.size > MAX_UPLOAD_BYTES) {
       return NextResponse.json(
@@ -107,7 +105,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     let text: string;
     try {
-      text = await extractTextFromDocx(buffer);
+      text = await extractTextFromQuestionFile(kind, buffer);
     } catch (e) {
       if (e instanceof DocxParseError) {
         return NextResponse.json({ error: e.message }, { status: 400 });
@@ -125,93 +123,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       throw e;
     }
 
-    // --- Phase 1: everything slow/network-bound, nothing written yet ---
-    const extracted = await extractQuestionsBatch(blocks);
-    const duplicateCheckSkipped = !embeddingsEnabled();
-
-    const { embeddings, matches } = await findDuplicatesForBatch(
-      exam.id,
-      extracted.map((item) => ({ questionText: item.structured.question, optionTexts: item.structured.options }))
-    );
-
-    // --- Phase 2: pure database writes, wrapped in one transaction ---
-    // Never auto-publish (§32 stage 12 is a separate, explicit admin
-    // action). `order` continues from whatever's already in this exam.
-    const existingCount = await prisma.question.count({ where: { examId: exam.id } });
-    let duplicatesFound = 0;
-    const examId = exam.id;
-
-    // Bug fix: this transaction had no explicit timeout, so it fell
-    // back to Prisma's 5-second default — plenty for a handful of
-    // questions, not enough once a document has enough of them for the
-    // per-question create+options+embedding-save loop above to run
-    // past that mark over this app's remote Neon connection. Confirmed
-    // directly against a real import that failed with "Transaction
-    // already closed" at exactly the 5000ms mark. Same fix as its
-    // sibling route (exams/[id]/import/route.ts): raise the timeout
-    // rather than drop the transaction, keeping this route's own
-    // documented all-or-nothing guarantee (see the audit-fix comment
-    // above this function) intact.
-    const created = await prisma.$transaction(async (tx: any) => {
-      const results = [];
-      for (let idx = 0; idx < extracted.length; idx++) {
-        const item = extracted[idx];
-        const dup = matches[idx];
-
-        let needsReview = item.needsReview;
-        let reviewReason = item.reviewReason;
-        if (dup) {
-          duplicatesFound++;
-          needsReview = true;
-          const pct = Math.round(dup.similarity * 100);
-          reviewReason = `Possible duplicate (${pct}% similar) of an existing question: "${dup.matchedQuestionText.slice(0, 120)}"`;
-        }
-
-        const question = await tx.question.create({
-          data: {
-            examId,
-            text: item.structured.question,
-            topic: item.structured.topic,
-            difficulty: (item.structured.difficulty?.toUpperCase() as
-              | "BEGINNER"
-              | "INTERMEDIATE"
-              | "ADVANCED"
-              | undefined) ?? "BEGINNER",
-            explanation: item.structured.explanation,
-            order: existingCount + idx,
-            needsReview,
-            reviewReason,
-            options: {
-              create: item.structured.options.map((optText: string, optIdx: number) => ({
-                text: optText,
-                key: String.fromCharCode(65 + optIdx),
-                isCorrect: optIdx === item.structured.correct_option_index,
-                order: optIdx,
-              })),
-            },
-          },
-          include: { options: true },
-        });
-
-        const embedding = embeddings[idx];
-        if (embedding) {
-          await saveQuestionEmbedding(question.id, embedding, tx);
-        }
-        results.push(question);
-      }
-      return results;
-    }, { timeout: 100_000, maxWait: 10_000 });
-
-    const validCount = created.filter((q: { needsReview: boolean }) => !q.needsReview).length;
-
-    return NextResponse.json({
-      questionsDetected: created.length,
-      validQuestions: validCount,
-      questionsRequiringReview: created.length - validCount,
-      duplicatesFound,
-      duplicateCheckSkipped,
-      questions: created,
-    });
+    // The slow AI and duplicate-check work, then one all-or-nothing save: see questionImport.ts.
+    return NextResponse.json(await importQuestionsIntoExam(exam.id, blocks));
   });
 }
 

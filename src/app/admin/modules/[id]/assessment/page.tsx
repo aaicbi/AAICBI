@@ -312,17 +312,17 @@ export default function ModuleAssessmentPage({ params }: { params: { id: string 
           <input
             ref={fileInputRef}
             type="file"
-            accept=".docx"
+            accept=".docx,.doc,.pdf"
             className="hidden"
             onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])}
           />
-          <p className="text-sm text-gray-700">Upload a Word (.docx) document of multiple-choice questions.</p>
+          <p className="text-sm text-gray-700">Upload a Word (.docx or .doc) or PDF document of multiple-choice questions.</p>
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
             className="mt-3 rounded-lg bg-brand-teal px-4 py-2 font-semibold text-brand-onAccent hover:bg-brand-tealDeep disabled:opacity-60"
           >
-            {uploading ? "Processing..." : "Choose .docx file"}
+            {uploading ? "Processing..." : "Choose Word or PDF file"}
           </button>
           {uploadError && <p className="mt-2 text-sm text-brand-rose">{uploadError}</p>}
         </div>
