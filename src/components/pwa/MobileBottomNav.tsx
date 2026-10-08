@@ -2,11 +2,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Briefcase, Building2, CalendarDays, Download, Home, LayoutGrid, MessageSquare, Users, X, BookOpen } from "lucide-react";
+import { Bell, Briefcase, Building2, CalendarDays, Home, LayoutGrid, MessageSquare, Users, X, BookOpen } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import { setBottomNavLayer } from "@/lib/floatingLayers";
 import { BOTTOM_NAV, MORE_EXTRAS, bottomNavHidden, isTabActive, unreadLabel, type NavIconKey, type NavRole } from "@/lib/pwa/mobileNav";
-import { promptInstall, useInstallState } from "@/lib/pwa/installStore";
+import AddToHomeScreenButton from "@/components/pwa/AddToHomeScreenButton";
 
 const ICONS: Record<NavIconKey, typeof Home> = {
   home: Home, messages: MessageSquare, events: CalendarDays, talent: Users, jobs: Briefcase, courses: BookOpen, organizations: Building2, alerts: Bell,
@@ -49,7 +49,6 @@ export default function MobileBottomNav({ role, moreItems }: { role: NavRole; mo
   const hidden = bottomNavHidden(pathname);
   const sheetRef = useRef<HTMLDivElement>(null);
   const moreButton = useRef<HTMLButtonElement>(null);
-  const install = useInstallState();
 
   // Tell the other floating layers (Loop, help button, cookie banner) to sit above the bar.
   useEffect(() => {
@@ -113,18 +112,7 @@ export default function MobileBottomNav({ role, moreItems }: { role: NavRole; mo
                 </li>
               ))}
             </ul>
-            {!install.installed && (install.canPrompt || install.ios) && (
-              <div className="mt-3 rounded-xl bg-brand-mint p-3 text-sm text-brand-ink">
-                <p className="font-semibold">Install the app</p>
-                {install.canPrompt ? (
-                  <button type="button" onClick={() => promptInstall()} className="mt-2 inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-brand-teal px-4 font-semibold text-brand-onAccent focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
-                    <Icon icon={Download} size="sm" /> Add to home screen
-                  </button>
-                ) : (
-                  <p className="mt-1">In Safari, tap Share, then <strong>Add to Home Screen</strong>.</p>
-                )}
-              </div>
-            )}
+            <div className="mt-3"><AddToHomeScreenButton className="w-full justify-center" /></div>
           </div>
         </div>
       )}

@@ -55,3 +55,24 @@ export function installPromptHidden(pathname: string): boolean {
   const s = pathname.split("/").filter(Boolean);
   return s[0] === "exam" || s.includes("take") || s.includes("assessment") || s.includes("examination");
 }
+
+export type InstallButtonMode = "none" | "prompt" | "ios" | "manual";
+
+/** True for phones and tablets (not laptops) from the user-agent. */
+export function isMobileDevice(userAgent: string, maxTouchPoints = 0): boolean {
+  return isIosDevice(userAgent, maxTouchPoints) || /Android|Mobile/i.test(userAgent);
+}
+
+/**
+ * What the always-visible "Add to home screen" button should do. It is
+ * offered on any phone or tablet that has not installed the app: the real
+ * install prompt when the browser has handed it over, Safari's Share steps
+ * on iPhone/iPad, and the browser-menu steps everywhere else (some
+ * Android browsers never fire the install event).
+ */
+export function installButtonMode(env: { installed: boolean; canPrompt: boolean; ios: boolean; mobile: boolean }): InstallButtonMode {
+  if (env.installed) return "none";
+  if (env.canPrompt) return "prompt";
+  if (env.ios) return "ios";
+  return env.mobile ? "manual" : "none";
+}
