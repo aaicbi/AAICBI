@@ -4,6 +4,8 @@ import SiteHeader from "@/components/SiteHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
+import FormSteps from "@/components/ui/FormSteps";
+import StickyActions from "@/components/ui/StickyActions";
 /**
  * M31 — no "check your email" step here, unlike trainee registration:
  * approval, not email verification, is this account type's real gate.
@@ -80,23 +82,40 @@ export default function EmployerRegisterPage() {
           Every employer account is reviewed before it can browse trainees or post a vacancy.
         </p>
         <Card className="mt-6">
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <Input label="Company name" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required />
-            <Input label="Your name" value={contactName} onChange={(e) => setContactName(e.target.value)} required />
-            <Input label="Work email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <form onSubmit={handleSubmit}>
+            <FormSteps
+              className="space-y-3"
+              labels={["Your account", "Your company", "Optional details"]}
+              footer={
+                <div className="space-y-3">
+                  {error && <p role="alert" className="text-sm text-brand-rose">{error}</p>}
+                  <StickyActions>
+                    <Button type="submit" loading={loading} className="w-full">
+                      Register
+                    </Button>
+                  </StickyActions>
+                </div>
+              }
+            >
+              <div className="space-y-3">
+            <Input label="Company name" autoComplete="organization" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required />
+            <Input label="Your name" autoComplete="name" value={contactName} onChange={(e) => setContactName(e.target.value)} required />
+            <Input label="Work email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <Input label="Password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              </div>
+              <div className="space-y-3">
             <Input label="Business registration number" value={registrationNumber} onChange={(e) => setRegistrationNumber(e.target.value)} required />
-            <Input label="Company phone number" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+            <Input label="Company phone number" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required />
 
-            <p className="pt-2 text-xs font-semibold text-gray-400">Optional — strengthens your review, not required</p>
+              </div>
+              <div className="space-y-3">
+            <p className="text-xs font-semibold text-gray-400">Optional — strengthens your review, not required</p>
             <Input label="Company website (optional)" type="url" value={website} onChange={(e) => setWebsite(e.target.value)} />
             <Input label="LinkedIn company page (optional)" type="url" value={linkedinUrl} onChange={(e) => setLinkedinUrl(e.target.value)} />
             <Input label="Other social or online presence (optional)" type="url" value={otherSocialUrl} onChange={(e) => setOtherSocialUrl(e.target.value)} />
 
-            {error && <p role="alert" className="text-sm text-brand-rose">{error}</p>}
-            <Button type="submit" loading={loading} className="w-full">
-              Register
-            </Button>
+              </div>
+            </FormSteps>
           </form>
         </Card>
         <p className="mt-4 text-center text-sm text-gray-500">

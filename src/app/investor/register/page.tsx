@@ -63,13 +63,13 @@ export default function InvestorRegisterPage() {
         <p className="mt-1 text-sm text-gray-500">Every investor account is reviewed before it can browse pitches.</p>
         <Card className="mt-6">
           <form onSubmit={handleSubmit} className="space-y-3">
-            <Input label="Your name" value={name} onChange={(e) => setName(e.target.value)} required />
-            <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-            <Input label="Organization" value={organization} onChange={(e) => setOrganization(e.target.value)} required />
+            <Input label="Your name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} required />
+            <Input label="Email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <Input label="Password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <Input label="Organization" autoComplete="organization" value={organization} onChange={(e) => setOrganization(e.target.value)} required />
 
             <p className="pt-2 text-xs font-semibold text-gray-400">Optional — strengthens your review, not required</p>
-            <Input label="Phone (optional)" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <Input label="Phone (optional)" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
             <Input label="LinkedIn URL (optional)" type="url" value={linkedinUrl} onChange={(e) => setLinkedinUrl(e.target.value)} />
 
             {error && <p role="alert" className="text-sm text-brand-rose">{error}</p>}

@@ -3,6 +3,10 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { getTimeOfDayGreeting, formatLastVisit } from "@/lib/dashboardHelpers";
+import DashboardSwitcher from "@/components/mobile/DashboardSwitcher";
+import MobileHome from "@/components/mobile/MobileHome";
+import { nextEventBlock, opportunitiesBlock } from "@/lib/mobile/homeData";
+import type { MobileBlock } from "@/lib/mobile/homeCore";
 import { getRecentNotifications, getUnreadNotificationCount, getEventsSinceLastVisit } from "@/lib/dashboard/recentNotifications";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/employer/LogoutButton";
@@ -80,9 +84,23 @@ export default async function EmployerDashboardPage() {
     { label: "My Profile", href: "/employer/profile" },
   ];
 
+  // The phone home, in the order an employer on the move needs it.
+  const [eventBlock, jobsBlock] = await Promise.all([nextEventBlock(), opportunitiesBlock("/employer/job-postings")]);
+  const mobileBlocks: MobileBlock[] = [
+    { kind: "welcome", greeting: getTimeOfDayGreeting(), name: employer.companyName, line: null },
+    { kind: "alerts", unread: unreadCount, items: notifications.slice(0, 3).map((n) => ({ title: n.title, href: n.url ?? "/notifications" })) },
+    { kind: "messages", href: "/employer/messages" },
+    { kind: "talent", text: nextStep.text, label: nextStep.label, href: nextStep.href },
+    { kind: "applications", count: applicationsReceived, href: "/employer/job-postings" },
+    ...(eventBlock ? [eventBlock] : []),
+    ...(jobsBlock ? [jobsBlock] : []),
+    { kind: "actions", items: [{ label: "Discover trainees", href: "/employer/discover" }, { label: "Introductions", href: "/employer/introductions" }, { label: "Job postings", href: "/employer/job-postings" }, { label: "My profile", href: "/employer/profile" }] },
+  ];
+
   return (
     <>
       <SiteHeader nav={NAV} right={<LogoutButton />} />
+      <DashboardSwitcher mobile={<MobileHome role="employer" blocks={mobileBlocks} />}>
       <main className="mx-auto max-w-3xl px-6 py-12">
         <WelcomeHeader
           greeting={getTimeOfDayGreeting()}
@@ -125,6 +143,7 @@ export default async function EmployerDashboardPage() {
         />
         <QuickActionsCard actions={quickActions} />
       </main>
+      </DashboardSwitcher>
     </>
   );
 }

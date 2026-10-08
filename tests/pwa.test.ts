@@ -176,3 +176,38 @@ describe("web push", () => {
     expect(read("src/app/api/trainee/videos/route.ts")).toMatch(/recipientType: "TRAINING_ORG"/);
   });
 });
+
+import { inputAttrsForType, nextStep, previousStep, stepProgress } from "@/lib/forms/inputAttrs";
+
+describe("phone forms", () => {
+  it("gives each field type the right keyboard, and never fills in the user's own details by default", () => {
+    expect(inputAttrsForType("email")).toMatchObject({ inputMode: "email", autoCapitalize: "none", spellCheck: false });
+    expect(inputAttrsForType("tel")).toMatchObject({ inputMode: "tel" });
+    expect(inputAttrsForType("url")).toMatchObject({ inputMode: "url", autoCapitalize: "none" });
+    expect(inputAttrsForType("password")).toMatchObject({ autoCapitalize: "none" });
+    expect(inputAttrsForType("text")).toEqual({});
+    for (const t of ["email", "tel", "url", "password", "search"]) expect(inputAttrsForType(t)).not.toHaveProperty("autoComplete");
+  });
+  it("steps stay in range and know where they are", () => {
+    expect(nextStep(0, 3)).toBe(1);
+    expect(nextStep(2, 3)).toBe(2);
+    expect(previousStep(0)).toBe(0);
+    expect(stepProgress(0, 4)).toEqual({ number: 1, total: 4, isFirst: true, isLast: false });
+    expect(stepProgress(3, 4)).toEqual({ number: 4, total: 4, isFirst: false, isLast: true });
+    expect(stepProgress(9, 4).number).toBe(4);
+  });
+  it("the login and registration forms declare what each field is, so phones can fill them in", () => {
+    for (const f of ["trainee", "employer", "org", "investor"]) {
+      expect(read(`src/app/${f}/login/page.tsx`), f).toMatch(/autoComplete="current-password"/);
+    }
+    for (const f of ["trainee", "employer", "org", "investor"]) {
+      expect(read(`src/app/${f}/register/page.tsx`), f).toMatch(/autoComplete="new-password"/);
+    }
+  });
+  it("long forms are stepped on phones and keep a pinned submit", () => {
+    for (const f of ["src/app/org/register/page.tsx", "src/app/employer/register/page.tsx", "src/app/trainee/pitch/new/page.tsx"]) {
+      expect(read(f), f).toMatch(/<FormSteps/);
+      expect(read(f), f).toMatch(/StickyActions/);
+    }
+  });
+});

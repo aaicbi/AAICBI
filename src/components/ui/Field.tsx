@@ -1,5 +1,6 @@
 "use client";
 import { forwardRef, useId } from "react";
+import { inputAttrsForType } from "@/lib/forms/inputAttrs";
 
 /**
  * The shared form-field layer: Input, Select, Textarea and Checkbox.
@@ -97,6 +98,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy(id, hint, error)}
         className={controlClass({ compact, hideLabel, error, controlClassName })}
+        {...inputAttrsForType(rest.type)}
         {...rest}
       />
     </Shell>

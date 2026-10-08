@@ -8,6 +8,7 @@ import ErrorState from "@/components/ui/ErrorState";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { Input, Textarea } from "@/components/ui/Field";
 import { useToast } from "@/components/ui/Toast";
+import StickyActions from "@/components/ui/StickyActions";
 import VerifiedBadge from "./VerifiedBadge";
 import OrgProfilePreview from "./OrgProfilePreview";
 
@@ -80,10 +81,10 @@ export default function OrgPublicProfileForm() {
         <Input label="Cover image URL" value={profile.coverUrl ?? ""} onChange={(e) => set({ coverUrl: e.target.value })} placeholder="https://" />
         <Textarea label="About" rows={6} value={profile.description ?? ""} onChange={(e) => set({ description: e.target.value })} maxLength={2000} />
         {error && <p role="alert" className="text-sm text-brand-rose">{error}</p>}
-        <div className="flex items-center gap-3">
+        <StickyActions>
           <Button type="submit" loading={saving}>Save</Button>
           {profile.publicEnabled && <Link href={`/organizations/${profile.slug}`} className="text-sm font-semibold text-brand-teal hover:underline">View page</Link>}
-        </div>
+        </StickyActions>
       </Card>
     </form>
     <OrgProfilePreview

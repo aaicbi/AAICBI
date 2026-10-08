@@ -500,3 +500,19 @@ table {
 
 /* Room for the phone bottom navigation bar (it sets --layer-nav; 0 when absent or on large screens). */
 body { padding-bottom: var(--layer-nav, 0px); }
+
+/* Phones: forms. Inputs stay at 16px (below that, iOS zooms the page when a field is focused) and, on
+   touch screens, are at least 44px tall so they are easy to hit. Checkboxes, radios and colour pickers are left alone. */
+@media (max-width: 639px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]),
+  select,
+  textarea {
+    font-size: 1rem;
+  }
+}
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]),
+  select {
+    min-height: 44px;
+  }
+}

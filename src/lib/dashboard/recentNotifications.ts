@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 
-export type NotificationRecipientType = "TRAINEE" | "STAFF" | "EMPLOYER";
+export type NotificationRecipientType = "TRAINEE" | "STAFF" | "EMPLOYER" | "INVESTOR" | "TRAINING_ORG";
 
 /**
  * Personalized landing page — "since your last visit" and the

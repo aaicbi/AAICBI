@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import StickyActions from "@/components/ui/StickyActions";
 import DesktopRecommended from "@/components/pwa/DesktopRecommended";
 import { useRouter } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
@@ -182,9 +183,11 @@ export default function NewCoursePage() {
             </div>
 
             {error && <p className="text-sm text-brand-rose">{error}</p>}
-            <Button type="submit" loading={loading} className="w-full">
-              {loading ? "Creating..." : "Create & Add Modules"}
-            </Button>
+            <StickyActions>
+              <Button type="submit" loading={loading} className="w-full">
+                {loading ? "Creating..." : "Create & Add Modules"}
+              </Button>
+            </StickyActions>
           </form>
         </Card>
       </main>
