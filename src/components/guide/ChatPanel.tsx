@@ -7,6 +7,7 @@ import LoopFace, { type LoopState } from "@/components/guide/LoopFace";
 import type { GuideClientConfig } from "@/components/guide/useGuideConfig";
 import { answerQuestion, buildIndex, suggest } from "@/lib/guide/match";
 import type { MeKind, PageContext, QuickAction } from "@/lib/guide/context";
+import PlaybookCard, { Marked } from "@/components/guide/PlaybookCard";
 import type { GuideLink } from "@/lib/guide/types";
 import { getSidebarTourGuideContent, getTourGuideContent } from "@/lib/tourGuideContent";
 import { pageHasSidebar } from "@/lib/sidebarRoutes";
@@ -17,6 +18,7 @@ interface Msg {
   text: string;
   links?: GuideLink[];
   related?: string[];
+  playbookId?: string;
 }
 
 const STORE = "loop-chat-v1";
@@ -127,7 +129,7 @@ export default function ChatPanel({
     setInput("");
     reply(() => {
       const r = answerQuestion(q, index, config.switches);
-      return { from: "loop", text: r.text, links: r.links, related: r.related, unanswered: r.kind === "fallback" && q.length >= 3 ? q : undefined };
+      return { from: "loop", text: r.text, links: r.links, related: r.related, playbookId: r.playbookId, unanswered: r.kind === "fallback" && q.length >= 3 ? q : undefined };
     });
   }
 
@@ -197,8 +199,11 @@ export default function ChatPanel({
       <div ref={logRef} role="log" aria-live="polite" aria-relevant="additions" aria-label="Conversation with Loop" tabIndex={0} className="flex-1 space-y-3 overflow-y-auto px-4 py-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-teal">
         {messages.map((m) => (
           <div key={m.id} className={m.from === "me" ? "flex justify-end" : "flex justify-start"}>
-            <div className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${m.from === "me" ? "bg-brand-teal text-brand-onAccent" : "bg-brand-sand text-brand-ink"}`}>
-              <p className="whitespace-pre-line">{m.text}</p>
+            <div className={`max-w-[92%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${m.from === "me" ? "bg-brand-teal text-brand-onAccent" : "bg-brand-sand text-brand-ink"}`}>
+              <p className="whitespace-pre-line">
+                <Marked text={m.text} />
+              </p>
+              {m.playbookId && <PlaybookCard id={m.playbookId} onNavigate={onNavigate} onAsk={ask} />}
               {m.links && m.links.length > 0 && (
                 <ul className="mt-2.5 space-y-1.5">
                   {m.links.map((l) => (

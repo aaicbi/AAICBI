@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { isHiddenPath } from "@/lib/guide/context";
+import { isHiddenPath, type MeKind } from "@/lib/guide/context";
 import type { GuideEntry, GuideSwitches } from "@/lib/guide/types";
 
 export interface GuideClientConfig {
@@ -20,6 +20,32 @@ function load(): Promise<GuideClientConfig | null> {
     .then((r) => (r.ok ? (r.json() as Promise<GuideClientConfig>) : null))
     .catch(() => null);
   return pending;
+}
+
+let pendingMe: Promise<MeKind | null> | null = null;
+
+/** Who is signed in, read once and shared. Failure reads as nobody. */
+export function loadMe(): Promise<MeKind | null> {
+  pendingMe ??= fetch("/api/guide/me", { cache: "no-store" })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((d) => (d?.kind as MeKind | null) ?? null)
+    .catch(() => null);
+  return pendingMe;
+}
+
+/** Who is signed in, fetched early only where the answer decides whether Loop shows (the staff area). */
+export function useMeForPath(pathname: string): MeKind | null {
+  const [me, setMe] = useState<MeKind | null>(null);
+  const needed = pathname.startsWith("/admin");
+  useEffect(() => {
+    if (!needed) return;
+    let live = true;
+    loadMe().then((k) => live && setMe(k));
+    return () => {
+      live = false;
+    };
+  }, [needed]);
+  return me;
 }
 
 export function useGuideConfig(): State {
@@ -43,7 +69,8 @@ export function useGuideConfig(): State {
  */
 export function useLoopVisible(pathname: string): "loading" | "visible" | "hidden" {
   const state = useGuideConfig();
+  const me = useMeForPath(pathname);
   if (state.status === "loading") return "loading";
   if (state.status === "failed" || !state.config.enabled) return "hidden";
-  return isHiddenPath(pathname) ? "hidden" : "visible";
+  return isHiddenPath(pathname, me) ? "hidden" : "visible";
 }

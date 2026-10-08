@@ -28,3 +28,14 @@ Unanswered questions are stored as text only, after emails, links, phone numbers
 ## Switches and data
 - `PlatformSettings.guideEnabled` (default on). `GuideEntry` (written answers) and `GuideUnanswered` (queue). Migration `20261011090000_loop_guide` only adds.
 - Public routes: `GET /api/guide/config` (cached a minute at the edge, nothing about any person), `GET /api/guide/me` (never cached, only the kind of account), `POST /api/guide/unanswered` (rate limited). Admin routes under `/api/admin/guide` need SUPER_ADMIN.
+
+## Guides for training organizations (playbooks)
+
+Loop walks a signed-in training organization through its workspace one step at a time.
+
+- **Where:** Loop now shows on every `/admin/*` page for an organization's session (staff still do not see it there). It reads who is signed in early on those pages (`useMeForPath`). On the workspace it offers "Guide me" shortcuts for the page you are on.
+- **How it starts:** each guide has a question (for example "How do I upload a course?"). The ordinary matcher finds it and the chat shows a step card with Back / Next, the page to open, a tip, and guides to try next. The step is remembered for the visit.
+- **Where the content lives:** `src/lib/guide/playbooks/data.ts`. **Bold** text marks an exact label in the interface.
+- **Keeping it true:** `tests/guidePlaybooks.test.ts` fails if a bold label no longer exists in the source, if a step links to a page that does not exist, or if a guide stops being found by its question. Rename a button and the test tells you which guide to update.
+- **Guides today:** workspace tour, upload and publish a course, module assessment, final course examination, price/schedule/details, enroll trainees and cohorts, certificates, public page, invite a teammate, trainee education video, program skills, events, content and visibility, payments and reports.
+- **Things the guides say plainly:** a new course is a draft; publishing needs at least one module; module assessment questions come from an uploaded Word document (no typed entry); the final exam is generated from published module assessments and must be reviewed.

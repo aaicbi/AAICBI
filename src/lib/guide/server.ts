@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth/session";
 import { getEcosystemFlags } from "@/lib/ecosystem/flags";
 import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 import { DEFAULT_ENTRIES } from "@/lib/guide/defaults";
+import { playbookEntries } from "@/lib/guide/playbooks";
 import type { MeKind } from "@/lib/guide/context";
 import { sanitizeLinks } from "@/lib/guide/links";
 import { scrubQuestion } from "@/lib/guide/scrub";
@@ -44,7 +45,7 @@ export async function loadGuideConfig(): Promise<GuideConfig> {
       })
       .catch(() => []),
   ]);
-  return { enabled, switches, entries: [...DEFAULT_ENTRIES, ...custom.map(toEntry)], skills: skills.map((s) => s.name) };
+  return { enabled, switches, entries: [...DEFAULT_ENTRIES, ...playbookEntries(), ...custom.map(toEntry)], skills: skills.map((s) => s.name) };
 }
 
 /** Who is looking, for the shortcuts Loop offers first. Reads the session; never returns anything about the person. */

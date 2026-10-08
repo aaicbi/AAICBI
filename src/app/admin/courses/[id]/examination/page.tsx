@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
 import Card from "@/components/ui/Card";
@@ -81,6 +81,8 @@ export default function CourseExaminationPage({ params }: { params: { id: string
   const [exam, setExam] = useState<ExamDto | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
   const [publishing, setPublishing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
@@ -126,6 +128,34 @@ export default function CourseExaminationPage({ params }: { params: { id: string
     showToast(`Generated ${data.generated} question(s)${data.failed > 0 ? `, ${data.failed} failed` : ""}.${remainingNote}`, "success");
     load();
   }
+
+  async function importFile(file: File) {
+    setImporting(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`/api/courses/${params.id}/examination/import`, { method: "POST", body: formData });
+    setImporting(false);
+    if (fileInput.current) fileInput.current.value = "";
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showToast(typeof data.error === "string" ? data.error : "Could not import questions.", "error");
+      return;
+    }
+    const review = data.questionsRequiringReview > 0 ? `, ${data.questionsRequiringReview} need review` : "";
+    showToast(`Imported ${data.questionsDetected} question(s)${review}.`, "success");
+    load();
+  }
+
+  const importInput = (
+    <input
+      ref={fileInput}
+      type="file"
+      accept=".pdf,.docx,.doc"
+      aria-label="Questions file (PDF or Word)"
+      className="hidden"
+      onChange={(e) => e.target.files?.[0] && importFile(e.target.files[0])}
+    />
+  );
 
   async function approve(questionId: string) {
     const res = await fetch(`/api/questions/${questionId}`, {
@@ -264,9 +294,16 @@ export default function CourseExaminationPage({ params }: { params: { id: string
         <main className="mx-auto max-w-2xl px-6 py-10 text-center text-gray-600">
           No course examination has been generated yet.
           <div className="mt-4">
-            <Button onClick={generate} loading={generating}>
-              Generate Course Examination
-            </Button>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button onClick={generate} loading={generating}>
+                Generate Course Examination
+              </Button>
+              <Button variant="secondary" onClick={() => fileInput.current?.click()} loading={importing}>
+                Import questions (PDF or Word)
+              </Button>
+            </div>
+            {importInput}
+            <p className="mt-2 text-xs text-gray-500">Import uses numbered multiple-choice questions with options A to D, like a module assessment.</p>
           </div>
         </main>
       </>
@@ -320,6 +357,10 @@ export default function CourseExaminationPage({ params }: { params: { id: string
             <Button variant="secondary" onClick={generate} loading={generating}>
               Generate More
             </Button>
+            <Button variant="secondary" onClick={() => fileInput.current?.click()} loading={importing}>
+              Import questions (PDF or Word)
+            </Button>
+            {importInput}
             {!exam.published && (
               <Button onClick={publish} loading={publishing}>
                 Publish

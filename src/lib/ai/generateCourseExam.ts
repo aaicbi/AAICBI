@@ -156,6 +156,43 @@ async function generateOne(source: SourceQuestion): Promise<GeneratedResult | nu
   };
 }
 
+/** The course's examination, created (unpublished, with the standard defaults) if it does not exist yet. */
+export async function ensureCourseExamination(courseId: string, staffUserId: string) {
+  const course = await prisma.course.findUniqueOrThrow({ where: { id: courseId }, select: { title: true } });
+
+  let exam = await prisma.exam.findUnique({ where: { courseId } });
+  if (!exam) {
+    try {
+      exam = await prisma.exam.create({
+        data: {
+          title: `${course.title} — Course Examination`,
+          code: makeExamCode(`${course.title} Course Examination`),
+          courseId,
+          createdById: staffUserId,
+          published: false, // staff must explicitly publish once questions are reviewed — same discipline as a module assessment
+          durationMinutes: 90,
+          passMarkPercent: 80,
+          retakeCooldownHours: 72,
+        },
+      });
+    } catch (e) {
+      const code = (e as { code?: string })?.code;
+      if (code !== "P2002") throw e;
+      // Same race the module-assessment route already guards against
+      // (see its own comment on this exact P2002): two near-
+      // simultaneous "generate" triggers could both see no existing
+      // exam and both attempt to create one. Unlike that route, this
+      // isn't a user-facing "set up a new thing" action returning a
+      // 409 — it's a library function whose job is getting questions
+      // generated, so the right recovery is using whichever exam row
+      // actually won the race, not failing the whole operation.
+      exam = await prisma.exam.findUniqueOrThrow({ where: { courseId } });
+    }
+  }
+
+  return exam;
+}
+
 /**
  * The full staff-triggered action. Pulls every published module
  * assessment's questions in the course, generates one new question per
@@ -225,37 +262,7 @@ export async function generateCourseExamination(courseId: string, staffUserId: s
   const batch = sourceQuestions.slice(0, GENERATION_BATCH_SIZE);
   const remaining = sourceQuestions.length - batch.length;
 
-  const course = await prisma.course.findUniqueOrThrow({ where: { id: courseId }, select: { title: true } });
-
-  let exam = await prisma.exam.findUnique({ where: { courseId } });
-  if (!exam) {
-    try {
-      exam = await prisma.exam.create({
-        data: {
-          title: `${course.title} — Course Examination`,
-          code: makeExamCode(`${course.title} Course Examination`),
-          courseId,
-          createdById: staffUserId,
-          published: false, // staff must explicitly publish once questions are reviewed — same discipline as a module assessment
-          durationMinutes: 90,
-          passMarkPercent: 80,
-          retakeCooldownHours: 72,
-        },
-      });
-    } catch (e) {
-      const code = (e as { code?: string })?.code;
-      if (code !== "P2002") throw e;
-      // Same race the module-assessment route already guards against
-      // (see its own comment on this exact P2002): two near-
-      // simultaneous "generate" triggers could both see no existing
-      // exam and both attempt to create one. Unlike that route, this
-      // isn't a user-facing "set up a new thing" action returning a
-      // 409 — it's a library function whose job is getting questions
-      // generated, so the right recovery is using whichever exam row
-      // actually won the race, not failing the whole operation.
-      exam = await prisma.exam.findUniqueOrThrow({ where: { courseId } });
-    }
-  }
+  const exam = await ensureCourseExamination(courseId, staffUserId);
 
   let generatedCount = 0;
   let failedCount = 0;

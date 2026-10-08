@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import LoopFace, { type LoopState } from "@/components/guide/LoopFace";
-import { useGuideConfig } from "@/components/guide/useGuideConfig";
+import { loadMe, useGuideConfig, useMeForPath } from "@/components/guide/useGuideConfig";
 import { contextFor, isHiddenPath, type MeKind } from "@/lib/guide/context";
 import { afterShown, BUBBLE_DELAY_MS, BUBBLE_VISIBLE_MS, FRESH_BUBBLE_STATE, nextHint, type BubbleState } from "@/lib/guide/bubble";
 import { ABOVE_BANNER_AND_PAGE_FAB, LOOP_FOOTPRINT_PX, setFloatingOffset } from "@/lib/floatingLayers";
@@ -47,13 +47,15 @@ function typingSomewhere(): boolean {
 export default function LoopGuide() {
   const pathname = usePathname() ?? "/";
   const state = useGuideConfig();
-  const visible = state.status === "ready" && state.config.enabled && !isHiddenPath(pathname);
+  const earlyMe = useMeForPath(pathname);
+  const visible = state.status === "ready" && state.config.enabled && !isHiddenPath(pathname, earlyMe);
   const config = state.status === "ready" ? state.config : null;
 
   const [open, setOpen] = useState(false);
   const [face, setFace] = useState<LoopState>("minimized");
   const [hint, setHint] = useState<string | null>(null);
-  const [me, setMe] = useState<MeKind | null>(null);
+  const [chatMe, setMe] = useState<MeKind | null>(null);
+  const me = earlyMe ?? chatMe;
   const meLoaded = useRef(false);
   const button = useRef<HTMLButtonElement>(null);
   const hints = useRef<BubbleState>(FRESH_BUBBLE_STATE);
@@ -72,10 +74,7 @@ export default function LoopGuide() {
     setOpen(true);
     if (!meLoaded.current) {
       meLoaded.current = true;
-      fetch("/api/guide/me", { cache: "no-store" })
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => d && setMe(d.kind ?? null))
-        .catch(() => {});
+      loadMe().then(setMe);
     }
   }, []);
 

@@ -33,18 +33,20 @@ function segments(pathname: string): string[] {
  * the organization workspace is the one staff-area exception, because it is
  * where training organizations work.
  */
-export function isHiddenPath(pathname: string): boolean {
+export function isHiddenPath(pathname: string, me: MeKind | null = null): boolean {
   const s = segments(pathname);
   const [first, second] = s;
   if (first === "exam") return true;
-  if (s.includes("assessment") || s.includes("examination") || s.includes("take")) return true;
-  if (first === "trainee" && second === "assignments" && s.length > 2) return true;
-  if (first === "trainee" && second === "examinations") return true;
   if (first === "admin") {
     const publicAdmin = ["login", "forgot-password", "reset-password"];
     if (second && publicAdmin.includes(second)) return false;
-    return second !== "organization";
+    if (second === "organization") return false;
+    // A training organization authors its courses and assessments here, so Loop stays.
+    return me !== "organization";
   }
+  if (s.includes("assessment") || s.includes("examination") || s.includes("take")) return true;
+  if (first === "trainee" && second === "assignments" && s.length > 2) return true;
+  if (first === "trainee" && second === "examinations") return true;
   if (first === "instructor") return true;
   return false;
 }
@@ -72,6 +74,37 @@ function available(on: GuideSwitches, a: QuickAction): boolean {
   if (a.href === "/trainees") return on.publicTrainees;
   if (a.href === "/organizations" || a.href === "/events") return on.orgPages;
   return true;
+}
+
+const ORG_GUIDES: QuickAction[] = [
+  { label: "Show me around", ask: "Show me around my organization workspace" },
+  { label: "Upload a course", ask: "How do I upload a course?" },
+  { label: "Add trainees", ask: "How do I add trainees to my course?" },
+  { label: "Design certificates", ask: "How do I design certificates with my logo?" },
+];
+
+/** Hints and starting actions for a training organization working in its own workspace. */
+function orgWorkspaceContext(pathname: string): PageContext {
+  const s = segments(pathname);
+  const [, second, third] = s;
+  const here: QuickAction[] = [];
+  const add = (label: string, ask: string) => here.push({ label, ask });
+  if (second === "courses") add("Guide me: upload a course", "How do I upload a course?");
+  else if (second === "exams" || second === "modules") add("Guide me: module assessment", "How do I set a module assessment?");
+  else if (second === "organization" && third === "profile") add("Guide me: public page", "How do I set up my organization's public page?");
+  else if (second === "organization" && third === "team") add("Guide me: invite a teammate", "How do I add a teammate to my organization?");
+  else if (second === "organization" && third === "events") add("Guide me: post an event", "How do I post an event?");
+  else if (second === "organization" && third === "programs") add("Guide me: tag skills", "How do I tag my courses with skills?");
+  else if (second === "organization" && third === "insights") add("Guide me: read my numbers", "How do I see how my content is doing?");
+  else if (second === "education") add("Guide me: publish a video", "How do I publish a trainee education video?");
+  else if (second === "certificate-templates" || second === "training-organizations") add("Guide me: certificates", "How do I design certificates with my logo?");
+  else if (second === "payments") add("Guide me: payments and reports", "Where do I see payments and download reports?");
+  return {
+    key: "org-workspace",
+    greeting: "Hi, I'm Loop. I can walk you through your workspace step by step: uploading a course, adding trainees, certificates and more. What would you like to do?",
+    bubbles: ["Want me to walk you through your workspace?", "Need to upload a course? I can show you step by step."],
+    quick: [...here, ...ORG_GUIDES],
+  };
 }
 
 /** Hints and starting actions for the page someone is on, tuned a little for who they are. */
@@ -195,6 +228,8 @@ export function contextFor(pathname: string, on: GuideSwitches, me: MeKind | nul
         { label: "Find organizations", ask: "How can I find training organizations?" },
       ],
     };
+  } else if (first === "admin" && me === "organization") {
+    ctx = orgWorkspaceContext(pathname);
   } else if (first === "admin" || first === "org") {
     ctx = {
       key: "organization-area",
