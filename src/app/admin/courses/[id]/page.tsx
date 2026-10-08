@@ -514,11 +514,12 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
             </a>
             <a
               href={`/admin/courses/${params.id}/preview`}
+              data-guide-target="preview-as-trainee"
               className="flex min-h-[44px] items-center justify-center rounded-lg border border-brand-gray px-3 text-center text-sm font-semibold text-brand-teal hover:underline sm:mb-2 sm:block sm:min-h-0 sm:rounded-none sm:border-0 sm:px-0 sm:text-right sm:text-xs"
             >
               <Icon icon={Eye} size="sm" className="mr-1 inline align-text-bottom" /> Preview as Trainee
             </a>
-            <div className="col-span-2 sm:col-auto"><Select label="Status" compact controlClassName="font-semibold" value={course.status} onChange={(e) => changeStatus(e.target.value as CourseStatus)}>
+            <div className="col-span-2 sm:col-auto"><Select label="Status" compact data-guide-target="course-status" controlClassName="font-semibold" value={course.status} onChange={(e) => changeStatus(e.target.value as CourseStatus)}>
               {COURSE_STATUS_VALUES.map((s) => (
                 <option key={s} value={s}>
                   {COURSE_STATUS_LABEL[s]}
@@ -590,6 +591,7 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
           ) : (
             <button
               onClick={() => setAddingModule(true)}
+              data-guide-target="add-module"
               className="w-full rounded-lg border border-dashed border-brand-gray py-3 text-sm font-semibold text-gray-600 hover:border-brand-teal hover:text-brand-teal"
             >
               + Add Module

@@ -1,32 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiErrors } from "@/lib/apiError";
-import { requireRole } from "@/lib/auth/session";
 import { EntrySchema } from "@/lib/guide/adminSchemas";
+import { guideActor, updateEntry } from "@/lib/guide/knowledge";
 
 export const dynamic = "force-dynamic";
 
-/** PUT /api/admin/guide/entries/[id] — SUPER_ADMIN edits a written answer. */
+/** PUT /api/admin/guide/entries/[id] — SUPER_ADMIN edits, disables or enables an answer. The change is kept as a new version. */
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
-    await requireRole("SUPER_ADMIN");
+    const actor = await guideActor();
     const parsed = EntrySchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid answer." }, { status: 400 });
-    const d = parsed.data;
-    const res = await prisma.guideEntry.updateMany({
-      where: { id: params.id },
-      data: { question: d.question, answer: d.answer, links: d.links as Prisma.InputJsonValue, keywords: d.keywords, enabled: d.enabled },
-    });
-    if (res.count === 0) return NextResponse.json({ error: "Answer not found." }, { status: 404 });
-    return NextResponse.json({ ok: true });
+    const version = await prisma.$transaction((tx) => updateEntry(tx, params.id, parsed.data, actor));
+    if (version === null) return NextResponse.json({ error: "Answer not found." }, { status: 404 });
+    return NextResponse.json({ ok: true, version });
   });
 }
 
-/** DELETE /api/admin/guide/entries/[id] — SUPER_ADMIN removes a written answer. */
+/** DELETE /api/admin/guide/entries/[id] — SUPER_ADMIN removes an answer and its history. Disabling keeps the history; prefer that. */
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
-    await requireRole("SUPER_ADMIN");
+    await guideActor();
     const res = await prisma.guideEntry.deleteMany({ where: { id: params.id } });
     if (res.count === 0) return NextResponse.json({ error: "Answer not found." }, { status: 404 });
     return NextResponse.json({ ok: true });

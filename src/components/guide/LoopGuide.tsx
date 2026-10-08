@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import LoopFace, { type LoopState } from "@/components/guide/LoopFace";
+import GuideSpotlight from "@/components/guide/GuideSpotlight";
 import { loadMe, useGuideConfig, useMeForPath } from "@/components/guide/useGuideConfig";
 import { contextFor, isHiddenPath, type MeKind } from "@/lib/guide/context";
 import { afterShown, BUBBLE_DELAY_MS, BUBBLE_VISIBLE_MS, FRESH_BUBBLE_STATE, nextHint, type BubbleState } from "@/lib/guide/bubble";
@@ -127,6 +128,7 @@ export default function LoopGuide() {
 
   return (
     <div className="print:hidden">
+      <GuideSpotlight />
       {open && <ChatPanel pathname={pathname} config={config} me={me} ctx={ctx} onClose={closePanel} onState={setFace} />}
 
       {hint && !open && (

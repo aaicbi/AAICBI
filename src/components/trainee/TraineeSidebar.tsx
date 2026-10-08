@@ -13,6 +13,7 @@ import AvatarFallback from "@/components/ui/AvatarFallback";
 import Badge from "@/components/ui/Badge";
 import { TRAINEE_NAV } from "@/lib/trainee/nav";
 import { getSidebarTourGuideContent } from "@/lib/tourGuideContent";
+import { navTarget } from "@/lib/guide/navigation";
 
 /**
  * Sidebar rollout (Phase 2) — the trainee counterpart to
@@ -61,6 +62,7 @@ export default function TraineeSidebar({ name, avatarUrl }: { name: string; avat
 
       <Link
         href="/trainee/profile"
+        data-guide-target={navTarget("/trainee/profile")}
         onClick={() => setMobileOpen(false)}
         className={`flex items-center gap-3 border-b border-brand-gray px-4 py-3 hover:bg-brand-mint ${
           isActive("/trainee/profile") ? "bg-brand-mint" : ""
@@ -94,6 +96,7 @@ export default function TraineeSidebar({ name, avatarUrl }: { name: string; avat
           <Link
             key={item.href}
             href={item.href}
+            data-guide-target={navTarget(item.href)}
             onClick={() => setMobileOpen(false)}
             className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold ${
               isActive(item.href)

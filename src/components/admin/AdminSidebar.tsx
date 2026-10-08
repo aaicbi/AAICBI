@@ -13,6 +13,7 @@ import AvatarFallback from "@/components/ui/AvatarFallback";
 import Badge from "@/components/ui/Badge";
 import { getAdminNavGroups } from "@/lib/admin/nav";
 import { getSidebarTourGuideContent } from "@/lib/tourGuideContent";
+import { navTarget } from "@/lib/guide/navigation";
 
 const ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: "Super Admin",
@@ -143,6 +144,7 @@ export default function AdminSidebar({
               <Link
                 key={item.href}
                 href={item.href}
+                data-guide-target={navTarget(item.href)}
                 onClick={() => setMobileOpen(false)}
                 aria-current={item.href === activeHref ? "page" : undefined}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold ${

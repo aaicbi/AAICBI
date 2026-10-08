@@ -14,6 +14,15 @@ export interface PlaybookStep {
   hrefLabel?: string;
   /** A short extra note: a limit, a common slip, what happens next. */
   tip?: string;
+  /**
+   * The control to light up for this step: a data-guide-target id (a menu item
+   * is "nav:" plus its page address). Without one the step is explanation only.
+   */
+  target?: string;
+  /** The page the control lives on, when it is not on every page. Loop offers to take the person there first. */
+  page?: string;
+  /** What counts as the person having done the step. Defaults to a click when there is a target. */
+  completeOn?: "click" | "input" | "submit" | "none";
 }
 
 export interface Playbook {

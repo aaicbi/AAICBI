@@ -4605,19 +4605,66 @@ model GuideEntry {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // Approved-knowledge fields. Every answer is written or approved by a person.
+  category         String?
+  // Where the answer sends someone ("Take me there"), and which control to light up ("Show me").
+  navHref          String?
+  navLabel         String?
+  target           String?
+  // Other ways people ask the same thing; used for matching, shown as "Did you mean".
+  relatedQuestions String[] @default([])
+  // Who the answer is for ("trainee", "employer", ...). Empty means everyone.
+  roles            String[] @default([])
+  version          Int      @default(1)
+  updatedById      String?
+  // How many times this answer was given (a counter, never who asked).
+  served           Int      @default(0)
+
+  versions GuideEntryVersion[]
+
   @@index([enabled])
+  @@index([category])
+}
+
+/// One saved state of a written answer: every create, edit, disable and restore is kept.
+model GuideEntryVersion {
+  id               String     @id @default(cuid())
+  entryId          String
+  entry            GuideEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  version          Int
+  action           String
+  question         String
+  answer           String
+  links            Json       @default("[]")
+  keywords         String[]   @default([])
+  category         String?
+  navHref          String?
+  navLabel         String?
+  target           String?
+  relatedQuestions String[]   @default([])
+  roles            String[]   @default([])
+  enabled          Boolean    @default(true)
+  changedById      String?
+  changedByName    String?
+  changeNote       String?
+  changedAt        DateTime   @default(now())
+
+  @@unique([entryId, version])
+  @@index([changedAt])
 }
 
 enum GuideQuestionStatus {
   OPEN
   ANSWERED
   DISMISSED
+  IN_REVIEW
+  REJECTED
+  MERGED
 }
 
-// Questions the guide could not answer, grouped by their normalized text so
-// the same question asked twenty times is one row with a count. Only the
-// question text is kept (with emails, phone numbers and long digit runs
-// removed first): no account, no IP address, no browser details.
+// Questions the guide could not answer (or answered with low confidence),
+// grouped by meaning so the same question asked twenty ways is one row with
+// a count. Only the scrubbed words are kept: no account, no address.
 model GuideUnanswered {
   id           String              @id @default(cuid())
   text         String              @unique
@@ -4627,7 +4674,48 @@ model GuideUnanswered {
   lastAskedAt  DateTime            @default(now())
   entryId      String?
 
+  // Sorted concept words of the text: questions with the same key mean the same thing.
+  tokenKey     String              @default("")
+  // Other wordings grouped into this row (scrubbed, newest last, capped).
+  variants     String[]            @default([])
+  // "NO_MATCH", "LOW_CONFIDENCE" or "NOT_HELPFUL".
+  reason       String              @default("NO_MATCH")
+  confidence   Float?
+  // The answer the guide tried, if any (a written question, never personal data).
+  attempted    String?
+  // Counts by kind of account: { "trainee": 4, "employer": 1, "visitor": 2 }.
+  roleCounts   Json                @default("{}")
+  lastRole     String?
+  // Page and route where it was asked (ids stripped), and the last few user messages before it.
+  lastRoute    String?
+  lastPage     String?
+  feature      String?
+  context      Json                @default("[]")
+  category     String?
+  reviewedAt   DateTime?
+  reviewedById String?
+  reviewNote   String?
+  mergedIntoId String?
+
   @@index([status, lastAskedAt])
+  @@index([tokenKey])
+}
+
+/// Daily counters for the guide: how many questions were answered, unanswered, low confidence or marked unhelpful, by kind of account. No text, no identity.
+model GuideDailyStat {
+  id            String @id @default(cuid())
+  day           String
+  role          String
+  answered      Int    @default(0)
+  unanswered    Int    @default(0)
+  lowConfidence Int    @default(0)
+  helpful       Int    @default(0)
+  notHelpful    Int    @default(0)
+  navigations   Int    @default(0)
+  tours         Int    @default(0)
+
+  @@unique([day, role])
+  @@index([day])
 }
 
 

@@ -32,16 +32,17 @@ export const PLAYBOOKS: Playbook[] = [
     summary: "A course is built in order: create it, add modules, add lessons, add materials, add an assessment, then publish. A new course starts as a draft, so nothing is public until you publish.",
     keywords: ["upload", "course", "create course", "publish", "add course", "new course", "program", "programme", "lesson", "module", "material", "post course", "put my course", "post my course"],
     steps: [
-      { title: "Open Courses", text: "In the menu choose **Courses**, then press **+ Create Course**.", href: "/admin/courses", hrefLabel: "Open Courses" },
-      { title: "Describe the course", text: "Fill in **Course Title** (at least 3 letters) and **Description**. Leave **This course is free (lifetime access, no payment)** ticked for a free course, or untick it to set the **Price (₦)** and how access works.", href: "/admin/courses/new", hrefLabel: "Open the create form", tip: "You can change the price later under Pricing & Access in the course." },
-      { title: "Create it", text: "Press **Create & Add Modules**. You land on the course page, where the rest is done." },
-      { title: "Add a module", text: "A module is a chapter. Scroll to the modules, press **+ Add Module**, give it a title and press **Add Module**. Repeat for each chapter.", tip: "Trainees go through modules in order, so add them in the order you want them taken. Use **Move module up** and **Move module down** to reorder." },
+      { title: "Open Courses", text: "In the menu choose **Courses**, then press **+ Create Course**.", href: "/admin/courses", hrefLabel: "Open Courses", target: "nav:/admin/courses" },
+      { title: "Press Create Course", text: "Press **+ Create Course**.", page: "/admin/courses", target: "create-course" },
+      { title: "Describe the course", text: "Fill in **Course Title** (at least 3 letters) and **Description**. Leave **This course is free (lifetime access, no payment)** ticked for a free course, or untick it to set the **Price (₦)** and how access works.", href: "/admin/courses/new", hrefLabel: "Open the create form", tip: "You can change the price later under Pricing & Access in the course.", page: "/admin/courses/new", target: "course-title", completeOn: "input" },
+      { title: "Create it", text: "Press **Create & Add Modules**. You land on the course page, where the rest is done.", page: "/admin/courses/new", target: "create-course-submit" },
+      { title: "Add a module", text: "A module is a chapter. Scroll to the modules, press **+ Add Module**, give it a title and press **Add Module**. Repeat for each chapter.", tip: "Trainees go through modules in order, so add them in the order you want them taken. Use **Move module up** and **Move module down** to reorder.", page: "/admin/courses", target: "add-module" },
       { title: "Add a lesson", text: "Inside a module press **+ Add Lesson**, give it a title and press **Add Lesson**. A lesson is a titled container; its content is added as materials." },
       { title: "Add materials", text: "Inside a lesson press **+ Add Material**. Choose the type: **PDF**, **DOCX**, **PPTX** or **Video (YouTube link)**. Give it a **Material title**, then **Choose file** to upload or switch to **Paste a link**.", tip: "Files can be up to 20MB each. Videos are links only and must be YouTube or Google-hosted." },
       { title: "Add an assessment", text: "On a module press **Assessment** to give it a quiz trainees must pass before the next module opens. Ask me \"How do I set a module assessment?\" for those steps." },
       { title: "Pick your certificate", text: "In the course page open **Certificate Template** and choose one of your approved templates, or keep **AAICBI default**." },
-      { title: "Check as a trainee", text: "Press **Preview as Trainee** to see exactly what trainees will see." },
-      { title: "Publish", text: "Set **Status** to **Published**. A course needs at least one module to be published. Use **Copy Trainee Link** to share it.", tip: "**Unlisted** hides the course from the public catalog so only people you enroll can reach it. Use **Archived** or **Unpublished** instead of deleting a course that has trainees or certificates." },
+      { title: "Check as a trainee", text: "Press **Preview as Trainee** to see exactly what trainees will see.", page: "/admin/courses", target: "preview-as-trainee" },
+      { title: "Publish", text: "Set **Status** to **Published**. A course needs at least one module to be published. Use **Copy Trainee Link** to share it.", page: "/admin/courses", target: "course-status", completeOn: "input", tip: "**Unlisted** hides the course from the public catalog so only people you enroll can reach it. Use **Archived** or **Unpublished** instead of deleting a course that has trainees or certificates." },
     ],
     next: ["module-assessment", "final-exam", "course-details", "enroll-trainees"],
   },
@@ -102,7 +103,7 @@ export const PLAYBOOKS: Playbook[] = [
     summary: "You can chat with the trainees in your cohorts, one to one or in each cohort's group chat. You only see your own cohorts and your own conversations.",
     keywords: ["message", "messages", "chat", "talk to trainees", "contact trainees", "announce", "group chat", "cohort chat", "dm", "communicate", "reply"],
     steps: [
-      { title: "Open Messages", text: "In the menu choose **Messages**. On a phone it is on the bottom bar.", href: "/admin/messages", hrefLabel: "Open Messages" },
+      { title: "Open Messages", text: "In the menu choose **Messages**. On a phone it is on the bottom bar.", href: "/admin/messages", hrefLabel: "Open Messages", target: "nav:/admin/messages" },
       { title: "Find a conversation", text: "Your cohorts' group chats are listed for you. Use the search box to find a person or a message; unread conversations come first." },
       { title: "Start a chat", text: "Press **New chat** and choose a trainee from one of your cohorts.", tip: "Trainees appear here once they are in one of your cohorts. Add them under Cohorts / Intakes on a course." },
       { title: "Write and send", text: "Type in the box and press **Send**. The trainee gets a notification that says you wrote, never the message itself." },
@@ -133,7 +134,7 @@ export const PLAYBOOKS: Playbook[] = [
     summary: "You design a certificate template, send it to AAICBI for approval, then choose it on each course.",
     keywords: ["certificate", "template", "logo", "watermark", "signature", "signatory", "design", "branding", "remove watermark", "powered by"],
     steps: [
-      { title: "Open Certificates", text: "In the menu choose **Certificates**.", href: "/admin/certificate-templates", hrefLabel: "Open Certificates" },
+      { title: "Open Certificates", text: "In the menu choose **Certificates**.", href: "/admin/certificate-templates", hrefLabel: "Open Certificates", target: "nav:/admin/certificate-templates" },
       { title: "Start a template", text: "Press **+ New** (or **Choose a starting template** to start from a design). Give it a name, add the signatory name and title, and use **Upload logo** for your logo." },
       { title: "Or upload your own design", text: "If you already have a finished certificate design, press **Upload template** and choose a PNG, JPG or WEBP picture of it. It becomes the page, and the trainee name, course, date and code fields are placed on it for you to drag into position. **Replace template image** swaps it later and **Remove template image** goes back to a plain page.", tip: "Leave the spaces for the name, course and date empty in your picture, because those are filled in for each trainee. Images can be up to 10MB." },
       { title: "Check it", text: "Use **Preview** to see exactly what is on the canvas. Your work saves as a draft automatically; **Save changes** saves now." },
@@ -151,7 +152,7 @@ export const PLAYBOOKS: Playbook[] = [
     summary: "Your public page is what visitors see in the ecosystem. It is off until you switch it on, and your organization must be approved first.",
     keywords: ["public profile", "public page", "profile", "tagline", "cover", "about", "slug", "page address", "visible", "show my organization", "listing"],
     steps: [
-      { title: "Open Public profile", text: "In the menu under **Organization** choose **Public profile**.", href: "/admin/organization/profile", hrefLabel: "Open Public profile" },
+      { title: "Open Public profile", text: "In the menu under **Organization** choose **Public profile**.", href: "/admin/organization/profile", hrefLabel: "Open Public profile", target: "nav:/admin/organization/profile" },
       { title: "Fill the details", text: "Set your **Page address**, **Tagline**, **Location**, **Cover image URL** and **About**. Only these fields are ever shown publicly." },
       { title: "Switch it on", text: "Turn on **Show my organization page publicly**, then press **Save**.", tip: "It is off by default. A **Verified** badge is added by AAICBI; you cannot set it yourself." },
       { title: "See it", text: "Press **View page** to see what visitors see." },
@@ -166,7 +167,7 @@ export const PLAYBOOKS: Playbook[] = [
     summary: "Teammates sign in with their own email and password and can manage the same courses, trainees and certificates you can.",
     keywords: ["team", "teammate", "colleague", "staff", "invite", "add user", "co-admin", "instructor", "assistant"],
     steps: [
-      { title: "Open Team", text: "In the menu under **Organization** choose **Team**.", href: "/admin/organization/team", hrefLabel: "Open Team" },
+      { title: "Open Team", text: "In the menu under **Organization** choose **Team**.", href: "/admin/organization/team", hrefLabel: "Open Team", target: "nav:/admin/organization/team" },
       { title: "Invite", text: "Under **Invite a teammate** enter their **Name** and **Email**, then press **Send invitation**." },
       { title: "If the email does not arrive", text: "Send them the **Invitation link** shown on the page with **Copy**.", tip: "The link works once and expires in 48 hours." },
       { title: "Manage them later", text: "In the **Teammates** table you can **Resend invitation**, **Disable**, **Enable** or **Remove** a person." },
@@ -180,7 +181,7 @@ export const PLAYBOOKS: Playbook[] = [
     summary: "You can share a YouTube video one of your trainees presented. The trainee is asked to agree before anything is shown publicly.",
     keywords: ["video", "education", "youtube", "trainee video", "presentation", "publish video", "post video", "learn"],
     steps: [
-      { title: "Open Education videos", text: "In the menu under **Organization** choose **Education videos**.", href: "/admin/education", hrefLabel: "Open Education videos" },
+      { title: "Open Education videos", text: "In the menu under **Organization** choose **Education videos**.", href: "/admin/education", hrefLabel: "Open Education videos", target: "nav:/admin/education" },
       { title: "Pick the trainee", text: "Choose the **Trainee**. Only trainees enrolled in your programs are listed." },
       { title: "Add the video", text: "Paste the **YouTube link** and press **Check link**, then add a **Video title**, **Description**, the **Program** and the **Skills**." },
       { title: "Videos trainees send you", text: "Trainees can also post videos to you themselves. They appear under **Videos trainees sent you**. Watch one on YouTube, then press **Approve**, or write a short reason and press **Decline**.", tip: "If your organization is not verified, an approved video still goes to AAICBI for a final check. A trainee whose video you decline can send it to AAICBI." },
@@ -196,7 +197,7 @@ export const PLAYBOOKS: Playbook[] = [
     summary: "When a visitor watches a video about a skill, matching programs are suggested. Tagging your courses is how yours get suggested.",
     keywords: ["skills", "tag", "program skills", "suggest", "discover", "taught"],
     steps: [
-      { title: "Open Program skills", text: "In the menu under **Organization** choose **Program skills**.", href: "/admin/organization/programs", hrefLabel: "Open Program skills" },
+      { title: "Open Program skills", text: "In the menu under **Organization** choose **Program skills**.", href: "/admin/organization/programs", hrefLabel: "Open Program skills", target: "nav:/admin/organization/programs" },
       { title: "Tag each program", text: "In **Skills taught** list the skills, separated by commas, then press **Save skills**." },
     ],
   },
@@ -208,7 +209,7 @@ export const PLAYBOOKS: Playbook[] = [
     summary: "Events like open days and workshops appear on your public page and on the events page. Visitors register on your own link.",
     keywords: ["event", "open day", "workshop", "webinar", "demo day", "announce", "post event", "calendar"],
     steps: [
-      { title: "Open Events", text: "In the menu under **Organization** choose **Events**.", href: "/admin/organization/events", hrefLabel: "Open Events" },
+      { title: "Open Events", text: "In the menu under **Organization** choose **Events**.", href: "/admin/organization/events", hrefLabel: "Open Events", target: "nav:/admin/organization/events" },
       { title: "Fill the form", text: "Enter the **Title** and when it **Starts (UTC)**. Add an end time, the place and a registration link if you want them." },
       { title: "Publish", text: "Press **Publish event**. Use **Remove** on an event to take it down.", tip: "Times are in UTC. Registration happens on your own link; nothing is collected here." },
     ],
@@ -377,7 +378,7 @@ export const PLAYBOOKS: Playbook[] = [
     summary: "Your profile helps employers and organizations find you. You decide who can see it, and nothing is public unless you choose it.",
     keywords: ["profile", "visibility", "public", "private", "who can see", "username", "skills", "cv", "resume", "portfolio", "discoverability", "trainees page", "listed", "show me"],
     steps: [
-      { title: "Open your profile", text: "Press your name card at the top of the menu to open your profile.", href: "/trainee/profile", hrefLabel: "Open Profile" },
+      { title: "Open your profile", text: "Press your name card at the top of the menu to open your profile.", href: "/trainee/profile", hrefLabel: "Open Profile", target: "nav:/trainee/profile" },
       { title: "Fill in the basics", text: "Under **Basic Info** set your **Username**, **Location** and links, then press **Save**. Add **Skills**, **Education**, **Work Experience** and **Projects** below.", tip: "Your profile picture is changed from Settings." },
       { title: "Choose who sees it", text: "In **Profile Visibility** pick one: **Public — anyone, no sign-in required**, **Any signed-in AAICBI account**, **Approved employers only**, or **Private — only you and admins**. Then press **Save**.", tip: "To appear on the public Trainees page you need a username, a verified email and Public visibility." },
       { title: "Employer discoverability", text: "In **Settings**, under **Your visibility**, **Employer Discoverability** lets vetted employers find you. Your contact details stay hidden until you accept an introduction.", href: "/trainee/settings", hrefLabel: "Open Settings" },
@@ -421,7 +422,7 @@ export const PLAYBOOKS: Playbook[] = [
     summary: "Settings holds your picture, notifications, language and display options.",
     keywords: ["settings", "notifications", "whatsapp", "language", "dark mode", "low bandwidth", "data saver", "picture", "avatar", "password", "forgot password", "preferences"],
     steps: [
-      { title: "Open Settings", text: "In the menu choose **Settings**.", href: "/trainee/settings", hrefLabel: "Open Settings" },
+      { title: "Open Settings", text: "In the menu choose **Settings**.", href: "/trainee/settings", hrefLabel: "Open Settings", target: "nav:/trainee/settings" },
       { title: "Profile picture", text: "Under **Your account**, upload your **Profile Picture**." },
       { title: "Notifications", text: "Under **Notifications**, turn **Progress notifications** on or off, or enter your **WhatsApp phone number** and press **Enable WhatsApp Notifications** to get a code to verify it." },
       { title: "Language and display", text: "Under **Preferences**, choose your **Language**, switch on **Low-bandwidth mode** to save data, or **Dark Mode**." },
@@ -436,7 +437,7 @@ export const PLAYBOOKS: Playbook[] = [
     summary: "Explore is your way into the rest of the ecosystem from inside your own area: jobs, organizations, videos and events.",
     keywords: ["explore", "ecosystem", "job listings", "jobs", "organizations", "training organizations", "other organizations", "videos", "events", "browse", "discover", "see jobs"],
     steps: [
-      { title: "Open Explore", text: "In the menu choose **Explore**.", href: "/trainee/explore", hrefLabel: "Open Explore" },
+      { title: "Open Explore", text: "In the menu choose **Explore**.", href: "/trainee/explore", hrefLabel: "Open Explore", target: "nav:/trainee/explore" },
       { title: "See jobs", text: "Press **Jobs and opportunities** to see every open role. You can read them all; you need to be signed in to apply, and you choose what to share." },
       { title: "Look at organizations", text: "Press **Training organizations** to look at other organizations and follow the ones you like." },
       { title: "Watch and attend", text: "**Trainee videos** shows what other trainees built and learned, and **Events** lists open days and workshops." },

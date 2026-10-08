@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Minus, Send } from "lucide-react";
+import { usePathname as useCurrentPath, useRouter } from "next/navigation";
+import { ArrowRight, Eye, MapPin, Minus, Send, ThumbsDown, ThumbsUp } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import LoopFace, { type LoopState } from "@/components/guide/LoopFace";
 import type { GuideClientConfig } from "@/components/guide/useGuideConfig";
@@ -9,7 +10,11 @@ import { answerQuestion, buildIndex, suggest } from "@/lib/guide/match";
 import type { MeKind, PageContext, QuickAction } from "@/lib/guide/context";
 import { entriesForAudience } from "@/lib/guide/playbooks";
 import PlaybookCard, { Marked } from "@/components/guide/PlaybookCard";
-import type { GuideLink } from "@/lib/guide/types";
+import type { GuideAction, GuideLink } from "@/lib/guide/types";
+import { classifyIntent } from "@/lib/guide/intent";
+import { deniedReply, resolveDestination } from "@/lib/guide/navigation";
+import { showSpot } from "@/lib/guide/interactionStore";
+import type { UnansweredReason } from "@/lib/guide/record";
 import { getSidebarTourGuideContent, getTourGuideContent } from "@/lib/tourGuideContent";
 import { pageHasSidebar } from "@/lib/sidebarRoutes";
 
@@ -20,6 +25,14 @@ interface Msg {
   links?: GuideLink[];
   related?: string[];
   playbookId?: string;
+  /** "Take me there" and "Show me" buttons. */
+  actions?: GuideAction[];
+  /** What was asked and which answer was used, so "Not helpful" can tell the team. */
+  asked?: string;
+  matched?: string;
+  entryDbId?: string;
+  lowConfidence?: boolean;
+  feedback?: "yes" | "no";
 }
 
 const STORE = "loop-chat-v1";
@@ -37,6 +50,12 @@ function readStored(): Msg[] {
 
 const isNarrow = () => typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches;
 const prefersLessMotion = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function sendJson(url: string, body: unknown) {
+  fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), keepalive: true }).catch(() => {});
+}
+
+const pathOnly = (href: string) => href.split("#")[0].split("?")[0] || "/";
 
 /**
  * Loop's chat window. It answers from the written answers in the browser
@@ -61,6 +80,8 @@ export default function ChatPanel({
   onClose: () => void;
   onState: (s: LoopState) => void;
 }) {
+  const router = useRouter();
+  const here = useCurrentPath() ?? pathname;
   const index = useMemo(() => buildIndex(entriesForAudience(config.entries, me), config.skills), [config, me]);
   const [messages, setMessages] = useState<Msg[]>(() => readStored());
   const [input, setInput] = useState("");
@@ -107,20 +128,42 @@ export default function ChatPanel({
 
   const push = (m: Omit<Msg, "id">) => setMessages((list) => [...list, { ...m, id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}` }].slice(-MAX_MESSAGES));
 
-  function reply(fn: () => Omit<Msg, "id"> & { unanswered?: string }) {
+  function report(question: string, reason: UnansweredReason, extra: { confidence?: number; attempted?: string } = {}) {
+    const turns = messages.filter((m) => m.from === "me").map((m) => m.text).slice(-4, -1);
+    sendJson("/api/guide/unanswered", { question, reason, route: here, page: typeof document !== "undefined" ? document.title : undefined, context: turns, ...extra });
+  }
+
+  type Reply = Omit<Msg, "id"> & { after?: () => void };
+
+  function reply(fn: () => Reply) {
     setThinking(true);
     onState("thinking");
     later(() => {
-      const r = fn();
-      const { unanswered, ...msg } = r;
+      const { after, ...msg } = fn();
       push(msg);
       setThinking(false);
       onState("speaking");
       later(() => onState("minimized"), 1800);
-      if (unanswered) {
-        fetch("/api/guide/unanswered", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question: unanswered }), keepalive: true }).catch(() => {});
-      }
+      after?.();
     }, prefersLessMotion() ? 0 : 450);
+  }
+
+  /** Go to a page, the way a link would, and let the chat get out of the way on a phone. */
+  function go(a: GuideAction) {
+    sendJson("/api/guide/event", { type: "navigation" });
+    onNavigate();
+    router.push(a.href);
+  }
+
+  /** Go to the page if needed, then light up the control. */
+  function show(a: GuideAction) {
+    if (!a.target) return go(a);
+    sendJson("/api/guide/event", { type: "navigation" });
+    showSpot({ target: a.target, text: "Here it is." });
+    onNavigate();
+    // The chat would sit on top of what is being pointed at: tuck it away (the conversation is kept).
+    onClose();
+    if (pathOnly(a.href) !== pathOnly(here)) router.push(a.href);
   }
 
   function ask(question: string) {
@@ -129,9 +172,51 @@ export default function ChatPanel({
     push({ from: "me", text: q });
     setInput("");
     reply(() => {
-      const r = answerQuestion(q, index, config.switches);
-      return { from: "loop", text: r.text, links: r.links, related: r.related, playbookId: r.playbookId, unanswered: r.kind === "fallback" && q.length >= 3 ? q : undefined };
+      const { intent, subject } = classifyIntent(q);
+
+      // Where is it / open it / show me it: a named place first, checked against this account.
+      if (intent === "navigate" || intent === "action" || intent === "demo") {
+        const res = resolveDestination(subject, me, config.switches);
+        if (res.kind === "found") {
+          const d = res.dest;
+          const go1: GuideAction = { kind: "go", label: intent === "action" ? `Take me to ${d.label}` : `Open ${d.label}`, href: d.href };
+          const show1: GuideAction = { kind: "show", label: "Show me", href: d.href, target: d.target };
+          if (intent === "action") return { from: "loop", text: `Sure. I'll take you to ${d.label}.`, actions: [go1], after: () => later(() => go(go1), 900) };
+          if (intent === "demo") return { from: "loop", text: `I'll show you where ${d.label} is.`, actions: [go1], after: () => later(() => show(show1), 500) };
+          return { from: "loop", text: `${d.label} is here.`, actions: [go1, show1] };
+        }
+        if (res.kind === "denied") {
+          const r = deniedReply(res.dest, res.owner, me);
+          return { from: "loop", text: r.text, links: r.links };
+        }
+      }
+
+      const r = answerQuestion(q, index, config.switches, me);
+      const answered = r.kind !== "fallback";
+      if (answered) sendJson("/api/guide/event", { type: "answered", entryId: r.entryDbId });
+      return {
+        from: "loop",
+        text: r.lowConfidence && answered ? `${r.text}\n\nIs this what you were asking about? If not, tell me a little more.` : r.text,
+        links: r.links,
+        related: r.related,
+        playbookId: r.playbookId,
+        actions: r.actions,
+        asked: q,
+        matched: r.matchedQuestion,
+        entryDbId: r.entryDbId,
+        lowConfidence: r.lowConfidence,
+        after: () => {
+          if (r.kind === "fallback" && q.length >= 3) report(q, "NO_MATCH", { confidence: r.confidence, attempted: r.attempted });
+          else if (r.lowConfidence && q.length >= 3) report(q, "LOW_CONFIDENCE", { confidence: r.confidence, attempted: r.attempted });
+        },
+      };
     });
+  }
+
+  function rate(m: Msg, answer: "yes" | "no") {
+    setMessages((list) => list.map((x) => (x.id === m.id ? { ...x, feedback: answer } : x)));
+    if (answer === "yes") sendJson("/api/guide/event", { type: "helpful" });
+    else if (m.asked) report(m.asked, "NOT_HELPFUL", { attempted: m.matched });
   }
 
   function explainPage() {
@@ -204,7 +289,25 @@ export default function ChatPanel({
               <p className="whitespace-pre-line">
                 <Marked text={m.text} />
               </p>
-              {m.playbookId && <PlaybookCard id={m.playbookId} onNavigate={onNavigate} onAsk={ask} />}
+              {m.playbookId && <PlaybookCard id={m.playbookId} onNavigate={onNavigate} onAsk={ask} onShow={onClose} />}
+              {m.actions && m.actions.length > 0 && (
+                <ul className="mt-2.5 space-y-1.5">
+                  {m.actions.map((a) => (
+                    <li key={a.kind + a.href + a.label}>
+                      <button
+                        type="button"
+                        onClick={() => (a.kind === "show" ? show(a) : go(a))}
+                        className={`inline-flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg px-3 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2 ${a.kind === "go" ? "bg-brand-teal text-brand-onAccent hover:bg-brand-tealDeep" : "border border-brand-teal bg-brand-surface text-brand-teal hover:bg-brand-mint"}`}
+                      >
+                        <span className="inline-flex items-center gap-1.5">
+                          <Icon icon={a.kind === "go" ? MapPin : Eye} size="sm" /> {a.label}
+                        </span>
+                        <Icon icon={ArrowRight} size="sm" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
               {m.links && m.links.length > 0 && (
                 <ul className="mt-2.5 space-y-1.5">
                   {m.links.map((l) => (
@@ -215,6 +318,23 @@ export default function ChatPanel({
                     </li>
                   ))}
                 </ul>
+              )}
+              {m.asked && m.matched && !m.playbookId && (
+                <div className="mt-2.5 flex items-center gap-1.5 text-xs text-gray-600" role="group" aria-label="Was this helpful?">
+                  {m.feedback ? (
+                    <span>{m.feedback === "yes" ? "Thanks for letting me know." : "Thanks. I've passed your question to the team."}</span>
+                  ) : (
+                    <>
+                      <span>Helpful?</span>
+                      <button type="button" onClick={() => rate(m, "yes")} aria-label="Yes, this helped" className="inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-brand-mint focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
+                        <Icon icon={ThumbsUp} size="sm" />
+                      </button>
+                      <button type="button" onClick={() => rate(m, "no")} aria-label="No, this did not help" className="inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-brand-mint focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
+                        <Icon icon={ThumbsDown} size="sm" />
+                      </button>
+                    </>
+                  )}
+                </div>
               )}
               {m.related && m.related.length > 0 && (
                 <div className="mt-2.5">

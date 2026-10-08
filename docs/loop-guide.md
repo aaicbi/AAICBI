@@ -45,3 +45,53 @@ Loop walks a signed-in training organization through its workspace one step at a
 The same playbook engine has guides for trainees (`audience: "trainee"` in `data.ts`): tour of the trainee area, getting started, enrolling (free, paid, free preview, unlock code), lessons and unlocking modules, module assessments, the course examination and certificate, assignments, sharing a certificate, profile visibility, jobs and introductions, getting help, and settings. A signed-in trainee gets "Guide me" shortcuts on each trainee page. Loop still stays hidden on live exams, assessments and the assignment workspace.
 
 Guides are matched by audience (`entriesForAudience`): organizations only see organization guides, everyone else sees trainee guides, so similar questions reach the right one. A test checks that no guide ever takes over a plain written answer.
+
+---
+
+# Loop as a navigator and a learning knowledge system
+
+Loop still has no AI service. It answers from written answers and step-by-step guides, now with three additions: a reviewed knowledge workflow, real navigation, and on-screen pointing.
+
+## How Loop learns (and what it never does)
+
+```
+Question Loop can't answer (or answers with low confidence, or is marked "not helpful")
+        -> kept, scrubbed, grouped with questions that mean the same
+        -> Guide Bot Knowledge > Needs review (highest priority first)
+        -> a person writes or approves the answer
+        -> it becomes a versioned, approved answer
+        -> Loop finds it next time, however the question is worded
+```
+
+- Visitors can **never** teach Loop directly. Nothing becomes an answer without a SUPER_ADMIN writing or approving it.
+- Unknown questions get an honest reply ("I don't have a reliable answer for that yet, but I've recorded your question…"), never an invented one.
+- What is kept about a question: scrubbed text (emails, links and numbers removed), the kind of account (read from the session, never trusted from the browser), the page title and route with ids stripped, the last few things typed (scrubbed), the confidence, and the closest answer Loop tried. Never who asked, never an address.
+- Similar wordings are grouped by concept words (`src/lib/guide/similarity.ts`): "How do I message an employer?", "Where can I chat with an employer?" and "How can I send a message to an employer?" are one topic with a count and the other wordings listed. Word-based grouping is honest about its limit: questions that share almost no words stay separate; merge them by hand.
+- Priority (`priority.ts`): how often, how many kinds of account, how recently, and whether it touches paying, applying, signing in, certificates or messaging.
+- Confidence: an answer scoring under `ANSWER_CONFIDENT` is given with "Is this what you were asking about?" and also queued. A question asked again after being answered goes back to the queue (the answer's wording or keywords need work).
+
+## Guide Bot Knowledge (`/admin/command/guide`, SUPER_ADMIN)
+
+Overview (30-day numbers, resolution rate, **where people get stuck**: questions grouped by the part of the product they were asked on, a signal for navigation, labels and onboarding) · Needs review (filters by status, kind of account, category, area, search; Write an answer, Start review, Merge into a question or an existing answer, Mark resolved, Reject with a reason, Dismiss, Reopen) · Frequently asked · Knowledge base · Navigation knowledge · Learning history · Categories · Pointing targets · Settings.
+
+Every approved answer can carry: a category, who it is for, other ways people ask it, a destination (**Take me there**), and a control to light up (**Show me**). Every create, edit, disable, enable and restore is a **version** (who, when, note). Restoring brings an old version back as a new one; history is never rewritten. Counters (answers given, helpful / not helpful, navigations, tours) are daily numbers with no text and no identity.
+
+## Navigation, by account type
+
+`src/lib/guide/navigation.ts` builds the places Loop can take someone from the menus the platform already has (trainee, employer, investor, organization and staff sidebars) plus the public pages, so a renamed page is followed automatically. Each place knows which account may open it.
+
+- "Where is Analytics?" gives **Open Analytics & Reports** and **Show me**. "Open messages" goes there at once. "Show me how to use…" lights it up.
+- The same question gets a different page per account: Messages is `/trainee/messages`, `/employer/messages` or `/admin/messages`.
+- A feature that belongs to another account is never linked or highlighted. Loop says so ("That feature … is available to trainees. Your current account doesn't have access to it.") and offers the sign-up page when that is a way to get access. A visitor is told to sign in.
+- Intent (`intent.ts`): information, navigation, instruction, demonstration, action.
+
+## Pointing at the screen
+
+A control opts in with `data-guide-target="some-id"`; every menu item carries `nav:<page address>` automatically. Loop never finds controls by their text or position.
+
+- `GuideSpotlight` draws a soft animated beam around the target, scrolls it into view (not while the person is typing elsewhere), focuses a field on a computer (not on a touch screen, to keep the keyboard down), and notices when the person uses it: a click, or typing then a pause, so a guide moves on by itself.
+- On a phone, a menu item that is not on the bottom bar points at **More** first, then at the real item once More is open.
+- The small card explaining the step moves to the other side if it would touch the target. Esc ends a guide. The chat tucks itself away while pointing.
+- Guided tours are the existing playbooks: steps may now carry `target`, `page` (where the control lives) and `completeOn`. A step on another page offers **Take me there**. A test checks every named target exists.
+- **Reduced motion** gets a still, double high-contrast outline with no animation. The beam is slow (2.8 s halo, 3.6 s sweep) and never flashes.
+- To make a new control pointable: add `data-guide-target="its-id"`, list it in `src/lib/guide/controlTargets.ts` (a test keeps the list honest), and use it in a playbook step or an approved answer.

@@ -13,6 +13,7 @@ import AvatarFallback from "@/components/ui/AvatarFallback";
 import Badge from "@/components/ui/Badge";
 import { EMPLOYER_NAV, EMPLOYER_ORGANIZATIONS_NAV } from "@/lib/employer/nav";
 import { getSidebarTourGuideContent } from "@/lib/tourGuideContent";
+import { navTarget } from "@/lib/guide/navigation";
 
 /**
  * Sidebar rollout (Phase 2) — the employer counterpart to
@@ -88,6 +89,7 @@ export default function EmployerSidebar({ companyName, showOrganizations = false
           <Link
             key={item.href}
             href={item.href}
+            data-guide-target={navTarget(item.href)}
             onClick={() => setMobileOpen(false)}
             className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold ${
               isActive(item.href)

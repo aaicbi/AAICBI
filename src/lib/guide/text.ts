@@ -28,7 +28,7 @@ const STOP = new Set(
     "which whom whose when where why how whether any some all each every more most much many few take part " +
     "please pls help need want wanna like looking look find show tell give get got go going let lets ask asking know " +
     "hi hello hey thanks thank ok okay yes no not just also too very really still then than " +
-    "guide someone something anything everything one ones way thing things"
+    "guide someone something anything everything one ones way thing things another other second"
   ).split(/\s+/),
 );
 
@@ -50,9 +50,11 @@ const CONCEPTS: Record<string, string[]> = {
   certificate: ["certificate", "certification", "credential", "verify", "verification", "certified", "diploma", "badge"],
   event: ["event", "workshop", "webinar", "meetup", "seminar", "conference"],
   video: ["video", "clip", "watch", "youtube", "recording"],
-  message: ["message", "chat", "dm", "contact", "reach", "talk", "email", "mail", "speak"],
+  message: ["message", "chat", "dm", "contact", "reach", "talk", "email", "mail", "speak", "send", "converse", "conversation", "inbox"],
   price: ["price", "pric", "cost", "fee", "pay", "payment", "free", "cheap", "afford", "paid", "naira", "charge", "expensive"],
   exam: ["exam", "examination", "test", "quiz", "assessment", "assignment", "grade"],
+  team: ["team", "teammate", "colleague", "coworker", "co-worker", "workmate", "members"],
+  picture: ["picture", "photo", "image", "avatar", "pic", "photograph", "logo"],
   privacy: ["privacy", "private", "public", "visible", "visibility"],
   register: ["register", "registration", "join", "subscribe"],
   resetpassword: ["resetpassword", "password"],
