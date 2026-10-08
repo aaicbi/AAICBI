@@ -83,8 +83,11 @@ change to the DOCX import logic.
 
 Works on Vercel out of the box for the Next.js app; point `DATABASE_URL`
 at a managed Postgres (Neon, Supabase, Railway, RDS...) instead of the
-local docker-compose one. Run `npx prisma migrate deploy` against the
-production database as part of your deploy step.
+local docker-compose one. On Vercel, the `vercel-build` script
+(`scripts/vercel-build.mjs`) runs `prisma migrate deploy` before the build
+on production deployments only; previews and local builds never touch the
+database. Elsewhere, run `npx prisma migrate deploy` against the production
+database as part of your deploy step. See `docs/public-ecosystem.md`.
 
 `build` is deliberately `prisma generate && next build`, not just
 `next build`. `@prisma/client`'s own `postinstall` usually regenerates

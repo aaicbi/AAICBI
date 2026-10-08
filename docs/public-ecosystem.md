@@ -4,7 +4,7 @@ Organization public pages, trainee education videos, the community feed, and a d
 
 ## Rolling out
 
-1. Run `prisma migrate deploy` (migrations `20261009090000_public_ecosystem`, `20261009100000_ecosystem_feed` and `20261009110000_course_skills` and `20261009120000_ranking_config` and `20261009130000_org_watchlist` and `20261009140000_ecosystem_events` and `20261009150000_comments_events`). It only adds tables and columns with defaults, so the current site is unaffected.
+1. Migrations are applied automatically by the production build (see *Database migrations on deploy* below). To run them by hand instead, `prisma migrate deploy` (migrations `20261009090000_public_ecosystem`, `20261009100000_ecosystem_feed` and `20261009110000_course_skills` and `20261009120000_ranking_config` and `20261009130000_org_watchlist` and `20261009140000_ecosystem_events` and `20261009150000_comments_events`). It only adds tables and columns with defaults, so the current site is unaffected.
 2. Deploy the code. Nothing public changes yet: `/organizations` and `/learn` return 404.
 3. As SUPER_ADMIN open **Platform > Ecosystem** and switch on public organization pages, education videos and/or the community feed. Switching them off again hides the pages at once; no data is deleted.
 
@@ -75,3 +75,14 @@ Demo rows are flagged `isDemo` or use the `.invalid` domain (cannot receive emai
 ## Not in this change
 
 Achievements and events in the feed, employer and investor feed views, an investor public profile, and comment replies or likes.
+
+## Database migrations on deploy
+
+Vercel runs `npm run vercel-build` (`scripts/vercel-build.mjs`), which on a **production** deployment runs `prisma migrate deploy` before `next build`. If a migration fails the build fails, so the previous deployment stays live. Preview deployments and local builds never touch the database.
+
+Optional environment variables in Vercel:
+
+- `MIGRATE_DATABASE_URL`: connection used for migrations only. Set it to Neon's direct (non-pooler) host if migrations time out or lose their lock on the pooled one. Falls back to `DATABASE_URL`.
+- `SKIP_DB_MIGRATE=1`: build without migrating (escape hatch).
+
+Migrations must stay additive (new tables and columns with defaults) so the old deployment keeps working while a new one builds.
