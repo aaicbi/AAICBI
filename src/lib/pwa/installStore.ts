@@ -51,7 +51,14 @@ export async function promptInstall(): Promise<"accepted" | "dismissed" | "unava
 
 export function useInstallState() {
   const [, tick] = useState(0);
+  // Browser facts are read after mount, never during render: the server cannot
+  // know them, and rendering them on the first client pass would not match the
+  // server's HTML (React then rebuilds the whole page and drops the theme class).
+  const [ios, setIos] = useState(false);
+  const [ready, setReady] = useState(false);
   useEffect(() => {
+    setIos(isIosDevice(navigator.userAgent, navigator.maxTouchPoints));
+    setReady(true);
     start();
     const l = () => tick((n) => n + 1);
     listeners.add(l);
@@ -60,6 +67,6 @@ export function useInstallState() {
       listeners.delete(l);
     };
   }, []);
-  const ios = typeof navigator !== "undefined" && isIosDevice(navigator.userAgent, navigator.maxTouchPoints);
-  return { installed, canPrompt: !!deferred, ios };
+  // Until mounted, report "installed" so nothing install-related renders on the server or the first client pass.
+  return { installed: !ready || installed, canPrompt: ready && !!deferred, ios };
 }
