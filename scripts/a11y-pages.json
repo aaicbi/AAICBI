@@ -9,7 +9,7 @@
     },
     "staff": {
       "login": { "url": "/api/auth/login", "email": "super@dev.test" },
-      "paths": ["/admin/dashboard", "/admin/courses", "/admin/courses/new", "/admin/exams", "/admin/exams/new", "/admin/assignments", "/admin/performance", "/admin/analytics", "/admin/messages", "/admin/payments", "/admin/training-organizations", "/admin/instructors", "/admin/staff", "/admin/command", "/admin/settings", "/admin/profile", "/admin/design-system"]
+      "paths": ["/admin/dashboard", "/admin/courses", "/admin/courses/new", "/admin/exams", "/admin/exams/new", "/admin/assignments", "/admin/performance", "/admin/analytics", "/admin/messages", "/admin/payments", "/admin/training-organizations", "/admin/instructors", "/admin/staff", "/admin/command", "/admin/command/guide", "/admin/settings", "/admin/profile", "/admin/design-system"]
     },
     "organization": {
       "login": { "url": "/api/auth/training-org-login", "email": "org@dev.test" },

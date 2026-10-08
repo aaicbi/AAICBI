@@ -71,6 +71,7 @@ const BY_PATH: Record<string, IconComponent> = {
   "/pitch-cohorts": CohortIcon,
   "/investors": PaymentsIcon,
   "/command": LoopIcon,
+  "/command/guide": MessagesIcon,
   "/design-system": ShowcaseIcon,
   "/discover": TeamIcon,
   "/introductions": MessagesIcon,

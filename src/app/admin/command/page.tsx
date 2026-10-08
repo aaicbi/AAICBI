@@ -7,6 +7,7 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { ADMIN_NAV_COMMAND } from "@/lib/admin/nav";
+import GuideSwitchCard from "@/components/admin/GuideSwitchCard";
 
 import { Input } from "@/components/ui/Field";
 interface KeyStat {
@@ -338,6 +339,8 @@ export default function CommandCenterPage() {
           </div>
           <Badge variant="success">Loop</Badge>
         </div>
+
+        <GuideSwitchCard />
 
         <div className="mt-6 flex gap-5" style={{ minHeight: "60vh" }}>
           <aside className="hidden w-64 shrink-0 flex-col gap-3 md:flex">

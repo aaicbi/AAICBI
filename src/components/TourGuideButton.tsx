@@ -5,6 +5,7 @@ import { HelpCircle, X } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import { getTourGuideContent } from "@/lib/tourGuideContent";
 import { pageHasSidebar } from "@/lib/sidebarRoutes";
+import { useLoopVisible } from "@/components/guide/useGuideConfig";
 
 import { ABOVE_BANNER, FAB_FOOTPRINT_PX, setFloatingOffset } from "@/lib/floatingLayers";
 /**
@@ -35,6 +36,12 @@ export default function TourGuideButton() {
   // (login, register, etc.), which still use the old top header.
   const hasSidebar = pageHasSidebar(pathname ?? "/");
 
+  // Loop, the guide, takes this button's place wherever it is showing
+  // (its chat can explain the page too). Wait until we know, so neither
+  // flashes in and out.
+  const loop = useLoopVisible(pathname ?? "/");
+  const yieldToLoop = loop !== "hidden";
+
   // Rules of Hooks: the two effects below must still run on every
   // render (even one we're about to render null for), so the early
   // return happens after them, not before.
@@ -58,12 +65,12 @@ export default function TourGuideButton() {
 
   // Tell the other floating layers this button is on screen.
   useEffect(() => {
-    if (hasSidebar) return;
+    if (hasSidebar || yieldToLoop) return;
     setFloatingOffset("fab", FAB_FOOTPRINT_PX);
     return () => setFloatingOffset("fab", 0);
-  }, [hasSidebar]);
+  }, [hasSidebar, yieldToLoop]);
 
-  if (hasSidebar) return null;
+  if (hasSidebar || yieldToLoop) return null;
 
   return (
     <div ref={containerRef} className="fixed right-6 z-40" style={{ bottom: ABOVE_BANNER }}>
