@@ -45,7 +45,7 @@ export default function EcosystemAdmin() {
     <div className="space-y-8">
       <Card className="space-y-4">
         <h2 className="font-display text-lg font-semibold text-brand-ink">Feature switches</h2>
-        <p className="text-sm text-gray-600">Both are off until you turn them on. Turning one off hides the public pages again immediately; no data is deleted.</p>
+        <p className="text-sm text-gray-600">All three are off until you turn them on. Turning one off hides the public pages again immediately; no data is deleted.</p>
         <Row label="Public organization pages (/organizations)" checked={data.flags.ecosystemOrgPagesEnabled} onChange={(v) => call("/api/admin/ecosystem", "PUT", { ecosystemOrgPagesEnabled: v })} />
         <Row label="Trainee education videos (/learn)" checked={data.flags.ecosystemEducationEnabled} onChange={(v) => call("/api/admin/ecosystem", "PUT", { ecosystemEducationEnabled: v })} />
         <Row label="Community feed (/feed)" checked={data.flags.ecosystemFeedEnabled} onChange={(v) => call("/api/admin/ecosystem", "PUT", { ecosystemFeedEnabled: v })} />
