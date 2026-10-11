@@ -79,7 +79,7 @@ function Composer() {
       if (!s.ok && s.status !== 409) { setBusy(null); return setError(sd.error ?? "Saved, but it could not be sent for review."); }
     }
     setBusy(null);
-    showToast(submit ? (identities?.find((i) => i.key === identity)?.skipsReview ? "Published." : "Sent for review. You will be told the outcome.") : "Saved as a draft.", "success");
+    showToast(submit ? (identities?.find((i) => i.key === identity)?.skipsReview ? "Published." : "Sent. If it needs a second look you will be told the outcome.") : "Saved as a draft.", "success");
     router.push("/my-posts");
   }
 
@@ -126,7 +126,7 @@ function Composer() {
               {images.length === 0 && <Input label="YouTube link (optional)" value={youtube} onChange={(e) => setYoutube(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." inputMode="url" hint="A video plays inside the post. A post has a video or images, not both." />}
               <Select label="Who can see it" value={visibility} onChange={(e) => setVisibility(e.target.value as "PUBLIC" | "MEMBERS")}><option value="PUBLIC">Everyone</option><option value="MEMBERS">Signed-in members only</option></Select>
             </Card>
-            <p className="text-sm text-gray-700">{publishing ? "As a super admin your own posts are published straight away." : backToReview ? "This post is published. Changing its words, pictures or video sends it back for review, and it is hidden until a reviewer approves the new version." : "Your post is reviewed by the AAICBI team before it appears publicly. You can follow its status in My posts."}</p>
+            <p className="text-sm text-gray-700">{publishing ? "As a super admin your own posts are published straight away." : backToReview ? "This post is published. Changing its words, pictures or video sends it back for review, and it is hidden until a reviewer approves the new version." : "Your post is checked automatically when you send it. If it looks fine it is published straight away; if anything needs a second look, the AAICBI team reviews it first. You can follow its status in My posts."}</p>
             {error && <p className="text-sm text-brand-rose" role="alert">{error}</p>}
             <div className="flex flex-wrap justify-end gap-2">
               <Link href="/my-posts" className="inline-flex min-h-[44px] items-center px-4 text-sm font-semibold text-gray-700 hover:underline">Cancel</Link>
