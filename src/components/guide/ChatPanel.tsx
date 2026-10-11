@@ -271,8 +271,13 @@ export default function ChatPanel({
         <LoopFace size={40} state={thinking ? "thinking" : "idle"} />
         <div className="min-w-0 flex-1">
           <p className="font-display text-base font-semibold leading-tight text-brand-ink">Loop</p>
-          <p className="text-xs text-gray-600">Your guide to the ecosystem</p>
+          <p className="truncate text-xs text-gray-600">Your guide to the ecosystem</p>
         </div>
+        <button type="button" onClick={onClose} aria-label="Minimize Loop" className="flex h-9 shrink-0 w-9 items-center justify-center rounded-lg text-gray-600 hover:bg-brand-mint hover:text-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
+          <Icon icon={Minus} size="md" />
+        </button>
+      </header>
+      <div className="flex items-center justify-end gap-1 border-b border-brand-gray px-3 py-1">
         <button
           type="button"
           onClick={() => {
@@ -283,19 +288,16 @@ export default function ChatPanel({
               /* nothing to clear */
             }
           }}
-          className="rounded px-2 py-1 text-xs font-semibold text-gray-600 hover:text-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal"
+          className="whitespace-nowrap rounded px-2 py-1 text-xs font-semibold text-gray-600 hover:text-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal"
         >
           Start over
         </button>
         {onResetPosition && (
-          <button type="button" onClick={() => { onResetPosition(); onClose(); }} className="rounded px-2 py-1 text-xs font-semibold text-gray-600 hover:text-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
+          <button type="button" onClick={() => { onResetPosition(); onClose(); }} className="whitespace-nowrap rounded px-2 py-1 text-xs font-semibold text-gray-600 hover:text-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
             Put Loop back
           </button>
         )}
-        <button type="button" onClick={onClose} aria-label="Minimize Loop" className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 hover:bg-brand-mint hover:text-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
-          <Icon icon={Minus} size="md" />
-        </button>
-      </header>
+      </div>
 
       <div ref={logRef} role="log" aria-live="polite" aria-relevant="additions" aria-label="Conversation with Loop" tabIndex={0} className="flex-1 space-y-3 overflow-y-auto px-4 py-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-teal">
         {messages.map((m) => (

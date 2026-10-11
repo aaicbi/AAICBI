@@ -5060,6 +5060,7 @@ enum PostReactionKind {
   LIKE
   INSIGHTFUL
   CELEBRATE
+  DISLIKE
 }
 
 /// One reaction from one profile on one post (choosing another kind replaces it).

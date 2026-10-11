@@ -6,9 +6,9 @@ import { z } from "zod";
  * into safe links (topics, mentions, web addresses) without ever inserting
  * raw HTML.
  */
-export const REACTIONS = ["LIKE", "INSIGHTFUL", "CELEBRATE"] as const;
+export const REACTIONS = ["LIKE", "INSIGHTFUL", "CELEBRATE", "DISLIKE"] as const;
 export type ReactionKind = (typeof REACTIONS)[number];
-export const REACTION_LABEL: Record<ReactionKind, string> = { LIKE: "Like", INSIGHTFUL: "Insightful", CELEBRATE: "Celebrate" };
+export const REACTION_LABEL: Record<ReactionKind, string> = { LIKE: "Like", INSIGHTFUL: "Insightful", CELEBRATE: "Celebrate", DISLIKE: "Dislike" };
 
 export const COMMENT_MAX = 1000;
 export const MAX_LINKS_IN_COMMENT = 2;

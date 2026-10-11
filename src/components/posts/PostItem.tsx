@@ -16,20 +16,20 @@ const PATH = { like: "M7 11v9H3v-9zM7 11l4-8c2 0 3 1 3 3v3h5a2 2 0 012 2l-1 6a3 
 const action = "flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-brand-mint focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal";
 
 /** A post with everything you can do to it: react, comment, save, share, follow its author, report it. */
-export default function PostItem({ post }: { post: FeedPost }) {
+export default function PostItem({ post, showStatus = false, openComments = false }: { post: FeedPost; showStatus?: boolean; openComments?: boolean }) {
   const { gate, act } = useSocial();
   const { showToast } = useToast();
   const [mine, setMine] = useState<ReactionKind | null>(post.stats.mine);
   const [counts, setCounts] = useState(post.stats.reactions);
   const [saved, setSaved] = useState(post.stats.bookmarked);
   const [comments, setComments] = useState(post.stats.comments);
-  const [showComments, setShowComments] = useState(false);
+  const [showComments, setShowComments] = useState(openComments);
   const [picker, setPicker] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [reason, setReason] = useState<string>("SPAM");
   const [details, setDetails] = useState("");
   const returnTo = `/post/${post.id}`;
-  const total = counts.LIKE + counts.INSIGHTFUL + counts.CELEBRATE;
+  const total = counts.LIKE + counts.INSIGHTFUL + counts.CELEBRATE + counts.DISLIKE;
 
   async function react(kind: ReactionKind | null) {
     setPicker(false);
@@ -66,6 +66,8 @@ export default function PostItem({ post }: { post: FeedPost }) {
   return (
     <PostCard
       post={post}
+      showStatus={showStatus}
+      full={openComments}
       headerAction={post.canFollowAuthor ? <FollowButton profileId={subject.profileId} initial={post.authorFollowed} name={subject.name} /> : null}
       footer={
         <div className="mt-3">
@@ -76,12 +78,18 @@ export default function PostItem({ post }: { post: FeedPost }) {
             </p>
           )}
           <div className="relative mt-2 flex gap-1 border-t border-brand-gray pt-2">
-            <button type="button" className={`${action} ${mine ? "text-brand-teal" : ""}`} aria-pressed={!!mine} onClick={() => (mine ? react(null) : setPicker((p) => !p))} aria-haspopup="true" aria-expanded={picker}>
-              <Icon d={PATH.like} filled={!!mine} /> {mine ? REACTION_LABEL[mine] : "React"}
+            <button type="button" className={`${action} ${mine && mine !== "DISLIKE" ? "text-brand-teal" : ""}`} aria-pressed={!!mine && mine !== "DISLIKE"} aria-label={mine && mine !== "DISLIKE" ? `${REACTION_LABEL[mine]}. Tap to undo` : "Like"} onClick={() => react(mine && mine !== "DISLIKE" ? null : "LIKE")}>
+              <Icon d={PATH.like} filled={!!mine && mine !== "DISLIKE"} /> <span className="hidden sm:inline">{mine && mine !== "DISLIKE" ? REACTION_LABEL[mine] : "Like"}</span>
+            </button>
+            <button type="button" className={`${action} ${mine === "DISLIKE" ? "text-brand-rose" : ""}`} aria-pressed={mine === "DISLIKE"} aria-label="Dislike" onClick={() => react(mine === "DISLIKE" ? null : "DISLIKE")}>
+              <span className="inline-block rotate-180"><Icon d={PATH.like} filled={mine === "DISLIKE"} /></span> <span className="hidden sm:inline">Dislike</span>
+            </button>
+            <button type="button" className={action} aria-haspopup="true" aria-expanded={picker} aria-label="More reactions" onClick={() => setPicker((p) => !p)}>
+              <span aria-hidden="true">✨</span>
             </button>
             {picker && (
               <div role="group" aria-label="Choose a reaction" className="absolute bottom-full left-0 z-10 mb-2 flex gap-1 rounded-full border border-brand-gray bg-brand-surface p-1 shadow-lg">
-                {REACTIONS.map((k) => <button key={k} type="button" onClick={() => react(k)} className="min-h-[40px] rounded-full px-3 text-sm font-semibold text-brand-ink hover:bg-brand-mint focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">{REACTION_LABEL[k]}</button>)}
+                {REACTIONS.filter((k) => k !== "DISLIKE").map((k) => <button key={k} type="button" onClick={() => react(k)} className="min-h-[40px] rounded-full px-3 text-sm font-semibold text-brand-ink hover:bg-brand-mint focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">{REACTION_LABEL[k]}</button>)}
               </div>
             )}
             <button type="button" className={action} aria-expanded={showComments} aria-label="Comment" onClick={() => setShowComments((s) => !s)}><Icon d={PATH.comment} /> <span className="hidden sm:inline">Comment</span></button>
