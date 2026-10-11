@@ -123,9 +123,6 @@ export const ROADMAP_ENTRIES: GuideEntry[] = [
   g("org-events-videos", "How do I announce an event or publish a video?",
     "Events: open Events, add the title, date and place, and it appears on your public page and the events page. Videos: open Education videos to publish videos presented by your trainees (they approve first). Both help people discover your organization.",
     { nav: ["/admin/organization/events", "Open events"], links: [["/events"], ["/learn"]], keywords: ["event", "video", "announce", "webinar", "publish video", "education video"], roles: ["organization"] }),
-  g("org-public-page", "How do I set up my organization's public page?",
-    "Open Public profile and fill in the tagline, description, location, logo and cover, then switch the page on. Until it is on, people can still find your organization by name in search, and the card says the page is not published yet.",
-    { nav: ["/admin/organization/profile", "Open public profile"], keywords: ["public page", "organization page", "profile", "logo", "cover", "tagline", "switch on"], roles: ["organization"] }),
   // ---------------------------------------------------------------- startups
   g("startup-create", "How do I create or manage my startup profile?",
     "Create a startup account (or, if you are a member, start one from My startups). Fill in what you build, the problem, your stage and what you are looking for, then submit it for review; once approved it is public and searchable. From My startups you can invite teammates and choose what each may edit or publish, and post as the startup.",
