@@ -37,7 +37,7 @@ const psql = (q) => require('child_process').execFileSync('/usr/lib/postgresql/1
   await p.mouse.click(box2.x + 28, box2.y + 28);
   await p.waitForTimeout(500);
   log(await p.locator('#loop-panel').count() === 1, 'a tap still opens the chat');
-  await p.getByRole('button', { name: /Minimize Loop/ }).click();
+  await p.getByRole('dialog').getByRole('button', { name: 'Minimize Loop' }).click();
   await loop.dblclick();
   const box3 = await loop.boundingBox();
   log(Math.abs(box3.x - box0.x) < 3 && Math.abs(box3.y - box0.y) < 3, 'double-click puts Loop back');
