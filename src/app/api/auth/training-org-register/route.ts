@@ -1,3 +1,4 @@
+import { ensureProfileQuietly } from "@/lib/profiles/profiles";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
         billingModel: parsed.data.billingModel,
       },
     });
+    await ensureProfileQuietly("TRAINING_ORG", org.id);
 
     const content = newTrainingOrgPendingEmail({
       organizationName: org.name,

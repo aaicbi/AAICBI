@@ -1,3 +1,4 @@
+import { ensureProfileQuietly } from "@/lib/profiles/profiles";
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { z } from "zod";
@@ -56,7 +57,7 @@ export async function GET() {
     await requireRole("SUPER_ADMIN");
     const staff = await prisma.user.findMany({
       orderBy: { createdAt: "desc" },
-      select: { id: true, name: true, email: true, role: true, createdAt: true },
+      select: { id: true, name: true, email: true, role: true, canReview: true, createdAt: true },
     });
     return NextResponse.json(staff);
   });
@@ -94,6 +95,7 @@ export async function POST(req: NextRequest) {
         resetTokenExpiresAt: new Date(Date.now() + SETUP_TOKEN_LIFETIME_MS),
       },
     });
+    await ensureProfileQuietly("STAFF", staffMember.id);
 
     const setupUrl = appUrl(`/admin/reset-password?token=${setupToken}`);
     const content = staffWelcomeEmail(staffMember.name, ROLE_LABELS[parsed.data.role], setupUrl);

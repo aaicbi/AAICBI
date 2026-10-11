@@ -267,6 +267,9 @@ model User {
   // regardless of role.
   active Boolean @default(true)
 
+  /// A reviewer: a staff member the super admin has allowed to review posts and Loop's questions.
+  canReview Boolean @default(false)
+
   // Universal profile system, Phase 3 — staff profile fields.
   // "Organization" isn't stored (this is a single-org platform, always
   // AAICBI); "permission level" is the existing `role` field above,
@@ -4699,6 +4702,9 @@ model GuideUnanswered {
   reviewedById String?
   reviewNote   String?
   mergedIntoId String?
+  escalatedAt    DateTime?
+  escalatedById  String?
+  escalationNote String?
 
   @@index([status, lastAskedAt])
   @@index([tokenKey])
@@ -4778,4 +4784,339 @@ model PushSubscription {
   lastUsedAt    DateTime @default(now())
 
   @@index([recipientType, recipientId])
+}
+
+/// What kind of account a Profile belongs to.
+enum ProfileKind {
+  PERSON
+  TRAINING_ORG
+  EMPLOYER
+  INVESTOR
+  STAFF
+  STARTUP
+}
+
+/// One public identity per account, layered on top of the existing account
+/// tables (nothing about logins or ids changes). Exactly one of the source ids
+/// is set. The handle is unique across every kind and is what /@handle shows.
+/// Plain columns, not relations: the source tables are untouched by this layer.
+/// Visibility is NOT stored here; it is read from the source account when a
+/// profile is viewed, so it can never drift from the account's own setting.
+model Profile {
+  id                     String      @id @default(cuid())
+  kind                   ProfileKind
+  handle                 String      @unique
+  traineeId              String?     @unique
+  employerId             String?     @unique
+  investorId             String?     @unique
+  trainingOrganizationId String?     @unique
+  userId                 String?     @unique
+  startupId              String?     @unique
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
+
+  @@index([kind])
+}
+
+/// A person's request to change their /@handle. Only a super admin decides.
+model HandleChangeRequest {
+  id              String    @id @default(cuid())
+  profileId       String
+  currentHandle   String
+  requestedHandle String
+  reason          String
+  /// PENDING | APPROVED | REJECTED | CANCELLED
+  status          String    @default("PENDING")
+  decidedById     String?
+  decidedByName   String?
+  decisionNote    String?
+  decidedAt       DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([status, createdAt])
+  @@index([profileId, createdAt])
+}
+
+/// Every handle a profile has had before its current one. A former handle is
+/// held for its owner for good: nobody else can take it, the old address
+/// forwards to the current one, and search still finds the person by it.
+model ProfileHandleHistory {
+  id          String   @id @default(cuid())
+  profileId   String
+  handle      String   @unique
+  changedAt   DateTime @default(now())
+  changedById String?
+  reason      String?
+
+  @@index([profileId])
+}
+
+enum StartupStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum StartupStage {
+  IDEA
+  PROTOTYPE
+  MVP
+  LAUNCHED
+  GROWTH
+}
+
+enum StartupMemberRole {
+  FOUNDER
+  MEMBER
+}
+
+/// A startup: its own organizational identity with a team and a public profile
+/// (its handle lives on a Profile of kind STARTUP). Public only once a super
+/// admin has approved it. "verified" is set separately, only by a person.
+model Startup {
+  id          String        @id @default(cuid())
+  name        String
+  tagline     String?
+  problem     String?
+  solution    String?
+  description String?
+  industry    String?
+  stage       StartupStage  @default(IDEA)
+  location    String?
+  website     String?
+  logoUrl     String?
+  /// Public traction the team chooses to share (users, revenue, pilots).
+  traction    String?
+  /// Funding or support the team chooses to disclose.
+  fundingNeed String?
+  /// What the team is looking for: FUNDING, HIRING, PARTNERS, MENTORSHIP.
+  seeking     String[]
+  status      StartupStatus @default(DRAFT)
+  verified    Boolean       @default(false)
+  reviewNote  String?
+  reviewedById String?
+  reviewedAt  DateTime?
+  submittedAt DateTime?
+  createdById String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  members StartupMember[]
+
+  @@index([status, createdAt])
+}
+
+/// A member's place on a startup team. Joining needs the member's own acceptance.
+model StartupMember {
+  id           String            @id @default(cuid())
+  startupId    String
+  startup      Startup           @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  traineeId    String
+  role         StartupMemberRole @default(MEMBER)
+  /// What this person may do for the startup, set by a founder.
+  canEdit      Boolean           @default(false)
+  canPublish   Boolean           @default(false)
+  /// Their job on the team, shown on the profile ("CTO").
+  title        String?
+  showOnProfile Boolean          @default(true)
+  /// INVITED until the member accepts, then ACTIVE.
+  status       String            @default("INVITED")
+  invitedById  String?
+  createdAt    DateTime          @default(now())
+  joinedAt     DateTime?
+
+  @@unique([startupId, traineeId])
+  @@index([traineeId, status])
+}
+
+enum PostStatus {
+  DRAFT
+  PENDING_REVIEW
+  CHANGES_REQUESTED
+  PUBLISHED
+  REJECTED
+  SUSPENDED
+}
+
+enum PostType {
+  TEXT
+  IMAGE
+  YOUTUBE
+}
+
+enum PostVisibility {
+  PUBLIC
+  MEMBERS
+}
+
+/// One content model for everything people publish: text, image galleries and
+/// YouTube videos. The author is always a Profile (a person, or an
+/// organization posting as itself); when a person posts for a startup the
+/// startup is `actingAsProfileId`. Nothing is public until a reviewer
+/// publishes it, and a material edit to a published post sends it back for review.
+model Post {
+  id                  String         @id @default(cuid())
+  type                PostType       @default(TEXT)
+  authorProfileId     String
+  actingAsProfileId   String?
+  title               String?
+  body                String         @default("")
+  youtubeId           String?
+  youtubeUrl          String?
+  tags                String[]
+  visibility          PostVisibility @default(PUBLIC)
+  status              PostStatus     @default(DRAFT)
+  /// Counts material edits after the first submission.
+  revision            Int            @default(1)
+  /// The latest thing a reviewer told the author.
+  reviewNote          String?
+  submittedAt         DateTime?
+  publishedAt         DateTime?
+  /// An organization's hold on a trainee's post: hidden from public view while set.
+  orgBlockedAt        DateTime?
+  orgBlockedById      String?
+  orgBlockReason      String?
+  /// Sent to the super admin by a reviewer. While set, only a super admin may decide it.
+  escalatedAt         DateTime?
+  escalatedById       String?
+  escalationNote      String?
+  /// The author asked the central team to look at an organization's hold again.
+  appealedAt          DateTime?
+  appealNote          String?
+  /// The EducationPost this was copied from, when it came from the earlier video flow.
+  legacyEducationPostId String?      @unique
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  media   PostMedia[]
+  reviews PostReview[]
+
+  @@index([status, publishedAt])
+  @@index([authorProfileId, status])
+  @@index([actingAsProfileId, status])
+  @@index([tags], type: Gin)
+}
+
+model PostMedia {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([postId, order])
+}
+
+/// The history of a post: every submission, decision and edit, with who and why.
+model PostReview {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  /// SUBMITTED | APPROVED | CHANGES_REQUESTED | REJECTED | SUSPENDED | REINSTATED | EDITED | WITHDRAWN
+  action    String
+  actorId   String?
+  actorName String?
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([postId, createdAt])
+}
+
+/// The history of decisions on things that are not posts (Loop's questions, appeals):
+/// who decided, what, when and why.
+model ReviewLog {
+  id        String   @id @default(cuid())
+  /// GUIDE_QUESTION | POST_APPEAL
+  kind      String
+  itemId    String
+  action    String
+  actorId   String?
+  actorName String?
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([kind, itemId, createdAt])
+}
+
+enum PostReactionKind {
+  LIKE
+  INSIGHTFUL
+  CELEBRATE
+}
+
+/// One reaction from one profile on one post (choosing another kind replaces it).
+model PostReaction {
+  postId    String
+  profileId String
+  kind      PostReactionKind
+  createdAt DateTime         @default(now())
+
+  @@id([postId, profileId])
+  @@index([postId, kind])
+  @@index([profileId, createdAt])
+}
+
+/// A comment or a reply (one level deep) on a post.
+model PostComment {
+  id              String   @id @default(cuid())
+  postId          String
+  authorProfileId String
+  /// Set for a reply: the top-level comment it answers.
+  parentId        String?
+  body            String
+  /// VISIBLE | REMOVED (taken down by the author, the post's side or a reviewer)
+  status          String   @default("VISIBLE")
+  createdAt       DateTime @default(now())
+
+  @@index([postId, createdAt])
+  @@index([parentId])
+  @@index([authorProfileId, createdAt])
+}
+
+/// Profile follows profile: a person follows a person, organization or startup.
+model Follow {
+  followerProfileId String
+  followedProfileId String
+  createdAt         DateTime @default(now())
+
+  @@id([followerProfileId, followedProfileId])
+  @@index([followedProfileId, createdAt])
+}
+
+model Bookmark {
+  profileId String
+  postId    String
+  createdAt DateTime @default(now())
+
+  @@id([profileId, postId])
+  @@index([profileId, createdAt])
+}
+
+/// A report about a post or a comment, decided by the review team.
+model PostReport {
+  id                String    @id @default(cuid())
+  /// POST | COMMENT
+  targetKind        String
+  postId            String
+  commentId         String?
+  reporterProfileId String
+  reason            String
+  details           String?
+  /// OPEN | DISMISSED | ACTIONED
+  status            String    @default("OPEN")
+  decidedById       String?
+  decidedByName     String?
+  decisionNote      String?
+  decidedAt         DateTime?
+  escalatedAt       DateTime?
+  escalatedById     String?
+  escalationNote    String?
+  createdAt         DateTime  @default(now())
+
+  @@unique([targetKind, postId, commentId, reporterProfileId])
+  @@index([status, createdAt])
 }

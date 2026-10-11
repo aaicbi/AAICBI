@@ -1,3 +1,4 @@
+import { ensureProfileQuietly } from "@/lib/profiles/profiles";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
@@ -123,6 +124,7 @@ export async function GET(req: NextRequest) {
       registrationVisitorId: getConsentDecision() === "accepted" ? (getVisitorId() ?? undefined) : undefined,
     },
   });
+  await ensureProfileQuietly("PERSON", created.id);
   await completeTraineeLogin(created);
   return NextResponse.redirect(appUrl("/trainee/dashboard"));
 }

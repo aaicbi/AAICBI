@@ -1409,3 +1409,40 @@ export function assignmentOverdueEmail(input: AssignmentOverdueEmailInput): Emai
     text: `Hi ${input.traineeName},\n\n${input.assignmentTitle} was due on ${input.dueDateLabel} and hasn't been submitted yet. Submit as soon as you can.\n\n${input.assignmentUrl}`,
   };
 }
+
+export function handleChangeRequestedEmail(input: { name: string; currentHandle: string; requestedHandle: string; reason: string; reviewUrl: string }): EmailContent {
+  return {
+    subject: `Handle change requested: @${input.currentHandle} to @${input.requestedHandle}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;"><strong>${escapeHtml(input.name)}</strong> asked to change their handle from <strong>@${escapeHtml(input.currentHandle)}</strong> to <strong>@${escapeHtml(input.requestedHandle)}</strong>.</p>
+      <p style="margin:0 0 16px;">Reason: ${escapeHtml(input.reason)}</p>
+      ${button(input.reviewUrl, "Review the request")}
+    `),
+    text: `${input.name} asked to change their handle from @${input.currentHandle} to @${input.requestedHandle}.\n\nReason: ${input.reason}\n\n${input.reviewUrl}`,
+  };
+}
+
+export function handleChangeDecidedEmail(input: { name: string; approved: boolean; requestedHandle: string; note: string | null; profileUrl: string }): EmailContent {
+  const verdict = input.approved ? `Your handle is now @${input.requestedHandle}. Your old address will keep forwarding to the new one.` : `Your request to change your handle to @${input.requestedHandle} was not approved.${input.note ? ` Reason: ${input.note}` : ""}`;
+  return {
+    subject: input.approved ? "Your handle was changed" : "Your handle change request was not approved",
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(input.name)},</p>
+      <p style="margin:0 0 16px;">${escapeHtml(verdict)}</p>
+      ${button(input.profileUrl, "Open your profile")}
+    `),
+    text: `Hi ${input.name},\n\n${verdict}\n\n${input.profileUrl}`,
+  };
+}
+
+/** A short notice with one button: the shape used by the startup notifications. */
+export function simpleNoticeEmail(input: { subject: string; paragraphs: string[]; buttonLabel: string; url: string }): EmailContent {
+  return {
+    subject: input.subject,
+    html: wrapHtml(`
+      ${input.paragraphs.map((p) => `<p style="margin:0 0 16px;font-size:16px;">${escapeHtml(p)}</p>`).join("")}
+      ${button(input.url, input.buttonLabel)}
+    `),
+    text: `${input.paragraphs.join("\n\n")}\n\n${input.url}`,
+  };
+}

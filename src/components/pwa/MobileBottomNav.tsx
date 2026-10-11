@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Briefcase, Building2, CalendarDays, Home, LayoutGrid, MessageSquare, Users, X, BookOpen } from "lucide-react";
+import { Bell, Briefcase, Building2, CalendarDays, Home, LayoutGrid, MessageSquare, Newspaper, Users, X, BookOpen } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import { setBottomNavLayer } from "@/lib/floatingLayers";
 import { BOTTOM_NAV, MORE_EXTRAS, bottomNavHidden, isTabActive, unreadLabel, type NavIconKey, type NavRole } from "@/lib/pwa/mobileNav";
@@ -10,7 +10,7 @@ import AddToHomeScreenButton from "@/components/pwa/AddToHomeScreenButton";
 import { navTarget } from "@/lib/guide/navigation";
 
 const ICONS: Record<NavIconKey, typeof Home> = {
-  home: Home, messages: MessageSquare, events: CalendarDays, talent: Users, jobs: Briefcase, courses: BookOpen, organizations: Building2, alerts: Bell,
+  home: Home, messages: MessageSquare, events: CalendarDays, talent: Users, jobs: Briefcase, courses: BookOpen, organizations: Building2, alerts: Bell, feed: Newspaper,
 };
 
 /** Unread notification count for the Alerts tab, refreshed every minute while the page is visible. */
@@ -84,6 +84,8 @@ export default function MobileBottomNav({ role, moreItems }: { role: NavRole; mo
   const extras = MORE_EXTRAS[role].filter((x) => !moreItems.some((m) => m.href === x.href));
   const tabClass = (active: boolean) =>
     `relative flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[11px] font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-teal ${active ? "text-brand-teal" : "text-gray-600"}`;
+  // Social look: the active tab sits in a soft pill behind its icon.
+  const pill = (active: boolean) => (active ? "bg-brand-mint" : "");
 
   return (
     <>
@@ -96,7 +98,7 @@ export default function MobileBottomNav({ role, moreItems }: { role: NavRole; mo
             aria-modal="true"
             aria-label="More"
             tabIndex={-1}
-            className="absolute inset-x-0 bottom-0 max-h-[80dvh] overflow-y-auto rounded-t-2xl border-t border-brand-gray bg-brand-surface px-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-3 shadow-2xl focus:outline-none animate-[modal-in_0.15s_ease-out]"
+            className="absolute inset-x-0 bottom-0 max-h-[80dvh] overflow-y-auto rounded-t-3xl border-t border-brand-gray bg-brand-surface px-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-3 shadow-2xl focus:outline-none animate-[modal-in_0.15s_ease-out]"
           >
             <div className="flex items-center justify-between">
               <p className="font-display text-lg font-semibold text-brand-ink">More</p>
@@ -105,6 +107,12 @@ export default function MobileBottomNav({ role, moreItems }: { role: NavRole; mo
               </button>
             </div>
             <ul className="mt-2 grid grid-cols-2 gap-2">
+              <li>
+                <Link href="/notifications" data-guide-target={navTarget("/notifications")} className="flex min-h-[48px] items-center justify-between rounded-xl border border-brand-teal bg-brand-mint px-3 text-sm font-semibold text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
+                  <span className="flex items-center gap-2"><Bell aria-hidden="true" width={18} height={18} />Alerts</span>
+                  {unread > 0 && <span className="rounded-full bg-brand-rose px-2 text-xs font-bold text-brand-onAccent">{unreadLabel(unread)}<span className="sr-only"> unread</span></span>}
+                </Link>
+              </li>
               {[...moreItems, ...extras].map((item) => (
                 <li key={item.href}>
                   <Link href={item.href} data-guide-target={navTarget(item.href)} className="flex min-h-[48px] items-center rounded-xl border border-brand-gray px-3 text-sm font-semibold text-brand-ink hover:border-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
@@ -118,7 +126,7 @@ export default function MobileBottomNav({ role, moreItems }: { role: NavRole; mo
         </div>
       )}
 
-      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-50 border-t border-brand-gray bg-brand-surface lg:hidden print:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-brand-gray bg-brand-surface shadow-[0_-8px_24px_rgb(0_0_0/0.12)] lg:hidden print:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
         <ul className="flex">
           {tabs.map((t) => {
             const active = isTabActive(t, pathname);
@@ -126,14 +134,8 @@ export default function MobileBottomNav({ role, moreItems }: { role: NavRole; mo
             return (
               <li key={t.href} className="flex flex-1">
                 <Link href={t.href} data-guide-target={navTarget(t.href)} aria-current={active ? "page" : undefined} className={tabClass(active)}>
-                  <span className="relative">
+                  <span className={`relative flex h-8 w-14 items-center justify-center rounded-full transition-colors ${pill(active)}`}>
                     <TabIcon aria-hidden="true" width={22} height={22} strokeWidth={active ? 2.5 : 2} />
-                    {t.key === "alerts" && unread > 0 && (
-                      <span className="absolute -right-2.5 -top-1.5 min-w-[18px] rounded-full bg-brand-rose px-1 text-center text-[10px] font-bold leading-[18px] text-brand-onAccent">
-                        {unreadLabel(unread)}
-                        <span className="sr-only"> unread</span>
-                      </span>
-                    )}
                   </span>
                   {t.label}
                 </Link>
@@ -142,7 +144,15 @@ export default function MobileBottomNav({ role, moreItems }: { role: NavRole; mo
           })}
           <li className="flex flex-1">
             <button ref={moreButton} data-guide-target="more" type="button" onClick={() => setMoreOpen((o) => !o)} aria-expanded={moreOpen} aria-haspopup="dialog" className={tabClass(moreOpen)}>
-              <LayoutGrid aria-hidden="true" width={22} height={22} />
+              <span className={`relative flex h-8 w-14 items-center justify-center rounded-full transition-colors ${pill(moreOpen)}`}>
+                <LayoutGrid aria-hidden="true" width={22} height={22} />
+                {unread > 0 && (
+                  <span className="absolute -right-1 -top-1.5 min-w-[18px] rounded-full bg-brand-rose px-1 text-center text-[10px] font-bold leading-[18px] text-brand-onAccent">
+                    {unreadLabel(unread)}
+                    <span className="sr-only"> unread alerts</span>
+                  </span>
+                )}
+              </span>
               More
             </button>
           </li>

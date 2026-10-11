@@ -19,7 +19,7 @@ export default function AvatarUpload({
   // employer logo endpoint. Genuinely the same upload/remove
   // mechanics this component's own doc comment already describes,
   // just another image field on another Prisma model.
-  apiPath: "/api/trainee/avatar" | "/api/admin/avatar" | "/api/employer/logo";
+  apiPath: "/api/trainee/avatar" | "/api/admin/avatar" | "/api/employer/logo" | `/api/startups/${string}/logo`;
   onChange: (url: string | null) => void;
 }) {
   const [uploading, setUploading] = useState(false);

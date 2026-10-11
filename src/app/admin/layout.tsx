@@ -66,7 +66,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // fetch already does with session.userId.
   const staff = await prisma.user.findUnique({
     where: { id: session.userId },
-    select: { name: true, avatarUrl: true },
+    select: { name: true, avatarUrl: true, canReview: true },
   });
 
   // Training Organizations, Phase 2 — a training org's own login issues
@@ -96,8 +96,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           avatarUrl={staff?.avatarUrl ?? null}
           role={session.role}
           isTrainingOrg={!!trainingOrg}
+          canReview={!trainingOrg && !!staff?.canReview}
         />
-        <ShellContent role={trainingOrg ? "organization" : session.role === "INSTRUCTOR" ? "instructor" : "staff"} moreItems={getAdminNavGroups(session.role, !!trainingOrg).flatMap((g) => g.items)}>{children}</ShellContent>
+        <ShellContent role={trainingOrg ? "organization" : session.role === "INSTRUCTOR" ? "instructor" : "staff"} moreItems={getAdminNavGroups(session.role, !!trainingOrg, !trainingOrg && !!staff?.canReview).flatMap((g) => g.items)}>{children}</ShellContent>
       </div>
     </SidebarActiveProvider>
   );

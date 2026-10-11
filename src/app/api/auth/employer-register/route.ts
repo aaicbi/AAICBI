@@ -1,3 +1,4 @@
+import { ensureProfileQuietly } from "@/lib/profiles/profiles";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -92,6 +93,7 @@ export async function POST(req: NextRequest) {
         otherSocialUrl: parsed.data.otherSocialUrl || null,
       },
     });
+    await ensureProfileQuietly("EMPLOYER", employer.id);
 
     await createSession({ userId: employer.id, email: employer.email, role: "EMPLOYER" });
 

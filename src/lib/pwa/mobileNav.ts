@@ -3,10 +3,11 @@
  * chosen per kind of account from what that account actually has. Everything
  * else lives behind "More", which lists the account's full menu. Pages that
  * do not exist for an account are never offered (investors have no messaging,
- * so they get no Messages tab).
+ * so they get no Messages tab). Feed is a main tab for every account; Alerts
+ * moved into "More" (with its unread count shown on the More button).
  */
 export type NavRole = "trainee" | "employer" | "investor" | "instructor" | "organization" | "staff";
-export type NavIconKey = "home" | "messages" | "events" | "talent" | "jobs" | "courses" | "organizations" | "alerts";
+export type NavIconKey = "home" | "messages" | "events" | "talent" | "jobs" | "courses" | "organizations" | "alerts" | "feed";
 
 export interface BottomNavItem {
   key: NavIconKey;
@@ -19,35 +20,35 @@ export const BOTTOM_NAV: Record<NavRole, BottomNavItem[]> = {
     { key: "home", label: "Home", href: "/trainee/dashboard" },
     { key: "messages", label: "Messages", href: "/trainee/messages" },
     { key: "events", label: "Events", href: "/events" },
-    { key: "alerts", label: "Alerts", href: "/notifications" },
+    { key: "feed", label: "Feed", href: "/feed" },
   ],
   employer: [
     { key: "home", label: "Home", href: "/employer/dashboard" },
     { key: "messages", label: "Messages", href: "/employer/messages" },
     { key: "talent", label: "Talent", href: "/employer/discover" },
-    { key: "alerts", label: "Alerts", href: "/notifications" },
+    { key: "feed", label: "Feed", href: "/feed" },
   ],
   investor: [
     { key: "home", label: "Home", href: "/investor/dashboard" },
     { key: "organizations", label: "Organizations", href: "/investor/organizations" },
-    { key: "alerts", label: "Alerts", href: "/notifications" },
+    { key: "feed", label: "Feed", href: "/feed" },
   ],
   instructor: [
     { key: "home", label: "Home", href: "/instructor/dashboard" },
     { key: "courses", label: "Courses", href: "/instructor/courses" },
-    { key: "alerts", label: "Alerts", href: "/notifications" },
+    { key: "feed", label: "Feed", href: "/feed" },
   ],
   organization: [
     { key: "home", label: "Overview", href: "/admin/organization" },
     { key: "messages", label: "Messages", href: "/admin/messages" },
     { key: "events", label: "Events", href: "/admin/organization/events" },
-    { key: "alerts", label: "Alerts", href: "/notifications" },
+    { key: "feed", label: "Feed", href: "/feed" },
   ],
   staff: [
     { key: "home", label: "Home", href: "/admin/dashboard" },
     { key: "messages", label: "Messages", href: "/admin/messages" },
     { key: "courses", label: "Courses", href: "/admin/courses" },
-    { key: "alerts", label: "Alerts", href: "/notifications" },
+    { key: "feed", label: "Feed", href: "/feed" },
   ],
 };
 

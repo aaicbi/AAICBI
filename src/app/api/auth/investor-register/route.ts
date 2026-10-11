@@ -1,3 +1,4 @@
+import { ensureProfileQuietly } from "@/lib/profiles/profiles";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -63,6 +64,7 @@ export async function POST(req: NextRequest) {
         linkedinUrl: parsed.data.linkedinUrl || null,
       },
     });
+    await ensureProfileQuietly("INVESTOR", investor.id);
 
     await createSession({ userId: investor.id, email: investor.email, role: "INVESTOR" });
 

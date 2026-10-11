@@ -1,3 +1,4 @@
+import { ensureProfileQuietly } from "@/lib/profiles/profiles";
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { z } from "zod";
@@ -111,6 +112,7 @@ export async function POST(req: NextRequest) {
           registrationVisitorId: registrationVisitorId ?? undefined,
         },
       });
+      await ensureProfileQuietly("PERSON", trainee.id);
     } catch (e) {
       // The findUnique check above narrows this to a genuine race: two
       // requests for the same email close enough together that both

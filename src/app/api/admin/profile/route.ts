@@ -1,3 +1,5 @@
+import { ensureProfile } from "@/lib/profiles/profiles";
+import { HandleChangeError, directHandleChange } from "@/lib/profiles/handleChanges";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -65,11 +67,28 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
+    // The username is the person's /@handle. A super admin may change theirs directly (the
+    // old handle is kept and forwards); everyone else asks a super admin with a reason.
+    const current = await prisma.user.findUnique({ where: { id: session.userId }, select: { username: true } });
+    const wanted = parsed.data.username || null;
+    if (wanted !== (current?.username ?? null)) {
+      if (session.role !== "SUPER_ADMIN" || !wanted) {
+        return NextResponse.json({ error: "Your username is your /@handle. To change it, send a request with your reason from the handle section of this page." }, { status: 400 });
+      }
+      try {
+        const mine = await ensureProfile("STAFF", session.userId);
+        if (!mine) return NextResponse.json({ error: "Profile not found." }, { status: 404 });
+        await directHandleChange(mine.id, wanted, "Changed by a super admin in profile settings.", { userId: session.userId });
+      } catch (e) {
+        if (e instanceof HandleChangeError) return NextResponse.json({ error: e.message }, { status: e.status });
+        throw e;
+      }
+    }
+
     try {
       const updated = await prisma.user.update({
         where: { id: session.userId },
         data: {
-          username: parsed.data.username || null,
           bio: parsed.data.bio || null,
           jobTitle: parsed.data.jobTitle || null,
           department: parsed.data.department || null,

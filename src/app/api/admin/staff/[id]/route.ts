@@ -4,11 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 
-const UpdateRoleSchema = z.object({ role: z.enum(["ADMIN", "INSTRUCTOR"]) });
+const UpdateRoleSchema = z.object({ role: z.enum(["ADMIN", "INSTRUCTOR"]).optional(), canReview: z.boolean().optional() }).refine((v) => v.role !== undefined || v.canReview !== undefined, "Nothing to change.");
 
 /**
  * PATCH /api/admin/staff/[id] — change an existing staff member's
- * role. Same SUPER_ADMIN-only scoping and the same hard "never
+ * role, and whether they are a reviewer (can review posts and Loop's questions). Same SUPER_ADMIN-only scoping and the same hard "never
  * SUPER_ADMIN" boundary as creation — see that route's own comment
  * for why. Deliberately does not let a Super Admin change their own
  * role through this route (a real, if narrow, self-lockout risk —
@@ -39,8 +39,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     const updated = await prisma.user.update({
       where: { id: params.id },
-      data: { role: parsed.data.role },
-      select: { id: true, name: true, email: true, role: true },
+      data: { ...(parsed.data.role !== undefined ? { role: parsed.data.role } : {}), ...(parsed.data.canReview !== undefined ? { canReview: parsed.data.canReview } : {}) },
+      select: { id: true, name: true, email: true, role: true, canReview: true },
     });
     return NextResponse.json(updated);
   });

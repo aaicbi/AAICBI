@@ -62,6 +62,14 @@ const config: Config = {
           900: "rgb(var(--gray-900) / <alpha-value>)",
         },
       },
+      // The social look: rounder than stock Tailwind, applied once here so
+      // every card (xl), field and menu (lg) and dialog (2xl) in the app
+      // picks it up without a per-file edit. Buttons and chips are full pills.
+      borderRadius: {
+        lg: "0.875rem",
+        xl: "1.25rem",
+        "2xl": "1.5rem",
+      },
       fontFamily: {
         // Display: Fraunces — a warm soft-serif with real personality,
         // used sparingly for headings and hero moments. It reads as

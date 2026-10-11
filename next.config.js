@@ -38,4 +38,8 @@ nextConfig.headers = async () => [
   { source: "/offline.html", headers: [{ key: "Cache-Control", value: "public, max-age=3600" }] },
 ];
 
+// /@handle is the public address of every profile; the page itself lives at /p/[handle]
+// (a folder cannot start with @ in the app router).
+nextConfig.rewrites = async () => [{ source: "/@:handle", destination: "/p/:handle" }];
+
 module.exports = nextConfig;

@@ -1,3 +1,4 @@
+import { ensureProfile } from "@/lib/profiles/profiles";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -59,7 +60,9 @@ export async function GET() {
         availabilityTypes: { select: { type: true } },
       },
     });
+    const profile = await ensureProfile("PERSON", session.userId).catch(() => null);
     return NextResponse.json({
+      handle: profile?.handle ?? null,
       name: trainee.name,
       avatarUrl: trainee.avatarUrl,
       username: trainee.username,
@@ -87,6 +90,12 @@ export async function PUT(req: NextRequest) {
     }
 
     const username = parsed.data.username || null;
+    // The username is the person's /@handle, which is changed by asking a super admin
+    // (see /api/profiles/handle-requests), never by editing it here.
+    const current = await prisma.trainee.findUnique({ where: { id: session.userId }, select: { username: true } });
+    if ((username ?? null) !== (current?.username ?? null)) {
+      return NextResponse.json({ error: "Your username is your /@handle. To change it, send a request with your reason from the handle section of this page." }, { status: 400 });
+    }
 
     try {
       await prisma.$transaction(async (tx: any) => {

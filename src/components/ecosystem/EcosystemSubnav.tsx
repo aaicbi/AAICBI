@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/organizations", label: "Organizations", key: "organizations" },
   { href: "/events", label: "Events", key: "events" },
   { href: "/jobs", label: "Opportunities", key: "jobs" },
+  { href: "/startups", label: "Startups", key: "startups" },
   { href: "/trainees", label: "Trainees", key: "trainees" },
   { href: "/search", label: "Search", key: "search" },
 ] as const;
@@ -17,7 +18,7 @@ const LINKS = [
  * competes with the cookie banner and help button that already own the
  * bottom edge on phones.
  */
-export default async function EcosystemSubnav({ active, feedEnabled }: { active: "feed" | "learn" | "organizations" | "events" | "jobs" | "trainees" | "search"; feedEnabled: boolean }) {
+export default async function EcosystemSubnav({ active, feedEnabled }: { active: "feed" | "learn" | "organizations" | "events" | "jobs" | "startups" | "trainees" | "search"; feedEnabled: boolean }) {
   const flags = await getEcosystemFlags();
   const hidden = new Set<string>([...(feedEnabled ? [] : ["feed"]), ...(flags.publicJobs ? [] : ["jobs"]), ...(flags.publicTrainees ? [] : ["trainees"])]);
   return (

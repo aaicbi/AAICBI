@@ -1,4 +1,5 @@
 import { getAdminNavGroups } from "@/lib/admin/nav";
+import { canReviewUser } from "@/lib/review/access";
 import { TRAINEE_NAV } from "@/lib/trainee/nav";
 import { EMPLOYER_NAV } from "@/lib/employer/nav";
 import { INVESTOR_NAV } from "@/lib/investor/nav";
@@ -21,11 +22,11 @@ export async function shellForSession(session: { userId: string; role: string })
     case "TRAINEE": return { role: "trainee", moreItems: TRAINEE_NAV };
     case "EMPLOYER": return { role: "employer", moreItems: EMPLOYER_NAV };
     case "INVESTOR": return { role: "investor", moreItems: INVESTOR_NAV };
-    case "INSTRUCTOR": return { role: "instructor", moreItems: INSTRUCTOR_NAV };
+    case "INSTRUCTOR": return { role: "instructor", moreItems: (await canReviewUser(session.userId, session.role)) ? [...INSTRUCTOR_NAV, { label: "Review inbox", href: "/admin/review" }] : INSTRUCTOR_NAV };
     case "ADMIN":
     case "SUPER_ADMIN": {
       const org = session.role === "ADMIN" ? await findTrainingOrgByStaffUserId(session.userId).catch(() => null) : null;
-      return { role: org ? "organization" : "staff", moreItems: getAdminNavGroups(session.role, !!org).flatMap((g) => g.items) };
+      return { role: org ? "organization" : "staff", moreItems: getAdminNavGroups(session.role, !!org, !org && (await canReviewUser(session.userId, session.role))).flatMap((g) => g.items) };
     }
     default: return null;
   }
