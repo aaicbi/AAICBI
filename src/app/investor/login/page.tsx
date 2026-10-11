@@ -39,7 +39,7 @@ export default function InvestorLoginPage() {
       <SiteHeader />
       <main className="mx-auto flex min-h-[calc(100vh-73px)] max-w-sm flex-col justify-center px-6">
         <div className="flex justify-center">
-          <Logo href={null} compact markClassName="h-12 w-12" />
+          <Logo href={null} layout="pyramid" markClassName="h-28 w-auto" />
         </div>
         <h1 className="mt-4 text-center font-display text-xl font-semibold text-brand-ink">Investor Sign In</h1>
 
