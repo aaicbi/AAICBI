@@ -368,7 +368,7 @@ export default function TraineeProfilePage() {
                 )}
                 . New accounts start public so people can find you; choose a narrower setting any time. This is separate from the Employer Discoverability setting in Settings.
               </p>
-              <Select label="Profile visibility" hideLabel compact value={coreForm.profileVisibility} onChange={(e) => setCoreForm((f) => ({ ...f, profileVisibility: e.target.value }))}>
+              <Select label="Profile visibility" hideLabel compact data-guide-target="profile-visibility" value={coreForm.profileVisibility} onChange={(e) => setCoreForm((f) => ({ ...f, profileVisibility: e.target.value }))}>
                 {Object.entries(VISIBILITY_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}

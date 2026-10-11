@@ -20,5 +20,7 @@ export const CONTROL_TARGETS: ControlTarget[] = [
   { id: "add-module", label: "+ Add Module button", page: "/admin/courses" },
   { id: "preview-as-trainee", label: "Preview as Trainee link", page: "/admin/courses" },
   { id: "course-status", label: "Course Status selector (publish)", page: "/admin/courses" },
+  { id: "profile-visibility", label: "Profile visibility selector (members)", page: "/trainee/profile" },
+  { id: "company-profile-visibility", label: "Profile visibility selector (employers)", page: "/employer/profile" },
   { id: "more", label: "More menu button (phone bottom bar)", page: "/" },
 ];

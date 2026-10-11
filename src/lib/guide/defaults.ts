@@ -1,5 +1,6 @@
 import { link } from "@/lib/guide/links";
 import type { GuideEntry } from "@/lib/guide/types";
+import { ROADMAP_ENTRIES } from "@/lib/guide/roadmap";
 
 /**
  * Loop's built-in answers. Each states only what the platform actually
@@ -15,7 +16,13 @@ const d = (id: string, question: string, answer: string, links: ReturnType<typeo
   id: `default:${id}`, question, answer, links, keywords, source: "default",
 });
 
-export const DEFAULT_ENTRIES: GuideEntry[] = [
+const WITH_NAV: Record<string, { navHref: string; navLabel: string }> = {
+  "default:apply-job": { navHref: "/trainee/job-postings", navLabel: "Open the job board" },
+  "default:post-job": { navHref: "/employer/job-postings", navLabel: "Open job postings" },
+  "default:get-certificate": { navHref: "/trainee/certificates", navLabel: "Open my certificates" },
+};
+
+const BASE_ENTRIES: GuideEntry[] = [
   d("what-is", "What is this platform?",
     "AAICBI is an ecosystem where people learn, training organizations run programs, employers find talent, and opportunities connect them. Trainees earn certificates that anyone can verify.",
     [link("/#ecosystem"), link("/courses")], ["about", "aaicbi", "purpose", "overview", "introduction", "mission", "site", "website"]),
@@ -83,7 +90,7 @@ export const DEFAULT_ENTRIES: GuideEntry[] = [
     "Creating an account is free. Each program shows its price, or that it is free, on its own page, and some programs let you try the first modules before paying.",
     [link("/courses"), link("/trainee/register")], ["free", "price", "cost", "fee", "pay", "payment", "cheap", "afford", "naira"]),
   d("privacy", "Who can see my profile?",
-    "Only what you choose. A trainee profile is private until you set it to public in your settings, and contact details are never shown publicly. Employers see more only if you turn on discoverability, and you decide what to share when you apply or accept an introduction.",
+    "Profiles are public by default so people can find each other, and you can change that any time: Public, any signed-in account, approved employers only, or Private. Even a private member can be found by name and photo (they already appear on their posts), but their place, skills, education, work and links stay hidden. Contact details are never shown publicly, and you decide what to share when you apply or accept an introduction.",
     [link("/trainee/settings"), link("/trainees")], ["privacy", "private", "public", "visible", "data", "safe", "secure", "personal"]),
   d("contact", "How do I contact an organization, employer or trainee?",
     "Today: employers can ask a trainee for an introduction, trainees can apply to roles, trainees can message their cohort and instructors inside their courses, and every organization has a public page. You need an account for any of these.",
@@ -104,3 +111,6 @@ export const DEFAULT_ENTRIES: GuideEntry[] = [
     "Featured organizations are chosen by published criteria that reward steady, useful content from organizations that teach, such as complete programs, regular videos by different trainees and verified certificates. Volume alone does not help.",
     [link("/organizations"), link("/org/register")], ["featured", "trending", "popular", "ranking", "visibility", "promote", "advertise", "boost"]),
 ];
+
+/** The written answers plus the roadmap, with "Take me there" buttons added to the answers that are about one page. */
+export const DEFAULT_ENTRIES: GuideEntry[] = [...BASE_ENTRIES.map((e) => ({ ...e, ...(WITH_NAV[e.id] ?? {}) })), ...ROADMAP_ENTRIES];
