@@ -19,7 +19,7 @@ const call = async (p, c) => { const r = await fetch(B + p, { headers: c ? { Coo
   r = await call('/', c.map((x) => `${x.name}=${x.value}`).join('; '));
   log(r.s === 200 && /Startup showcase/.test(r.t) && !/How AAICBI works/.test(r.t), 'a signed-in person sees the panels without the introduction');
   r = await call('/feed'); log(r.s === 200 && /Startup showcase/.test(r.t), '/feed has the panels too');
-  log((await decide({ action: 'suspend', note: 'test' })) === 200, 'suspending it');
+  log((await decide({ action: 'suspend', note: 'Suspended for the check' })) === 200, 'suspending it');
   r = await call('/'); log(!/Panel check Approved/.test(r.t), 'a suspended startup leaves the panel at once');
   psql(`delete from "Startup" where name like 'Panel check %'`);
 })().catch((e) => { console.error(e); process.exit(1); });
