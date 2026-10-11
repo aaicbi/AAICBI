@@ -1,4 +1,4 @@
-const { B, log, cookiesFor, clearThrottle } = require('./lib');
+const { B, log, cookiesFor, clearThrottle } = require('./lib.cjs');
 const psql = (q) => require('child_process').execFileSync('/usr/lib/postgresql/16/bin/psql', ['-h','127.0.0.1','-p','5544','-U','dev','-d','aaicbi_dev','-At','-c',q]).toString().trim();
 const jar = (cs) => cs.map((c) => `${c.name}=${c.value}`).join('; ');
 const call = async (m, p, c, b) => { const r = await fetch(B + p, { method: m, headers: { 'Content-Type': 'application/json', ...(c ? { Cookie: c } : {}) }, body: b && m !== 'GET' ? JSON.stringify(b) : undefined, redirect: 'manual' }); const t = await r.text(); let d = null; try { d = JSON.parse(t); } catch {} return { s: r.status, d, t, h: r.headers }; };
@@ -30,7 +30,7 @@ const call = async (m, p, c, b) => { const r = await fetch(B + p, { method: m, h
   r = await call('GET', '/api/session/summary', ck.trainee); log(!/passwordHash|email|token/i.test(JSON.stringify(r.d)), 'the summary carries no email or secrets');
   // ---- everyone registered can post
   const ids = {};
-  for (const k of Object.keys(who)) { r = await call('POST', '/api/posts', ck[k], { body: `Hello from the ${k} account #${k}check`, submit: true }); ids[k] = r.d && r.d.id; log(r.s === 201 || r.s === 200, `${k} can write and submit a post (status ${r.s}${r.d && r.d.status ? ', ' + r.d.status : ''})`); }
+  for (const k of Object.keys(who)) { r = await call('POST', '/api/posts', ck[k], { body: `Hello from the ${k} account #${k}check. Guaranteed returns, double your money`, submit: true }); ids[k] = r.d && r.d.id; log(r.s === 201 || r.s === 200, `${k} can write and submit a post (status ${r.s}${r.d && r.d.status ? ', ' + r.d.status : ''})`); }
   r = await call('GET', '/', null); log(!/#traineecheck|from the trainee account/.test(r.t), 'a post waiting for review is not on the public home page');
   // ---- approving shows on the home page at once (cache is cleared)
   r = await call('GET', '/', null);

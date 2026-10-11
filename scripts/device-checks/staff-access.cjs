@@ -1,4 +1,4 @@
-const { B, log, cookiesFor, clearThrottle } = require('./lib');
+const { B, log, cookiesFor, clearThrottle } = require('./lib.cjs');
 const psql = (q) => require('child_process').execFileSync('/usr/lib/postgresql/16/bin/psql', ['-h','127.0.0.1','-p','5544','-U','dev','-d','aaicbi_dev','-At','-c',q]).toString().trim();
 const get = async (base, p, opt = {}) => { const r = await fetch(base + p, { redirect: 'manual', ...opt }); return { s: r.status, h: r.headers, t: await r.text() }; };
 (async () => {

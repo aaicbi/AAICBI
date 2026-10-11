@@ -1,4 +1,4 @@
-const { B, log, cookiesFor, clearThrottle } = require('./lib');
+const { B, log, cookiesFor, clearThrottle } = require('./lib.cjs');
 const jar = (cs) => cs.map((c) => `${c.name}=${c.value}`).join('; ');
 const psql = (q) => require('child_process').execFileSync('/usr/lib/postgresql/16/bin/psql', ['-h', '127.0.0.1', '-p', '5544', '-U', 'dev', '-d', 'aaicbi_dev', '-At', '-c', q]).toString().trim();
 const call = async (method, path, cookie, body) => { const r = await fetch(B + path, { method, headers: { 'Content-Type': 'application/json', ...(cookie ? { Cookie: cookie } : {}) }, body: body && method !== 'GET' ? JSON.stringify(body) : undefined, redirect: 'manual' }); const t = await r.text(); let d = null; try { d = JSON.parse(t); } catch {} return { s: r.status, d, t }; };
