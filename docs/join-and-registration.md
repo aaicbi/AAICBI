@@ -27,6 +27,9 @@ The existing four forms, their APIs, approvals and payment rules are untouched, 
 - Organization, employer and investor forms are still single-page forms; they were not rebuilt into steps. Their sign-ins remain separate (`/login` lists them).
 - A single sign-in box that finds the right account type by itself is not built.
 
+## Profiles start public
+A new member or founder account is created with a **public** profile so people can find it (an employer account too). The member can choose Public, signed-in members only, employers only or Private in their profile settings at any time, and the profile page says so. See "Public by default" in `docs/search.md` for what public shows and for the migration that also made existing profiles public.
+
 ## Migration and deploy
 `20261024090000_trainee_signup_kind` adds `Trainee.signupKind` (text, default `TRAINEE`); existing rows stay `TRAINEE`. No data is changed. Roll back by redeploying the previous version; the column is harmless if left.
 
