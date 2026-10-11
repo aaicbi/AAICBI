@@ -4779,3 +4779,35 @@ model PushSubscription {
 
   @@index([recipientType, recipientId])
 }
+
+/// What kind of account a Profile belongs to.
+enum ProfileKind {
+  PERSON
+  TRAINING_ORG
+  EMPLOYER
+  INVESTOR
+  STAFF
+  STARTUP
+}
+
+/// One public identity per account, layered on top of the existing account
+/// tables (nothing about logins or ids changes). Exactly one of the source ids
+/// is set. The handle is unique across every kind and is what /@handle shows.
+/// Plain columns, not relations: the source tables are untouched by this layer.
+/// Visibility is NOT stored here; it is read from the source account when a
+/// profile is viewed, so it can never drift from the account's own setting.
+model Profile {
+  id                     String      @id @default(cuid())
+  kind                   ProfileKind
+  handle                 String      @unique
+  traineeId              String?     @unique
+  employerId             String?     @unique
+  investorId             String?     @unique
+  trainingOrganizationId String?     @unique
+  userId                 String?     @unique
+  startupId              String?     @unique
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
+
+  @@index([kind])
+}

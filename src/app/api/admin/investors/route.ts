@@ -1,3 +1,4 @@
+import { ensureProfileQuietly } from "@/lib/profiles/profiles";
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { z } from "zod";
@@ -86,6 +87,7 @@ export async function POST(req: NextRequest) {
         approvedAt: new Date(),
       },
     });
+    await ensureProfileQuietly("INVESTOR", investor.id);
 
     const setupUrl = appUrl(`/investor/reset-password?token=${setupToken}`);
     const content = investorWelcomeEmail(investor.name, setupUrl);
