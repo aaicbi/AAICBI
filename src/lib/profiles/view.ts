@@ -2,13 +2,15 @@ import type { Profile } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/auth/session";
 import { canViewProfile } from "@/lib/profileVisibility";
+import { startupProfileData } from "@/lib/startups/startups";
+import { SEEKING_LABEL, STAGE_LABEL, type Seeking } from "@/lib/startups/startupCore";
 
 /**
  * What a visitor may see on a profile page. Visibility always comes from the
  * source account (never copied), and an unknown, hidden or private profile
  * returns null so the page cannot be used to learn which accounts exist.
  */
-export interface ProfileSectionItem { primary: string; secondary?: string; href?: string }
+export interface ProfileSectionItem { primary: string; secondary?: string; href?: string; /** A link inside this site (opens in the same tab). */ internal?: boolean }
 export interface ProfileSection { title: string; style: "chips" | "gold" | "list"; items: ProfileSectionItem[] }
 
 export interface ProfileView {
@@ -98,6 +100,22 @@ export async function loadProfileView(profile: Profile, viewer: SessionPayload |
     const allowed = owner || isStaff(viewer) || e.profileVisibility === "PUBLIC" || (e.profileVisibility === "AUTHENTICATED" && !!viewer);
     if (!allowed) return null;
     return { ...base, name: e.companyName, avatarUrl: e.logoUrl };
+  }
+
+  if (profile.kind === "STARTUP" && profile.startupId) {
+    const d = await startupProfileData(profile.startupId, viewer);
+    if (!d) return null;
+    const x = d.startup;
+    const all: ProfileSection[] = [
+      { title: "The problem", style: "list", items: x.problem ? [{ primary: x.problem }] : [] },
+      { title: "What we built", style: "list", items: x.solution ? [{ primary: x.solution }] : [] },
+      { title: "Looking for", style: "chips", items: x.seeking.map((k) => ({ primary: SEEKING_LABEL[k as Seeking] ?? k })) },
+      { title: "Traction", style: "list", items: x.traction ? [{ primary: x.traction }] : [] },
+      { title: "Funding and support", style: "list", items: x.fundingNeed ? [{ primary: x.fundingNeed }] : [] },
+      { title: "Team", style: "list", items: d.team.map((m) => ({ primary: m.name, secondary: [m.role === "FOUNDER" ? "Founder" : null, m.title].filter(Boolean).join(" · ") || undefined, href: m.handle ? `/@${m.handle}` : undefined, internal: true })) },
+    ];
+    const note = x.status === "APPROVED" ? null : x.status === "SUSPENDED" ? "This startup is suspended and hidden from the public." : "Only the team and reviewers can see this page until it is approved.";
+    return { ...base, name: x.name, avatarUrl: x.logoUrl, headline: x.tagline, about: x.description, location: x.location, verified: x.verified, chips: [x.industry, STAGE_LABEL[x.stage]].filter((c): c is string => !!c), links: x.website ? [{ label: "Website", href: x.website }] : [], note, sections: all.filter((sec) => sec.items.length > 0) };
   }
 
   // Investors have no public profile setting yet, so only the owner and staff see one.

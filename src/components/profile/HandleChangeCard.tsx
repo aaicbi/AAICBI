@@ -15,7 +15,7 @@ const STATUS: Record<string, [("success" | "warning" | "danger" | "neutral"), st
  * change is requested with a reason and decided by a super admin. Your old
  * address keeps forwarding to the new one.
  */
-export default function HandleChangeCard() {
+export default function HandleChangeCard({ startupId, title = "Your handle" }: { startupId?: string; title?: string } = {}) {
   const [state, setState] = useState<{ handle: string; requests: RequestRow[] } | null>(null);
   const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState(false);
@@ -28,11 +28,11 @@ export default function HandleChangeCard() {
   const { showToast } = useToast();
 
   const load = useCallback(() => {
-    fetch("/api/profiles/handle-requests")
+    fetch(`/api/profiles/handle-requests${startupId ? `?startupId=${startupId}` : ""}`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => { setState(d); setFailed(false); })
       .catch(() => setFailed(true));
-  }, []);
+  }, [startupId]);
   useEffect(load, [load]);
 
   function onHandle(v: string) {
@@ -51,7 +51,7 @@ export default function HandleChangeCard() {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const res = await fetch("/api/profiles/handle-requests", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ handle, reason }) });
+    const res = await fetch("/api/profiles/handle-requests", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ handle, reason, startupId }) });
     setBusy(false);
     const d = await res.json().catch(() => ({}));
     if (!res.ok) return setError(d.error ?? "Could not send the request.");
@@ -61,7 +61,7 @@ export default function HandleChangeCard() {
   }
 
   async function cancel(id: string) {
-    const res = await fetch(`/api/profiles/handle-requests?id=${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/profiles/handle-requests?id=${id}${startupId ? `&startupId=${startupId}` : ""}`, { method: "DELETE" });
     if (!res.ok) return showToast("Could not withdraw the request.", "error");
     load();
   }
@@ -73,9 +73,9 @@ export default function HandleChangeCard() {
 
   return (
     <Card className="mt-4" data-testid="handle-card">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Your handle</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</p>
       <p className="mt-1 text-sm text-brand-ink">
-        Your public address is <a href={`/@${state.handle}`} className="font-semibold text-brand-teal hover:underline">/@{state.handle}</a>. To change it, send a request with your reason. A super admin decides, and your old address keeps forwarding to the new one.
+        {startupId ? "The startup's public address is" : "Your public address is"} <a href={`/@${state.handle}`} className="font-semibold text-brand-teal hover:underline">/@{state.handle}</a>. To change it, send a request with your reason. A super admin decides, and your old address keeps forwarding to the new one.
       </p>
 
       {pending && (

@@ -28,6 +28,8 @@ async function sources(kind: ProfileKind): Promise<Source[]> {
       return (await prisma.employer.findMany({ select: { id: true, companyName: true } })).map((e) => ({ id: e.id, name: e.companyName, preferred: null }));
     case "INVESTOR":
       return (await prisma.investor.findMany({ select: { id: true, name: true } })).map((i) => ({ id: i.id, name: i.name, preferred: null }));
+    case "STARTUP":
+      return (await prisma.startup.findMany({ select: { id: true, name: true } })).map((x) => ({ id: x.id, name: x.name, preferred: null }));
     default:
       return [];
   }
@@ -54,6 +56,10 @@ async function sourceName(kind: ProfileKind, id: string): Promise<Source | null>
     case "INVESTOR": {
       const i = await prisma.investor.findUnique({ where: { id }, select: { name: true } });
       return i && { id, name: i.name, preferred: null };
+    }
+    case "STARTUP": {
+      const x = await prisma.startup.findUnique({ where: { id }, select: { name: true } });
+      return x && { id, name: x.name, preferred: null };
     }
     default:
       return null;
@@ -108,10 +114,10 @@ export interface BackfillResult { created: Record<string, number>; existing: num
  * working; the rest are named from their display name.
  */
 export async function backfillProfiles(): Promise<BackfillResult> {
-  const have = await prisma.profile.findMany({ select: { handle: true, traineeId: true, employerId: true, investorId: true, trainingOrganizationId: true, userId: true } });
+  const have = await prisma.profile.findMany({ select: { handle: true, traineeId: true, employerId: true, investorId: true, trainingOrganizationId: true, userId: true, startupId: true } });
   const taken = await takenHandles();
-  const done = new Set(have.flatMap((p) => [p.traineeId, p.employerId, p.investorId, p.trainingOrganizationId, p.userId].filter((x): x is string => !!x)));
-  const kinds: ProfileKind[] = ["TRAINING_ORG", "STAFF", "PERSON", "EMPLOYER", "INVESTOR"];
+  const done = new Set(have.flatMap((p) => [p.traineeId, p.employerId, p.investorId, p.trainingOrganizationId, p.userId, p.startupId].filter((x): x is string => !!x)));
+  const kinds: ProfileKind[] = ["TRAINING_ORG", "STAFF", "PERSON", "EMPLOYER", "INVESTOR", "STARTUP"];
   const all: Array<{ kind: ProfileKind; src: Source }> = [];
   for (const kind of kinds) for (const src of await sources(kind)) if (!done.has(src.id)) all.push({ kind, src });
   // Explicit usernames and slugs are placed first so a generated name can never take one.

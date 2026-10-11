@@ -94,7 +94,7 @@ export default async function ProfilePage({ params }: { params: { handle: string
               <ul className="mt-2 space-y-2 text-sm text-brand-ink">
                 {sec.items.map((i, n) => (
                   <li key={n} className="break-words">
-                    {i.href ? <a href={i.href} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand-teal hover:underline">{i.primary}</a> : <span className="font-semibold">{i.primary}</span>}
+                    {i.href ? (i.internal ? <Link href={i.href} className="font-semibold text-brand-teal hover:underline">{i.primary}</Link> : <a href={i.href} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand-teal hover:underline">{i.primary}</a>) : <span className="font-semibold">{i.primary}</span>}
                     {i.secondary && <span className="block text-xs text-gray-600">{i.secondary}</span>}
                   </li>
                 ))}

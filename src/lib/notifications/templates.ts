@@ -1434,3 +1434,15 @@ export function handleChangeDecidedEmail(input: { name: string; approved: boolea
     text: `Hi ${input.name},\n\n${verdict}\n\n${input.profileUrl}`,
   };
 }
+
+/** A short notice with one button: the shape used by the startup notifications. */
+export function simpleNoticeEmail(input: { subject: string; paragraphs: string[]; buttonLabel: string; url: string }): EmailContent {
+  return {
+    subject: input.subject,
+    html: wrapHtml(`
+      ${input.paragraphs.map((p) => `<p style="margin:0 0 16px;font-size:16px;">${escapeHtml(p)}</p>`).join("")}
+      ${button(input.url, input.buttonLabel)}
+    `),
+    text: `${input.paragraphs.join("\n\n")}\n\n${input.url}`,
+  };
+}

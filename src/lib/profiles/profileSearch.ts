@@ -29,17 +29,18 @@ export async function searchPeople(rawQuery: string, viewer: SessionPayload | nu
   if (q.length < 2) return [];
   const contains = { contains: q, mode: "insensitive" as const };
 
-  const [byHandle, byFormer, trainees, employers, orgs, staff] = await Promise.all([
+  const [byHandle, byFormer, trainees, employers, orgs, staff, startups] = await Promise.all([
     prisma.profile.findMany({ where: { handle: contains }, take: CANDIDATES }),
     prisma.profileHandleHistory.findMany({ where: { handle: contains }, take: CANDIDATES }),
     prisma.trainee.findMany({ where: { name: contains }, select: { id: true }, take: CANDIDATES }),
     prisma.employer.findMany({ where: { companyName: contains }, select: { id: true }, take: CANDIDATES }),
     prisma.trainingOrganization.findMany({ where: { name: contains }, select: { id: true }, take: CANDIDATES }),
     prisma.user.findMany({ where: { name: contains, trainingOrgAsStaffUser: null }, select: { id: true }, take: CANDIDATES }),
+    prisma.startup.findMany({ where: { name: contains }, select: { id: true }, take: CANDIDATES }),
   ]);
 
   const byName = await prisma.profile.findMany({
-    where: { OR: [{ traineeId: { in: trainees.map((t) => t.id) } }, { employerId: { in: employers.map((e) => e.id) } }, { trainingOrganizationId: { in: orgs.map((o) => o.id) } }, { userId: { in: staff.map((s) => s.id) } }] },
+    where: { OR: [{ traineeId: { in: trainees.map((t) => t.id) } }, { employerId: { in: employers.map((e) => e.id) } }, { trainingOrganizationId: { in: orgs.map((o) => o.id) } }, { userId: { in: staff.map((s) => s.id) } }, { startupId: { in: startups.map((s) => s.id) } }] },
     take: CANDIDATES,
   });
   const formerProfiles = await prisma.profile.findMany({ where: { id: { in: byFormer.map((h) => h.profileId) } } });

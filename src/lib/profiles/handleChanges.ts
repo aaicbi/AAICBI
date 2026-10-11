@@ -38,6 +38,12 @@ async function recipientOf(p: Profile): Promise<{ recipientType: "TRAINEE" | "ST
   if (p.kind === "EMPLOYER" && p.employerId) { const e = await prisma.employer.findUnique({ where: { id: p.employerId }, select: { companyName: true, email: true } }); return e && { recipientType: "EMPLOYER", recipientId: p.employerId, to: e.email, name: e.companyName }; }
   if (p.kind === "INVESTOR" && p.investorId) { const i = await prisma.investor.findUnique({ where: { id: p.investorId }, select: { name: true, email: true } }); return i && { recipientType: "INVESTOR", recipientId: p.investorId, to: i.email, name: i.name }; }
   if (p.kind === "STAFF" && p.userId) { const u = await prisma.user.findUnique({ where: { id: p.userId }, select: { name: true, email: true } }); return u && { recipientType: "STAFF", recipientId: p.userId, to: u.email, name: u.name }; }
+  if (p.kind === "STARTUP" && p.startupId) {
+    const founder = await prisma.startupMember.findFirst({ where: { startupId: p.startupId, role: "FOUNDER", status: "ACTIVE" }, orderBy: { createdAt: "asc" } });
+    const t = founder ? await prisma.trainee.findUnique({ where: { id: founder.traineeId }, select: { name: true, email: true } }) : null;
+    const st = await prisma.startup.findUnique({ where: { id: p.startupId }, select: { name: true } });
+    return t && founder && { recipientType: "TRAINEE", recipientId: founder.traineeId, to: t.email, name: st?.name ?? t.name };
+  }
   if (p.kind === "TRAINING_ORG" && p.trainingOrganizationId) { const o = await prisma.trainingOrganization.findUnique({ where: { id: p.trainingOrganizationId }, select: { name: true, email: true } }); return o && { recipientType: "TRAINING_ORG", recipientId: p.trainingOrganizationId, to: o.email, name: o.name }; }
   return null;
 }
@@ -143,6 +149,15 @@ export async function directHandleChange(profileId: string, newHandle: unknown, 
   if (!check.ok) throw new HandleChangeError(check.error);
   await applyChange(profile, check.handle, { id: actor.userId }, check.reason);
   return check.handle;
+}
+
+/** A founder of a startup may ask for a change of the startup's handle. */
+export async function startupProfileForFounder(startupId: string, traineeId: string): Promise<Profile> {
+  const m = await prisma.startupMember.findUnique({ where: { startupId_traineeId: { startupId, traineeId } } });
+  if (!m || m.status !== "ACTIVE" || m.role !== "FOUNDER") throw new HandleChangeError("Only a founder can ask to change the startup's handle.", 403);
+  const p = await ensureProfile("STARTUP", startupId);
+  if (!p) throw new HandleChangeError("Startup not found.", 404);
+  return p;
 }
 
 export const kindsThatCanAsk: ProfileKind[] = ["PERSON", "EMPLOYER", "INVESTOR", "STAFF"];

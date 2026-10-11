@@ -4844,3 +4844,83 @@ model ProfileHandleHistory {
 
   @@index([profileId])
 }
+
+enum StartupStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum StartupStage {
+  IDEA
+  PROTOTYPE
+  MVP
+  LAUNCHED
+  GROWTH
+}
+
+enum StartupMemberRole {
+  FOUNDER
+  MEMBER
+}
+
+/// A startup: its own organizational identity with a team and a public profile
+/// (its handle lives on a Profile of kind STARTUP). Public only once a super
+/// admin has approved it. "verified" is set separately, only by a person.
+model Startup {
+  id          String        @id @default(cuid())
+  name        String
+  tagline     String?
+  problem     String?
+  solution    String?
+  description String?
+  industry    String?
+  stage       StartupStage  @default(IDEA)
+  location    String?
+  website     String?
+  logoUrl     String?
+  /// Public traction the team chooses to share (users, revenue, pilots).
+  traction    String?
+  /// Funding or support the team chooses to disclose.
+  fundingNeed String?
+  /// What the team is looking for: FUNDING, HIRING, PARTNERS, MENTORSHIP.
+  seeking     String[]
+  status      StartupStatus @default(DRAFT)
+  verified    Boolean       @default(false)
+  reviewNote  String?
+  reviewedById String?
+  reviewedAt  DateTime?
+  submittedAt DateTime?
+  createdById String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  members StartupMember[]
+
+  @@index([status, createdAt])
+}
+
+/// A member's place on a startup team. Joining needs the member's own acceptance.
+model StartupMember {
+  id           String            @id @default(cuid())
+  startupId    String
+  startup      Startup           @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  traineeId    String
+  role         StartupMemberRole @default(MEMBER)
+  /// What this person may do for the startup, set by a founder.
+  canEdit      Boolean           @default(false)
+  canPublish   Boolean           @default(false)
+  /// Their job on the team, shown on the profile ("CTO").
+  title        String?
+  showOnProfile Boolean          @default(true)
+  /// INVITED until the member accepts, then ACTIVE.
+  status       String            @default("INVITED")
+  invitedById  String?
+  createdAt    DateTime          @default(now())
+  joinedAt     DateTime?
+
+  @@unique([startupId, traineeId])
+  @@index([traineeId, status])
+}
