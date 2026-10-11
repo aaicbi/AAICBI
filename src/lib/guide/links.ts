@@ -27,6 +27,8 @@ export const DESTINATIONS: Destination[] = [
   { label: "Community showcase", href: "/showcase", group: "Explore" },
   { label: "Verify a certificate", href: "/certificate", group: "Explore" },
   { label: "Join the ecosystem", href: "/#join", group: "Join" },
+  { label: "Compare the five account types", href: "/join", group: "Join" },
+  { label: "Create a startup account", href: "/startup/register", group: "Join" },
   { label: "Create a trainee account", href: "/trainee/register", group: "Join" },
   { label: "Register your organization", href: "/org/register", group: "Join" },
   { label: "Register as an employer", href: "/employer/register", group: "Join" },

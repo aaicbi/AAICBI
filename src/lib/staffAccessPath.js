@@ -11,7 +11,7 @@ const RESERVED = new Set([
   "", "api", "admin", "instructor", "trainee", "employer", "investor", "org", "exam", "feed", "search", "jobs", "learn", "courses",
   "p", "post", "compose", "my-posts", "saved", "tags", "notifications", "profile", "privacy-policy", "certificate",
   "certificate-templates", "events", "organizations", "startups", "trainees", "showcase", "staff-access", "app", "icons",
-  "_next", "logo.svg", "sw.js", "manifest.webmanifest", "offline.html", "join", "login", "about",
+  "_next", "logo.svg", "sw.js", "manifest.webmanifest", "offline.html", "join", "login", "about", "startup",
 ]);
 
 /** Returns { path, valid, reason }. An unusable value falls back to the default, so a typo can never break staff sign-in. */

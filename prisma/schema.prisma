@@ -400,6 +400,8 @@ model User {
 // email, and comes back across many courses and attempts over time.
 model Trainee {
   id            String    @id @default(cuid())
+  /// Which sign-up the account came from: TRAINEE or FOUNDER (created together with a startup). Only picks the default dashboard; both are the same kind of member account.
+  signupKind    String    @default("TRAINEE")
   // Public ecosystem — seeded demo rows only; see prisma/seed-demo-ecosystem.ts.
   isDemo         Boolean  @default(false)
   educationPosts EducationPost[]

@@ -7,7 +7,11 @@ import { prisma } from "@/lib/prisma";
  */
 export async function dashboardHrefFor(session: SessionPayload): Promise<string> {
   switch (session.role) {
-    case "TRAINEE": return "/trainee/dashboard";
+    case "TRAINEE": {
+      // A founder who signed up with a startup lands on their startups; everyone else on the learner dashboard.
+      const t = await prisma.trainee.findUnique({ where: { id: session.userId }, select: { signupKind: true } });
+      return t?.signupKind === "FOUNDER" ? "/trainee/startups" : "/trainee/dashboard";
+    }
     case "EMPLOYER": return "/employer/dashboard";
     case "INVESTOR": return "/investor/dashboard";
     case "INSTRUCTOR": return "/instructor/dashboard";

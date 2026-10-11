@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
+import AccountTypeBanner from "@/components/accounts/AccountTypeBanner";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
@@ -68,6 +69,7 @@ export default function TrainingOrgRegisterPage() {
     <>
       <SiteHeader />
       <main className="mx-auto max-w-sm px-6 py-16">
+        <AccountTypeBanner type="organization" />
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Register Your Training Organization</h1>
         <p className="mt-1 text-sm text-gray-500">
           Every organization account is reviewed before it can run training on AAICBI.
