@@ -2,10 +2,11 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Menu, Search, X } from "lucide-react";
+import { LayoutDashboard, Menu, X } from "lucide-react";
 import Logo from "@/components/Logo";
 import Icon from "@/components/ui/Icon";
 import AvatarFallback from "@/components/ui/AvatarFallback";
+import SearchBox from "@/components/ecosystem/SearchBox";
 import AddToHomeScreenButton from "@/components/pwa/AddToHomeScreenButton";
 
 export interface Summary { signedIn: boolean; name?: string; avatarUrl?: string | null; square?: boolean; handle?: string | null; kindLabel?: string | null; dashboardHref?: string }
@@ -89,10 +90,7 @@ export default function HomeHeader({ initialQuery = "", initial }: { initialQuer
     <header className="sticky top-0 z-30 border-b border-brand-gray bg-brand-surface/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 sm:px-6">
         <Logo markClassName="h-12 w-auto shrink-0 md:h-14" />
-        <form role="search" action="/search" onSubmit={(e) => { const q = String(new FormData(e.currentTarget).get("q") ?? "").trim(); if (!q) e.preventDefault(); }} className="relative hidden min-w-0 flex-1 md:block md:max-w-xl lg:mx-4">
-          <Icon icon={Search} size="sm" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-600" />
-          <input type="search" name="q" defaultValue={initialQuery} placeholder="Search people, organizations, courses and posts" aria-label="Search the ecosystem" autoComplete="off" className="h-11 w-full rounded-full border border-brand-gray bg-brand-sand pl-11 pr-4 text-sm text-brand-ink placeholder:text-gray-600 focus:border-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal" />
-        </form>
+        <SearchBox initialQuery={initialQuery} className="hidden min-w-0 flex-1 md:block md:max-w-xl lg:mx-4" inputClassName="text-sm" />
         <div className="ml-auto hidden md:block">{accountArea}</div>
         <div className="ml-auto flex items-center gap-1 md:hidden">
           {me?.signedIn ? (
@@ -106,10 +104,7 @@ export default function HomeHeader({ initialQuery = "", initial }: { initialQuer
         </div>
       </div>
 
-      <form role="search" action="/search" onSubmit={(e) => { const q = String(new FormData(e.currentTarget).get("q") ?? "").trim(); if (!q) e.preventDefault(); }} className="relative px-4 pb-2.5 md:hidden">
-        <Icon icon={Search} size="sm" className="pointer-events-none absolute left-8 top-1/2 -translate-y-[calc(50%+5px)] text-gray-600" />
-        <input type="search" name="q" defaultValue={initialQuery} placeholder="Search people, organizations, courses and posts" aria-label="Search the ecosystem" autoComplete="off" className="h-11 w-full rounded-full border border-brand-gray bg-brand-sand pl-11 pr-4 text-base text-brand-ink placeholder:text-gray-600 focus:border-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal" />
-      </form>
+      <div className="px-4 pb-2.5 md:hidden"><SearchBox initialQuery={initialQuery} inputClassName="text-base" /></div>
 
       <nav aria-label="Explore" className="hidden border-t border-brand-gray md:block">
         <div className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 sm:px-6">
