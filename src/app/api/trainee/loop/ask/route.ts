@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
 import { TRAINEE_TOOL_SCHEMAS, runTraineeLoopTool } from "@/lib/loop/traineeTools";
+import { withGuidance } from "@/lib/guide/aiGuidance";
 
 /**
  * POST /api/trainee/loop/ask — Loop's trainee-facing persona, the
@@ -125,7 +126,7 @@ export async function POST(req: NextRequest) {
         const response = await client.messages.create({
           model: MODEL,
           max_tokens: 1500,
-          system: SYSTEM_PROMPT,
+          system: await withGuidance(SYSTEM_PROMPT, "learning-buddy"),
           tools,
           messages,
         });

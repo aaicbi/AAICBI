@@ -44,6 +44,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import type { TopicStat } from "@/lib/performanceCore";
+import { withGuidance } from "@/lib/guide/aiGuidance";
 
 // Same 15-second ceiling reasoning as the rest of this call: this runs
 // inside a trainee's submit request (see the schema comment on
@@ -97,7 +98,7 @@ export async function generatePerformanceSummary(
     const response = await client.messages.create({
       model: "claude-haiku-4-5",
       max_tokens: 500,
-      system: SYSTEM_PROMPT,
+      system: await withGuidance(SYSTEM_PROMPT, "performance-summary"),
       messages: [{ role: "user", content: buildUserPrompt(topicStats, overallPercentage, passed) }],
     });
 

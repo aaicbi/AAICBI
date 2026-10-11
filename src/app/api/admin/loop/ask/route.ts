@@ -11,6 +11,7 @@ import { resolveModuleByQuery } from "@/lib/loop/moduleLookup";
 import { getModuleMaterialsText } from "@/lib/parsing/moduleMaterialsText";
 import { draftLearningObjectives } from "@/lib/ai/generateLearningObjectives";
 import { getTraineeConversationMessagesForReview } from "@/lib/messaging";
+import { withGuidance } from "@/lib/guide/aiGuidance";
 
 /**
  * POST /api/admin/loop/ask — the AI Command Center's one real endpoint.
@@ -245,7 +246,7 @@ export async function POST(req: NextRequest) {
         const response = await client.messages.create({
           model: MODEL,
           max_tokens: 1500,
-          system: SYSTEM_PROMPT,
+          system: await withGuidance(SYSTEM_PROMPT, "command-loop"),
           tools,
           messages,
         });

@@ -4746,6 +4746,23 @@ model GuideSuggestion {
 }
 
 
+/// Guidance a super admin approved for one of the platform's AI features: plain-language notes on tone, emphasis and local context, added after the feature's own rules. Append-only: every change is a new version, the highest version is the current one.
+model AiGuidance {
+  id            String   @id @default(cuid())
+  feature       String
+  version       Int
+  note          String
+  enabled       Boolean  @default(true)
+  changedById   String?
+  changedByName String?
+  changeNote    String?
+  createdAt     DateTime @default(now())
+
+  @@unique([feature, version])
+  @@index([feature, createdAt])
+}
+
+
 /// A browser or installed app that agreed to receive web push notifications for one account.
 /// recipientType/recipientId use the same values as UserNotification, so a push goes to
 /// exactly the people whose in-app bell would show the same notification.

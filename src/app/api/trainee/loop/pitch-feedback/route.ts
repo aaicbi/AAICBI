@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
+import { withGuidance } from "@/lib/guide/aiGuidance";
 
 /**
  * POST /api/trainee/loop/pitch-feedback — Pitch & Post's Loop persona,
@@ -102,7 +103,7 @@ export async function POST(req: NextRequest) {
       const response = await client.messages.create({
         model: MODEL,
         max_tokens: 1000,
-        system: SYSTEM_PROMPT,
+        system: await withGuidance(SYSTEM_PROMPT, "pitch-feedback"),
         messages: [{ role: "user", content: userMessage }],
       });
       const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === "text");

@@ -116,3 +116,20 @@ An adviser for teaching Loop, in **Guide Bot Knowledge → Claude consultant** (
 **Failure is contained.** A Claude outage, timeout or unreadable reply gives a plain message ("Nothing was changed"), stores nothing and leaks no detail.
 
 Verified with a stand-in for Anthropic's server (the app's own SDK pointed at it with `ANTHROPIC_BASE_URL`): `scripts/device-checks/guide-consultant-api.cjs`, `guide-consultant-ui.cjs`, `fake-claude.cjs`.
+
+## The consultant also watches the platform and trains the AI features
+
+The Claude consultant (Command Center → Guide Bot Knowledge → Claude consultant) has three sections.
+
+**Loop's answers** – as before: proposals for unanswered questions.
+
+**Platform monitor**
+- *What the numbers say* is plain rules over aggregate counts (analytics, lesson materials, assessments, performance). It costs nothing, names no trainee, and works even when the consultant is off (`monitorCore.ts`, `snapshot.ts`).
+- *Write the report* asks Claude to explain the same numbers: what is going well, what needs attention, what to try. Stored as a `REPORT` suggestion.
+- *Review a module's lesson materials* sends the text of one module's Word documents (capped at 12,000 characters) plus its assessment numbers. Videos, slides and PDFs are not read. Stored as `MATERIAL_REVIEW`.
+
+**Train the AI features** – six features can take a short *guidance note*: Command Center assistant, Learning Buddy, pitch feedback, assignment feedback summaries, assessment performance summaries, question writing. The note is appended after the feature's own fixed rules, inside a frame saying it cannot change what the feature may do. Notes are checked (20–800 characters, no attempts to override rules, reveal data or give out answers), versioned (`AiGuidance`, append-only) and can be restored. Grading, answer-key checking and job screening are deliberately not trainable.
+- A super admin can write notes by hand at any time, even with the consultant off.
+- *Suggest a note* asks Claude for a draft (`AI_TRAINING`). It is only a proposal: *Review and approve* opens the editor pre-filled, and nothing changes until the person saves.
+
+The consultant's files cannot write answers, question statuses or guidance (enforced by `tests/guideConsultant.test.ts`). All consultant buttons share the switch, the key check and the 10-runs-an-hour limit.

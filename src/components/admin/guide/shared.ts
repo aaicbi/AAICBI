@@ -131,7 +131,7 @@ export const dateTime = (v: string | Date) => new Date(v).toLocaleString("en-GB"
 
 export interface SuggestionDto {
   id: string;
-  kind: "DRAFT_ANSWER" | "IMPROVE_ANSWER" | "MERGE" | "REJECT" | "ADVICE";
+  kind: "DRAFT_ANSWER" | "IMPROVE_ANSWER" | "MERGE" | "REJECT" | "ADVICE" | "REPORT" | "MATERIAL_REVIEW" | "AI_TRAINING";
   status: "PENDING" | "APPROVED" | "DISMISSED";
   questionId: string | null;
   entryId: string | null;

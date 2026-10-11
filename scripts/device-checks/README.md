@@ -30,6 +30,8 @@ node scripts/device-checks/guide-consultant-ui.cjs         # proposals, approve 
 node scripts/device-checks/organization.cjs       # organization home, messaging scope, profile preview, Loop guide
 node scripts/device-checks/videos-and-reports.cjs # trainee video -> organization -> Super Admin, and reports
 node scripts/device-checks/builder-tools.cjs      # course builder / exam tools on phone and tablet
+node scripts/device-checks/consultant-monitor-api.cjs  # monitor, report, materials, AI guidance (needs fake-claude.cjs + a fake key)
+node scripts/device-checks/consultant-monitor-ui.cjs [desktop|phone]
 node scripts/device-checks/overflow-sweep.cjs     # every page in scripts/a11y-pages.json on iPhone SE and iPad Mini
 ```
 
