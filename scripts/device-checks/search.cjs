@@ -7,7 +7,7 @@ const SK = 'srchskill', NOW = `now()`;
 const cleanup = () => psql(`
  delete from "JobPostingSkill" where "jobPostingId" like 'srchjob%'; delete from "JobPosting" where id like 'srchjob%';
  delete from "TraineeSkill" where "skillId"='${SK}'; delete from "Skill" where id='${SK}';
- delete from "PostComment" where id like 'srchc%'; delete from "Post" where "legacyEducationPostId" is null;
+ delete from "PostComment" where id like 'srchc%'; delete from "Profile" where id like 'srchstaff-%'; delete from "Post" where "legacyEducationPostId" is null;
  delete from "Profile" where "startupId" like 'srchst%'; delete from "StartupMember" where "startupId" like 'srchst%'; delete from "Startup" where id like 'srchst%';
  update "Trainee" set "profileVisibility"='PRIVATE', location=null where email in ('t3@dev.test','t4@dev.test');
  update "Employer" set "profileVisibility"='AUTHENTICATED' where email='employer@dev.test'`);
@@ -32,7 +32,7 @@ const cleanup = () => psql(`
   const sa = (await cookiesFor('/api/auth/login', 'super@dev.test')).map((c) => `${c.name}=${c.value}`).join('; ');
   const t0c = (await cookiesFor('/api/auth/trainee-login', 't0@dev.test')).map((c) => `${c.name}=${c.value}`).join('; ');
   const post = async (c, body) => (await fetch(B + '/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: c }, body: JSON.stringify({ body, submit: true }) }).then((r) => r.json())).id;
-  const pubId = await post(sa, 'A published searchmarker post about zorbtest'); const pendId = await post(t0c, 'A pending searchmarker post waiting');
+  const pubId = await post(sa, 'A published searchmarker post about zorbtest'); const pendId = await post(t0c, 'A pending searchmarker post waiting. Guaranteed returns, double your money');
   // ---- every kind answers for a visitor
   for (const k of ['all', 'people', 'organizations', 'employers', 'investors', 'startups', 'jobs', 'programs', 'posts', 'comments', 'videos', 'events']) { const r = await get(`/search?kind=${k}&q=zorbtest`); log(r.s === 200, `kind=${k} answers`); }
   // ---- people: name, skill, location, filters; the private one never appears
@@ -81,7 +81,7 @@ const cleanup = () => psql(`
   r = await get('/api/search/suggest?q=zorb'); log(r.s === 200 && r.d.items.some((i) => i.kind === 'skill') && r.d.items.some((i) => i.kind === 'job'), 'suggest: skills and open jobs');
   log(!JSON.stringify(r.d).match(/@dev\.test|passwordHash|email/i) && r.d.items.every((i) => Object.keys(i).sort().join() === 'href,kind,label,sub'), 'suggest: only label, kind, sub and address come back');
   r = await get('/api/search/suggest?q=quillf'); log(r.d.items.some((i) => i.label === 'Quillfarm Labs' && i.href === '/@quillfarm-labs') && !JSON.stringify(r.d).includes('Quillhidden'), 'suggest: an approved startup, never a draft');
-  r = await get(`/api/search/suggest?q=${encodeURIComponent(t3name.slice(0, 4))}`); log(r.d.items.some((i) => i.label === t4name && !/Lagos/.test(i.sub || '')), 'suggest: a member who keeps their profile private is found by name, and no private detail comes with it');
+  r = await get(`/api/search/suggest?q=${encodeURIComponent(t4name.slice(0, 4))}`); log(r.d.items.some((i) => i.label === t4name && !/Lagos/.test(i.sub || '')), 'suggest: a member who keeps their profile private is found by name, and no private detail comes with it');
   r = await get('/api/search/suggest?q=z'); log(r.s === 200 && r.d.items.length === 0, 'suggest: one letter gives nothing');
   const t0 = Date.now(); await get('/api/search/suggest?q=data'); log(Date.now() - t0 < 1500, `suggest: answers quickly (${Date.now() - t0} ms)`);
   // ---- everyone who joined can be found by name; private details stay private
@@ -92,8 +92,15 @@ const cleanup = () => psql(`
   r = await get(`/search?kind=people&q=${encodeURIComponent(t4handle)}`); log(link(r.t, t4handle), 'people: found by handle');
   psql(`update "Trainee" set "emailVerified"=false where email='t4@dev.test'`); r = await get(`/search?kind=people&q=${encodeURIComponent(t4name)}`); log(!link(r.t, t4handle), 'people: an account that never confirmed its email is not found'); psql(`update "Trainee" set "emailVerified"=true where email='t4@dev.test'`);
   const superName = psql(`select name from "User" where email='super@dev.test'`);
-  for (const k of ['all', 'people']) { r = await get(`/search?kind=${k}&q=${encodeURIComponent(superName)}`, t0c); log(!text(r.t).includes(superName), `the super admin is never found (${k})`); }
-  const staffName = psql(`select name from "User" where email='staff@dev.test'`); r = await get(`/search?q=${encodeURIComponent(staffName)}`, t0c); log(!text(r.t).includes(staffName), 'staff are never found');
+  const staffName = psql(`select name from "User" where email='staff@dev.test'`);
+  // make sure both have a profile, so "never found" is a real test and not an absence of rows
+  psql(`insert into "Profile"(id,handle,kind,"userId","updatedAt") select 'srchstaff-'||u.id, 'srch-'||replace(u.email,'@','-'), 'STAFF', u.id, now() from "User" u where u.email in ('super@dev.test','staff@dev.test') and not exists (select 1 from "Profile" p where p."userId"=u.id)`);
+  const superHandle = psql(`select handle from "Profile" where "userId"=(select id from "User" where email='super@dev.test')`), staffHandle = psql(`select handle from "Profile" where "userId"=(select id from "User" where email='staff@dev.test')`);
+  log(!!superHandle && !!staffHandle, 'the super admin and a staff member both have profiles to hide');
+  for (const k of ['all', 'people']) { r = await get(`/search?kind=${k}&q=${encodeURIComponent(superName)}`, t0c); log(!link(r.t, superHandle), `the super admin is never found by name (${k})`); }
+  r = await get(`/search?kind=people&q=${encodeURIComponent(superHandle)}`, t0c); log(!link(r.t, superHandle), 'nor by handle');
+  r = await get(`/search?q=${encodeURIComponent(staffName)}`, t0c); log(!link(r.t, staffHandle), 'staff are never found');
+  r = await get(`/api/search/suggest?q=${encodeURIComponent(superName.slice(0, 5))}`, t0c); log(!JSON.stringify(r.d).includes(superHandle), 'nor suggested');
   const orgName = psql(`select name from "TrainingOrganization" where email='org@dev.test'`); const orgHandle = psql(`select p.handle from "Profile" p join "TrainingOrganization" o on o.id=p."trainingOrganizationId" where o.email='org@dev.test'`);
   psql(`update "OrganizationPublicProfile" set "publicEnabled"=false where "trainingOrganizationId"=(select id from "TrainingOrganization" where email='org@dev.test')`);
   r = await get(`/search?kind=organizations&q=${encodeURIComponent(orgName)}`); log(link(r.t, orgHandle), 'organizations: an approved one is found by name even before its public page is on');
@@ -120,7 +127,7 @@ const cleanup = () => psql(`
   await flagCall({ ecosystemPublicJobsEnabled: false }); r = await get('/search?kind=jobs&q=zorbtest'); log(!text(r.t).includes('Zorbtest Analyst'), 'switch: with public jobs off, jobs are not searched');
   r = await get('/api/search/suggest?q=zorb'); log(!r.d.items.some((i) => i.kind === 'job'), 'switch: nor suggested');
   await flagCall({ ecosystemPublicJobsEnabled: true });
-  await flagCall({ ecosystemPublicTraineesEnabled: false }); r = await get('/search?kind=people&q=zorbtest'); log(!text(r.t).includes(t3name), 'switch: with the trainee directory off, members are not searched');
+  await flagCall({ ecosystemPublicTraineesEnabled: false }); r = await get('/search?kind=people&q=zorbtest'); log(text(r.t).includes(t3name), 'switch: the trainee directory switch only controls the /trainees list; members stay searchable');
   await flagCall({ ecosystemPublicTraineesEnabled: true });
   // ---- header search box is the suggesting one
   r = await get('/'); log(/role="combobox"/.test(r.t) && /Search people, jobs, startups/.test(r.t), 'the header search is the new suggesting box');
