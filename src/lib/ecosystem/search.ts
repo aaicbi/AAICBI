@@ -1,11 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/auth/session";
 import type { EcosystemFlags } from "@/lib/ecosystem/flags";
-import { listPublicVideos } from "@/lib/ecosystem/queries";
+import { listPublicVideos, PUBLIC_POST_WHERE as PUBLIC_VIDEO } from "@/lib/ecosystem/queries";
 import { listUpcomingEvents } from "@/lib/ecosystem/events";
 import { openJobWhere } from "@/lib/landing/publicWhere";
 import { searchProfiles, type ProfileHit, type ProfileKindFilter } from "@/lib/profiles/profileSearch";
 import { searchPosts, type Actor, type FeedPost } from "@/lib/posts/interactions";
+import { publicPostWhere } from "@/lib/posts/posts";
+import { cardsFor } from "@/lib/profiles/card";
 import { ALL_PREVIEW, PAGE_SIZE, orderHits, pageOf, rankText, type SearchParams } from "@/lib/ecosystem/searchCore";
 
 const has = (q: string) => ({ contains: q, mode: "insensitive" as const });
@@ -19,6 +21,9 @@ export interface ProgramHit { id: string; title: string; category: string | null
 export type VideoHit = Awaited<ReturnType<typeof listPublicVideos>>[number];
 export type EventHit = Awaited<ReturnType<typeof listUpcomingEvents>>[number];
 
+/** A public comment that contains the words: on a post in the feed, or on a video. */
+export interface CommentHit { id: string; on: "post" | "video"; body: string; authorName: string; authorHandle: string | null; authorAvatarUrl: string | null; context: string; href: string; rank: number; at: number }
+
 export interface SearchResults {
   people?: Paged<ProfileHit>;
   organizations?: Paged<ProfileHit>;
@@ -28,6 +33,7 @@ export interface SearchResults {
   jobs?: Paged<JobHit>;
   programs?: Paged<ProgramHit>;
   posts?: Paged<FeedPost>;
+  comments?: Paged<CommentHit>;
   videos?: Paged<VideoHit>;
   events?: Paged<EventHit>;
 }
@@ -81,6 +87,40 @@ async function searchPrograms(p: SearchParams, size: number, page: number): Prom
 }
 
 /**
+ * Comments that contain the words, on posts anyone may read and on published videos. A comment is only shown when the post it
+ * is on is public to this viewer (the same rule as the feed), and never when it was taken down. Messages between people are
+ * not comments and are never searched.
+ */
+async function searchComments(p: SearchParams, size: number, page: number, actor: Actor | null): Promise<Paged<CommentHit>> {
+  const q = p.q;
+  if (!q) return { items: [], hasMore: false };
+  const [postRows, videoRows] = await Promise.all([
+    prisma.postComment.findMany({ where: { status: "VISIBLE", body: has(q) }, orderBy: { createdAt: "desc" }, take: POOL * 2 }),
+    prisma.educationPostComment.findMany({
+      where: { status: "VISIBLE", isDemo: false, body: has(q), post: PUBLIC_VIDEO },
+      orderBy: { createdAt: "desc" }, take: POOL,
+      select: { id: true, body: true, createdAt: true, postId: true, trainee: { select: { name: true, avatarUrl: true } }, post: { select: { title: true } } },
+    }),
+  ]);
+  const posts = postRows.length
+    ? await prisma.post.findMany({ where: { id: { in: [...new Set(postRows.map((c) => c.postId))] }, ...publicPostWhere(!!actor) }, select: { id: true, title: true, body: true } })
+    : [];
+  const postById = new Map(posts.map((x) => [x.id, x]));
+  const visible = postRows.filter((c) => postById.has(c.postId));
+  const authors = visible.length ? await prisma.profile.findMany({ where: { id: { in: [...new Set(visible.map((c) => c.authorProfileId))] } } }) : [];
+  const cards = await cardsFor(authors);
+  const hits: CommentHit[] = [
+    ...visible.map((c): CommentHit => {
+      const card = cards.get(c.authorProfileId);
+      const post = postById.get(c.postId)!;
+      return { id: c.id, on: "post", body: excerpt(c.body, 240), authorName: card?.name ?? "Member", authorHandle: card?.handle ?? null, authorAvatarUrl: card?.avatarUrl ?? null, context: excerpt(post.title || post.body, 90), href: `/post/${c.postId}#comment-${c.id}`, rank: rankText(q, [c.body]), at: c.createdAt.getTime() };
+    }),
+    ...videoRows.map((c): CommentHit => ({ id: c.id, on: "video", body: excerpt(c.body, 240), authorName: c.trainee.name, authorHandle: null, authorAvatarUrl: c.trainee.avatarUrl, context: excerpt(c.post.title, 90), href: `/learn/${c.postId}`, rank: rankText(q, [c.body]), at: c.createdAt.getTime() })),
+  ];
+  return pageOf(orderHits(hits, p.sort), page, size);
+}
+
+/**
  * Everything the search can find, for the request. On "All" every kind shows a short preview and says whether there is more;
  * on one kind that kind shows a full page. Each kind is only searched when its feature switch is on, and every query applies the
  * same public, approved and visibility rules as the page it would link to; nothing private, pending, rejected or draft is read.
@@ -95,8 +135,9 @@ export async function runSearch(p: SearchParams, flags: EcosystemFlags, viewer: 
   const needsWord = all && !p.q; // "All" with no word has nothing to look for
   if (needsWord) return {};
 
-  const [people, organizations, employers, investors, startups, jobs, programs, posts, videos, events] = await Promise.all([
-    want("people") && flags.publicTrainees ? profiles("PERSON") : undefined,
+  const [people, organizations, employers, investors, startups, jobs, programs, posts, comments, videos, events] = await Promise.all([
+    // Members are always findable by name or handle; the directory switch (flags.publicTrainees) only controls the /trainees list.
+    want("people") ? profiles("PERSON") : undefined,
     want("organizations") && flags.orgPages ? profiles("TRAINING_ORG") : undefined,
     want("employers") && flags.orgPages ? profiles("EMPLOYER") : undefined,
     want("investors") && flags.orgPages ? profiles("INVESTOR") : undefined,
@@ -106,12 +147,13 @@ export async function runSearch(p: SearchParams, flags: EcosystemFlags, viewer: 
     want("posts") && flags.feed
       ? searchPosts(p.q, actor, size + 1, { type: all ? null : p.type, skip: (page - 1) * size }).then((rows) => ({ items: rows.slice(0, size), hasMore: rows.length > size }))
       : undefined,
+    want("comments") && (flags.feed || (flags.education && flags.orgPages)) ? searchComments(p, size, page, actor) : undefined,
     want("videos") && flags.education && flags.orgPages
       ? listPublicVideos(p.q ? { OR: [{ title: has(p.q) }, { topic: has(p.q) }, { description: has(p.q) }, { skills: { some: { skill: { name: has(p.q) } } } }] } : {}, page * size + 1).then((rows) => pageOf(rows, page, size))
       : undefined,
     want("events") && flags.orgPages && p.q ? listUpcomingEvents({ q: p.q, take: page * size + 1 }).then((rows) => pageOf(rows, page, size)) : undefined,
   ]);
-  return { people, organizations, employers, investors, startups, jobs, programs, posts, videos, events };
+  return { people, organizations, employers, investors, startups, jobs, programs, posts, comments, videos, events };
 }
 
 /** How many results came back in total, for the empty state. */

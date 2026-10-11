@@ -57,21 +57,21 @@ export default function EmployerSidebar({ companyName, showOrganizations = false
 
   const sidebarBody = (
     <div className="flex h-full flex-col">
-      <div className="border-b border-brand-gray px-4 py-4">
+      <div className="flex justify-center border-b border-brand-gray px-4 py-4">
         <Logo markClassName="h-16 w-auto shrink-0" />
       </div>
 
       <Link
         href="/employer/profile"
         onClick={() => setMobileOpen(false)}
-        className={`flex items-center gap-3 border-b border-brand-gray px-4 py-3 hover:bg-brand-mint ${
+        className={`flex flex-col items-center gap-2 border-b border-brand-gray px-4 py-4 text-center hover:bg-brand-mint ${
           isActive("/employer/profile") ? "bg-brand-mint" : ""
         }`}
       >
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-mint">
           <AvatarFallback variant="company" size="md" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 max-w-full">
           <p className="truncate text-sm font-semibold text-brand-ink">{companyName}</p>
           <Badge variant="neutral">Employer</Badge>
         </div>

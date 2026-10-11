@@ -33,3 +33,8 @@ export function classifyIntent(question: string): IntentResult {
   };
   return take(DEMO, "demo") ?? take(ACTION, "action") ?? take(NAVIGATE, "navigate") ?? take(INSTRUCT, "instruct") ?? take(INFO, "info") ?? { intent: "info", subject: stripLead(q) };
 }
+
+
+/** "Show me everything I can open", "site map", "what pages are there": the person wants the whole map, not one place. */
+const MAP_REQUEST = /\b(?:site\s*map|sitemap|all\s+(?:the\s+)?pages|every\s+page|list\s+(?:of\s+)?(?:all\s+)?(?:the\s+)?pages|what\s+pages|which\s+pages|everything\s+(?:i|we)\s+can\s+(?:open|do|go\s+to|see|access)|where\s+can\s+i\s+go|(?:map|menu|directory)\s+of\s+(?:the\s+)?(?:platform|site|website)|navigate\s+the\s+(?:platform|site|website)|everything\s+on\s+(?:the\s+)?(?:platform|site|website))\b/;
+export const isMapRequest = (question: string): boolean => MAP_REQUEST.test(clean(question));

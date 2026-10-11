@@ -118,11 +118,10 @@ async function candidates(kind: ProfileKindFilter, o: ProfileSearchOptions, q: s
   const skill = o.skill?.trim() || null;
   const place = o.location?.trim() || null;
   const industry = o.industry?.trim() || null;
-  const signedIn = !!o.viewer;
   if (kind === "PERSON") {
+    // Every member who confirmed their email can be found by name or handle; their private details are never read (see view.ts).
     const where = {
       emailVerified: true,
-      profileVisibility: { in: signedIn ? ["PUBLIC", "AUTHENTICATED"] : ["PUBLIC"] } as never,
       AND: [
         ...(q ? [{ OR: [{ name: ins(q) }, { location: ins(q) }, { username: ins(q) }, { skills: { some: { skill: { name: ins(q) } } } }] }] : []),
         ...(skill ? [{ skills: { some: { skill: { name: ins(skill) } } } }] : []),
@@ -136,7 +135,7 @@ async function candidates(kind: ProfileKindFilter, o: ProfileSearchOptions, q: s
     const rows = await prisma.trainingOrganization.findMany({
       where: {
         approvalState: "APPROVED",
-        publicProfile: { is: { publicEnabled: true, ...(place ? { location: ins(place) } : {}) } },
+        ...(place ? { publicProfile: { is: { publicEnabled: true, location: ins(place) } } } : {}),
         ...(q ? { OR: [{ name: ins(q) }, { publicProfile: { is: { OR: [{ tagline: ins(q) }, { location: ins(q) }, { description: ins(q) }] } } }] } : {}),
       },
       select: { id: true }, take: CAND,
@@ -146,7 +145,7 @@ async function candidates(kind: ProfileKindFilter, o: ProfileSearchOptions, q: s
   if (kind === "EMPLOYER") {
     if (skill || place || industry) return []; // employers carry none of these, so a filter on them matches nobody
     const rows = await prisma.employer.findMany({
-      where: { approvalState: "APPROVED", profileVisibility: { in: signedIn ? ["PUBLIC", "AUTHENTICATED"] : ["PUBLIC"] } as never, ...(q ? { companyName: ins(q) } : {}) },
+      where: { approvalState: "APPROVED", ...(q ? { companyName: ins(q) } : {}) },
       select: { id: true }, orderBy: { createdAt: "desc" }, take: CAND,
     });
     return prisma.profile.findMany({ where: { kind: "EMPLOYER", employerId: { in: rows.map((r) => r.id) } } });

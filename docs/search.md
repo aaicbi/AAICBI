@@ -46,3 +46,22 @@ Text from the address is escaped, lengths and page numbers are capped, unknown k
 
 ## Deploy and roll back
 No database change. Roll back by redeploying the previous version.
+
+
+## Finding members, organizations and comments (update)
+Search used to show a member only if they had set their profile to public or signed-in only, and every member started private, so most people could not be found. Now (and see "Public by default" below, which changed the default and every existing profile):
+- **Every member who confirmed their email is found by name or handle**, by anyone. They already appear by name on their posts and comments. Their page and their search card show the name and photo and say the rest of their profile is private; place, skills, education, work and links are only shown (and only searchable) when they made the profile public. Accounts that never confirmed their email are not found.
+- **Approved employers** are found by company name; **approved training organizations** are found by name even before their public page is switched on (the card says the page is not published yet). Pending and rejected ones are never found.
+- **Never found:** super admins and other AAICBI staff, investors (they have no public profile), and anything private: messages between people are never searched.
+- **Comments** have their own tab ("Comments") and appear on the "All" tab: public comments on posts anyone may read (members-only posts only for signed-in people), and comments on published videos. Removed comments and comments on drafts or held posts never appear. Each result names who wrote it, what it was on, and opens the conversation.
+- People search no longer depends on the "public trainee directory" switch; that switch only controls the `/trainees` list.
+- Checks: `scripts/device-checks/search.cjs` (74).
+
+
+## Public by default
+- **New accounts start public.** A new member (including a founder) and a new employer are created with a public profile, so they can be found without changing any setting. The profile page tells them so and where to choose a narrower setting (Public, signed-in members only, employers only, or Private). Staff profiles are unchanged: they can only be private or signed-in only, and are never searched.
+- **Every existing member and employer profile was switched to public** by the migration `20261031090000_existing_profiles_public`, on the platform owner's decision. This includes members who chose private on purpose, because the earlier default could not be told apart from a choice. Staff profiles were not touched. Anyone can go back to a narrower setting in their profile settings, and that choice is respected from then on.
+- **What public shows:** the name and photo, and whatever the person has filled in: place, skills, education, work history, projects, certificates, achievements and the links they added. Contact details (email, phone) are never shown. Search ranks and filters by these only for public profiles.
+- **Deploy notes:** `20261030090000_public_by_default` changes only the default for new rows; `20261031090000_existing_profiles_public` updates every existing member and employer row to PUBLIC. Neither can be undone automatically (the earlier values are not kept); if someone asks to be private, they or a developer set it back for that person.
+- **Not built:** a notice to existing members that their profile is now public. A short email or notification would avoid surprises.
+- Checks: `scripts/device-checks/public-default.cjs` (5) and `existing-public.cjs` (4).

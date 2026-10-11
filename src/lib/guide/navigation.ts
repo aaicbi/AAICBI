@@ -5,6 +5,7 @@ import { TRAINEE_NAV } from "@/lib/trainee/nav";
 import { DESTINATIONS, isAvailable } from "@/lib/guide/links";
 import type { MeKind } from "@/lib/guide/context";
 import { tokens } from "@/lib/guide/text";
+import { PAGES } from "@/lib/guide/siteMap";
 import type { GuideSwitches } from "@/lib/guide/types";
 
 /**
@@ -24,6 +25,10 @@ export interface GuideDestination {
   aliases: string[];
   /** The control to light up for this place: its menu item. */
   target: string;
+  /** One sentence on what the page is for (from the site map). */
+  what?: string;
+  /** Where it sits in the platform map. */
+  group?: string;
 }
 
 /** The marker a menu item carries so Loop can find and light it: one id per page address. */
@@ -90,6 +95,14 @@ function build(): GuideDestination[] {
   for (const g of getAdminNavGroups("ADMIN", true)) for (const n of g.items) if (areaOf(n.href) === "staff") add(dest(n.label, n.href, ["organization", "staff"]));
   add(dest("Notifications", "/notifications", ["signedIn"]));
   for (const d of DESTINATIONS) add({ label: d.label, href: d.href, audience: ["any"], aliases: [], target: navTarget(d.href) });
+  // The platform map: every page, what it is for, who may open it. Adds pages the menus do not list and enriches those they do.
+  for (const p of PAGES) {
+    add({ label: p.label, href: p.href, audience: p.who, aliases: p.aliases ?? [], target: navTarget(p.href), what: p.what, group: p.group });
+    const d = out.get(p.href)!;
+    d.what = d.what ?? p.what;
+    d.group = d.group ?? p.group;
+    for (const a of [p.label, ...(p.aliases ?? [])]) if (!d.aliases.includes(a)) d.aliases.push(a);
+  }
   return [...out.values()];
 }
 
@@ -107,7 +120,7 @@ export function areaOf(href: string): Audience {
   if (p === "/admin/login" || p.startsWith("/admin/forgot") || p.startsWith("/admin/reset")) return "any";
   if (p.startsWith("/admin/organization")) return "organization";
   if (p.startsWith("/admin") || p.startsWith("/instructor")) return "staff";
-  if (p === "/notifications") return "signedIn";
+  if (p === "/notifications" || p === "/compose" || p === "/my-posts" || p === "/saved") return "signedIn";
   return "any";
 }
 
@@ -195,4 +208,30 @@ export function deniedReply(d: GuideDestination, owner: Audience, me: MeKind | n
     : `That feature (${d.label}) is available to ${who}. Your current account doesn't have access to it.`;
   const join = JOIN[owner];
   return { text, links: join && owner !== me ? [join] : [] };
+}
+
+
+export interface MenuGroup {
+  group: string;
+  items: Array<{ label: string; href: string; what: string }>;
+}
+
+const GROUP_ORDER = ["Everyone", "Join and sign in", "Member (trainee)", "Employer", "Investor", "Training organization", "AAICBI team", "Instructor"];
+/** Pages that are only useful before an account exists, left out once someone is signed in. */
+const BEFORE_ACCOUNT = new Set(["/join", "/login", "/trainee/register", "/trainee/login", "/trainee/forgot-password", "/startup/register", "/org/register", "/org/login", "/employer/register", "/employer/login", "/investor/register", "/investor/login"]);
+
+/**
+ * Everything this account can open, grouped as in the platform map, each with what it is for. Only places the account may
+ * open and that are switched on; sign-up and sign-in pages are left out for someone who is already signed in.
+ */
+export function buildMenu(me: MeKind | null, on: GuideSwitches): MenuGroup[] {
+  const groups = new Map<string, MenuGroup>();
+  for (const d of destinationsFor(me, on)) {
+    if (!d.what || !d.group) continue;
+    if (me !== null && BEFORE_ACCOUNT.has(d.href)) continue;
+    const g = groups.get(d.group) ?? { group: d.group, items: [] };
+    g.items.push({ label: d.label, href: d.href, what: d.what });
+    groups.set(d.group, g);
+  }
+  return GROUP_ORDER.flatMap((name) => (groups.has(name) ? [groups.get(name)!] : []));
 }

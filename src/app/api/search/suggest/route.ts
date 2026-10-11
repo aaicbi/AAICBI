@@ -31,10 +31,9 @@ export async function GET(req: NextRequest) {
   if (!limited.allowed) return NextResponse.json({ items: [] as Suggestion[], error: "Too many searches. Please wait a moment." }, { status: 429, headers: { "Retry-After": String(limited.retryAfterSeconds) } });
   try {
     const [flags, viewer] = await Promise.all([getEcosystemFlags(), getSession()]);
-    if (!flags.orgPages) return empty;
     const has = { contains: q, mode: "insensitive" as const };
     const [profiles, jobs, skills, courses] = await Promise.all([
-      searchProfiles({ q, kinds: ["PERSON", "TRAINING_ORG", "STARTUP", "EMPLOYER"].filter((k) => k !== "PERSON" || flags.publicTrainees) as never, sort: "relevance", page: 1, size: 4, viewer }),
+      searchProfiles({ q, kinds: ["PERSON", ...(flags.orgPages ? ["TRAINING_ORG", "STARTUP", "EMPLOYER"] : [])] as never, sort: "relevance", page: 1, size: 4, viewer }),
       flags.publicJobs ? prisma.jobPosting.findMany({ where: { ...openJobWhere(), OR: [{ title: has }, { employer: { companyName: has } }] }, orderBy: { createdAt: "desc" }, take: 3, select: { id: true, title: true, employer: { select: { companyName: true } } } }) : [],
       prisma.skill.findMany({ where: { name: has }, orderBy: { name: "asc" }, take: 3, select: { name: true } }),
       publicPrograms(q),

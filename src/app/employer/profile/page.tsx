@@ -194,7 +194,7 @@ export default function EmployerProfilePage() {
               <p className="mt-1 text-xs text-gray-500">
                 Who can view this company profile. Independent of your job postings and Discover listing.
               </p>
-              <Select label="Profile visibility" hideLabel compact value={form.profileVisibility} onChange={(e) => setForm((f) => ({ ...f, profileVisibility: e.target.value }))}>
+              <Select label="Profile visibility" hideLabel compact data-guide-target="company-profile-visibility" value={form.profileVisibility} onChange={(e) => setForm((f) => ({ ...f, profileVisibility: e.target.value }))}>
                 {Object.entries(VISIBILITY_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}

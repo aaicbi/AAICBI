@@ -52,7 +52,7 @@ async function loadProfileViewCore(profile: Profile, viewer: SessionPayload | nu
     const t = await prisma.trainee.findUnique({
       where: { id: profile.traineeId },
       select: {
-        id: true, name: true, avatarUrl: true, location: true, linkedinUrl: true, githubUrl: true, portfolioUrl: true, openToWork: true, profileVisibility: true,
+        id: true, name: true, emailVerified: true, avatarUrl: true, location: true, linkedinUrl: true, githubUrl: true, portfolioUrl: true, openToWork: true, profileVisibility: true,
         availabilityTypes: { select: { type: true } },
         skills: { select: { skill: { select: { name: true } } } },
         education: { orderBy: { order: "asc" }, select: { id: true, institution: true, fieldOfStudy: true } },
@@ -62,7 +62,13 @@ async function loadProfileViewCore(profile: Profile, viewer: SessionPayload | nu
         certificates: { where: { revokedAt: null }, select: { code: true, course: { select: { title: true } } } },
       },
     });
-    if (!t || !(await canViewProfile(t.profileVisibility, t.id, "TRAINEE", viewer))) return null;
+    if (!t) return null;
+    if (!(await canViewProfile(t.profileVisibility, t.id, "TRAINEE", viewer))) {
+      // Anyone who has joined and confirmed their email can be found by name (they already appear by name on their posts and
+      // comments). What they have chosen to keep private (place, skills, history, links) stays private.
+      if (!t.emailVerified) return null;
+      return { ...base, name: t.name, avatarUrl: t.avatarUrl, note: "This member keeps the rest of their profile private." };
+    }
     const open = t.availabilityTypes.map((a) => AVAILABILITY_LABELS[a.type] ?? a.type);
     const all: ProfileSection[] = [
       { title: "Skills", style: "chips", items: t.skills.map((x) => ({ primary: x.skill.name })) },
@@ -91,7 +97,9 @@ async function loadProfileViewCore(profile: Profile, viewer: SessionPayload | nu
       select: { id: true, name: true, logoUrl: true, approvalState: true, publicProfile: { select: { slug: true, tagline: true, description: true, location: true, coverUrl: true, verified: true, publicEnabled: true } }, _count: { select: { followers: true } } },
     });
     const pp = o?.publicProfile;
-    if (!o || o.approvalState !== "APPROVED" || !pp?.publicEnabled) return null;
+    if (!o || o.approvalState !== "APPROVED") return null;
+    // An approved organization can be found by name even before it switches its public page on.
+    if (!pp?.publicEnabled) return { ...base, name: o.name, avatarUrl: o.logoUrl, note: "This organization has not published its public page yet." };
     return { ...base, name: o.name, avatarUrl: o.logoUrl, coverUrl: pp.coverUrl, headline: pp.tagline, about: pp.description, location: pp.location, verified: pp.verified, followers: o._count.followers, moreHref: `/organizations/${pp.slug}`, moreLabel: "Courses and events" };
   }
 
@@ -100,7 +108,8 @@ async function loadProfileViewCore(profile: Profile, viewer: SessionPayload | nu
     if (!e || e.approvalState !== "APPROVED") return null;
     const owner = viewer?.role === "EMPLOYER" && viewer.userId === e.id;
     const allowed = owner || isStaff(viewer) || e.profileVisibility === "PUBLIC" || (e.profileVisibility === "AUTHENTICATED" && !!viewer);
-    if (!allowed) return null;
+    // An approved employer can be found by company name; there is nothing more on its page to hide.
+    if (!allowed) return { ...base, name: e.companyName, avatarUrl: e.logoUrl, note: "This employer keeps the rest of its profile private." };
     return { ...base, name: e.companyName, avatarUrl: e.logoUrl };
   }
 

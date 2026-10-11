@@ -58,6 +58,7 @@ const BASE_QUICK: QuickAction[] = [
   { label: "Find organizations", ask: "How can I find training organizations?" },
   { label: "How does this platform work?", ask: "How does this platform work?" },
   { label: "Help me create an account", ask: "How do I create an account?" },
+  { label: "Where can I go?", ask: "Show me everything I can open" },
 ];
 
 const ME_QUICK: Record<MeKind, QuickAction[]> = {
