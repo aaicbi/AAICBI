@@ -267,6 +267,9 @@ model User {
   // regardless of role.
   active Boolean @default(true)
 
+  /// A reviewer: a staff member the super admin has allowed to review posts and Loop's questions.
+  canReview Boolean @default(false)
+
   // Universal profile system, Phase 3 — staff profile fields.
   // "Organization" isn't stored (this is a single-org platform, always
   // AAICBI); "permission level" is the existing `role` field above,
@@ -4699,6 +4702,9 @@ model GuideUnanswered {
   reviewedById String?
   reviewNote   String?
   mergedIntoId String?
+  escalatedAt    DateTime?
+  escalatedById  String?
+  escalationNote String?
 
   @@index([status, lastAskedAt])
   @@index([tokenKey])
@@ -4972,6 +4978,13 @@ model Post {
   orgBlockedAt        DateTime?
   orgBlockedById      String?
   orgBlockReason      String?
+  /// Sent to the super admin by a reviewer. While set, only a super admin may decide it.
+  escalatedAt         DateTime?
+  escalatedById       String?
+  escalationNote      String?
+  /// The author asked the central team to look at an organization's hold again.
+  appealedAt          DateTime?
+  appealNote          String?
   /// The EducationPost this was copied from, when it came from the earlier video flow.
   legacyEducationPostId String?      @unique
   createdAt           DateTime       @default(now())
@@ -5010,4 +5023,20 @@ model PostReview {
   createdAt DateTime @default(now())
 
   @@index([postId, createdAt])
+}
+
+/// The history of decisions on things that are not posts (Loop's questions, appeals):
+/// who decided, what, when and why.
+model ReviewLog {
+  id        String   @id @default(cuid())
+  /// GUIDE_QUESTION | POST_APPEAL
+  kind      String
+  itemId    String
+  action    String
+  actorId   String?
+  actorName String?
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([kind, itemId, createdAt])
 }

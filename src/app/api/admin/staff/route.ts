@@ -57,7 +57,7 @@ export async function GET() {
     await requireRole("SUPER_ADMIN");
     const staff = await prisma.user.findMany({
       orderBy: { createdAt: "desc" },
-      select: { id: true, name: true, email: true, role: true, createdAt: true },
+      select: { id: true, name: true, email: true, role: true, canReview: true, createdAt: true },
     });
     return NextResponse.json(staff);
   });

@@ -10,12 +10,13 @@ import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
 import { ADMIN_NAV_STAFF } from "@/lib/admin/nav";
 
-import { Input, Select } from "@/components/ui/Field";
+import { Checkbox, Input, Select } from "@/components/ui/Field";
 interface StaffDto {
   id: string;
   name: string;
   email: string;
   role: "SUPER_ADMIN" | "ADMIN" | "INSTRUCTOR";
+  canReview?: boolean;
   createdAt: string;
 }
 
@@ -95,6 +96,19 @@ export default function AdminStaffPage() {
     load();
   }
 
+  async function setReviewer(id: string, canReview: boolean) {
+    setBusyId(id);
+    const res = await fetch(`/api/admin/staff/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ canReview }) });
+    setBusyId(null);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showToast(typeof data.error === "string" ? data.error : "Could not update reviewer access. Try again.", "error");
+      return;
+    }
+    showToast(canReview ? "They can now review posts and Loop's questions." : "Reviewer access removed.");
+    load();
+  }
+
   return (
     <>
       <SiteHeader
@@ -153,10 +167,13 @@ export default function AdminStaffPage() {
                 {s.role === "SUPER_ADMIN" ? (
                   <span className="text-xs font-semibold text-brand-teal">{ROLE_LABELS[s.role]}</span>
                 ) : (
+                  <div className="flex flex-wrap items-center justify-end gap-3">
+                  <Checkbox label="Reviewer" hint="Can review posts and Loop's questions" checked={!!s.canReview} onChange={() => setReviewer(s.id, !s.canReview)} disabled={busyId === s.id} />
                   <Select label={`Role for ${s.name}`} hideLabel compact controlClassName="text-xs font-semibold" value={s.role} onChange={(e) => changeRole(s.id, e.target.value as "ADMIN" | "INSTRUCTOR")} disabled={busyId === s.id}>
                     <option value="INSTRUCTOR">Instructor</option>
                     <option value="ADMIN">Admin</option>
                   </Select>
+                  </div>
                 )}
               </Card>
             ))

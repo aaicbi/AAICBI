@@ -8,6 +8,7 @@ import Badge from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { Textarea } from "@/components/ui/Field";
 import { useToast } from "@/components/ui/Toast";
 import { STATUS_LABEL, canEdit, canSubmit, canWithdraw, type PostStatus } from "@/lib/posts/postCore";
 import type { PostView } from "@/lib/posts/posts";
@@ -25,6 +26,20 @@ export default function MyPostsPage() {
     fetch("/api/posts/mine").then(async (r) => { if (r.status === 401) return setState("signedout"); if (!r.ok) return setState("failed"); setPosts((await r.json()).posts); setState("ok"); }).catch(() => setState("failed"));
   }, []);
   useEffect(load, [load]);
+
+  const [appealing, setAppealing] = useState<string | null>(null);
+  const [appealNote, setAppealNote] = useState("");
+
+  async function appeal(id: string) {
+    setBusy(id);
+    const r = await fetch(`/api/posts/${id}/appeal`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note: appealNote }) });
+    setBusy(null);
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) return showToast(d.error ?? "That did not work.", "error");
+    showToast("Your appeal was sent to the AAICBI team.", "success");
+    setAppealing(null); setAppealNote("");
+    load();
+  }
 
   async function act(id: string, path: string, method = "POST") {
     setBusy(id);
@@ -53,6 +68,17 @@ export default function MyPostsPage() {
                   </div>
                   <p className="mt-2 line-clamp-3 break-words text-sm text-brand-ink">{p.title ? <span className="font-semibold">{p.title}. </span> : null}{p.body || (p.youtubeId ? "A YouTube video" : `${p.images.length} image${p.images.length === 1 ? "" : "s"}`)}</p>
                   {(p.status === "CHANGES_REQUESTED" || p.status === "REJECTED" || p.status === "SUSPENDED") && p.reviewNote && <p className="mt-2 rounded-lg bg-brand-roseLight px-3 py-2 text-sm text-brand-rose">Reviewer: {p.reviewNote}</p>}
+                  {p.orgBlockedAt && (
+                    <div className="mt-2 rounded-lg bg-brand-roseLight px-3 py-2 text-sm text-brand-rose">
+                      <p>Your organization hid this post{p.orgBlockReason ? `: ${p.orgBlockReason}` : "."}</p>
+                      {p.appealed ? <p className="mt-1 font-semibold">You appealed. A reviewer will look at it.</p> : appealing === p.id ? (
+                        <div className="mt-2 space-y-2 text-brand-ink">
+                          <Textarea label="Why should it be looked at again?" value={appealNote} onChange={(e) => setAppealNote(e.target.value)} rows={2} maxLength={1000} />
+                          <div className="flex justify-end gap-2"><Button size="sm" variant="secondary" onClick={() => setAppealing(null)}>Cancel</Button><Button size="sm" loading={busy === p.id} disabled={appealNote.trim().length < 5} onClick={() => appeal(p.id)}>Send appeal</Button></div>
+                        </div>
+                      ) : <Button size="sm" variant="secondary" className="mt-2" onClick={() => { setAppealing(p.id); setAppealNote(""); }}>Appeal to the AAICBI team</Button>}
+                    </div>
+                  )}
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Button href={`/post/${p.id}`} size="sm" variant="secondary">View</Button>
                     {canEdit(p.status) && <Button href={`/compose?edit=${p.id}`} size="sm" variant="secondary">Edit</Button>}

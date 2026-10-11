@@ -6,6 +6,8 @@ import BackLink from "@/components/ui/BackLink";
 import PostCard from "@/components/posts/PostCard";
 import { getSession } from "@/lib/auth/session";
 import { getPostFor } from "@/lib/posts/posts";
+import { canReviewUser } from "@/lib/review/access";
+import ReviewerPostActions from "@/components/posts/ReviewerPostActions";
 import { STATUS_LABEL } from "@/lib/posts/postCore";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +23,8 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 /** /post/[id]: one post. Public only once published; its author's side and reviewers can also open it while it is private. */
 export default async function PostPage({ params }: { params: { id: string } }) {
   const viewer = await getSession();
-  const found = await getPostFor(params.id, viewer);
+  const reviewer = !!viewer && (await canReviewUser(viewer.userId, viewer.role));
+  const found = await getPostFor(params.id, viewer, { reviewer });
   if (!found) notFound();
   const { post, mine } = found;
   return (
@@ -36,6 +39,7 @@ export default async function PostPage({ params }: { params: { id: string } }) {
           </div>
         )}
         <div className="mt-3"><PostCard post={post} showStatus={mine} /></div>
+        {reviewer && <ReviewerPostActions postId={post.id} status={post.status} />}
         {mine && (post.status === "DRAFT" || post.status === "CHANGES_REQUESTED" || post.status === "PUBLISHED") && (
           <p className="mt-3 text-sm"><Link href={`/compose?edit=${post.id}`} className="font-semibold text-brand-teal hover:underline">Edit this post</Link></p>
         )}

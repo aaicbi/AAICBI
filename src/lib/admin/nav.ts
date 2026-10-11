@@ -200,7 +200,7 @@ export interface AdminNavGroup {
  * Who sees an item. "staff" is every AAICBI staff role; the roles
  * narrow it. "org" is a training organization's own admin session.
  */
-type Audience = "staff" | "admins" | "superadmin" | "org" | "staffAndOrg";
+type Audience = "staff" | "admins" | "superadmin" | "org" | "staffAndOrg" | "reviewer";
 
 interface DefinedItem extends AdminNavItem {
   audience: Audience;
@@ -208,6 +208,8 @@ interface DefinedItem extends AdminNavItem {
 
 const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
   { label: null, items: [{ label: "Dashboard", href: "/admin/dashboard", audience: "staffAndOrg" }] },
+  // The review team's inbox: posts, appeals and Loop's questions. Super admins and the staff they made reviewers.
+  { label: "Review", items: [{ label: "Review inbox", href: "/admin/review", audience: "reviewer" }] },
   {
     label: "Teaching",
     items: [
@@ -227,6 +229,7 @@ const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
       { label: "Program skills", href: "/admin/organization/programs", audience: "org" },
       { label: "Content and visibility", href: "/admin/organization/insights", audience: "org" },
       { label: "Events", href: "/admin/organization/events", audience: "org" },
+      { label: "Member posts", href: "/admin/organization/posts", audience: "org" },
     ],
   },
   {
@@ -273,11 +276,13 @@ const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
   },
 ];
 
-function isVisible(audience: Audience, role: string, isTrainingOrg: boolean): boolean {
+function isVisible(audience: Audience, role: string, isTrainingOrg: boolean, canReview: boolean): boolean {
   if (isTrainingOrg) return audience === "org" || audience === "staffAndOrg";
   switch (audience) {
     case "org":
       return false;
+    case "reviewer":
+      return role === "SUPER_ADMIN" || canReview;
     case "staff":
     case "staffAndOrg":
       return true;
@@ -289,11 +294,11 @@ function isVisible(audience: Audience, role: string, isTrainingOrg: boolean): bo
 }
 
 /** The grouped sidebar structure for a session, empty groups removed. */
-export function getAdminNavGroups(role: string, isTrainingOrg = false): AdminNavGroup[] {
+export function getAdminNavGroups(role: string, isTrainingOrg = false, canReview = false): AdminNavGroup[] {
   return GROUPS.map((g) => ({
     label: g.label,
     items: g.items
-      .filter((i) => isVisible(i.audience, role, isTrainingOrg))
+      .filter((i) => isVisible(i.audience, role, isTrainingOrg, canReview))
       .map(({ label, href }) => ({ label, href })),
   })).filter((g) => g.items.length > 0);
 }

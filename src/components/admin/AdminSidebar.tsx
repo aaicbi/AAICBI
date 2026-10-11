@@ -50,6 +50,7 @@ export default function AdminSidebar({
   avatarUrl,
   role,
   isTrainingOrg,
+  canReview,
 }: {
   name: string;
   avatarUrl: string | null;
@@ -61,13 +62,15 @@ export default function AdminSidebar({
    * is ADMIN, but that's an implementation detail this account holder
    * has no reason to see). */
   isTrainingOrg?: boolean;
+  /** Whether this staff member may review posts and Loop's questions (shows the review inbox). */
+  canReview?: boolean;
 }) {
   const pathname = usePathname() ?? "/admin/dashboard";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const helpRef = useRef<HTMLDivElement>(null);
 
-  const navGroups = getAdminNavGroups(role, isTrainingOrg);
+  const navGroups = getAdminNavGroups(role, isTrainingOrg, canReview);
   const tourEntry = getSidebarTourGuideContent(pathname);
 
   useEffect(() => {
