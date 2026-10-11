@@ -72,6 +72,7 @@ export default function ChatPanel({
   ctx,
   onClose,
   onState,
+  onResetPosition,
 }: {
   pathname: string;
   config: GuideClientConfig;
@@ -79,6 +80,8 @@ export default function ChatPanel({
   ctx: PageContext;
   onClose: () => void;
   onState: (s: LoopState) => void;
+  /** Given only when Loop has been moved: puts it back in its usual corner. */
+  onResetPosition?: () => void;
 }) {
   const router = useRouter();
   const here = useCurrentPath() ?? pathname;
@@ -277,6 +280,11 @@ export default function ChatPanel({
         >
           Start over
         </button>
+        {onResetPosition && (
+          <button type="button" onClick={() => { onResetPosition(); onClose(); }} className="rounded px-2 py-1 text-xs font-semibold text-gray-600 hover:text-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
+            Put Loop back
+          </button>
+        )}
         <button type="button" onClick={onClose} aria-label="Minimize Loop" className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 hover:bg-brand-mint hover:text-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
           <Icon icon={Minus} size="md" />
         </button>

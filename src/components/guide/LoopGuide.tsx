@@ -202,7 +202,7 @@ export default function LoopGuide() {
   return (
     <div className="print:hidden">
       <GuideSpotlight />
-      {open && <ChatPanel pathname={pathname} config={config} me={me} ctx={ctx} onClose={closePanel} onState={setFace} />}
+      {open && <ChatPanel pathname={pathname} config={config} me={me} ctx={ctx} onClose={closePanel} onState={setFace} onResetPosition={pos ? resetPos : undefined} />}
 
       {hint && !open && (
         <div role="group" aria-label="A hint from Loop" className="fixed right-4 z-40 w-[15.5rem] max-w-[calc(100vw-2rem)] animate-[loop-bubble-in_0.2s_ease-out] sm:right-6" style={pos ? { right: Math.min(pos.right, Math.max(EDGE, window.innerWidth - 248 - EDGE)), bottom: pos.bottom + 72 > window.innerHeight - 140 ? Math.max(EDGE, pos.bottom - 120) : pos.bottom + 72 } : { bottom: `calc(${ABOVE_BANNER_AND_PAGE_FAB} + 4.5rem)` }}>
@@ -241,8 +241,7 @@ export default function LoopGuide() {
         onPointerUp={onPointerEnd}
         onPointerCancel={onPointerEnd}
         onKeyDown={onKeyDown}
-        onDoubleClick={resetPos}
-        title="Drag me out of the way. Double-click to put me back."
+        title="Drag me out of the way. Open me and choose Put Loop back to return me."
         aria-label={open ? "Minimize Loop" : "Ask Loop, the ecosystem guide. Drag to move; Alt and arrow keys also move it."}
         aria-expanded={open}
         aria-controls={open ? "loop-panel" : undefined}

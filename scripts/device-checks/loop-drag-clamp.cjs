@@ -37,10 +37,10 @@ const psql = (q) => require('child_process').execFileSync('/usr/lib/postgresql/1
   await p.mouse.click(box2.x + 28, box2.y + 28);
   await p.waitForTimeout(500);
   log(await p.locator('#loop-panel').count() === 1, 'a tap still opens the chat');
-  await p.getByRole('dialog').getByRole('button', { name: 'Minimize Loop' }).click();
-  await p.getByRole('button', { name: /Loop/ }).last().dblclick(); await p.waitForTimeout(300);
-  const box3 = await loop.boundingBox();
-  log(Math.abs(box3.x - box0.x) < 3 && Math.abs(box3.y - box0.y) < 3, 'double-click puts Loop back');
+  await p.getByRole('dialog').getByRole('button', { name: 'Put Loop back' }).click();
+  await p.waitForTimeout(400);
+  const box3 = await p.getByRole('button', { name: /Ask Loop/ }).boundingBox();
+  log(Math.abs(box3.x - box0.x) < 3 && Math.abs(box3.y - box0.y) < 3, `"Put Loop back" returns it to its corner (${Math.round(box3.x)},${Math.round(box3.y)})`);
   await b.close();
   psql(`delete from "UserNotification" where title like 'CLAMPCHECK%'`);
 })().catch((e) => { console.error(e); process.exit(1); });
