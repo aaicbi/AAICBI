@@ -305,12 +305,18 @@ export async function savedPosts(actor: Actor): Promise<FeedPost[]> {
 }
 
 /** Posts matching a search: words in the text or title, or an exact topic. Public posts only. */
-export async function searchPosts(q: string, actor: Actor | null, take = 20): Promise<FeedPost[]> {
-  const tag = q.startsWith("#") ? normalizeTag(q) : null;
-  const word = q.replace(/^#/, "");
+export async function searchPosts(q: string | null, actor: Actor | null, take = 20, opts: { type?: "TEXT" | "IMAGE" | "YOUTUBE" | null; skip?: number } = {}): Promise<FeedPost[]> {
+  const tag = q && q.startsWith("#") ? normalizeTag(q) : null;
+  const word = (q ?? "").replace(/^#/, "");
   const rows = await prisma.post.findMany({
-    where: { ...publicPostWhere(!!actor), publishedAt: { not: null }, OR: [{ body: { contains: word, mode: "insensitive" } }, { title: { contains: word, mode: "insensitive" } }, ...(tag ? [{ tags: { has: tag } }] : [{ tags: { has: word.toLowerCase() } }])] },
+    where: {
+      ...publicPostWhere(!!actor),
+      publishedAt: { not: null },
+      ...(opts.type ? { type: opts.type } : {}),
+      ...(word ? { OR: [{ body: { contains: word, mode: "insensitive" } }, { title: { contains: word, mode: "insensitive" } }, ...(tag ? [{ tags: { has: tag } }] : [])] } : {}),
+    },
     orderBy: { publishedAt: "desc" },
+    skip: opts.skip ?? 0,
     take,
     include: { media: true },
   });

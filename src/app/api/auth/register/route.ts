@@ -1,15 +1,9 @@
-import { ensureProfileQuietly } from "@/lib/profiles/profiles";
 import { NextRequest, NextResponse } from "next/server";
-import { randomBytes } from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { hashPassword } from "@/lib/auth/password";
 import { withApiErrors } from "@/lib/apiError";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
-import { notifyByEmail } from "@/lib/notifications/log";
-import { welcomeEmail } from "@/lib/notifications/templates";
-import { appUrl } from "@/lib/appUrl";
-import { getConsentDecision, getVisitorId } from "@/lib/analytics/visitorCookies";
+import { createTraineeAccount, sendTraineeWelcome } from "@/lib/auth/traineeSignup";
 
 const RegisterSchema = z.object({
   name: z.string().min(1),
@@ -32,7 +26,6 @@ const RegisterSchema = z.object({
   courseId: z.string().optional(),
 });
 
-const VERIFY_TOKEN_LIFETIME_MS = 48 * 60 * 60 * 1000; // 48 hours — see M9 audit finding #6
 
 /**
  * Trainee self-registration — the M9 change that didn't exist in the CBT
@@ -82,52 +75,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "An account with this email already exists." }, { status: 409 });
     }
 
-    const passwordHash = await hashPassword(parsed.data.password);
-    const verifyToken = randomBytes(24).toString("hex");
-    const verifyTokenExpiresAt = new Date(Date.now() + VERIFY_TOKEN_LIFETIME_MS);
-
-    // Analytics System Phase 3 — captured ONCE, here, same "recorded at
-    // the moment it's genuinely true" reasoning as privacyConsentAt
-    // right below. Only set when this same browser had already accepted
-    // cookie tracking (getConsentDecision() === "accepted") — never
-    // speculatively read a visitor-id cookie that exists for some other
-    // reason. See the schema comment on Trainee.registrationVisitorId.
-    const registrationVisitorId = getConsentDecision() === "accepted" ? getVisitorId() : null;
-
     let trainee;
+    let verifyToken: string;
     try {
-      trainee = await prisma.trainee.create({
-        data: {
-          name: parsed.data.name,
-          email: parsed.data.email,
-          phone: parsed.data.phone,
-          passwordHash,
-          verifyToken,
-          verifyTokenExpiresAt,
-          // Recorded, not just checked — see the schema comment on
-          // Trainee.privacyConsentAt for why the timestamp itself is
-          // the actual evidence, not the fact that a checkbox existed
-          // in the UI at some point.
-          privacyConsentAt: new Date(),
-          registrationVisitorId: registrationVisitorId ?? undefined,
-        },
-      });
-      await ensureProfileQuietly("PERSON", trainee.id);
+      ({ trainee, verifyToken } = await createTraineeAccount({ name: parsed.data.name, email: parsed.data.email, phone: parsed.data.phone, password: parsed.data.password, kind: "TRAINEE" }));
     } catch (e) {
-      // The findUnique check above narrows this to a genuine race: two
-      // requests for the same email close enough together that both
-      // passed the check before either commit. Report it the same way
-      // as the non-race case rather than letting a raw Prisma error
-      // become an unhandled 500.
-      //
-      // Duck-typed check (`.code === "P2002"`) rather than
-      // `instanceof Prisma.PrismaClientKnownRequestError`: in this
-      // sandbox, prisma generate can't run (see README), so the
-      // generated client's types — including that error class — aren't
-      // available to import correctly. This check is exactly what that
-      // instanceof check would do at runtime regardless; it just doesn't
-      // depend on a type that happens to be broken in this environment
-      // specifically.
+      // The check above narrows this to a genuine race: two requests for the same email close enough together that both
+      // passed it before either committed. Report it the same way instead of letting a raw database error become a 500.
+      // Duck-typed (`.code === "P2002"`) because this is exactly what the instanceof check would do at runtime.
       const code = (e as { code?: string })?.code;
       if (code === "P2002") {
         return NextResponse.json({ error: "An account with this email already exists." }, { status: 409 });
@@ -161,33 +116,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // M14: welcome/verify email. Fire-and-forget-with-logging via
-    // notifyByEmail — never lets a failed/slow send affect the
-    // registration response, matching the graceful-degradation rule
-    // used everywhere else external calls happen in this project.
-    // Awaited (not truly fire-and-forget) because this route runs in a
-    // serverless function that may terminate the moment a response is
-    // sent — same reasoning M13 documented for its own AI call.
-    const verifyUrl = appUrl(`/trainee/verify?token=${verifyToken}`);
-    const email = welcomeEmail(trainee.name, verifyUrl);
-    await notifyByEmail({
-      recipientType: "TRAINEE",
-      recipientId: trainee.id,
-      to: trainee.email,
-      type: "WELCOME",
-      subject: email.subject,
-      html: email.html,
-      text: email.text,
-      // M43 — wired for consistency with the roadmap's own named list
-      // of events, though genuinely inert in practice for this
-      // specific one: a trainee can't have opted into WhatsApp before
-      // their account exists, so isEligibleForWhatsApp always
-      // correctly returns false here. Left in rather than special-
-      // cased out, since the check itself is what makes that safe —
-      // no harm in the field being present, and it stays consistent
-      // with every other notifyByEmail call this milestone touches.
-      whatsapp: { templateName: "welcome_verify", variables: { name: trainee.name, verify_url: verifyUrl } },
-    });
+    // M14: welcome/verify email, awaited because this runs in a serverless function that may stop once the response is sent.
+    await sendTraineeWelcome(trainee, verifyToken);
 
     return NextResponse.json({ id: trainee.id, name: trainee.name, email: trainee.email });
   });

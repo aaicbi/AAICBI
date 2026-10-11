@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import SiteHeader from "@/components/SiteHeader";
+import HomeHeader from "@/components/ecosystem/HomeHeader";
 import EmptyState from "@/components/ui/EmptyState";
-import EcosystemSubnav from "@/components/ecosystem/EcosystemSubnav";
 import { JobCard, Rail } from "@/components/landing/Cards";
 import { prisma } from "@/lib/prisma";
 import { getEcosystemFlags } from "@/lib/ecosystem/flags";
@@ -67,8 +66,7 @@ export default async function PublicJobsPage({ searchParams }: { searchParams: {
 
   return (
     <>
-      <SiteHeader nav={[{ label: "Training", href: "/courses" }, { label: "Verify a Certificate", href: "/certificate" }]} />
-      <EcosystemSubnav active="jobs" feedEnabled={flags.feed} />
+      <HomeHeader />
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Opportunities</h1>
         <p className="mt-1 text-sm text-gray-600">Open roles from approved employers. You can read everything here; you need an account to apply.</p>

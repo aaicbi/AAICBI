@@ -27,6 +27,8 @@ export const DESTINATIONS: Destination[] = [
   { label: "Community showcase", href: "/showcase", group: "Explore" },
   { label: "Verify a certificate", href: "/certificate", group: "Explore" },
   { label: "Join the ecosystem", href: "/#join", group: "Join" },
+  { label: "Compare the five account types", href: "/join", group: "Join" },
+  { label: "Create a startup account", href: "/startup/register", group: "Join" },
   { label: "Create a trainee account", href: "/trainee/register", group: "Join" },
   { label: "Register your organization", href: "/org/register", group: "Join" },
   { label: "Register as an employer", href: "/employer/register", group: "Join" },
@@ -35,9 +37,7 @@ export const DESTINATIONS: Destination[] = [
   { label: "Organization sign in", href: "/org/login", group: "Sign in" },
   { label: "Employer sign in", href: "/employer/login", group: "Sign in" },
   { label: "Investor sign in", href: "/investor/login", group: "Sign in" },
-  { label: "Staff sign in", href: "/admin/login", group: "Sign in" },
   { label: "Reset a trainee password", href: "/trainee/forgot-password", group: "Help" },
-  { label: "Reset a staff password", href: "/admin/forgot-password", group: "Help" },
   { label: "Your Learning Buddy", href: "/trainee/buddy", group: "Help" },
   { label: "Your settings", href: "/trainee/settings", group: "Help" },
 ];

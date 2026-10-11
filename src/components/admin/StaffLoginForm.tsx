@@ -1,0 +1,93 @@
+"use client";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import SiteHeader from "@/components/SiteHeader";
+import Logo from "@/components/Logo";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import { Input } from "@/components/ui/Field";
+/**
+ * The staff sign-in form. It is served from two addresses, the older /admin/login and the staff-only
+ * address set by STAFF_SIGN_IN_PATH (see src/lib/staffAccessPath.js), and signs in through the same
+ * server route either way.
+ */
+export default function StaffLoginForm() {
+  return (
+    <Suspense fallback={null}>
+      <Form />
+    </Suspense>
+  );
+}
+
+function Form() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const searchParams = useSearchParams();
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    setLoading(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Invalid email or password.");
+      return;
+    }
+    const data = await res.json();
+    // Instructor Portal, Phase 1 — an INSTRUCTOR never lands on the
+    // admin dashboard (the master spec's own core rule). Its own page
+    // checks agreement status and redirects to /instructor/agreement
+    // first if nothing's been accepted yet, the same self-check
+    // pattern /investor/dashboard already uses for approval state.
+    const defaultTarget = data.role === "INSTRUCTOR" ? "/instructor/dashboard" : "/admin/dashboard";
+    // Same ?next= handling as the trainee login page — see the comment
+    // there for the open-redirect guard's reasoning.
+    const next = searchParams.get("next");
+    const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : defaultTarget;
+    // Bug fix — see trainee/login/page.tsx's own comment for the full
+    // reasoning: a soft router.push() here is the classic App Router
+    // "works after a manual refresh but not right after login" gotcha,
+    // since middleware.ts frequently sent the person here specifically
+    // because their destination was already requested once while
+    // logged out. A hard navigation guarantees a genuinely fresh,
+    // authenticated request instead.
+    window.location.href = safeNext;
+  }
+
+  return (
+    <>
+      <SiteHeader />
+      <main className="mx-auto flex min-h-[calc(100vh-73px)] max-w-sm flex-col justify-center px-6">
+        <div className="flex justify-center">
+          <Logo href={null} layout="pyramid" markClassName="h-28 w-auto" />
+        </div>
+        <h1 className="mt-4 text-center font-display text-xl font-semibold text-brand-ink">Staff Login</h1>
+
+        <Card className="mt-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input label="Email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <Input label="Password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            {error && <p role="alert" className="text-sm text-brand-rose">{error}</p>}
+            <Button type="submit" loading={loading} className="w-full">
+              {loading ? "Signing in..." : "Sign in"}
+            </Button>
+          </form>
+        </Card>
+
+        <p className="mt-3 text-center text-xs">
+          <a href="/admin/forgot-password" className="text-brand-teal hover:underline">
+            Forgot your password?
+          </a>
+        </p>
+      </main>
+    </>
+  );
+}

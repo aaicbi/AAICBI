@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import SiteHeader from "@/components/SiteHeader";
+import HomeHeader from "@/components/ecosystem/HomeHeader";
 import EmptyState from "@/components/ui/EmptyState";
 import EducationVideoCard from "@/components/ecosystem/EducationVideoCard";
 import { prisma } from "@/lib/prisma";
 import { getEcosystemFlags } from "@/lib/ecosystem/flags";
-import EcosystemSubnav from "@/components/ecosystem/EcosystemSubnav";
 import { PUBLIC_POST_WHERE, listPublicVideos, listTrendingVideos } from "@/lib/ecosystem/queries";
 
 export const dynamic = "force-dynamic";
@@ -30,8 +29,7 @@ export default async function LearnPage({ searchParams }: { searchParams: { cate
 
   return (
     <>
-      <SiteHeader nav={[{ label: "Organizations", href: "/organizations" }, { label: "Courses", href: "/courses" }]} />
-      <EcosystemSubnav active="learn" feedEnabled={flags.feed} />
+      <HomeHeader />
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Learn from the people building real projects</h1>
         <p className="mt-1 text-sm text-gray-600">Educational videos presented by trainees and published by their training organizations.</p>

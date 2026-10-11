@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import SiteHeader from "@/components/SiteHeader";
-import EcosystemSubnav from "@/components/ecosystem/EcosystemSubnav";
+import HomeHeader from "@/components/ecosystem/HomeHeader";
 import { getEcosystemFlags } from "@/lib/ecosystem/flags";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
@@ -21,8 +20,7 @@ export default async function StartupsPage({ searchParams }: { searchParams: { q
   const flags = await getEcosystemFlags();
   return (
     <>
-      <SiteHeader nav={[{ label: "Courses", href: "/courses" }, { label: "Feed", href: "/feed" }]} />
-      <EcosystemSubnav active="startups" feedEnabled={flags.feed} />
+      <HomeHeader />
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Startups</h1>
         <p className="mt-1 text-sm text-gray-700">Startups founded by AAICBI members. Each one is reviewed by the AAICBI team before it appears here.</p>

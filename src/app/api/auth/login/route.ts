@@ -5,6 +5,7 @@ import { verifyPassword } from "@/lib/auth/password";
 import { createSession } from "@/lib/auth/session";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
 import { trackEvent } from "@/lib/analytics/track";
+import { recordStaffSignIn } from "@/lib/auth/signInLog";
 
 const LoginSchema = z.object({
   email: z.string().email(),
@@ -25,7 +26,9 @@ export async function POST(req: NextRequest) {
   // trainee logging in normally.
   const limitKey = `admin-login:${clientIp(req)}:${parsed.data.email}`;
   const limited = await rateLimit(limitKey, 5, 15 * 60 * 1000);
+  const attempt = { email: parsed.data.email, ip: clientIp(req), userAgent: req.headers.get("user-agent") };
   if (!limited.allowed) {
+    await recordStaffSignIn({ ...attempt, outcome: "RATE_LIMITED" });
     return NextResponse.json(
       { error: "Too many login attempts. Please wait a few minutes and try again." },
       { status: 429, headers: { "Retry-After": String(limited.retryAfterSeconds) } }
@@ -38,10 +41,12 @@ export async function POST(req: NextRequest) {
   // it was, or confirm to a deactivated staff member that their
   // credentials still work.
   if (!user || !user.active || !(await verifyPassword(parsed.data.password, user.passwordHash))) {
+    await recordStaffSignIn({ ...attempt, userId: user?.id ?? null, outcome: user && !user.active ? "INACTIVE" : "BAD_CREDENTIALS" });
     return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
   }
 
   await createSession({ userId: user.id, email: user.email, role: user.role });
+  await recordStaffSignIn({ ...attempt, userId: user.id, outcome: "SUCCESS" });
   // Personalized landing page — same lastLoginAt/previousLoginAt
   // pattern as the trainee login route; staff had no login-tracking
   // at all before this. Awaited for the same Vercel-serverless-teardown

@@ -12,7 +12,7 @@
  * profiles, admin data) is ever kept by this worker. Logging out
  * therefore leaves nothing behind to clean up.
  */
-const VERSION = "v2";
+const VERSION = "v3";
 const STATIC_CACHE = `aaicbi-static-${VERSION}`;
 const SHELL_CACHE = `aaicbi-shell-${VERSION}`;
 const OFFLINE_URL = "/offline.html";

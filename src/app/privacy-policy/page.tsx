@@ -26,7 +26,7 @@ export default function PrivacyPolicyPage() {
       <SiteHeader />
       <main className="mx-auto max-w-2xl px-6 py-10">
         <h1 className="font-display text-2xl font-semibold text-brand-ink">
-          AAICBI Learning Management System — Privacy Policy
+          AAICBI Ecosystem — Privacy Policy
         </h1>
         <p className="mt-1 text-sm text-gray-500">Last updated: [date] — Version 1.1 (draft)</p>
 
@@ -34,7 +34,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2 className="text-base font-bold text-brand-teal">1. Who We Are</h2>
             <p className="mt-2">
-              This policy covers the AAICBI Learning Management System (the &quot;Platform&quot;), operated by
+              This policy covers the AAICBI Ecosystem (the &quot;Platform&quot;), operated by
               Africa&apos;s AI Capacity Building Initiative (&quot;AAICBI&quot;, &quot;we&quot;, &quot;us&quot;) as part of
               Futybills Tech Community, based in Uyo, Akwa Ibom State, Nigeria. This policy is
               specific to the Platform — it covers data collected through course registration,

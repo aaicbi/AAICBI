@@ -122,7 +122,7 @@ export default function ProgressSurface({ data, sample = false }: { data: Progre
 
 function Tile({ label, value, note }: { label: string; value: string; note: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-brand-gray bg-brand-surface p-4">
+    <div className="rounded-xl border border-brand-gray bg-card-gradient p-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">{label}</p>
       <p className="mt-1 font-display text-3xl font-semibold tabular-nums text-brand-ink">{value}</p>
       <p className="mt-0.5 text-xs text-gray-600">{note}</p>

@@ -1,3 +1,5 @@
+const { staffSignInPath } = require("./src/lib/staffAccessPath");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
@@ -36,10 +38,19 @@ nextConfig.headers = async () => [
     ],
   },
   { source: "/offline.html", headers: [{ key: "Cache-Control", value: "public, max-age=3600" }] },
+  // Staff areas and their sign-in addresses are never for search engines.
+  ...[staffSignInPath(), "/staff-access", "/admin/:path*", "/instructor/:path*"].map((source) => ({
+    source,
+    headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
+  })),
 ];
 
 // /@handle is the public address of every profile; the page itself lives at /p/[handle]
 // (a folder cannot start with @ in the app router).
-nextConfig.rewrites = async () => [{ source: "/@:handle", destination: "/p/:handle" }];
+// The staff sign-in address (STAFF_SIGN_IN_PATH, see src/lib/staffAccessPath.js) is served by the internal /staff-access page.
+nextConfig.rewrites = async () => [
+  { source: "/@:handle", destination: "/p/:handle" },
+  { source: staffSignInPath(), destination: "/staff-access" },
+];
 
 module.exports = nextConfig;

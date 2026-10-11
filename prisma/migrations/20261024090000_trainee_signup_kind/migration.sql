@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Trainee" ADD COLUMN "signupKind" TEXT NOT NULL DEFAULT 'TRAINEE';

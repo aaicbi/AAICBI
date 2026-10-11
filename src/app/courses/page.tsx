@@ -123,7 +123,6 @@ export default function PublicCoursesPage() {
           { label: "Community Showcase", href: "/showcase" },
           { label: "Trainee Login", href: "/trainee/login" },
           { label: "Employer Login", href: "/employer/login" },
-          { label: "Staff Login", href: "/admin/login" },
         ]}
       />
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">

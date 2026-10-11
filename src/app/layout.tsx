@@ -30,7 +30,7 @@ const manrope = Manrope({
 
 export const metadata: Metadata = {
   // Every child segment's title fills %s, so tabs read "Courses · AAICBI"
-  // instead of twenty identical "AAICBI Learning Management System" tabs.
+  // instead of twenty identical "AAICBI Ecosystem" tabs.
   title: { default: "AAICBI", template: "%s · AAICBI" },
   description:
     "AAICBI, the African AI Capacity Building Initiative: practical AI and technology courses, publicly verifiable certificates and a path to employers.",

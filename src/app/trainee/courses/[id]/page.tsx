@@ -993,7 +993,7 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
                     <ModuleAssessmentStrip courseId={course.id} moduleId={mod.id} />
                   </div>
                   {mod.lessons.map((lesson) => (
-                    <div key={lesson.id} id={`lesson-${lesson.id}`} className="border-b border-brand-gray bg-brand-surface p-3 last:border-b-0 sm:rounded-xl sm:border sm:p-4 sm:last:border-b">
+                    <div key={lesson.id} id={`lesson-${lesson.id}`} className="border-b border-brand-gray bg-card-gradient p-3 last:border-b-0 sm:rounded-xl sm:border sm:p-4 sm:last:border-b">
                       <div className="flex flex-col items-start gap-2 sm:flex-row sm:justify-between sm:gap-3">
                         <div className="min-w-0 flex-1">
                           <div className="break-words text-sm font-semibold text-brand-ink [overflow-wrap:anywhere]">{lesson.title}</div>

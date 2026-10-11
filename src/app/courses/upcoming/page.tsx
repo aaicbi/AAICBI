@@ -35,7 +35,6 @@ export default function UpcomingCoursesPage() {
         nav={[
           { label: "Trainee Login", href: "/trainee/login" },
           { label: "Employer Login", href: "/employer/login" },
-          { label: "Staff Login", href: "/admin/login" },
         ]}
       />
       <main className="mx-auto max-w-5xl px-6 py-10">

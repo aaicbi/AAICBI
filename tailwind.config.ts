@@ -65,6 +65,10 @@ const config: Config = {
       // The social look: rounder than stock Tailwind, applied once here so
       // every card (xl), field and menu (lg) and dialog (2xl) in the app
       // picks it up without a per-file edit. Buttons and chips are full pills.
+      backgroundImage: {
+        // The platform's signature surface: mint into gold in light mode, a plain surface in dark mode (see --card-gradient-* in globals.css).
+        "card-gradient": "linear-gradient(135deg, rgb(var(--card-gradient-from)) 0%, rgb(var(--card-gradient-to)) 100%)",
+      },
       borderRadius: {
         lg: "0.875rem",
         xl: "1.25rem",

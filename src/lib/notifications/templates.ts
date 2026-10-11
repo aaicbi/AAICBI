@@ -66,13 +66,13 @@ export function welcomeEmail(name: string, verifyUrl: string): EmailContent {
     subject: "Verify your AAICBI account",
     html: wrapHtml(`
       <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(name)},</p>
-      <p style="margin:0 0 16px;">Welcome to the AAICBI Learning Management System. Verify your email address to activate your account and start your courses.</p>
+      <p style="margin:0 0 16px;">Welcome to the AAICBI Ecosystem. Verify your email address to activate your account and begin your journey.</p>
       ${button(verifyUrl, "Verify Email Address")}
       <p style="margin:0;font-size:13px;color:#666;">This link expires in 48 hours. If you didn't create this account, you can ignore this email.</p>
     `),
     text: `Hi ${name},
 
-Welcome to the AAICBI Learning Management System. Verify your email address to activate your account and start your courses.
+Welcome to the AAICBI Ecosystem. Verify your email address to activate your account and begin your journey.
 
 ${verifyUrl}
 

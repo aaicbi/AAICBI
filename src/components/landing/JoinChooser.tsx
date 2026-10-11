@@ -20,7 +20,7 @@ export default function JoinChooser() {
         <p className="mt-2 max-w-2xl text-sm text-gray-600">Choose how you will use it. Creating an account is free, and you can look around without one.</p>
         <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {ROLES.map((r) => (
-            <li key={r.title} className="flex flex-col rounded-2xl border border-brand-gray bg-brand-surface p-5">
+            <li key={r.title} className="flex flex-col rounded-2xl border border-brand-gray bg-card-gradient p-5">
               <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-mint text-brand-teal">
                 <Icon icon={r.icon} size="md" />
               </span>

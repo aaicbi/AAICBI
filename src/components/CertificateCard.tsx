@@ -85,7 +85,7 @@ export default function CertificateCard({ traineeName, verb, credentialTitle, is
           // eslint-disable-next-line @next/next/no-img-element -- a real, dynamically-uploaded external URL, same reasoning as every other org-branded image in this app.
           <img src={branding.logoUrl} alt="" className="mx-auto h-11 w-11 object-contain sm:h-12 sm:w-12" />
         ) : (
-          <Logo href={null} compact markClassName="h-11 w-11 sm:h-12 sm:w-12" className="justify-center" />
+          <Logo href={null} layout="pyramid" markClassName="h-24 w-auto sm:h-28" className="justify-center" />
         )}
         <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-brand-teal">
           {branding ? branding.organizationName : "Africa's AI Capacity Building Initiative"}

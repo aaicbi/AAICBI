@@ -13,7 +13,7 @@ import { PRIORITY_VARIANT, ROLE_LABEL, STATUS_LABEL, dateTime, type EntryDto, ty
 
 function Stat({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
   return (
-    <div className="rounded-xl border border-brand-gray bg-brand-surface p-3">
+    <div className="rounded-xl border border-brand-gray bg-card-gradient p-3">
       <p className="font-display text-2xl font-semibold tabular-nums text-brand-ink">{value}</p>
       <p className="text-xs font-semibold text-gray-700">{label}</p>
       {hint && <p className="mt-0.5 text-xs text-gray-600">{hint}</p>}
@@ -231,7 +231,7 @@ export function TargetsTab() {
         <h2 id="t-heading" className="font-display text-lg font-semibold text-brand-ink">Things Loop can point at</h2>
         <p className="mt-1 text-sm text-gray-600">Menu items are listed automatically from the real menus, so a renamed page is followed. Other controls are listed when a developer marks them. Use these ids in &ldquo;Control to light up&rdquo; when writing an answer.</p>
       </div>
-      <details open className="rounded-xl border border-brand-gray bg-brand-surface p-4">
+      <details open className="rounded-xl border border-brand-gray bg-card-gradient p-4">
         <summary className="cursor-pointer text-sm font-semibold text-brand-teal">Controls ({CONTROL_TARGETS.length})</summary>
         <ul className="mt-2 space-y-1 text-sm text-gray-700">
           {CONTROL_TARGETS.map((c) => (
@@ -242,7 +242,7 @@ export function TargetsTab() {
       {groups.map((g) => {
         const items = GUIDE_DESTINATIONS.filter((d) => d.audience.includes(g));
         return (
-          <details key={g} className="rounded-xl border border-brand-gray bg-brand-surface p-4">
+          <details key={g} className="rounded-xl border border-brand-gray bg-card-gradient p-4">
             <summary className="cursor-pointer text-sm font-semibold text-brand-teal">{ROLE_LABEL[g]} menu ({items.length})</summary>
             <ul className="mt-2 space-y-1 text-sm text-gray-700">
               {items.map((d) => (

@@ -89,7 +89,7 @@ export default async function PublicProfilePage({ params }: { params: { code: st
       <SiteHeader />
       <main className="mx-auto max-w-2xl px-6 py-12">
         <div className="rounded-2xl border border-brand-gray bg-white dark:bg-brand-surface p-8 text-center shadow-sm sm:p-10">
-          <Logo href={null} compact markClassName="h-11 w-11" className="justify-center" />
+          <Logo href={null} layout="pyramid" markClassName="h-24 w-auto" className="justify-center" />
           <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-brand-teal">
             Africa&apos;s AI Capacity Building Initiative
           </p>

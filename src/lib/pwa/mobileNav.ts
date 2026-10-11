@@ -71,6 +71,8 @@ export function bottomNavHidden(pathname: string): boolean {
 /** Whether a tab is the current place. The home tab matches only itself, not everything below it. */
 export function isTabActive(item: BottomNavItem, pathname: string): boolean {
   if (item.key === "home") return pathname === item.href;
+  // The feed is the public home page too, so it is the current place on "/" as well as "/feed".
+  if (item.key === "feed") return pathname === "/" || pathname === item.href || pathname.startsWith(item.href + "/");
   return pathname === item.href || pathname.startsWith(item.href + "/");
 }
 

@@ -171,7 +171,7 @@ export default async function OrganizationOverviewPage() {
             />
           </div>
         ) : (
-          <div className="mt-3 rounded-xl border border-brand-gray bg-brand-surface p-4">
+          <div className="mt-3 rounded-xl border border-brand-gray bg-card-gradient p-4">
             <CourseProgressTable
               rows={courses.map((c) => ({ id: c.id, title: c.title, published: c.published, enrolled: enrolled.get(c.id) ?? 0, completed: completed.get(c.id) ?? 0 }))}
             />
@@ -186,7 +186,7 @@ export default async function OrganizationOverviewPage() {
         {recent.length === 0 ? (
           <p className="mt-3 text-sm text-gray-600">No one has enrolled in your courses yet.</p>
         ) : (
-          <div className="mt-3 rounded-xl border border-brand-gray bg-brand-surface p-4">
+          <div className="mt-3 rounded-xl border border-brand-gray bg-card-gradient p-4">
             <RecentTraineesTable
               rows={recent.map((r) => ({
                 id: r.id,
@@ -209,7 +209,7 @@ export default async function OrganizationOverviewPage() {
             You have no cohorts yet. Open a course and choose Cohorts to group trainees who start together.
           </p>
         ) : (
-          <div className="mt-3 rounded-xl border border-brand-gray bg-brand-surface p-4">
+          <div className="mt-3 rounded-xl border border-brand-gray bg-card-gradient p-4">
             <CohortsTable
               rows={cohorts.map((c) => ({
                 id: c.id,
@@ -290,7 +290,7 @@ function percent(part: number, whole: number) {
 
 function Stat({ label, value, note }: { label: string; value: number | string; note: string }) {
   return (
-    <div className="rounded-xl border border-brand-gray bg-brand-surface p-4">
+    <div className="rounded-xl border border-brand-gray bg-card-gradient p-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">{label}</p>
       <p className="mt-1 font-display text-3xl font-semibold tabular-nums text-brand-ink">{value}</p>
       <p className="mt-0.5 text-xs text-gray-600">{note}</p>

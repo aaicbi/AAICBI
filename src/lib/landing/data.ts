@@ -232,4 +232,4 @@ export function emptyReal(): LandingReal {
   };
 }
 
-export { OPEN_JOB_WHERE, publicTraineeWhere };
+export { OPEN_JOB_WHERE, publicTraineeWhere, loadJobs, loadOrganizations, loadEvents, safe };

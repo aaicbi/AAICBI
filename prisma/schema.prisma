@@ -400,6 +400,8 @@ model User {
 // email, and comes back across many courses and attempts over time.
 model Trainee {
   id            String    @id @default(cuid())
+  /// Which sign-up the account came from: TRAINEE or FOUNDER (created together with a startup). Only picks the default dashboard; both are the same kind of member account.
+  signupKind    String    @default("TRAINEE")
   // Public ecosystem — seeded demo rows only; see prisma/seed-demo-ecosystem.ts.
   isDemo         Boolean  @default(false)
   educationPosts EducationPost[]
@@ -5119,4 +5121,22 @@ model PostReport {
 
   @@unique([targetKind, postId, commentId, reporterProfileId])
   @@index([status, createdAt])
+}
+
+/// One row per staff sign-in attempt (success or not), so a super admin can see who tried to get in, when, and from where.
+/// Kept apart from the analytics events on purpose: this is a security record, not a usage metric.
+model StaffSignInLog {
+  id        String   @id @default(cuid())
+  at        DateTime @default(now())
+  /// The email that was typed (it is validated as an email before it is stored).
+  email     String
+  /// Set when the email belongs to a staff account.
+  userId    String?
+  /// SUCCESS, BAD_CREDENTIALS, INACTIVE or RATE_LIMITED.
+  outcome   String
+  ip        String?
+  userAgent String?
+
+  @@index([at])
+  @@index([email, at])
 }
