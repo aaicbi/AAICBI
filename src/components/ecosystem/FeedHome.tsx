@@ -9,6 +9,8 @@ import SocialProvider from "@/components/posts/SocialProvider";
 import FeedList from "@/components/posts/FeedList";
 import FollowButton from "@/components/posts/FollowButton";
 import { ComposeBox, ComposeFab } from "@/components/posts/ComposeEntry";
+import DiscoveryPanelsView from "@/components/ecosystem/DiscoveryPanels";
+import { getDiscoveryPanels, hasPanels } from "@/lib/ecosystem/discovery";
 import DiscoverFeed from "@/app/feed/DiscoverFeed";
 import { getSession } from "@/lib/auth/session";
 import { dashboardHrefFor } from "@/lib/auth/home";
@@ -31,7 +33,7 @@ export default async function FeedHome({ searchParams, base }: { searchParams: {
   const actor = await actorOf(session);
   const tab = parseTab(searchParams.tab);
   const visitorLatest = !actor && tab === "latest";
-  const [tags, people] = await Promise.all([visitorLatest || !actor ? publicTrendingTags() : trendingTags(), actor ? suggestions(actor, 4) : publicSuggestions()]);
+  const [panels, tags, people] = await Promise.all([getDiscoveryPanels(), visitorLatest || !actor ? publicTrendingTags() : trendingTags(), actor ? suggestions(actor, 4) : publicSuggestions()]);
   const page = visitorLatest ? await publicFeedFirstPage() : tab === "latest" || (tab === "following" && actor) ? await feedPage({ tab: tab === "following" ? "following" : "latest", actor }) : null;
   const [card, dashboard] = actor && session ? await Promise.all([cardsFor([actor.profile]).then((m) => m.get(actor.profile.id) ?? null), dashboardHrefFor(session)]) : [null, null];
   const initial = card?.name?.charAt(0).toUpperCase() || "A";
@@ -67,6 +69,12 @@ export default async function FeedHome({ searchParams, base }: { searchParams: {
             </div>
           )}
           <ComposeBox initial={initial} />
+          {(hasPanels(panels) || !actor) && (
+            <details className="mt-4 rounded-3xl border border-brand-gray bg-card-gradient lg:hidden">
+              <summary className="flex min-h-[44px] cursor-pointer items-center px-4 text-sm font-semibold text-brand-ink">Explore AAICBI: organizations, jobs, startups, events</summary>
+              <div className="space-y-4 p-3"><DiscoveryPanelsView panels={panels} signedIn={!!actor} /></div>
+            </details>
+          )}
           <nav aria-label="Feed tabs" className="mt-4 flex gap-2 overflow-x-auto pb-2">
             {TABS.map(([t, l]) => <Link key={t} href={tabHref(t)} aria-current={tab === t ? "page" : undefined} className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold ${tab === t ? "bg-brand-teal text-brand-onAccent" : "border border-brand-gray bg-brand-surface text-brand-ink hover:border-brand-teal"}`}>{l}</Link>)}
           </nav>
@@ -78,7 +86,7 @@ export default async function FeedHome({ searchParams, base }: { searchParams: {
           </div>
         </section>
 
-        <aside className="space-y-4 lg:sticky lg:top-32 lg:self-start" aria-label="Suggestions">
+        <aside className="space-y-4" aria-label="Suggestions and discovery">
           {people.length > 0 && (
             <Card>
               <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Who to follow</h2>
@@ -102,6 +110,7 @@ export default async function FeedHome({ searchParams, base }: { searchParams: {
               <p className="mt-2 text-xs text-gray-600">Counted by how many different people posted about it.</p>
             </Card>
           )}
+          <div className="hidden space-y-4 lg:block"><DiscoveryPanelsView panels={panels} signedIn={!!actor} /></div>
         </aside>
       </main>
       <ComposeFab />
