@@ -16,6 +16,7 @@
  * and never the full row.
  */
 import { prisma } from "@/lib/prisma";
+import { assignmentAccess } from "@/lib/collab/access";
 
 function notFound(message: string) {
   const err = new Error(message) as Error & { status?: number };
@@ -25,7 +26,7 @@ function notFound(message: string) {
 
 export async function requireOwnedAssignment(assignmentId: string, userId: string, role?: string) {
   const assignment = await prisma.assignment.findUnique({ where: { id: assignmentId } });
-  if (!assignment || (role !== "SUPER_ADMIN" && assignment.createdById !== userId)) {
+  if (!assignment || !(await assignmentAccess(assignment, userId, role))) {
     throw notFound("Assignment not found.");
   }
   return assignment;
@@ -36,7 +37,7 @@ export async function requireOwnedAssignmentQuestion(questionId: string, userId:
     where: { id: questionId },
     include: { assignment: true },
   });
-  if (!question || (role !== "SUPER_ADMIN" && question.assignment.createdById !== userId)) {
+  if (!question || !(await assignmentAccess(question.assignment, userId, role))) {
     throw notFound("Question not found.");
   }
   return question;

@@ -30,6 +30,7 @@ import { COURSE_STATUS_VALUES, COURSE_STATUS_LABEL } from "@/lib/courseStatus";
 import type { CourseStatus } from "@prisma/client";
 import CourseMarketingSettings, { type CourseMarketingFields } from "./CourseMarketingSettings";
 import CourseScheduleSettings, { type CourseScheduleFields } from "./CourseScheduleSettings";
+import MoveCourse from "./MoveCourse";
 
 import { Checkbox, Input, Select } from "@/components/ui/Field";
 interface MaterialDto {
@@ -111,6 +112,9 @@ interface CourseDto {
   // Training Organizations, Phase 2
   certificateTemplateId: string | null;
   certificateTemplate: { id: string; name: string } | null;
+  viewer?: { isSuperAdmin: boolean };
+  ownerName?: string;
+  platformOwned?: boolean;
   trainingOrganization: {
     id: string;
     name: string;
@@ -534,6 +538,8 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
             {publishError && <p className="mt-1 max-w-[16rem] text-xs text-brand-rose">{publishError}</p>}
           </div>
         </div>
+
+        {course.viewer?.isSuperAdmin && <MoveCourse courseId={course.id} ownerName={course.ownerName ?? "AAICBI"} isPlatformOwned={!!course.platformOwned} paid={!course.isFree} onMoved={loadCourse} showToast={showToast} />}
 
         <PricingSettings course={course} onSave={updatePricing} showToast={showToast} />
 

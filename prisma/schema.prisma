@@ -5142,3 +5142,42 @@ model StaffSignInLog {
   @@index([at])
   @@index([email, at])
 }
+
+/// Someone besides the owner who may edit a course, an examination or an assignment. Staff, instructors and training
+/// organizations alike (an organization is one account), added by accepting a share link. Owners keep delete, pricing,
+/// publishing and sharing control.
+model ContentCollaborator {
+  id           String   @id @default(cuid())
+  /// COURSE | EXAM | ASSIGNMENT
+  resourceType String
+  resourceId   String
+  userId       String
+  /// EDITOR
+  role         String   @default("EDITOR")
+  invitedById  String?
+  createdAt    DateTime @default(now())
+
+  @@unique([resourceType, resourceId, userId])
+  @@index([userId, resourceType])
+  @@index([resourceType, resourceId])
+}
+
+/// A link that lets a signed-in staff member, instructor or organization join as an editor (role EDITOR) or take their own
+/// copy (role COPY). Only a hash of the token is stored; the link is shown once, when it is made.
+model ContentShareLink {
+  id           String    @id @default(cuid())
+  resourceType String
+  resourceId   String
+  tokenHash    String    @unique
+  /// EDITOR | COPY
+  role         String
+  createdById  String
+  createdByName String
+  expiresAt    DateTime
+  maxUses      Int       @default(10)
+  useCount     Int       @default(0)
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([resourceType, resourceId])
+}

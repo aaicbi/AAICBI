@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { courseAccess, examAccess } from "@/lib/collab/access";
 
 /**
  * Shared "does this staff member actually own the course this item
@@ -38,7 +39,7 @@ function notFound(message: string) {
 // completely unchanged.
 export async function requireOwnedCourse(courseId: string, userId: string, role?: string) {
   const course = await prisma.course.findUnique({ where: { id: courseId } });
-  if (!course || (role !== "SUPER_ADMIN" && course.createdById !== userId)) throw notFound("Course not found.");
+  if (!course || !(await courseAccess(course, userId, role))) throw notFound("Course not found.");
   return course;
 }
 
@@ -47,7 +48,7 @@ export async function requireOwnedModule(moduleId: string, userId: string, role?
     where: { id: moduleId },
     include: { course: true },
   });
-  if (!mod || (role !== "SUPER_ADMIN" && mod.course.createdById !== userId)) throw notFound("Module not found.");
+  if (!mod || !(await courseAccess(mod.course, userId, role))) throw notFound("Module not found.");
   return mod;
 }
 
@@ -56,7 +57,7 @@ export async function requireOwnedLesson(lessonId: string, userId: string, role?
     where: { id: lessonId },
     include: { module: { include: { course: true } } },
   });
-  if (!lesson || (role !== "SUPER_ADMIN" && lesson.module.course.createdById !== userId)) throw notFound("Lesson not found.");
+  if (!lesson || !(await courseAccess(lesson.module.course, userId, role))) throw notFound("Lesson not found.");
   return lesson;
 }
 
@@ -65,7 +66,7 @@ export async function requireOwnedMaterial(materialId: string, userId: string, r
     where: { id: materialId },
     include: { lesson: { include: { module: { include: { course: true } } } } },
   });
-  if (!material || (role !== "SUPER_ADMIN" && material.lesson.module.course.createdById !== userId)) throw notFound("Material not found.");
+  if (!material || !(await courseAccess(material.lesson.module.course, userId, role))) throw notFound("Material not found.");
   return material;
 }
 
@@ -93,7 +94,7 @@ export async function requireOwnedMaterial(materialId: string, userId: string, r
 // asymmetric behavior, not a restoration of an old one.
 export async function requireOwnedExam(examId: string, userId: string) {
   const exam = await prisma.exam.findUnique({ where: { id: examId } });
-  if (!exam || exam.createdById !== userId) throw notFound("Examination not found.");
+  if (!exam || !(await examAccess(exam, userId))) throw notFound("Examination not found.");
   return exam;
 }
 
@@ -102,7 +103,7 @@ export async function requireOwnedQuestion(questionId: string, userId: string) {
     where: { id: questionId },
     include: { exam: true },
   });
-  if (!question || question.exam.createdById !== userId) throw notFound("Question not found.");
+  if (!question || !(await examAccess(question.exam, userId))) throw notFound("Question not found.");
   return question;
 }
 
@@ -133,4 +134,19 @@ export async function requireOwnedQuestion(questionId: string, userId: string) {
 // substitute for an ownership check on anything that modifies data.
 export function createdByFilter(session: { userId: string; role: string }): { createdById: string } | undefined {
   return session.role === "SUPER_ADMIN" ? undefined : { createdById: session.userId };
+}
+
+/**
+ * Owner-only actions on a course: deleting it, publishing or unpublishing, pricing, the certificate, and who it is shared
+ * with. Someone invited to edit may not do these. A super admin counts as an owner.
+ */
+export async function requireCourseOwner(courseId: string, userId: string, role?: string) {
+  const course = await prisma.course.findUnique({ where: { id: courseId } });
+  if (!course || !(await courseAccess(course, userId, role))) throw notFound("Course not found.");
+  if (role !== "SUPER_ADMIN" && course.createdById !== userId) {
+    const err = new Error("Only the owner of this course can do that.") as Error & { status?: number };
+    err.status = 403;
+    throw err;
+  }
+  return course;
 }

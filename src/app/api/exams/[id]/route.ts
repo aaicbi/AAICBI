@@ -94,7 +94,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedExam(params.id, session.userId);
+    const exam = await requireOwnedExam(params.id, session.userId);
+    if (exam.createdById !== session.userId) return NextResponse.json({ error: "Only the owner of this examination can delete it." }, { status: 403 });
     await guardExamDeletable(params.id); // M11 audit finding — see deletionGuards.ts
     await prisma.exam.delete({ where: { id: params.id } });
     return NextResponse.json({ ok: true });

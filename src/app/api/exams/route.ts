@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
-import { createdByFilter } from "@/lib/courseOwnership";
+import { examsListWhere } from "@/lib/collab/access";
 
 const CreateExamSchema = z.object({
   title: z.string().min(3),
@@ -40,7 +40,7 @@ export async function GET() {
     // not just their own — see createdByFilter's own comment for the
     // full reasoning.
     const exams = await prisma.exam.findMany({
-      where: createdByFilter(session),
+      where: (await examsListWhere(session)) as never,
       orderBy: { createdAt: "desc" },
       include: { _count: { select: { questions: true, attempts: true } } },
     });

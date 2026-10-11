@@ -61,7 +61,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedAssignment(params.id, session.userId, session.role);
+    const owned = await requireOwnedAssignment(params.id, session.userId, session.role);
+    if (session.role !== "SUPER_ADMIN" && owned.createdById !== session.userId) return NextResponse.json({ error: "Only the owner of this assignment can delete it." }, { status: 403 });
 
     const submissionCount = await prisma.assignmentSubmission.count({ where: { assignmentId: params.id } });
     if (submissionCount > 0) {
