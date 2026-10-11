@@ -62,3 +62,45 @@ describe("Loop knows every page of the platform", () => {
     expect(by.get("/admin/review")!.audience).not.toContain("organization");
   });
 });
+
+import { buildMenu } from "@/lib/guide/navigation";
+import { isMapRequest } from "@/lib/guide/intent";
+
+const ON = { orgPages: true, education: true, feed: true, publicJobs: true, publicTrainees: true };
+const hrefsOf = (me: Parameters<typeof buildMenu>[0], on = ON) => buildMenu(me, on).flatMap((g) => g.items.map((i) => i.href));
+
+describe("Loop's map of everywhere an account can go", () => {
+  it("recognises a request for the whole map", () => {
+    for (const q of ["Show me everything I can open", "site map", "what pages are there?", "list all the pages", "where can I go", "everything I can do", "navigate the platform", "map of the platform"]) expect(isMapRequest(q), q).toBe(true);
+    for (const q of ["where is my certificate", "how do I post", "open my dashboard"]) expect(isMapRequest(q), q).toBe(false);
+  });
+  it("gives a visitor the public pages and the way in, and nothing signed-in only", () => {
+    const h = hrefsOf(null);
+    expect(h).toEqual(expect.arrayContaining(["/feed", "/search", "/jobs", "/join", "/login"]));
+    for (const x of ["/compose", "/trainee/dashboard", "/admin/dashboard", "/employer/dashboard"]) expect(h).not.toContain(x);
+  });
+  it("gives each kind of account its own area and not another's", () => {
+    const trainee = hrefsOf("trainee");
+    expect(trainee).toEqual(expect.arrayContaining(["/trainee/dashboard", "/trainee/profile", "/compose", "/my-posts", "/notifications", "/trainee/certificates"]));
+    expect(trainee).not.toEqual(expect.arrayContaining(["/employer/dashboard"]));
+    expect(trainee).not.toContain("/admin/review");
+    expect(trainee).not.toContain("/join"); // already signed in
+    const employer = hrefsOf("employer");
+    expect(employer).toEqual(expect.arrayContaining(["/employer/discover", "/employer/job-postings", "/compose"]));
+    expect(employer).not.toContain("/trainee/profile");
+    const org = hrefsOf("organization");
+    expect(org).toEqual(expect.arrayContaining(["/admin/organization/team", "/admin/courses", "/admin/certificate-templates", "/org/billing"]));
+    expect(org).not.toContain("/admin/review");
+    expect(org).not.toContain("/admin/ecosystem");
+    const staff = hrefsOf("staff");
+    expect(staff).toEqual(expect.arrayContaining(["/admin/review", "/admin/ecosystem", "/admin/command/guide", "/instructor/dashboard"]));
+  });
+  it("leaves out pages whose switch is off", () => {
+    const h = hrefsOf(null, { ...ON, publicJobs: false, feed: false });
+    expect(h).not.toContain("/jobs");
+    expect(h).not.toContain("/feed");
+  });
+  it("describes every place", () => {
+    for (const me of [null, "trainee", "employer", "investor", "organization", "staff"] as const) for (const g of buildMenu(me, ON)) for (const i of g.items) expect(i.what.length, i.href).toBeGreaterThan(10);
+  });
+});

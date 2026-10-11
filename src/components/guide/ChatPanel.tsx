@@ -11,8 +11,8 @@ import type { MeKind, PageContext, QuickAction } from "@/lib/guide/context";
 import { entriesForAudience } from "@/lib/guide/playbooks";
 import PlaybookCard, { Marked } from "@/components/guide/PlaybookCard";
 import type { GuideAction, GuideLink } from "@/lib/guide/types";
-import { classifyIntent } from "@/lib/guide/intent";
-import { deniedReply, resolveDestination } from "@/lib/guide/navigation";
+import { classifyIntent, isMapRequest } from "@/lib/guide/intent";
+import { buildMenu, deniedReply, resolveDestination, type MenuGroup } from "@/lib/guide/navigation";
 import { showSpot } from "@/lib/guide/interactionStore";
 import type { UnansweredReason } from "@/lib/guide/record";
 import { getSidebarTourGuideContent, getTourGuideContent } from "@/lib/tourGuideContent";
@@ -27,6 +27,8 @@ interface Msg {
   playbookId?: string;
   /** "Take me there" and "Show me" buttons. */
   actions?: GuideAction[];
+  /** Everywhere this account can go, grouped (the answer to "show me everything"). */
+  menu?: MenuGroup[];
   /** What was asked and which answer was used, so "Not helpful" can tell the team. */
   asked?: string;
   matched?: string;
@@ -175,6 +177,11 @@ export default function ChatPanel({
     push({ from: "me", text: q });
     setInput("");
     reply(() => {
+      // "Show me everything I can open": the whole map for this account, as buttons.
+      if (isMapRequest(q)) {
+        const menu = buildMenu(me, config.switches);
+        return { from: "loop", text: me ? "Here is everywhere your account can go. Tap any place to open it." : "Here is everywhere you can go without an account. Sign in or create an account to see the rest.", menu };
+      }
       const { intent, subject } = classifyIntent(q);
 
       // Where is it / open it / show me it: a named place first, checked against this account.
@@ -315,6 +322,25 @@ export default function ChatPanel({
                     </li>
                   ))}
                 </ul>
+              )}
+              {m.menu && m.menu.length > 0 && (
+                <div className="mt-2.5 space-y-1.5">
+                  {m.menu.map((g, gi) => (
+                    <details key={g.group} open={gi === 0} className="rounded-lg border border-brand-gray bg-brand-surface">
+                      <summary className="flex min-h-[44px] cursor-pointer items-center justify-between px-3 text-sm font-semibold text-brand-ink">{g.group} <span className="text-xs font-normal text-gray-600">{g.items.length}</span></summary>
+                      <ul className="space-y-1 px-2 pb-2">
+                        {g.items.map((it) => (
+                          <li key={it.href}>
+                            <button type="button" onClick={() => go({ kind: "go", label: it.label, href: it.href })} className="flex min-h-[44px] w-full flex-col items-start justify-center rounded-md px-2 py-1 text-left hover:bg-brand-mint focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
+                              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-teal"><Icon icon={MapPin} size="sm" />{it.label}</span>
+                              <span className="text-xs text-gray-700">{it.what}</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  ))}
+                </div>
               )}
               {m.links && m.links.length > 0 && (
                 <ul className="mt-2.5 space-y-1.5">

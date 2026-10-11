@@ -209,3 +209,29 @@ export function deniedReply(d: GuideDestination, owner: Audience, me: MeKind | n
   const join = JOIN[owner];
   return { text, links: join && owner !== me ? [join] : [] };
 }
+
+
+export interface MenuGroup {
+  group: string;
+  items: Array<{ label: string; href: string; what: string }>;
+}
+
+const GROUP_ORDER = ["Everyone", "Join and sign in", "Member (trainee)", "Employer", "Investor", "Training organization", "AAICBI team", "Instructor"];
+/** Pages that are only useful before an account exists, left out once someone is signed in. */
+const BEFORE_ACCOUNT = new Set(["/join", "/login", "/trainee/register", "/trainee/login", "/trainee/forgot-password", "/startup/register", "/org/register", "/org/login", "/employer/register", "/employer/login", "/investor/register", "/investor/login"]);
+
+/**
+ * Everything this account can open, grouped as in the platform map, each with what it is for. Only places the account may
+ * open and that are switched on; sign-up and sign-in pages are left out for someone who is already signed in.
+ */
+export function buildMenu(me: MeKind | null, on: GuideSwitches): MenuGroup[] {
+  const groups = new Map<string, MenuGroup>();
+  for (const d of destinationsFor(me, on)) {
+    if (!d.what || !d.group) continue;
+    if (me !== null && BEFORE_ACCOUNT.has(d.href)) continue;
+    const g = groups.get(d.group) ?? { group: d.group, items: [] };
+    g.items.push({ label: d.label, href: d.href, what: d.what });
+    groups.set(d.group, g);
+  }
+  return GROUP_ORDER.flatMap((name) => (groups.has(name) ? [groups.get(name)!] : []));
+}
