@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canViewProfile } from "@/lib/profileVisibility";
 import { ensureProfile, profileHref } from "@/lib/profiles/profiles";
+import { resolveHandle } from "@/lib/profiles/handleChanges";
+import { loadProfileView } from "@/lib/profiles/view";
 import SiteHeader from "@/components/SiteHeader";
 
 /**
@@ -26,6 +28,10 @@ export default async function LegacyProfileRedirect({ params }: { params: { user
     const profile = await ensureProfile("STAFF", staff.id);
     if (profile) redirect(profileHref(profile.handle));
   }
+
+  // A username that was once someone's handle still finds them (when they can be seen).
+  const former = trainee || staff ? null : await resolveHandle(params.username.toLowerCase());
+  if (former && (await loadProfileView(former.profile, viewer))) redirect(profileHref(former.profile.handle));
 
   return (
     <>

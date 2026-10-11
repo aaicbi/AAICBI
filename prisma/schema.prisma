@@ -4811,3 +4811,36 @@ model Profile {
 
   @@index([kind])
 }
+
+/// A person's request to change their /@handle. Only a super admin decides.
+model HandleChangeRequest {
+  id              String    @id @default(cuid())
+  profileId       String
+  currentHandle   String
+  requestedHandle String
+  reason          String
+  /// PENDING | APPROVED | REJECTED | CANCELLED
+  status          String    @default("PENDING")
+  decidedById     String?
+  decidedByName   String?
+  decisionNote    String?
+  decidedAt       DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([status, createdAt])
+  @@index([profileId, createdAt])
+}
+
+/// Every handle a profile has had before its current one. A former handle is
+/// held for its owner for good: nobody else can take it, the old address
+/// forwards to the current one, and search still finds the person by it.
+model ProfileHandleHistory {
+  id          String   @id @default(cuid())
+  profileId   String
+  handle      String   @unique
+  changedAt   DateTime @default(now())
+  changedById String?
+  reason      String?
+
+  @@index([profileId])
+}

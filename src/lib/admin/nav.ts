@@ -236,6 +236,7 @@ const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
       { label: "Instructors", href: "/admin/instructors", audience: "admins" },
       { label: "Agreement Templates", href: "/admin/agreement-templates", audience: "admins" },
       { label: "Staff", href: "/admin/staff", audience: "superadmin" },
+      { label: "Handle requests", href: "/admin/handle-requests", audience: "superadmin" },
     ],
   },
   {

@@ -1,4 +1,5 @@
 "use client";
+import HandleChangeCard from "@/components/profile/HandleChangeCard";
 import { useEffect, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/trainee/LogoutButton";
@@ -305,7 +306,7 @@ export default function TraineeProfilePage() {
             <Card className="mt-6">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Basic Info</p>
               <div className="mt-3 space-y-3">
-                <Input label="Username" value={coreForm.username} onChange={(e) => setCoreForm((f) => ({ ...f, username: e.target.value }))} placeholder="e.g. ada-lovelace" />
+                <Input label="Username (your handle)" value={core?.handle ?? coreForm.username} readOnly disabled hint="Your username is your /@handle. To change it, use Your handle below." />
                 <Input label="Location" value={coreForm.location} onChange={(e) => setCoreForm((f) => ({ ...f, location: e.target.value }))} placeholder="e.g. Lagos, Nigeria" />
                 <Input label="LinkedIn" value={coreForm.linkedinUrl} onChange={(e) => setCoreForm((f) => ({ ...f, linkedinUrl: e.target.value }))} placeholder="https://linkedin.com/in/..." />
                 <Input label="GitHub" value={coreForm.githubUrl} onChange={(e) => setCoreForm((f) => ({ ...f, githubUrl: e.target.value }))} placeholder="https://github.com/..." />
@@ -350,6 +351,8 @@ export default function TraineeProfilePage() {
                 </Button>
               </div>
             </Card>
+
+            <HandleChangeCard />
 
             {/* Profile Visibility */}
             <Card className="mt-4">

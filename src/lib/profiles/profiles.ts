@@ -86,7 +86,7 @@ export async function ensureProfile(kind: ProfileKind, sourceId: string): Promis
   if (found) return found;
   const src = await sourceName(kind, sourceId);
   if (!src) return null;
-  const taken = new Set((await prisma.profile.findMany({ select: { handle: true } })).map((p) => p.handle));
+  const taken = await takenHandles();
   return createWith(kind, sourceId, src.preferred || src.name, taken);
 }
 
@@ -109,7 +109,7 @@ export interface BackfillResult { created: Record<string, number>; existing: num
  */
 export async function backfillProfiles(): Promise<BackfillResult> {
   const have = await prisma.profile.findMany({ select: { handle: true, traineeId: true, employerId: true, investorId: true, trainingOrganizationId: true, userId: true } });
-  const taken = new Set(have.map((p) => p.handle));
+  const taken = await takenHandles();
   const done = new Set(have.flatMap((p) => [p.traineeId, p.employerId, p.investorId, p.trainingOrganizationId, p.userId].filter((x): x is string => !!x)));
   const kinds: ProfileKind[] = ["TRAINING_ORG", "STAFF", "PERSON", "EMPLOYER", "INVESTOR"];
   const all: Array<{ kind: ProfileKind; src: Source }> = [];
@@ -131,10 +131,23 @@ export async function profileByHandle(handle: string): Promise<Profile | null> {
   return prisma.profile.findUnique({ where: { handle: h } });
 }
 
-/** True when nobody (other than `exceptProfileId`) holds the handle. */
+/**
+ * True when the handle can be used by this profile: no other profile holds it
+ * now, and it is not a former handle of someone else (those stay reserved).
+ */
 export async function handleIsFree(handle: string, exceptProfileId?: string): Promise<boolean> {
-  const row = await prisma.profile.findUnique({ where: { handle }, select: { id: true } });
-  return !row || row.id === exceptProfileId;
+  const [row, former] = await Promise.all([
+    prisma.profile.findUnique({ where: { handle }, select: { id: true } }),
+    prisma.profileHandleHistory.findUnique({ where: { handle }, select: { profileId: true } }),
+  ]);
+  if (row && row.id !== exceptProfileId) return false;
+  if (former && former.profileId !== exceptProfileId) return false;
+  return true;
+}
+
+async function takenHandles(): Promise<Set<string>> {
+  const [current, former] = await Promise.all([prisma.profile.findMany({ select: { handle: true } }), prisma.profileHandleHistory.findMany({ select: { handle: true } })]);
+  return new Set([...current, ...former].map((p) => p.handle));
 }
 
 /** Removes profiles for accounts that should not have one (organization shadow staff accounts). Safe to run again. */
@@ -143,33 +156,4 @@ export async function removeShadowStaffProfiles(): Promise<number> {
   if (shadows.length === 0) return 0;
   const res = await prisma.profile.deleteMany({ where: { userId: { in: shadows.map((s) => s.id) } } });
   return res.count;
-}
-
-export type HandleClaim = { ok: true; handle: string } | { ok: false; error: string };
-
-/**
- * A member's or staff member's username IS their handle, so that each person has
- * one address. Call this before saving a username: it says whether /@username
- * can be theirs (valid, not reserved, and not held by anyone else).
- */
-export async function checkUsernameAsHandle(kind: ProfileKind, sourceId: string, username: string): Promise<HandleClaim> {
-  const v = validateHandle(username);
-  if (!v.ok) return v;
-  const mine = await prisma.profile.findFirst({ where: { [SOURCE[kind]]: sourceId }, select: { id: true } });
-  if (!(await handleIsFree(v.handle, mine?.id))) return { ok: false, error: "That username is already taken." };
-  return v;
-}
-
-/** After the username was saved: make it the handle. Creates the profile if the account has none. */
-export async function applyUsernameAsHandle(kind: ProfileKind, sourceId: string, username: string): Promise<void> {
-  const v = validateHandle(username);
-  if (!v.ok) return;
-  const profile = await ensureProfile(kind, sourceId);
-  if (!profile || profile.handle === v.handle) return;
-  try {
-    await prisma.profile.update({ where: { id: profile.id }, data: { handle: v.handle } });
-  } catch (e) {
-    // Lost a race for the handle: the username is saved, the old handle keeps working.
-    if (!isUniqueViolation(e)) throw e;
-  }
 }

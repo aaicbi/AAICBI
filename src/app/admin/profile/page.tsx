@@ -1,4 +1,5 @@
 "use client";
+import HandleChangeCard from "@/components/profile/HandleChangeCard";
 import { useEffect, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
@@ -159,7 +160,7 @@ export default function AdminProfilePage() {
             <Card className="mt-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Profile Details</p>
               <div className="mt-3 space-y-3">
-                <Input label="Username" value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} />
+                <Input label="Username (your handle)" value={form.username} readOnly disabled hint="Your username is your /@handle. To change it, use Your handle below." />
                 <Input label="Job title" value={form.jobTitle} onChange={(e) => setForm((f) => ({ ...f, jobTitle: e.target.value }))} placeholder="e.g. Programme Coordinator" />
                 <Input label="Department" value={form.department} onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))} placeholder="e.g. Training Operations" />
                 <Textarea label="Areas of responsibility" compact value={form.areasOfResponsibility} onChange={(e) => setForm((f) => ({ ...f, areasOfResponsibility: e.target.value }))} rows={2} />
@@ -185,6 +186,7 @@ export default function AdminProfilePage() {
                 </Button>
               </div>
             </Card>
+            <HandleChangeCard />
           </>
         )}
       </main>

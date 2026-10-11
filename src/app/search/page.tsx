@@ -9,12 +9,15 @@ import EducationVideoCard from "@/components/ecosystem/EducationVideoCard";
 import VerifiedBadge from "@/components/ecosystem/VerifiedBadge";
 import { getEcosystemFlags } from "@/lib/ecosystem/flags";
 import { searchEcosystem } from "@/lib/ecosystem/search";
+import { searchPeople } from "@/lib/profiles/profileSearch";
+import { getSession } from "@/lib/auth/session";
+import AvatarFallback from "@/components/ui/AvatarFallback";
 import { normalizeQuery, parseKind, SEARCH_KINDS } from "@/lib/ecosystem/searchCore";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Search", robots: { index: false } };
 
-const KIND_LABEL: Record<(typeof SEARCH_KINDS)[number], string> = { all: "All", organizations: "Organizations", videos: "Videos", programs: "Programs", events: "Events" };
+const KIND_LABEL: Record<(typeof SEARCH_KINDS)[number], string> = { all: "All", people: "People", organizations: "Organizations", videos: "Videos", programs: "Programs", events: "Events" };
 
 /** /search — organizations, videos, programs and events in one place. */
 export default async function SearchPage({ searchParams }: { searchParams: { q?: string; kind?: string } }) {
@@ -23,7 +26,9 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
   const q = normalizeQuery(searchParams.q);
   const kind = parseKind(searchParams.kind);
   const results = q ? await searchEcosystem(q, kind, flags) : null;
-  const total = results ? results.organizations.length + results.videos.length + results.programs.length + results.events.length : 0;
+  // People are found by name, handle or a former handle, and only when their profile can be seen.
+  const people = q && (kind === "all" || kind === "people") ? await searchPeople(q, await getSession()) : [];
+  const total = results ? results.organizations.length + results.videos.length + results.programs.length + results.events.length + people.length : 0;
 
   return (
     <>
@@ -33,7 +38,7 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Search</h1>
         <form action="/search" className="mt-4 flex gap-2" role="search">
           <input type="hidden" name="kind" value={kind} />
-          <label htmlFor="q" className="sr-only">Search organizations, videos, programs and events</label>
+          <label htmlFor="q" className="sr-only">Search people, organizations, videos, programs and events</label>
           <input id="q" name="q" defaultValue={q ?? searchParams.q ?? ""} maxLength={80} placeholder="Try “data analytics” or “Lagos”" className="min-h-[44px] flex-1 rounded-lg border border-brand-gray bg-white px-3 text-sm" />
           <button type="submit" className="min-h-[44px] rounded-lg bg-brand-teal px-4 text-sm font-semibold text-brand-onAccent">Search</button>
         </form>
@@ -47,6 +52,30 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
         {!results && <p className="mt-8 text-sm text-gray-600">Type at least two letters to search.</p>}
         {results && total === 0 && <div className="mt-8"><EmptyState title="Nothing found" description="Try a shorter or different word." /></div>}
 
+        {results && people.length > 0 && (
+          <section className="mt-8" aria-labelledby="r-people">
+            <h2 id="r-people" className="font-display text-lg font-semibold text-brand-ink">People and organizations</h2>
+            <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {people.map((p) => (
+                <li key={p.handle}>
+                  <Link href={`/@${p.handle}`} className="block">
+                    <Card interactive className="flex h-full items-center gap-3">
+                      <span className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden bg-brand-mint ${p.kind === "PERSON" || p.kind === "STAFF" ? "rounded-full" : "rounded-xl"}`}>
+                        {p.avatarUrl ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={p.avatarUrl} alt="" className="no-ring h-full w-full object-cover" /> : <AvatarFallback variant={p.kind === "PERSON" || p.kind === "STAFF" ? "person" : "company"} size="md" />}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate font-display font-semibold text-brand-ink">{p.name}</span>
+                        <span className="block truncate text-xs text-gray-600">@{p.handle} · {p.kindLabel}</span>
+                        {p.formerHandle && <span className="block truncate text-xs text-brand-goldText">Formerly @{p.formerHandle}</span>}
+                        {p.headline && <span className="block truncate text-xs text-gray-600">{p.headline}</span>}
+                      </span>
+                    </Card>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         {results && results.organizations.length > 0 && (
           <section className="mt-8" aria-labelledby="r-orgs">
             <h2 id="r-orgs" className="font-display text-lg font-semibold text-brand-ink">Organizations</h2>

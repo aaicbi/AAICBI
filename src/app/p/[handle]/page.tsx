@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import SiteHeader from "@/components/SiteHeader";
 import Card from "@/components/ui/Card";
@@ -7,15 +7,18 @@ import Badge from "@/components/ui/Badge";
 import BackLink from "@/components/ui/BackLink";
 import AvatarFallback from "@/components/ui/AvatarFallback";
 import { getSession } from "@/lib/auth/session";
-import { profileByHandle } from "@/lib/profiles/profiles";
+import { profileHref } from "@/lib/profiles/profiles";
+import { resolveHandle } from "@/lib/profiles/handleChanges";
 import { kindLabel, loadProfileView } from "@/lib/profiles/view";
 
 export const dynamic = "force-dynamic";
 
-async function load(handle: string) {
-  const profile = await profileByHandle(decodeURIComponent(handle));
-  if (!profile) return null;
-  return loadProfileView(profile, await getSession());
+async function load(rawHandle: string) {
+  const found = await resolveHandle(decodeURIComponent(rawHandle).toLowerCase());
+  if (!found) return null;
+  const view = await loadProfileView(found.profile, await getSession());
+  // A hidden profile and an unknown one look the same, former handle or not.
+  return view ? { view, former: found.former, current: found.profile.handle } : null;
 }
 
 /** Where "back" goes: a signed-in person's own dashboard, otherwise the feed. */
@@ -27,7 +30,8 @@ function backTarget(role: string | null): { href: string; label: string } {
 }
 
 export async function generateMetadata({ params }: { params: { handle: string } }): Promise<Metadata> {
-  const v = await load(params.handle);
+  const loaded = await load(params.handle);
+  const v = loaded?.view;
   // Unknown and hidden profiles look the same, so nothing leaks through the title.
   if (!v) return { title: "Profile not found", robots: { index: false } };
   return { title: `${v.name} (@${v.handle})`, description: v.headline ?? `${kindLabel(v.kind)} on AAICBI` };
@@ -35,8 +39,11 @@ export async function generateMetadata({ params }: { params: { handle: string } 
 
 /** /@handle (rewritten to /p/handle): the one profile page for every kind of account. */
 export default async function ProfilePage({ params }: { params: { handle: string } }) {
-  const v = await load(params.handle);
-  if (!v) notFound();
+  const loaded = await load(params.handle);
+  if (!loaded) notFound();
+  // A former handle forwards for good (308), so links and search engines move to the new address.
+  if (loaded.former) permanentRedirect(profileHref(loaded.current));
+  const v = loaded.view;
   const back = backTarget((await getSession())?.role ?? null);
   const square = v.kind !== "PERSON" && v.kind !== "STAFF";
 

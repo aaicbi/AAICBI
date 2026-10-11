@@ -1,4 +1,5 @@
 "use client";
+import HandleChangeCard from "@/components/profile/HandleChangeCard";
 import { useEffect, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/employer/LogoutButton";
@@ -171,6 +172,7 @@ export default function EmployerProfilePage() {
                 <AvatarUpload avatarUrl={logoUrl} apiPath="/api/employer/logo" onChange={setLogoUrl} />
               </div>
             </Card>
+            <HandleChangeCard />
 
             <Card className="mt-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Company Details</p>

@@ -1,4 +1,4 @@
-export const SEARCH_KINDS = ["all", "organizations", "videos", "programs", "events"] as const;
+export const SEARCH_KINDS = ["all", "people", "organizations", "videos", "programs", "events"] as const;
 export type SearchKind = (typeof SEARCH_KINDS)[number];
 
 export const MIN_QUERY = 2;

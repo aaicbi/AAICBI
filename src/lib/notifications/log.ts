@@ -136,7 +136,10 @@ export type NotificationType =
   // only to a trainee who hasn't submitted yet (see
   // assignmentReminders.ts's own comment).
   | "ASSIGNMENT_DUE_SOON"
-  | "ASSIGNMENT_OVERDUE";
+  | "ASSIGNMENT_OVERDUE"
+  // A profile handle change was asked for / decided by a super admin.
+  | "HANDLE_CHANGE_REQUESTED"
+  | "HANDLE_CHANGE_DECIDED";
 
 export interface NotifyByEmailInput {
   recipientType: "TRAINEE" | "STAFF" | "EMPLOYER" | "INVESTOR" | "TRAINING_ORG";

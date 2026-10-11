@@ -13,7 +13,22 @@ Every account (member/trainee, training organization, employer, investor, staff)
 
 ## One address per person
 
-- `/profile/u/<username>` (the older address) now forwards to `/@handle`, where the full profile is shown: skills, education, experience, projects, certificates, achievements, links and availability for members; job title, department, bio and areas of responsibility for staff. It applies the same visibility check first, so a hidden profile and an unknown one still look the same (no redirect, no confirmation that the person exists).
-- A member's or staff member's **username is their handle**. Saving a username (`/api/trainee/profile`, `/api/admin/profile`) checks it as a handle first (valid, not reserved, not held by anyone else, including organizations) and then moves the handle with it. The old API `/api/profile/u/<username>` is unchanged.
-- The member profile settings page now shows the member's real `/@handle` address.
-- Check: `scripts/device-checks/profiles-address.cjs`.
+- `/profile/u/<username>` (the older address) forwards to `/@handle`, where the full profile is shown: skills, education, experience, projects, certificates, achievements, links and availability for members; job title, department, bio and areas of responsibility for staff. It applies the same visibility check first, so a hidden profile and an unknown one still look the same (no redirect, no confirmation that the person exists).
+- A member's or staff member's **username is their handle** and the two are kept equal.
+
+## Changing a handle
+
+A handle is a public address, so a change is **requested with a reason and decided by a super admin**.
+
+- **Asking:** the "Your handle" card on the member, staff and employer profile pages (`HandleChangeCard`, API `/api/profiles/handle-requests`). The new handle must be valid, not reserved and not taken; a reason of 10 to 500 characters is required; one request can wait at a time; at most 5 a day. A request can be withdrawn.
+- **Deciding:** `/admin/handle-requests` (super admin only). Approving changes the handle at once. Declining needs a reason, which the person sees. Both notify the person (email and in-app).
+- **Direct change:** the same page lets a super admin change a handle directly, for training organizations (which cannot ask) and their own. Same history rules.
+- **Usernames are no longer editable in profile settings:** the field is read-only, and the profile APIs refuse a different username (a super admin's own changes go through the direct change).
+- **Old handles are kept (`ProfileHandleHistory`):**
+  - nobody else can take a former handle, and the handle check reports it unavailable;
+  - `/@old` forwards permanently (308) to `/@new`, as does `/profile/u/old`, so existing links and search engines move to the new address;
+  - the people search (`/search`, "People and organizations") matches current handles, former handles and names, shows "Formerly @old" for an old-handle match, and applies the profile's visibility rules, so a private profile is never shown;
+  - the owner may ask for their own former handle back.
+- **Organizations:** the handle changes but the public page address `/organizations/<slug>` does not.
+- **Checks:** `scripts/device-checks/profiles-handle-change.cjs` (needs the app running against a local database).
+- **Rollback:** drop `HandleChangeRequest` and `ProfileHandleHistory` (migration `20261018090000_handle_changes`) and the handle behaves as before, apart from the read-only username field.
