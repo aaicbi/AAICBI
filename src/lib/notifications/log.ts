@@ -143,7 +143,10 @@ export type NotificationType =
   // Startups: sent for review, decided, or a member invited to a team.
   | "STARTUP_SUBMITTED"
   | "STARTUP_DECIDED"
-  | "STARTUP_INVITE";
+  | "STARTUP_INVITE"
+  // Posts: sent for review, or decided by a reviewer.
+  | "POST_SUBMITTED"
+  | "POST_DECIDED";
 
 export interface NotifyByEmailInput {
   recipientType: "TRAINEE" | "STAFF" | "EMPLOYER" | "INVESTOR" | "TRAINING_ORG";

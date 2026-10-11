@@ -38,6 +38,7 @@ export default async function FeedPage({ searchParams }: { searchParams: { type?
       <SiteHeader nav={[{ label: "Courses", href: "/courses" }, { label: "Trainee Login", href: "/trainee/login" }]} />
       <EcosystemSubnav active="feed" feedEnabled />
       <main className="mx-auto max-w-xl px-4 py-6 sm:px-6">
+        <div className="mb-4 flex justify-end"><Link href="/compose" className="inline-flex min-h-[44px] items-center rounded-full bg-brand-teal px-5 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">Write a post</Link></div>
         <h1 className="sr-only">Community feed</h1>
         <nav aria-label="Feed filters" className="flex gap-2 overflow-x-auto pb-1">
           {FEED_FILTERS.map((f) => (

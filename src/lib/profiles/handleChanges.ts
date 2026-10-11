@@ -33,7 +33,7 @@ export async function profileForSession(s: SessionPayload): Promise<Profile | nu
   }
 }
 
-async function recipientOf(p: Profile): Promise<{ recipientType: "TRAINEE" | "STAFF" | "EMPLOYER" | "INVESTOR" | "TRAINING_ORG"; recipientId: string; to: string; name: string } | null> {
+export async function recipientOf(p: Profile): Promise<{ recipientType: "TRAINEE" | "STAFF" | "EMPLOYER" | "INVESTOR" | "TRAINING_ORG"; recipientId: string; to: string; name: string } | null> {
   if (p.kind === "PERSON" && p.traineeId) { const t = await prisma.trainee.findUnique({ where: { id: p.traineeId }, select: { name: true, email: true } }); return t && { recipientType: "TRAINEE", recipientId: p.traineeId, to: t.email, name: t.name }; }
   if (p.kind === "EMPLOYER" && p.employerId) { const e = await prisma.employer.findUnique({ where: { id: p.employerId }, select: { companyName: true, email: true } }); return e && { recipientType: "EMPLOYER", recipientId: p.employerId, to: e.email, name: e.companyName }; }
   if (p.kind === "INVESTOR" && p.investorId) { const i = await prisma.investor.findUnique({ where: { id: p.investorId }, select: { name: true, email: true } }); return i && { recipientType: "INVESTOR", recipientId: p.investorId, to: i.email, name: i.name }; }

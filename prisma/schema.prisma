@@ -4924,3 +4924,90 @@ model StartupMember {
   @@unique([startupId, traineeId])
   @@index([traineeId, status])
 }
+
+enum PostStatus {
+  DRAFT
+  PENDING_REVIEW
+  CHANGES_REQUESTED
+  PUBLISHED
+  REJECTED
+  SUSPENDED
+}
+
+enum PostType {
+  TEXT
+  IMAGE
+  YOUTUBE
+}
+
+enum PostVisibility {
+  PUBLIC
+  MEMBERS
+}
+
+/// One content model for everything people publish: text, image galleries and
+/// YouTube videos. The author is always a Profile (a person, or an
+/// organization posting as itself); when a person posts for a startup the
+/// startup is `actingAsProfileId`. Nothing is public until a reviewer
+/// publishes it, and a material edit to a published post sends it back for review.
+model Post {
+  id                  String         @id @default(cuid())
+  type                PostType       @default(TEXT)
+  authorProfileId     String
+  actingAsProfileId   String?
+  title               String?
+  body                String         @default("")
+  youtubeId           String?
+  youtubeUrl          String?
+  tags                String[]
+  visibility          PostVisibility @default(PUBLIC)
+  status              PostStatus     @default(DRAFT)
+  /// Counts material edits after the first submission.
+  revision            Int            @default(1)
+  /// The latest thing a reviewer told the author.
+  reviewNote          String?
+  submittedAt         DateTime?
+  publishedAt         DateTime?
+  /// An organization's hold on a trainee's post: hidden from public view while set.
+  orgBlockedAt        DateTime?
+  orgBlockedById      String?
+  orgBlockReason      String?
+  /// The EducationPost this was copied from, when it came from the earlier video flow.
+  legacyEducationPostId String?      @unique
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  media   PostMedia[]
+  reviews PostReview[]
+
+  @@index([status, publishedAt])
+  @@index([authorProfileId, status])
+  @@index([actingAsProfileId, status])
+}
+
+model PostMedia {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([postId, order])
+}
+
+/// The history of a post: every submission, decision and edit, with who and why.
+model PostReview {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  /// SUBMITTED | APPROVED | CHANGES_REQUESTED | REJECTED | SUSPENDED | REINSTATED | EDITED | WITHDRAWN
+  action    String
+  actorId   String?
+  actorName String?
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([postId, createdAt])
+}

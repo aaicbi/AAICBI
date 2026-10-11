@@ -29,6 +29,7 @@ export const TRAINEE_NAV = [
   { label: "Messages", href: "/trainee/messages" },
   { label: "Explore", href: "/trainee/explore" },
   { label: "My Videos", href: "/trainee/videos" },
+  { label: "My Posts", href: "/my-posts" },
   { label: "My Startups", href: "/trainee/startups" },
   { label: "Report a Concern", href: "/trainee/report" },
   { label: "Ask Loop", href: "/trainee/buddy" },
