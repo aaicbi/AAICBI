@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Vercel's build command (the "vercel-build" script in package.json).
  *
