@@ -89,7 +89,7 @@ describe("checking what Claude proposes", () => {
 
 describe("the consultant cannot change Loop's knowledge", () => {
   const files = (d: string, out: string[] = []): string[] => { for (const n of readdirSync(d)) { const p = join(d, n); if (statSync(p).isDirectory()) files(p, out); else if (/\.(ts|tsx)$/.test(n)) out.push(p); } return out; };
-  const consultantFiles = [...files("src/app/api/admin/guide/consultant"), "src/lib/guide/consultantCore.ts", "src/lib/guide/consultant.ts"].filter((f) => { try { return statSync(f).isFile(); } catch { return false; } });
+  const consultantFiles = [...files("src/app/api/admin/guide/consultant"), "src/lib/guide/consultantCore.ts", "src/lib/guide/consultant.ts", "src/lib/guide/consultantReportCore.ts", "src/lib/guide/consultantReport.ts"].filter((f) => { try { return statSync(f).isFile(); } catch { return false; } });
   it("has consultant files to check", () => expect(consultantFiles.length).toBeGreaterThan(3));
   it("none of them writes an answer, a question's status, or a setting other than the switch", () => {
     for (const f of consultantFiles) {
@@ -97,6 +97,9 @@ describe("the consultant cannot change Loop's knowledge", () => {
       expect(src, f).not.toMatch(/guideEntry\.(create|update|upsert|delete)/);
       expect(src, f).not.toMatch(/guideUnanswered\.(create|update|upsert|delete)/);
       expect(src, f).not.toMatch(/createEntry|updateEntry|restoreVersion/);
+      expect(src, f).not.toMatch(/aiGuidance\.(create|update|upsert|delete)/);
+      expect(src, f).not.toMatch(/saveGuidance|restoreGuidance/);
+      expect(src, f).not.toMatch(/\.(course|module|lesson|material|question|examination)\w*\.(create|update|upsert|delete)/i);
     }
   });
   it("every consultant route is for a super admin only", () => {

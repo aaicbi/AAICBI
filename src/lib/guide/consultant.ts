@@ -34,7 +34,7 @@ export async function consultantState(): Promise<{ enabled: boolean; configured:
   return { enabled, configured, availability: consultantAvailability({ enabled, hasKey: configured }) };
 }
 
-function toolInput(msg: Anthropic.Message, name: string): unknown {
+export function toolInput(msg: Anthropic.Message, name: string): unknown {
   const block = msg.content.find((b): b is Anthropic.ToolUseBlock => b.type === "tool_use" && b.name === name);
   return block?.input;
 }
@@ -45,7 +45,7 @@ export class ConsultantError extends Error {
   }
 }
 
-async function ask(client: ClaudeClient, args: Anthropic.MessageCreateParamsNonStreaming): Promise<Anthropic.Message> {
+export async function askClaude(client: ClaudeClient, args: Anthropic.MessageCreateParamsNonStreaming): Promise<Anthropic.Message> {
   try {
     return await client.messages.create(args, { timeout: TIMEOUT_MS });
   } catch (e) {
@@ -54,7 +54,7 @@ async function ask(client: ClaudeClient, args: Anthropic.MessageCreateParamsNonS
   }
 }
 
-async function logRun(askedById: string, question: string, answer: string) {
+export async function logRun(askedById: string, question: string, answer: string) {
   await prisma.aiCommandLog.create({ data: { askedById, question, answer: answer.slice(0, 2000), toolCalls: [] as unknown as object } }).catch((e) => console.error("Failed to write AiCommandLog:", e));
 }
 
@@ -75,7 +75,7 @@ export async function reviewQueue(client: ClaudeClient, adminId: string, questio
     waiting.map((r) => ({ text: r.text, variants: r.variants, asked: r.asked, roleCounts: r.roleCounts, feature: r.feature, confidence: r.confidence, attempted: r.attempted, reason: r.reason })),
     entries,
   );
-  const msg = await ask(client, {
+  const msg = await askClaude(client, {
     model: CONSULTANT_MODEL,
     max_tokens: 4000,
     system: REVIEW_SYSTEM_PROMPT,
@@ -128,7 +128,7 @@ export async function askConsultant(client: ClaudeClient, adminId: string, quest
     "Waiting questions (priority, asks, text):",
     ...waiting.map((r) => `- ${priorityOf({ asked: r.asked, lastAskedAt: r.lastAskedAt, roleCounts: r.roleCounts, text: r.text, reason: r.reason }).level} | ${r.asked} | "${r.text}"${r.feature ? ` | area ${r.feature}` : ""}`),
   ].join("\n");
-  const msg = await ask(client, {
+  const msg = await askClaude(client, {
     model: CONSULTANT_MODEL,
     max_tokens: 1500,
     system: ASK_SYSTEM_PROMPT,

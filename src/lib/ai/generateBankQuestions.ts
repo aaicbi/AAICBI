@@ -35,6 +35,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getModuleMaterialsText, type UsableMaterialText } from "@/lib/parsing/moduleMaterialsText";
+import { withGuidance } from "@/lib/guide/aiGuidance";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -117,7 +118,7 @@ async function generateSubBatch(materialsBlock: string, objectiveText: string, c
   const genResponse = await client.messages.create({
     model: "claude-sonnet-4-5",
     max_tokens: 4000,
-    system: GENERATION_SYSTEM_PROMPT,
+    system: await withGuidance(GENERATION_SYSTEM_PROMPT, "question-writing"),
     messages: [{ role: "user", content: genUserPrompt }],
   });
   const genText = genResponse.content.find((b) => b.type === "text");

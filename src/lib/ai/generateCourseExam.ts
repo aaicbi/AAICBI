@@ -24,6 +24,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { withGuidance } from "@/lib/guide/aiGuidance";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -85,7 +86,7 @@ async function generateOne(source: SourceQuestion): Promise<GeneratedResult | nu
   const genResponse = await client.messages.create({
     model: "claude-sonnet-4-5",
     max_tokens: 800,
-    system: GENERATION_SYSTEM_PROMPT,
+    system: await withGuidance(GENERATION_SYSTEM_PROMPT, "question-writing"),
     messages: [{ role: "user", content: userPrompt }],
   });
   const genText = genResponse.content.find((b) => b.type === "text");

@@ -14,6 +14,7 @@
  */
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
+import { withGuidance } from "@/lib/guide/aiGuidance";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 15_000 });
 
@@ -58,7 +59,7 @@ export async function analyzeAssignmentLearningPatterns(stats: LearningObjective
     const response = await client.messages.create({
       model: "claude-haiku-4-5",
       max_tokens: 500,
-      system: SYSTEM_PROMPT,
+      system: await withGuidance(SYSTEM_PROMPT, "assignment-feedback"),
       messages: [{ role: "user", content: buildUserPrompt(stats) }],
     });
 
