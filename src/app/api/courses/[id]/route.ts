@@ -478,7 +478,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
     // Someone invited to edit changes the content; publishing, pricing and the certificate stay with the owner.
-    if (session.role !== "SUPER_ADMIN" && course.createdById !== session.userId) {
+    if ((session.role !== "SUPER_ADMIN" && course.createdById !== session.userId) || session.actor?.role === "EDITOR" || session.actor?.role === "VIEWER") {
       const blocked = ownerOnlyFieldsIn(parsed.data as Record<string, unknown>);
       if (blocked.length > 0) return NextResponse.json({ error: "Only the owner of this course can change publishing, pricing and the certificate." }, { status: 403 });
     }

@@ -3,9 +3,10 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiErrors } from "@/lib/apiError";
 import { rateLimit } from "@/lib/rateLimit";
+import { isMemberRole } from "@/lib/org/people";
 import { issueMemberInvite, requireTrainingOrgSession } from "@/lib/trainingOrgMembers";
 
-const PatchSchema = z.object({ action: z.enum(["disable", "enable", "resend"]) });
+const PatchSchema = z.union([z.object({ action: z.enum(["disable", "enable", "resend"]) }), z.object({ action: z.literal("role"), role: z.string().refine(isMemberRole, "Choose manager, editor or viewer.") })]);
 
 /** Finds the member only if it belongs to the session's own organization. */
 async function ownMember(id: string, organizationId: string) {
@@ -14,9 +15,8 @@ async function ownMember(id: string, organizationId: string) {
 
 /**
  * PATCH /api/org/members/[id] — disable, enable, or re-send the
- * invitation. Disabling stops new sign-ins; a session the member already
- * has open stays valid until it expires (the session carries the
- * organization's shared account, not a member id).
+ * invitation, or change their role. Disabling and role changes take effect on the very next request: the person behind
+ * a session is looked up every time (see src/lib/org/actor.ts), so an open session does not outlast them.
  */
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
@@ -27,6 +27,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const member = await ownMember(params.id, org.id);
     if (!member) return NextResponse.json({ error: "Team member not found." }, { status: 404 });
 
+    if (parsed.data.action === "role") {
+      await prisma.trainingOrganizationMember.update({ where: { id: member.id }, data: { role: parsed.data.role } });
+      return NextResponse.json({ ok: true });
+    }
     if (parsed.data.action === "disable") {
       await prisma.trainingOrganizationMember.update({ where: { id: member.id }, data: { disabledAt: new Date(), setupToken: null, setupTokenExpiresAt: null } });
       return NextResponse.json({ ok: true });

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { appUrl } from "@/lib/appUrl";
 import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 import { assignmentAccess, courseAccess, examAccess, type Access } from "@/lib/collab/access";
+import { copyCourseTo } from "@/lib/courses/copyCourse";
 import { canCollaborate, DEFAULT_MAX_USES, hashToken, LINK_LIFETIME_MS, LINK_STATE_MESSAGE, linkState, newToken, RESOURCE_LABEL, type LinkRole, type ResourceType } from "@/lib/collab/core";
 
 export class CollabError extends Error {
@@ -52,14 +53,15 @@ async function requireAccess(type: ResourceType, id: string, session: { userId: 
   return { ...found, access };
 }
 
-async function shareName(session: { userId: string; role: string }): Promise<string> {
+async function shareName(session: { userId: string; role: string; actor?: { name: string; organizationName: string } }): Promise<string> {
+  if (session.actor) return `${session.actor.name} (${session.actor.organizationName})`;
   const org = await findTrainingOrgByStaffUserId(session.userId);
   if (org) return org.name;
   return (await prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } }))?.name ?? "A colleague";
 }
 
 /** Makes a link. Anyone who can edit may invite another editor; only an owner may hand out copies. The link is returned once. */
-export async function createLink(session: { userId: string; role: string }, input: { type: ResourceType; id: string; role: LinkRole }) {
+export async function createLink(session: { userId: string; role: string; actor?: { name: string; organizationName: string } }, input: { type: ResourceType; id: string; role: LinkRole }) {
   const { res, access } = await requireAccess(input.type, input.id, session);
   if (input.role === "COPY" && (input.type !== "COURSE" || access !== "owner")) throw new CollabError("Only the owner of a course can share a copy of it.", 403);
   const token = newToken();
@@ -119,21 +121,29 @@ export async function previewLink(token: string) {
   };
 }
 
-export type AcceptResult = { kind: "joined"; type: ResourceType; id: string; title: string; href: string } | { kind: "already"; type: ResourceType; id: string; title: string; href: string };
+export type AcceptResult = { kind: "joined" | "already" | "copied"; type: ResourceType; id: string; title: string; href: string };
 
 export function editHref(type: ResourceType, id: string): string {
   return type === "COURSE" ? `/admin/courses/${id}` : type === "EXAM" ? `/admin/exams/${id}/import` : `/admin/assignments/${id}`;
 }
 
-/** Joins the signed-in staff member, instructor or organization to what the link shares (editor links). */
-export async function acceptEditorLink(session: { userId: string; role: string }, token: string): Promise<AcceptResult> {
+/** Editor links join the signed-in staff member, instructor or organization to what is shared; copy links give them their own copy of a course. */
+export async function acceptLink(session: { userId: string; role: string }, token: string): Promise<AcceptResult> {
   if (!canCollaborate(session.role)) throw new CollabError("Only staff, instructors and training organizations can join.", 403);
   const link = await prisma.contentShareLink.findUnique({ where: { tokenHash: hashToken(token) } });
   if (!link) throw new CollabError("This link is not valid.", 404);
   const state = linkState(link);
   if (state !== "ok") throw new CollabError(LINK_STATE_MESSAGE[state], 410);
-  if (link.role !== "EDITOR") throw new CollabError("This link is for taking a copy, not for editing together.", 400);
   const type = link.resourceType as ResourceType;
+  if (link.role === "COPY") {
+    if (type !== "COURSE") throw new CollabError("This link is not valid.", 400);
+    const src = await prisma.course.findUnique({ where: { id: link.resourceId }, select: { id: true, title: true } });
+    if (!src) throw new CollabError("What was shared no longer exists.", 404);
+    const claimedCopy = await prisma.contentShareLink.updateMany({ where: { id: link.id, revokedAt: null, useCount: { lt: link.maxUses }, expiresAt: { gt: new Date() } }, data: { useCount: { increment: 1 } } });
+    if (claimedCopy.count === 0) throw new CollabError(LINK_STATE_MESSAGE.used_up, 410);
+    const copy = await copyCourseTo(src.id, session.userId);
+    return { kind: "copied", type, id: copy.id, title: copy.title, href: editHref("COURSE", copy.id) };
+  }
   const found = await loadResource(type, link.resourceId);
   if (!found) throw new CollabError("What was shared no longer exists.", 404);
   const title = found.res.title;

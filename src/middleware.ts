@@ -38,6 +38,9 @@ export async function middleware(req: NextRequest) {
   // pre-auth pages.
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-pathname", pathname);
+  // The API routes read these (src/lib/auth/session.ts requireRole) to apply a training organization member's role and record what they change.
+  requestHeaders.set("x-req-method", req.method);
+  requestHeaders.set("x-req-path", pathname);
   const withPathname = () => NextResponse.next({ request: { headers: requestHeaders } });
 
   // The internal page behind the staff sign-in address is only reachable through that address (next.config.js
@@ -92,5 +95,5 @@ export const config = {
   // these, their existing page-level auth checks are unaffected.
   // instructor isn't listed — it has no pre-auth pages at all, so its
   // layout never needs this header (see InstructorLayout's comment).
-  matcher: ["/staff-access", "/admin/:path*", "/trainee/:path*", "/exam/:path*", "/employer/:path*", "/investor/:path*", "/org/:path*"],
+  matcher: ["/staff-access", "/admin/:path*", "/trainee/:path*", "/exam/:path*", "/employer/:path*", "/investor/:path*", "/org/:path*", "/api/:path*"],
 };

@@ -3,11 +3,13 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiErrors } from "@/lib/apiError";
 import { rateLimit } from "@/lib/rateLimit";
+import { isMemberRole } from "@/lib/org/people";
 import { issueMemberInvite, requireTrainingOrgSession, unusablePasswordHash } from "@/lib/trainingOrgMembers";
 
 const CreateSchema = z.object({
   name: z.string().trim().min(1, "Enter a name.").max(100),
   email: z.string().trim().toLowerCase().email("Enter a valid email address."),
+  role: z.string().default("EDITOR").refine(isMemberRole, "Choose manager, editor or viewer."),
 });
 
 /**
@@ -22,7 +24,7 @@ export async function GET() {
     const members = await prisma.trainingOrganizationMember.findMany({
       where: { trainingOrganizationId: org.id },
       orderBy: { createdAt: "asc" },
-      select: { id: true, name: true, email: true, disabledAt: true, lastLoginAt: true, createdAt: true, setupToken: true, passwordHash: false },
+      select: { id: true, name: true, email: true, role: true, disabledAt: true, lastLoginAt: true, createdAt: true, setupToken: true, passwordHash: false },
     });
     return NextResponse.json({
       owner: { name: org.contactName, email: org.email, lastLoginAt: org.lastLoginAt },
@@ -47,7 +49,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: first }, { status: 400 });
     }
 
-    const { name, email } = parsed.data;
+    const { name, email, role } = parsed.data;
     const [orgWithEmail, memberWithEmail] = await Promise.all([
       prisma.trainingOrganization.findUnique({ where: { email }, select: { id: true } }),
       prisma.trainingOrganizationMember.findUnique({ where: { email }, select: { id: true } }),
@@ -57,7 +59,7 @@ export async function POST(req: NextRequest) {
     }
 
     const member = await prisma.trainingOrganizationMember.create({
-      data: { trainingOrganizationId: org.id, name, email, passwordHash: await unusablePasswordHash() },
+      data: { trainingOrganizationId: org.id, name, email, role, passwordHash: await unusablePasswordHash() },
       select: { id: true, name: true, email: true },
     });
     const setupUrl = await issueMemberInvite(member, org.name);

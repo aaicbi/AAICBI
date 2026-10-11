@@ -3302,6 +3302,8 @@ model TrainingOrganizationMember {
   setupTokenExpiresAt    DateTime?
   disabledAt             DateTime?
   lastLoginAt            DateTime?
+  /// What this person may do for the organization: MANAGER, EDITOR or VIEWER (the owner is separate and can do everything).
+  role                   String               @default("EDITOR")
   createdAt              DateTime             @default(now())
 
   @@index([trainingOrganizationId])
@@ -5180,4 +5182,21 @@ model ContentShareLink {
   createdAt    DateTime  @default(now())
 
   @@index([resourceType, resourceId])
+}
+
+/// What each person in a training organization did, so a team can see who changed what. The organization owns the content;
+/// this records the person.
+model OrgActivity {
+  id          String   @id @default(cuid())
+  /// The organization's shadow staff user id (what its content is owned by).
+  orgUserId   String
+  actorType   String
+  actorId     String
+  actorName   String
+  action      String
+  method      String
+  path        String
+  createdAt   DateTime @default(now())
+
+  @@index([orgUserId, createdAt])
 }

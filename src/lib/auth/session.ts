@@ -17,10 +17,11 @@
  * query that serves an in-progress attempt. See src/lib/examEngine.ts.
  */
 import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 import { hasActivePlatformFeeAccess } from "@/lib/trainingOrgBilling";
+import { ActorError, enforceAndRecord, resolveOrgActor, type OrgActor } from "@/lib/org/actor";
 
 const COOKIE_NAME = "lms_session";
 const secret = () => new TextEncoder().encode(requireStrongSecret("AUTH_SECRET"));
@@ -69,6 +70,11 @@ export interface SessionPayload {
   userId: string;
   email: string;
   role: Role;
+  /**
+   * Only on what requireRole returns for a training organization's session: the person who signed in (the organization owns
+   * the content, so `userId` is the organization). Never read from the cookie.
+   */
+  actor?: OrgActor;
 }
 
 // M9 audit finding #5: session length was a single hardcoded 12h for
@@ -229,6 +235,31 @@ export async function requireRole(...allowed: Role[]): Promise<SessionPayload> {
       };
       err.status = 403;
       throw err;
+    }
+    // Each person in an organization signs in as themselves: work out who, refuse what their role does not allow, and
+    // record what they change. See src/lib/org/people.ts for the roles.
+    if (org) {
+      try {
+        const actor = await resolveOrgActor(org, session.email);
+        let method: string | null = null;
+        let path: string | null = null;
+        try {
+          const h = headers();
+          method = h.get("x-req-method");
+          path = h.get("x-req-path");
+        } catch {
+          /* not in a request that carries them */
+        }
+        await enforceAndRecord(actor, org.staffUserId ?? session.userId, { method, path });
+        return { ...session, actor };
+      } catch (e) {
+        if (e instanceof ActorError) {
+          const err = new Error(e.message) as Error & { status?: number };
+          err.status = e.status;
+          throw err;
+        }
+        throw e;
+      }
     }
   }
 

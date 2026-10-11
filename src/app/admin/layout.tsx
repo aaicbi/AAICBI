@@ -1,3 +1,5 @@
+import { resolveOrgActor } from "@/lib/org/actor";
+import { ROLE_LABEL } from "@/lib/org/people";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
@@ -88,11 +90,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect("/org/billing");
   }
 
+  // Everyone in an organization signs in as themselves: show who, and their role, instead of only the organization.
+  const orgActor = trainingOrg ? await resolveOrgActor(trainingOrg, session.email).catch(() => null) : null;
+
   return (
     <SidebarActiveProvider>
       <div className="min-h-screen">
         <AdminSidebar
-          name={trainingOrg ? trainingOrg.name : (staff?.name ?? session.email)}
+          name={orgActor ? orgActor.name : trainingOrg ? trainingOrg.name : (staff?.name ?? session.email)}
+          orgLabel={trainingOrg ? `${trainingOrg.name}${orgActor ? ` · ${ROLE_LABEL[orgActor.role]}` : ""}` : undefined}
           avatarUrl={staff?.avatarUrl ?? null}
           role={session.role}
           isTrainingOrg={!!trainingOrg}
