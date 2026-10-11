@@ -5,6 +5,7 @@ import { TRAINEE_NAV } from "@/lib/trainee/nav";
 import { DESTINATIONS, isAvailable } from "@/lib/guide/links";
 import type { MeKind } from "@/lib/guide/context";
 import { tokens } from "@/lib/guide/text";
+import { PAGES } from "@/lib/guide/siteMap";
 import type { GuideSwitches } from "@/lib/guide/types";
 
 /**
@@ -24,6 +25,10 @@ export interface GuideDestination {
   aliases: string[];
   /** The control to light up for this place: its menu item. */
   target: string;
+  /** One sentence on what the page is for (from the site map). */
+  what?: string;
+  /** Where it sits in the platform map. */
+  group?: string;
 }
 
 /** The marker a menu item carries so Loop can find and light it: one id per page address. */
@@ -90,6 +95,14 @@ function build(): GuideDestination[] {
   for (const g of getAdminNavGroups("ADMIN", true)) for (const n of g.items) if (areaOf(n.href) === "staff") add(dest(n.label, n.href, ["organization", "staff"]));
   add(dest("Notifications", "/notifications", ["signedIn"]));
   for (const d of DESTINATIONS) add({ label: d.label, href: d.href, audience: ["any"], aliases: [], target: navTarget(d.href) });
+  // The platform map: every page, what it is for, who may open it. Adds pages the menus do not list and enriches those they do.
+  for (const p of PAGES) {
+    add({ label: p.label, href: p.href, audience: p.who, aliases: p.aliases ?? [], target: navTarget(p.href), what: p.what, group: p.group });
+    const d = out.get(p.href)!;
+    d.what = d.what ?? p.what;
+    d.group = d.group ?? p.group;
+    for (const a of [p.label, ...(p.aliases ?? [])]) if (!d.aliases.includes(a)) d.aliases.push(a);
+  }
   return [...out.values()];
 }
 
@@ -107,7 +120,7 @@ export function areaOf(href: string): Audience {
   if (p === "/admin/login" || p.startsWith("/admin/forgot") || p.startsWith("/admin/reset")) return "any";
   if (p.startsWith("/admin/organization")) return "organization";
   if (p.startsWith("/admin") || p.startsWith("/instructor")) return "staff";
-  if (p === "/notifications") return "signedIn";
+  if (p === "/notifications" || p === "/compose" || p === "/my-posts" || p === "/saved") return "signedIn";
   return "any";
 }
 
