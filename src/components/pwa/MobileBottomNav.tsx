@@ -84,6 +84,8 @@ export default function MobileBottomNav({ role, moreItems }: { role: NavRole; mo
   const extras = MORE_EXTRAS[role].filter((x) => !moreItems.some((m) => m.href === x.href));
   const tabClass = (active: boolean) =>
     `relative flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[11px] font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-teal ${active ? "text-brand-teal" : "text-gray-600"}`;
+  // Social look: the active tab sits in a soft pill behind its icon.
+  const pill = (active: boolean) => (active ? "bg-brand-mint" : "");
 
   return (
     <>
@@ -96,7 +98,7 @@ export default function MobileBottomNav({ role, moreItems }: { role: NavRole; mo
             aria-modal="true"
             aria-label="More"
             tabIndex={-1}
-            className="absolute inset-x-0 bottom-0 max-h-[80dvh] overflow-y-auto rounded-t-2xl border-t border-brand-gray bg-brand-surface px-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-3 shadow-2xl focus:outline-none animate-[modal-in_0.15s_ease-out]"
+            className="absolute inset-x-0 bottom-0 max-h-[80dvh] overflow-y-auto rounded-t-3xl border-t border-brand-gray bg-brand-surface px-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-3 shadow-2xl focus:outline-none animate-[modal-in_0.15s_ease-out]"
           >
             <div className="flex items-center justify-between">
               <p className="font-display text-lg font-semibold text-brand-ink">More</p>
@@ -118,7 +120,7 @@ export default function MobileBottomNav({ role, moreItems }: { role: NavRole; mo
         </div>
       )}
 
-      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-50 border-t border-brand-gray bg-brand-surface lg:hidden print:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-brand-gray bg-brand-surface shadow-[0_-8px_24px_rgb(0_0_0/0.12)] lg:hidden print:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
         <ul className="flex">
           {tabs.map((t) => {
             const active = isTabActive(t, pathname);
@@ -126,7 +128,7 @@ export default function MobileBottomNav({ role, moreItems }: { role: NavRole; mo
             return (
               <li key={t.href} className="flex flex-1">
                 <Link href={t.href} data-guide-target={navTarget(t.href)} aria-current={active ? "page" : undefined} className={tabClass(active)}>
-                  <span className="relative">
+                  <span className={`relative flex h-8 w-14 items-center justify-center rounded-full transition-colors ${pill(active)}`}>
                     <TabIcon aria-hidden="true" width={22} height={22} strokeWidth={active ? 2.5 : 2} />
                     {t.key === "alerts" && unread > 0 && (
                       <span className="absolute -right-2.5 -top-1.5 min-w-[18px] rounded-full bg-brand-rose px-1 text-center text-[10px] font-bold leading-[18px] text-brand-onAccent">
@@ -142,7 +144,9 @@ export default function MobileBottomNav({ role, moreItems }: { role: NavRole; mo
           })}
           <li className="flex flex-1">
             <button ref={moreButton} data-guide-target="more" type="button" onClick={() => setMoreOpen((o) => !o)} aria-expanded={moreOpen} aria-haspopup="dialog" className={tabClass(moreOpen)}>
-              <LayoutGrid aria-hidden="true" width={22} height={22} />
+              <span className={`flex h-8 w-14 items-center justify-center rounded-full transition-colors ${pill(moreOpen)}`}>
+                <LayoutGrid aria-hidden="true" width={22} height={22} />
+              </span>
               More
             </button>
           </li>

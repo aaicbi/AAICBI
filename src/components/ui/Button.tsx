@@ -38,15 +38,16 @@ type ButtonProps = ButtonAsButton | ButtonAsLink;
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary: "bg-brand-teal text-brand-onAccent hover:bg-brand-tealDeep disabled:bg-brand-gray disabled:text-gray-500",
   secondary:
-    "border border-brand-gray text-brand-ink hover:border-brand-teal hover:text-brand-teal disabled:opacity-50",
+    "border border-brand-teal text-brand-teal hover:bg-brand-mint disabled:opacity-50",
   danger: "bg-brand-rose text-brand-onAccent hover:bg-brand-rose/90 disabled:bg-brand-gray disabled:text-gray-500",
   ghost: "text-brand-teal hover:bg-brand-mint disabled:opacity-50",
 };
 
+// Pill buttons with comfortable touch heights (the social look).
 const SIZE_CLASSES: Record<ButtonSize, string> = {
-  sm: "px-3 py-1.5 text-xs",
-  md: "px-4 py-2.5 text-sm",
-  lg: "px-6 py-3 text-base",
+  sm: "min-h-[36px] px-3.5 py-1.5 text-xs",
+  md: "min-h-[44px] px-5 py-2.5 text-sm",
+  lg: "min-h-[48px] px-7 py-3 text-base",
 };
 
 const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
@@ -59,7 +60,7 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
     // focus/contentEditable issue (there wasn't one). select-none here
     // fixes every button in the app at once, at the one shared
     // component every button already goes through.
-    const classes = `inline-flex select-none items-center justify-center gap-2 rounded-lg font-semibold transition-colors disabled:cursor-not-allowed ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]} ${className}`;
+    const classes = `inline-flex select-none items-center justify-center gap-2 rounded-full font-semibold transition-colors disabled:cursor-not-allowed ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]} ${className}`;
 
     // Bug fix while adding iconLeft/iconRight below: `loading && (...)`
     // evaluates to `false` (not `undefined`) when not loading, and

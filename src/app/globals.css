@@ -581,3 +581,10 @@ h1, h2, h3, h4, h5, h6, p, li, dd, dt, label, blockquote { overflow-wrap: anywhe
     display: none;
   }
 }
+
+/* The social look: profile pictures get a soft teal ring with a gap in the
+   surface colour, so avatars read as people rather than flat circles. Opt out
+   with the `no-ring` class. */
+img.rounded-full:not(.no-ring) {
+  box-shadow: 0 0 0 2px rgb(var(--brand-surface)), 0 0 0 4px rgb(var(--brand-teal) / 0.85);
+}
