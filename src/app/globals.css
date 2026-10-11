@@ -55,6 +55,9 @@
      wallpaper only. */
   --brand-sand: 247 245 240;
   --brand-surface: 255 255 255;
+  /* The card gradient: mint into gold in light mode. Dark mode keeps cards flat (both ends are the surface colour). */
+  --card-gradient-from: 228 238 231;
+  --card-gradient-to: 246 232 204;
   --brand-gold: 217 154 52;
   --brand-gold-light: 246 232 204;
   /* A genuinely new, dedicated token, not a repurposed existing one —
@@ -126,6 +129,8 @@
   --brand-ink: 232 240 237;
   --brand-sand: 20 24 26;
   --brand-surface: 28 33 36;
+  --card-gradient-from: 28 33 36;
+  --card-gradient-to: 28 33 36;
   --brand-gold: 227 172 85;
   --brand-gold-light: 61 46 20;
   --brand-gold-text: 230 195 140;
