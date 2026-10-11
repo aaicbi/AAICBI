@@ -125,6 +125,21 @@ const call = async (m, p, c, b) => { const r = await fetch(B + p, { method: m, h
   log(psql(`select title from "Course" where id='cs_c1'`).startsWith('CSCHECK Course') && psql(`select "createdById" from "Course" where id='cs_c1'`) === orgUser, 'the original is untouched');
   psql(`delete from "Course" where id='${copyId}'`);
 
+  // ---- a paid course: where new payments go is the super admin's decision
+  psql(`insert into "Course"(id,title,description,"createdById","updatedAt","isFree","priceKobo") values ('cs_c2','CSCHECK Paid course','About','${superId}',now(),false,500000)`);
+  r = await call('POST', '/api/admin/courses/cs_c2/transfer', sup, { organizationId: orgId });
+  log(r.s === 400 && /payments/i.test(r.d.error), `moving a paid course without deciding where payments go is refused (${r.s})`);
+  log(psql(`select "createdById" from "Course" where id='cs_c2'`) === superId, 'and nothing moved');
+  r = await call('POST', '/api/admin/courses/cs_c2/transfer', sup, { organizationId: orgId, paymentsTo: 'PLATFORM' });
+  log(r.s === 200 && r.d.paymentsTo === 'PLATFORM' && psql(`select "paymentsTo" from "Course" where id='cs_c2'`) === 'PLATFORM', `with AAICBI keeping the payments it moves (${r.s})`);
+  r = await call('GET', '/api/courses/cs_c2', sup); log(r.d.payments && /keeps the whole payment/.test(r.d.payments.routing), 'the super admin sees the arrangement in words');
+  r = await call('GET', '/api/courses/cs_c2', owner); log(r.s === 200 && r.d.payments === undefined && r.d.paymentsTo !== undefined, 'the organization is not shown how it is paid');
+  r = await call('PUT', '/api/admin/courses/cs_c2/payments', owner, { paymentsTo: 'OWNER' }); log(r.s === 403, `the organization cannot change where payments go (${r.s})`);
+  r = await call('PUT', '/api/admin/courses/cs_c2/payments', staff, { paymentsTo: 'OWNER' }); log(r.s === 403, `nor can a staff admin (${r.s})`);
+  r = await call('PUT', '/api/admin/courses/cs_c2/payments', sup, { paymentsTo: 'OWNER' }); log(r.s === 200 && psql(`select "paymentsTo" from "Course" where id='cs_c2'`) === 'OWNER', `a super admin can change it later (${r.s})`);
+  r = await call('PUT', '/api/admin/courses/cs_c2/payments', sup, { paymentsTo: 'EVERYONE' }); log(r.s === 400, 'only the two choices are accepted');
+  r = await call('POST', '/api/admin/courses/cs_c2/transfer', sup, { toPlatform: true }); log(r.s === 200 && psql(`select "paymentsTo" from "Course" where id='cs_c2'`) === 'OWNER', 'bringing it back to AAICBI resets the setting');
+
   // ---- bring it back to the platform
   r = await call('POST', '/api/admin/courses/cs_c1/transfer', sup, { toPlatform: true });
   log(r.s === 200 && psql(`select "createdById" from "Course" where id='cs_c1'`) === superId, `the super admin can bring it back (${r.s})`);

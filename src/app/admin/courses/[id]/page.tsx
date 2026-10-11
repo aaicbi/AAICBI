@@ -116,6 +116,8 @@ interface CourseDto {
   viewer?: { isSuperAdmin: boolean };
   ownerName?: string;
   platformOwned?: boolean;
+  paymentsTo?: "OWNER" | "PLATFORM";
+  payments?: { routing: string; orgName: string | null };
   trainingOrganization: {
     id: string;
     name: string;
@@ -540,7 +542,7 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
           </div>
         </div>
 
-        {course.viewer?.isSuperAdmin && <MoveCourse courseId={course.id} ownerName={course.ownerName ?? "AAICBI"} isPlatformOwned={!!course.platformOwned} paid={!course.isFree} onMoved={loadCourse} showToast={showToast} />}
+        {course.viewer?.isSuperAdmin && <MoveCourse courseId={course.id} ownerName={course.ownerName ?? "AAICBI"} isPlatformOwned={!!course.platformOwned} paid={!course.isFree} paymentsTo={course.paymentsTo ?? "OWNER"} routing={course.payments?.routing ?? null} onMoved={loadCourse} showToast={showToast} />}
 
         <ShareCard type="COURSE" id={course.id} />
 

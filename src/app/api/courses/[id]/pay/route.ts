@@ -48,6 +48,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
         // initializeCoursePayment needs to resolve this course's own
         // organization (if any) and apply its Paystack Subaccount split.
         createdById: true,
+        paymentsTo: true,
       },
     });
     // UNLISTED is deliberately payable here, not just PUBLISHED — an

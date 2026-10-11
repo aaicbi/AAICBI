@@ -4,10 +4,11 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { transferCourse, TransferError } from "@/lib/courses/transfer";
 import { prisma } from "@/lib/prisma";
+import { isPaymentsTo } from "@/lib/courses/payments";
 
 export const dynamic = "force-dynamic";
 
-const Body = z.union([z.object({ organizationId: z.string().min(1) }), z.object({ toPlatform: z.literal(true) })]);
+const Body = z.union([z.object({ organizationId: z.string().min(1), paymentsTo: z.string().refine(isPaymentsTo).optional() }), z.object({ toPlatform: z.literal(true) })]);
 
 /**
  * POST { organizationId } moves the course (with its assessments, examination and assignments) to that training
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (!parsed.success) return NextResponse.json({ error: "Choose an organization." }, { status: 400 });
     const me = await prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } });
     try {
-      const result = await transferCourse(params.id, "organizationId" in parsed.data ? { organizationId: parsed.data.organizationId } : { toPlatformUserId: session.userId }, { userId: session.userId, name: me?.name ?? "Super admin" });
+      const result = await transferCourse(params.id, "organizationId" in parsed.data ? { organizationId: parsed.data.organizationId, paymentsTo: parsed.data.paymentsTo as never } : { toPlatformUserId: session.userId }, { userId: session.userId, name: me?.name ?? "Super admin" });
       return NextResponse.json(result);
     } catch (e) {
       if (e instanceof TransferError) return NextResponse.json({ error: e.message }, { status: e.status });

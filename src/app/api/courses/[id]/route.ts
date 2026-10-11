@@ -11,6 +11,7 @@ import { isModuleIndexInFreePreview } from "@/lib/courseAccessCore";
 import { isCoursePubliclyVisible } from "@/lib/courseStatus";
 import { requireCourseOwner, requireOwnedCourse } from "@/lib/courseOwnership";
 import { courseAccess } from "@/lib/collab/access";
+import { describeRouting } from "@/lib/courses/payments";
 import { ownerOnlyFieldsIn } from "@/lib/collab/core";
 import { buildMarketingView } from "@/lib/courseMarketing";
 import { publisherNames } from "@/lib/courseOrg";
@@ -140,7 +141,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       const owner = org ? null : await prisma.user.findUnique({ where: { id: course.createdById }, select: { name: true, role: true } });
       const viewer = { isSuperAdmin: session.role === "SUPER_ADMIN" };
       const ownerName = org ? org.name : owner?.role === "INSTRUCTOR" ? `${owner.name} (instructor)` : "AAICBI";
-      return NextResponse.json({ ...course, trainingOrganization, viewer, ownerName, platformOwned: !org });
+      // Only a super admin sees how the owner is paid; it is not for the owner or an editor.
+      const payments = viewer.isSuperAdmin ? { routing: describeRouting(course, org), orgName: org?.name ?? null } : undefined;
+      return NextResponse.json({ ...course, trainingOrganization, viewer, ownerName, platformOwned: !org, payments });
     }
 
     // Analytics System Phase 1 — a trainee reaching this point has

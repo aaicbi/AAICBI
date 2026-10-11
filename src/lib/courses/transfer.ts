@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notifyByEmail } from "@/lib/notifications/log";
 import { simpleNoticeEmail } from "@/lib/notifications/templates";
 import { appUrl } from "@/lib/appUrl";
+import type { PaymentsTo } from "@/lib/courses/payments";
 
 export class TransferError extends Error {
   constructor(message: string, public status = 400) {
@@ -17,6 +18,7 @@ export interface TransferResult {
   assignments: number;
   certificateTemplateCleared: boolean;
   paid: boolean;
+  paymentsTo: PaymentsTo;
 }
 
 /**
@@ -32,7 +34,7 @@ export interface TransferResult {
  * Only a super admin calls this. Moving a paid course changes who new payments go to (the new owner's billing setup),
  * not subscriptions already running, so the result says whether the course is paid and the caller shows that.
  */
-export async function transferCourse(courseId: string, target: { organizationId: string } | { toPlatformUserId: string }, actor: { userId: string; name: string }): Promise<TransferResult> {
+export async function transferCourse(courseId: string, target: { organizationId: string; paymentsTo?: PaymentsTo } | { toPlatformUserId: string }, actor: { userId: string; name: string }): Promise<TransferResult> {
   const course = await prisma.course.findUnique({ where: { id: courseId }, select: { id: true, title: true, createdById: true, isFree: true, certificateTemplateId: true } });
   if (!course) throw new TransferError("Course not found.", 404);
 
@@ -55,6 +57,9 @@ export async function transferCourse(courseId: string, target: { organizationId:
     to = { kind: "platform", name: "AAICBI" };
   }
   if (course.createdById === newOwnerId) throw new TransferError("That is already who owns this course.", 409);
+  // Where new payments go is a super admin's decision, never a side effect of the move.
+  if (org && !course.isFree && !("paymentsTo" in target && target.paymentsTo)) throw new TransferError("This is a paid course: choose where new payments go before moving it.", 400);
+  const paymentsTo: PaymentsTo = org && "paymentsTo" in target && target.paymentsTo ? target.paymentsTo : "OWNER";
 
   const result = await prisma.$transaction(async (tx) => {
     const exams = await tx.exam.updateMany({ where: { OR: [{ courseId: course.id }, { courseModule: { courseId: course.id } }] }, data: { createdById: newOwnerId } });
@@ -66,7 +71,7 @@ export async function transferCourse(courseId: string, target: { organizationId:
       clearTemplate = !org || tpl?.trainingOrganizationId !== org.id;
       certificateTemplateCleared = clearTemplate;
     }
-    await tx.course.update({ where: { id: course.id }, data: { createdById: newOwnerId, ...(clearTemplate ? { certificateTemplateId: null } : {}) } });
+    await tx.course.update({ where: { id: course.id }, data: { createdById: newOwnerId, paymentsTo, ...(clearTemplate ? { certificateTemplateId: null } : {}) } });
     return { exams: exams.count, assignments: assignments.count, certificateTemplateCleared };
   });
 
@@ -79,5 +84,5 @@ export async function transferCourse(courseId: string, target: { organizationId:
     }
   }
   console.info(`Course ${course.id} moved to ${to.kind === "organization" ? `organization ${to.id}` : "the platform"} by ${actor.userId}`);
-  return { courseId: course.id, title: course.title, to, ...result, paid: !course.isFree };
+  return { courseId: course.id, title: course.title, to, ...result, paid: !course.isFree, paymentsTo };
 }

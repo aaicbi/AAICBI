@@ -20,6 +20,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getEffectivePriceKobo } from "@/lib/coursePricing";
 import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
+import { splitApplies } from "@/lib/courses/payments";
 
 const INTERVAL_MAP: Record<string, string> = {
   MONTHLY: "monthly",
@@ -128,6 +129,8 @@ export async function initializeCoursePayment(
     // entirely (undefined) behaves exactly as an AAICBI-own course
     // always has.
     createdById?: string;
+    // A super admin's per-course decision: PLATFORM means AAICBI keeps the whole payment, so no split is applied.
+    paymentsTo?: string;
   }
 ): Promise<{ authorizationUrl: string; accessCode?: string; reference: string }> {
   const appUrl = process.env.APP_URL ?? "https://aaicbi.org";
@@ -166,7 +169,7 @@ export async function initializeCoursePayment(
   // organization switched models.
   const org = course.createdById ? await findTrainingOrgByStaffUserId(course.createdById) : null;
   const splitFields =
-    org?.billingModel === "REVENUE_SHARE" && org.paystackSubaccountCode
+    org && splitApplies(course, org) && org.paystackSubaccountCode
       ? { subaccount: org.paystackSubaccountCode, bearer: "account" as const }
       : {};
 

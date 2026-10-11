@@ -1178,6 +1178,8 @@ model Course {
   // for keeping the two consistent — see courses.ts for that guard.
   isFree    Boolean @default(true)
   priceKobo Int?
+  /// Where new payments for this course go, decided by a super admin: OWNER follows the owner's billing setup (an organization on revenue share receives its share); PLATFORM keeps the whole payment with AAICBI whoever owns the course.
+  paymentsTo String @default("OWNER")
   // Course discounts — null means no discount, the honest default for
   // every existing course. 1-99 (validated in coursePricing.ts, not
   // here): 100 would mean "free" through a side door that bypasses
