@@ -682,7 +682,8 @@ model Trainee {
   openToWork      Boolean           @default(false)
   resumeUrl       String?
   resumeUploadedAt DateTime?
-  profileVisibility ProfileVisibility @default(PRIVATE)
+  /// New members start PUBLIC so people can find them; they can choose a narrower setting any time. (Earlier accounts keep whatever they have.)
+  profileVisibility ProfileVisibility @default(PUBLIC)
 
   skills           TraineeSkill[]
   education        Education[]
@@ -3440,7 +3441,8 @@ model Employer {
   companySize String?
   location    String?
   description String?
-  profileVisibility ProfileVisibility @default(AUTHENTICATED)
+  /// New employers start PUBLIC so candidates and members can find them; they can narrow it any time.
+  profileVisibility ProfileVisibility @default(PUBLIC)
 
   introductionRequests IntroductionRequest[]
   jobPostings          JobPosting[]

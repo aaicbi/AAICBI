@@ -116,7 +116,7 @@ export default function TraineeProfilePage() {
     portfolioUrl: "",
     currentEmploymentStatus: "",
     openToWork: false,
-    profileVisibility: "PRIVATE",
+    profileVisibility: "PUBLIC",
     availabilityTypes: [] as string[],
   });
   const [savingCore, setSavingCore] = useState(false);
@@ -366,7 +366,7 @@ export default function TraineeProfilePage() {
                 ) : (
                   "your profile link (set a username above first)"
                 )}
-                . This is separate from the Employer Discoverability setting in Settings.
+                . New accounts start public so people can find you; choose a narrower setting any time. This is separate from the Employer Discoverability setting in Settings.
               </p>
               <Select label="Profile visibility" hideLabel compact value={coreForm.profileVisibility} onChange={(e) => setCoreForm((f) => ({ ...f, profileVisibility: e.target.value }))}>
                 {Object.entries(VISIBILITY_LABELS).map(([value, label]) => (
