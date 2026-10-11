@@ -13,11 +13,11 @@ const psql = (q) => require('child_process').execFileSync('/usr/lib/postgresql/1
   await p.goto(B + '/notifications', { waitUntil: 'networkidle' });
   const over = await p.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
   log(!over, 'notifications: no horizontal overflow with a long address in the text');
-  const more = p.getByRole('button', { name: 'See more' }).first();
+  const more = p.locator('button[aria-expanded="false"]', { hasText: 'See more' }).first();
   log(await more.count() > 0, 'a long notification shows "See more"');
-  const h1 = await p.evaluate(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent === 'See more'); return b.previousElementSibling.clientHeight; });
+  const h1 = await more.evaluate((b) => b.previousElementSibling.clientHeight);
   await more.click();
-  const h2 = await p.evaluate(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent === 'See less'); return b.previousElementSibling.clientHeight; });
+  const h2 = await p.locator('button[aria-expanded="true"]', { hasText: 'See less' }).first().evaluate((b) => b.previousElementSibling.clientHeight);
   log(h2 > h1, `"See more" expands the text (${h1}px to ${h2}px) and "See less" appears`);
   // the bottom bar has Post
   const post = p.locator('nav[aria-label="Main"] a[href="/compose"]');
