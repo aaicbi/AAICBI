@@ -31,6 +31,7 @@ import type { CourseStatus } from "@prisma/client";
 import CourseMarketingSettings, { type CourseMarketingFields } from "./CourseMarketingSettings";
 import CourseScheduleSettings, { type CourseScheduleFields } from "./CourseScheduleSettings";
 import MoveCourse from "./MoveCourse";
+import ShareCard from "@/components/collab/ShareCard";
 
 import { Checkbox, Input, Select } from "@/components/ui/Field";
 interface MaterialDto {
@@ -540,6 +541,8 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
         </div>
 
         {course.viewer?.isSuperAdmin && <MoveCourse courseId={course.id} ownerName={course.ownerName ?? "AAICBI"} isPlatformOwned={!!course.platformOwned} paid={!course.isFree} onMoved={loadCourse} showToast={showToast} />}
+
+        <ShareCard type="COURSE" id={course.id} />
 
         <PricingSettings course={course} onSave={updatePricing} showToast={showToast} />
 

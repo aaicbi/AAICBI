@@ -1,4 +1,5 @@
 "use client";
+import ShareCard from "@/components/collab/ShareCard";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Card from "@/components/ui/Card";
@@ -172,6 +173,8 @@ export default function AssignmentBuilderPage({ params }: { params: { id: string
           </div>
         </div>
       </div>
+
+      <ShareCard type="ASSIGNMENT" id={params.id} />
 
       {issues && issues.length > 0 && (
         <div className="mt-4 rounded-lg border border-brand-goldLight bg-brand-goldLight/40 p-4">
