@@ -25,6 +25,7 @@ export default function QueueTab({
   call,
   onAnswer,
   initialFeature,
+  onAskClaude,
 }: {
   entries: EntryDto[];
   categories: string[];
@@ -32,6 +33,8 @@ export default function QueueTab({
   call: (url: string, method: string, payload?: unknown) => Promise<boolean>;
   onAnswer: (q: QuestionDto) => void;
   initialFeature?: string;
+  /** Present only when the Claude consultant is on and set up. */
+  onAskClaude?: (q: QuestionDto) => void;
 }) {
   const [status, setStatus] = useState("WAITING");
   const [role, setRole] = useState("");
@@ -183,6 +186,7 @@ export default function QueueTab({
                     {(u.status === "OPEN" || u.status === "IN_REVIEW") && (
                       <>
                         <Button size="sm" onClick={() => onAnswer(u)}>Write an answer</Button>
+                        {onAskClaude && <Button size="sm" variant="secondary" disabled={busy} onClick={() => onAskClaude(u)}>Ask Claude for a draft</Button>}
                         {u.status === "OPEN" && <Button size="sm" variant="secondary" disabled={busy} onClick={() => act(u, { action: "review" })}>Start review</Button>}
                         <Button size="sm" variant="secondary" onClick={() => setMerging(u)}>Merge</Button>
                         <Button size="sm" variant="secondary" disabled={busy} onClick={() => act(u, { action: "resolve" })}>Mark resolved</Button>

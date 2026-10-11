@@ -7,6 +7,7 @@ import { sanitizeLinks } from "@/lib/guide/links";
 import { MAX_CUSTOM_ENTRIES } from "@/lib/guide/server";
 import { guideMetrics } from "@/lib/guide/knowledge";
 import { GUIDE_CATEGORIES } from "@/lib/guide/adminSchemas";
+import { consultantState } from "@/lib/guide/consultant";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +19,12 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   return withApiErrors(async () => {
     await requireRole("SUPER_ADMIN");
-    const [settings, entries, metrics] = await Promise.all([
+    const [settings, entries, metrics, consultant, pending] = await Promise.all([
       prisma.platformSettings.findUnique({ where: { id: "singleton" }, select: { guideEnabled: true } }),
       prisma.guideEntry.findMany({ orderBy: { updatedAt: "desc" }, take: MAX_CUSTOM_ENTRIES }),
       guideMetrics(),
+      consultantState(),
+      prisma.guideSuggestion.count({ where: { status: "PENDING" } }),
     ]);
     const used = new Set<string>(GUIDE_CATEGORIES);
     for (const e of entries) if (e.category) used.add(e.category);
@@ -34,6 +37,7 @@ export async function GET() {
       })),
       metrics,
       categories: [...used].sort(),
+      consultant: { enabled: consultant.enabled, configured: consultant.configured, pending },
       limit: MAX_CUSTOM_ENTRIES,
     });
   });
@@ -42,14 +46,18 @@ export async function GET() {
 export async function PUT(req: NextRequest) {
   return withApiErrors(async () => {
     await requireRole("SUPER_ADMIN");
-    const parsed = z.object({ enabled: z.boolean() }).safeParse(await req.json().catch(() => null));
+    const parsed = z.object({ enabled: z.boolean().optional(), consultantEnabled: z.boolean().optional() }).refine((v) => v.enabled !== undefined || v.consultantEnabled !== undefined).safeParse(await req.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Invalid settings." }, { status: 400 });
+    const data = {
+      ...(parsed.data.enabled !== undefined ? { guideEnabled: parsed.data.enabled } : {}),
+      ...(parsed.data.consultantEnabled !== undefined ? { guideConsultantEnabled: parsed.data.consultantEnabled } : {}),
+    };
     const settings = await prisma.platformSettings.upsert({
       where: { id: "singleton" },
-      create: { id: "singleton", guideEnabled: parsed.data.enabled },
-      update: { guideEnabled: parsed.data.enabled },
-      select: { guideEnabled: true },
+      create: { id: "singleton", ...data },
+      update: data,
+      select: { guideEnabled: true, guideConsultantEnabled: true },
     });
-    return NextResponse.json({ enabled: settings.guideEnabled });
+    return NextResponse.json({ enabled: settings.guideEnabled, consultantEnabled: settings.guideConsultantEnabled });
   });
 }

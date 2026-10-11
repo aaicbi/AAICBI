@@ -2915,6 +2915,9 @@ model PlatformSettings {
   // answers from a bank of written answers; no AI service). SUPER_ADMIN
   // switches it in the Command Center. See src/lib/guide.
   guideEnabled                    Boolean @default(true)
+  // The Claude consultant in the Command Center's guide area: advice only, runs only when a
+  // super admin asks, off until switched on.
+  guideConsultantEnabled          Boolean @default(false)
   // Visibility-score weights and Featured criteria (JSON, validated by
   // parseRankingConfig; null = built-in defaults). See visibilityCore.ts.
   ecosystemRankingConfig    Json?
@@ -4716,6 +4719,30 @@ model GuideDailyStat {
 
   @@unique([day, role])
   @@index([day])
+}
+
+
+/// Advice from the Claude consultant about Loop's knowledge. It is only ever a proposal: nothing here is used by Loop until a super admin reviews it and saves the answer through the normal form.
+model GuideSuggestion {
+  id          String    @id @default(cuid())
+  // "DRAFT_ANSWER", "IMPROVE_ANSWER", "MERGE", "REJECT" or "ADVICE".
+  kind        String
+  // "PENDING", "APPROVED" or "DISMISSED".
+  status      String    @default("PENDING")
+  questionId  String?
+  entryId     String?
+  title       String
+  rationale   String
+  // The proposed fields (an answer's text, destination, audience...) or the advice text.
+  proposal    Json      @default("{}")
+  warnings    String[]  @default([])
+  model       String
+  createdAt   DateTime  @default(now())
+  decidedAt   DateTime?
+  decidedById String?
+
+  @@index([status, createdAt])
+  @@index([questionId])
 }
 
 

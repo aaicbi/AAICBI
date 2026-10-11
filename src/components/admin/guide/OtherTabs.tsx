@@ -276,6 +276,7 @@ export function SettingsTab({ enabled, busy, onToggle, limit }: { enabled: boole
           <li>The question is kept, scrubbed, and grouped with similar questions.</li>
           <li>A person reviews it and writes or approves the answer.</li>
           <li>Only then does Loop use it. Visitors can never teach Loop directly.</li>
+          <li>The Claude consultant, when you switch it on in its own tab, can propose drafts for step 3. It is advice only; you still approve.</li>
         </ol>
         <p className="text-xs text-gray-600">You can keep up to {limit} approved answers. Every change is kept as a version.</p>
       </Card>

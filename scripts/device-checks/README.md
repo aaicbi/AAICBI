@@ -24,6 +24,9 @@ node scripts/device-checks/guide-knowledge-api.cjs   # review queue, grouping, a
 node scripts/device-checks/guide-chat.cjs            # Take me there / Show me, role-aware answers, honest unknowns
 node scripts/device-checks/guide-tour.cjs            # multi-step tour, auto-advance, reduced motion, phone More fallback
 node scripts/device-checks/guide-admin.cjs           # Guide Bot Knowledge screens
+# Claude consultant: start `node scripts/device-checks/fake-claude.cjs`, run the app with ANTHROPIC_API_KEY=fake ANTHROPIC_BASE_URL=http://127.0.0.1:4599 (the "nokey" phase of guide-consultant-api.cjs needs it unset)
+node scripts/device-checks/guide-consultant-api.cjs flow   # switch, gating, scrubbed context, sanitising, changes nothing, failures, rate limit
+node scripts/device-checks/guide-consultant-ui.cjs         # proposals, approve through the form, merge, reject, advice, off
 node scripts/device-checks/organization.cjs       # organization home, messaging scope, profile preview, Loop guide
 node scripts/device-checks/videos-and-reports.cjs # trainee video -> organization -> Super Admin, and reports
 node scripts/device-checks/builder-tools.cjs      # course builder / exam tools on phone and tablet
