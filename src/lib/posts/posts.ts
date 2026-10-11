@@ -74,6 +74,15 @@ export async function identitiesOf(session: SessionPayload): Promise<Identity[]>
   return out;
 }
 
+/** Why a signed-in account has nothing to post as, in words the person can act on. Null when they can post. */
+export async function postingBlockedReason(session: SessionPayload): Promise<string | null> {
+  if ((await identitiesOf(session)).length > 0) return null;
+  if (session.role === "EMPLOYER") return "Your company account is waiting for approval. You can post as soon as the AAICBI team approves it.";
+  if (session.role === "INVESTOR") return "Your investor account is waiting for approval. You can post as soon as the AAICBI team approves it.";
+  if (session.role === "ADMIN" || session.role === "SUPER_ADMIN" || session.role === "INSTRUCTOR") return "Your training organization is waiting for approval. You can post as soon as the AAICBI team approves it.";
+  return "Your account cannot post yet. Please contact support.";
+}
+
 /** Every profile this person may edit posts for (their own author profiles and the startups or organization they publish for). */
 async function profileIdsOf(session: SessionPayload): Promise<Set<string>> {
   const ids = new Set<string>();

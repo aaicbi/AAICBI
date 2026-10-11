@@ -15,5 +15,8 @@ export const INVESTOR_ORGANIZATIONS_NAV = { label: "Organizations", href: "/inve
 
 export const INVESTOR_NAV = [
   { label: "Investment Opportunities", href: "/investor/dashboard" },
+  { label: "Feed", href: "/feed" },
+  { label: "Write a post", href: "/compose" },
+  { label: "My posts", href: "/my-posts" },
   { label: "Account", href: "/investor/status" },
 ];

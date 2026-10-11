@@ -208,6 +208,8 @@ interface DefinedItem extends AdminNavItem {
 
 const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
   { label: null, items: [{ label: "Dashboard", href: "/admin/dashboard", audience: "staffAndOrg" }] },
+  // The ecosystem feed: everyone who signs in can read it and post to it.
+  { label: "Feed", items: [{ label: "Feed", href: "/feed", audience: "staffAndOrg" }, { label: "Write a post", href: "/compose", audience: "staffAndOrg" }, { label: "My posts", href: "/my-posts", audience: "staffAndOrg" }] },
   // The review team's inbox: posts, appeals and Loop's questions. Super admins and the staff they made reviewers.
   { label: "Review", items: [{ label: "Review inbox", href: "/admin/review", audience: "reviewer" }] },
   {

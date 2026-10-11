@@ -20,6 +20,7 @@ function Composer() {
   const { showToast } = useToast();
   const [identities, setIdentities] = useState<Identity[] | null>(null);
   const [signedOut, setSignedOut] = useState(false);
+  const [blocked, setBlocked] = useState<string | null>(null);
   const [identity, setIdentity] = useState("self");
   const [body, setBody] = useState("");
   const [title, setTitle] = useState("");
@@ -36,6 +37,7 @@ function Composer() {
     if (r.status === 401) return setSignedOut(true);
     const d = await r.json();
     setIdentities(d.identities);
+    setBlocked(d.blockedReason ?? null);
     if (d.identities[0]) setIdentity(d.identities[0].key);
     if (editId) {
       const p = await fetch(`/api/posts/${editId}`);
@@ -93,7 +95,7 @@ function Composer() {
         {signedOut ? (
           <Card className="mt-4"><p className="text-sm text-gray-700">Please sign in to write a post.</p><div className="mt-3 flex flex-wrap gap-2"><Button href="/trainee/login" size="sm">Member sign in</Button><Button href="/trainee/register" size="sm" variant="secondary">Create an account</Button></div></Card>
         ) : !identities ? <div className="mt-4"><SkeletonList rows={2} /></div> : identities.length === 0 ? (
-          <Card className="mt-4"><p className="text-sm text-gray-700">Your account cannot post yet. Employers and investors need to be approved first.</p></Card>
+          <Card className="mt-4"><p className="text-sm text-gray-700">{blocked ?? "Your account cannot post yet."}</p></Card>
         ) : (
           <form className="mt-4 space-y-4" onSubmit={(e) => { e.preventDefault(); save(true); }}>
             <Card className="space-y-4">
