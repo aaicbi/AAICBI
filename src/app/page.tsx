@@ -73,8 +73,8 @@ const SAMPLE_PROGRESS: ProgressSurfaceData = {
  * "Verify a Certificate" is a real, public-facing CTA here, not staff
  * plumbing — an employer or anyone else checking a trainee's
  * credential is a genuine visitor to this exact page, so it gets equal
- * billing with "Browse Courses," not buried in a footer link the way
- * "Staff Login" is.
+ * billing with "Browse Courses," not tucked away. (Staff sign-in is not
+ * linked from any public page at all; see src/lib/staffAccessPath.js.)
  *
  * Testimonials — fetched directly via Prisma, not a client-side call
  * to /api/testimonials, matching the exact same server-component
@@ -132,12 +132,11 @@ export default async function LandingPage() {
           { label: "Verify a Certificate", href: "/certificate" },
           // Links to the "For Organizations" section lower on this same
           // page (#for-organizations) rather than straight to
-          // /org/register or /org/login — unlike Employer/Staff Login,
+          // /org/register or /org/login — unlike Employer Login,
           // there are two real actions here (register or sign in), so
           // the nav link surfaces the choice instead of guessing one.
           ...(flags?.orgPages ? [] : [{ label: "Training Organizations", href: "#for-organizations" }]),
           { label: "Employer Login", href: "/employer/login" },
-          { label: "Staff Login", href: "/admin/login" },
         ]}
       />
       <main>

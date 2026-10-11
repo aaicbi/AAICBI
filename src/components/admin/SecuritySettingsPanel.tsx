@@ -5,6 +5,7 @@ import Button from "@/components/ui/Button";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
 import { useToast } from "@/components/ui/Toast";
+import StaffSignInsCard from "@/components/admin/StaffSignInsCard";
 
 import { Input } from "@/components/ui/Field";
 interface SecurityData {
@@ -167,6 +168,8 @@ export default function SecuritySettingsPanel({ viewerRole }: { viewerRole?: str
         </p>
         <Input label="Warnings before suspension" compact wrapperClassName="w-40" type="number" min={1} max={100} value={data.qaWarningsBeforeSuspension} onChange={(e) => setData({ ...data, qaWarningsBeforeSuspension: Number(e.target.value) })} />
       </Card>
+
+      <StaffSignInsCard />
 
       {saveError && <p className="text-sm text-brand-rose">{saveError}</p>}
 

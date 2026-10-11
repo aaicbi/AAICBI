@@ -35,9 +35,7 @@ export const DESTINATIONS: Destination[] = [
   { label: "Organization sign in", href: "/org/login", group: "Sign in" },
   { label: "Employer sign in", href: "/employer/login", group: "Sign in" },
   { label: "Investor sign in", href: "/investor/login", group: "Sign in" },
-  { label: "Staff sign in", href: "/admin/login", group: "Sign in" },
   { label: "Reset a trainee password", href: "/trainee/forgot-password", group: "Help" },
-  { label: "Reset a staff password", href: "/admin/forgot-password", group: "Help" },
   { label: "Your Learning Buddy", href: "/trainee/buddy", group: "Help" },
   { label: "Your settings", href: "/trainee/settings", group: "Help" },
 ];

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
+import { isLegacyStaffLoginEnabled, staffSignInPath } from "@/lib/staffAccessPath";
 
 // Edge-safe re-check of the session cookie. Kept separate from
 // src/lib/auth/session.ts (which uses next/headers and isn't edge/route
@@ -39,6 +40,14 @@ export async function middleware(req: NextRequest) {
   requestHeaders.set("x-pathname", pathname);
   const withPathname = () => NextResponse.next({ request: { headers: requestHeaders } });
 
+  // The internal page behind the staff sign-in address is only reachable through that address (next.config.js
+  // rewrites it after this runs), so anyone asking for it directly is told it does not exist. The same goes for the
+  // older /admin/login once an operator switches it off with STAFF_LEGACY_LOGIN=off.
+  const legacyStaffLogin = isLegacyStaffLoginEnabled(process.env.STAFF_LEGACY_LOGIN);
+  if (pathname === "/staff-access" || (!legacyStaffLogin && pathname === "/admin/login")) {
+    return NextResponse.rewrite(new URL("/not-found-staff", req.url), { status: 404 });
+  }
+
   const PUBLIC_TRAINEE_PATHS = new Set([
     "/trainee/login",
     "/trainee/register",
@@ -53,7 +62,7 @@ export async function middleware(req: NextRequest) {
   const isExamPath = pathname.startsWith("/exam");
   if (!isAdminPath && !isTraineePath && !isExamPath) return withPathname();
 
-  const loginPath = isAdminPath ? "/admin/login" : "/trainee/login";
+  const loginPath = isAdminPath ? (legacyStaffLogin ? "/admin/login" : staffSignInPath()) : "/trainee/login";
   const token = req.cookies.get(COOKIE_NAME)?.value;
   if (!token) {
     // Preserve where they were headed so login can send them back —
@@ -83,5 +92,5 @@ export const config = {
   // these, their existing page-level auth checks are unaffected.
   // instructor isn't listed — it has no pre-auth pages at all, so its
   // layout never needs this header (see InstructorLayout's comment).
-  matcher: ["/admin/:path*", "/trainee/:path*", "/exam/:path*", "/employer/:path*", "/investor/:path*", "/org/:path*"],
+  matcher: ["/staff-access", "/admin/:path*", "/trainee/:path*", "/exam/:path*", "/employer/:path*", "/investor/:path*", "/org/:path*"],
 };
