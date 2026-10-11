@@ -21,7 +21,7 @@ import { cookies, headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 import { hasActivePlatformFeeAccess } from "@/lib/trainingOrgBilling";
-import { ActorError, enforceAndRecord, resolveOrgActor, type OrgActor } from "@/lib/org/actor";
+import { ActorError, enforceAndRecord, orgPersonStillValid, resolveOrgActor, type OrgActor } from "@/lib/org/actor";
 
 const COOKIE_NAME = "lms_session";
 const secret = () => new TextEncoder().encode(requireStrongSecret("AUTH_SECRET"));
@@ -189,7 +189,10 @@ export async function getSession(): Promise<SessionPayload | null> {
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, secret());
-    return payload as unknown as SessionPayload;
+    const session = payload as unknown as SessionPayload;
+    // A teammate who was disabled or removed is signed out on their very next request, not when their cookie expires.
+    if (session.role === "ADMIN" && !(await orgPersonStillValid(session.userId, session.email))) return null;
+    return session;
   } catch {
     return null; // expired or tampered — treat as logged out, don't throw
   }

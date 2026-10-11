@@ -45,3 +45,16 @@ export async function enforceAndRecord(actor: OrgActor, orgUserId: string, reque
     console.error("Could not record organization activity:", e instanceof Error ? e.message : e);
   }
 }
+
+/**
+ * False when a session belongs to a person who has been disabled or removed from a training organization. Real staff
+ * accounts and the organization's owner are always fine. Checked whenever a session is read, so it ends at once and not when
+ * the cookie would have expired.
+ */
+export async function orgPersonStillValid(userId: string, email: string): Promise<boolean> {
+  const org = await prisma.trainingOrganization.findFirst({ where: { staffUserId: userId }, select: { id: true, email: true } });
+  if (!org) return true;
+  if (org.email.toLowerCase() === email.toLowerCase()) return true;
+  const m = await prisma.trainingOrganizationMember.findFirst({ where: { trainingOrganizationId: org.id, email: { equals: email, mode: "insensitive" } }, select: { disabledAt: true } });
+  return !!m && !m.disabledAt;
+}
