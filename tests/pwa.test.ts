@@ -97,6 +97,12 @@ describe("the phone bottom navigation", () => {
     expect(isTabActive(messages, "/trainee/messages/abc")).toBe(true);
     expect(isTabActive(messages, "/trainee/messages-other")).toBe(false);
   });
+  it("shows Feed as the current place on the home page, which is the feed", () => {
+    const feed = BOTTOM_NAV.trainee.find((t) => t.key === "feed")!;
+    for (const path of ["/", "/feed", "/feed?tab=following".split("?")[0]]) expect(isTabActive(feed, path), path).toBe(true);
+    expect(isTabActive(feed, "/trainee/dashboard")).toBe(false);
+    expect(isTabActive(BOTTOM_NAV.trainee[0], "/")).toBe(false);
+  });
   it("stays out of live exams and caps the unread badge", () => {
     expect(bottomNavHidden("/trainee/courses/c1/examination/take")).toBe(true);
     expect(bottomNavHidden("/exam/CODE/take")).toBe(true);

@@ -1,5 +1,6 @@
 import type { Post, PostStatus, Prisma, Profile } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { publicFeedChanged } from "@/lib/posts/feedCache";
 import { appUrl } from "@/lib/appUrl";
 import type { SessionPayload } from "@/lib/auth/session";
 import { notifyByEmail } from "@/lib/notifications/log";
@@ -110,7 +111,9 @@ async function nameOf(session: SessionPayload): Promise<string> {
 }
 
 export async function createPost(session: SessionPayload, identityKey: string, input: PostInput, submit: boolean): Promise<Post> {
-  const identity = (await identitiesOf(session)).find((i) => i.key === identityKey);
+  const all = await identitiesOf(session);
+  // "self" means the first thing this account speaks as, which is its organization for a training organization's own login.
+  const identity = all.find((i) => i.key === identityKey) ?? (identityKey === "self" ? all[0] : undefined);
   if (!identity) throw new PostError("You cannot post as that.", 403);
   const recent = await prisma.post.count({ where: { authorProfileId: identity.authorProfileId, createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } } });
   if (recent >= MAX_NEW_PER_DAY) throw new PostError("You have written a lot of posts today. Please try again tomorrow.", 429);
@@ -193,11 +196,13 @@ export async function withdrawPost(session: SessionPayload, postId: string): Pro
   if (!canWithdraw(post.status)) throw new PostError("Only a post waiting for review can be taken back.", 409);
   await prisma.post.update({ where: { id: postId }, data: { status: "DRAFT" } });
   await log(postId, "WITHDRAWN", { userId: session.userId, name: await nameOf(session) });
+  publicFeedChanged();
 }
 
 export async function deletePost(session: SessionPayload, postId: string): Promise<void> {
   await requireManage(session, postId);
   await prisma.post.delete({ where: { id: postId } });
+  publicFeedChanged();
 }
 
 /** A reviewer's decision. Changes the status, records who and why, and tells the author. */
@@ -224,6 +229,7 @@ export async function reviewPost(postId: string, action: ReviewAction, note: str
   } catch (e) {
     console.error("Could not notify a post author:", e instanceof Error ? e.message : e);
   }
+  publicFeedChanged();
   return (await prisma.post.findUnique({ where: { id: postId } }))!;
 }
 
@@ -380,6 +386,7 @@ export async function orgBlockPost(orgId: string, postId: string, reason: unknow
   await prisma.post.update({ where: { id: postId }, data: { orgBlockedAt: new Date(), orgBlockedById: actor.userId, orgBlockReason: r.note, appealedAt: null, appealNote: null } });
   await log(postId, "ORG_BLOCKED", actor, r.note);
   await notifyAuthor(post, "Your organization hid your post", ["Your training organization hid one of your posts from public view.", `Reason: ${r.note}`, "If you think this is a mistake, you can appeal to the AAICBI team from My posts."]);
+  publicFeedChanged();
 }
 
 export async function orgUnblockPost(orgId: string, postId: string, actor: { userId: string; name: string }): Promise<void> {
@@ -390,6 +397,7 @@ export async function orgUnblockPost(orgId: string, postId: string, actor: { use
   await prisma.post.update({ where: { id: postId }, data: { orgBlockedAt: null, orgBlockedById: null, orgBlockReason: null, appealedAt: null, appealNote: null } });
   await log(postId, "ORG_UNBLOCKED", actor, null);
   await notifyAuthor(post, "Your post is visible again", ["Your training organization made your post visible again."]);
+  publicFeedChanged();
 }
 
 /** The author asks the central team to look at an organization's hold again. */
@@ -420,6 +428,7 @@ export async function decideAppeal(postId: string, action: AppealAction, note: u
   });
   await log(postId, lifting ? "APPEAL_LIFTED" : "APPEAL_UPHELD", actor, r.note);
   await notifyAuthor(post, lifting ? "Your appeal was successful" : "Your appeal was not successful", [lifting ? "The AAICBI team made your post visible again." : "The AAICBI team kept your organization's decision.", `Note: ${r.note}`]);
+  publicFeedChanged();
 }
 
 /** Everything a reviewer needs on one post: its history and any open escalation or appeal. */

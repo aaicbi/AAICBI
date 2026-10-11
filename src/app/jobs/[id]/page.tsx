@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import SiteHeader from "@/components/SiteHeader";
+import HomeHeader from "@/components/ecosystem/HomeHeader";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import BackLink from "@/components/ui/BackLink";
-import EcosystemSubnav from "@/components/ecosystem/EcosystemSubnav";
 import SignupPromptButton from "@/components/landing/SignupPrompt";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
@@ -49,8 +48,7 @@ export default async function PublicJobPage({ params }: { params: { id: string }
 
   return (
     <>
-      <SiteHeader nav={[{ label: "Training", href: "/courses" }, { label: "Verify a Certificate", href: "/certificate" }]} />
-      <EcosystemSubnav active="jobs" feedEnabled={flags.feed} />
+      <HomeHeader />
       <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
         <BackLink href="/jobs">All opportunities</BackLink>
         <p className="mt-4 text-xs font-semibold uppercase tracking-widest text-brand-teal">{job.employer.companyName}</p>

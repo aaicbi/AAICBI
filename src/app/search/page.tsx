@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import SiteHeader from "@/components/SiteHeader";
+import HomeHeader from "@/components/ecosystem/HomeHeader";
 import Card from "@/components/ui/Card";
 import EmptyState from "@/components/ui/EmptyState";
-import EcosystemSubnav from "@/components/ecosystem/EcosystemSubnav";
 import EducationVideoCard from "@/components/ecosystem/EducationVideoCard";
 import VerifiedBadge from "@/components/ecosystem/VerifiedBadge";
 import { getEcosystemFlags } from "@/lib/ecosystem/flags";
@@ -39,8 +38,7 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
 
   return (
     <SocialProvider signedIn={!!actor}>
-      <SiteHeader nav={[{ label: "Learn", href: "/learn" }, { label: "Organizations", href: "/organizations" }]} />
-      <EcosystemSubnav active="search" feedEnabled={flags.feed} />
+      <HomeHeader initialQuery={q ?? searchParams.q ?? ""} />
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <h1 className="font-display text-2xl font-semibold text-brand-ink">Search</h1>
         <form action="/search" className="mt-4 flex gap-2" role="search">

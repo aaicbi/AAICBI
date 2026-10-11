@@ -1,0 +1,22 @@
+# The ecosystem feed as the home page (phase 2)
+
+## What changed
+- **`/` is the ecosystem feed.** Visitors see it without an account, with a short introduction to AAICBI, search at the top, and clear "Log in" and "Create account" buttons. `/feed` shows the same feed so existing links keep working.
+- **Rollback.** If a super admin switches the feed (or organization pages) off in the ecosystem settings, `/` shows the earlier landing page again (`src/components/landing/LegacyHome.tsx`) and `/feed` goes dark. The same fallback applies if the database cannot be read: the switches read as "off".
+- **New header** (`src/components/ecosystem/HomeHeader.tsx`) on the home page and on the public pages: organizations, trainees, jobs (and a job), startups, learn, events, search, and the new `/login` and `/join`. It has the logo, a search field that is always visible (on phones too), Feed, Organizations, Trainees, Jobs, Startups, Learn, Events and "Verify a certificate", and a menu on phones with an install-app button. It never mentions staff sign-in.
+- **Signed-in people** get a "Dashboard" button in the header, "Go to my dashboard" on the feed, and an account menu (dashboard, profile, write a post, my posts, saved, notifications, sign out). The dashboard address is worked out on the server from the session (`src/lib/auth/home.ts`): trainee and founder, employer, investor, instructor, training organization (`/admin/organization`), staff and super admin (`/admin/dashboard`).
+- **`/login`** is one place to start signing in: the four kinds of account, each to its own sign-in page, carrying a local `?next=` (anything that leaves the site is dropped). **`/join`** is the existing four-card chooser; phase 3 replaces it with the five explained account types.
+- **Everyone registered can post.** Checked for trainee, employer, investor, training organization, staff and super admin. A training organization's own login now posts as the organization when the client sends no identity (before, the default identity "self" did not exist for it).
+- **Caching.** Visitors get a shared copy of the first page of the feed, trending topics and suggestions, refreshed every minute (topics and suggestions every five). Approving, blocking, unblocking, withdrawing, deleting or deciding an appeal on a post clears the feed copy at once. Signed-in people never use the shared copy.
+
+## Why the header asks who is signed in
+Public pages such as `/organizations` are shared and cacheable, so they cannot know who is looking. The header starts as the visitor view and `/api/session/summary` corrects it right after load (name, picture, public address, dashboard link, nothing else, never cached). The feed knows the viewer on the server, so it does not flicker.
+
+## Not in this phase
+Five account-type cards and the founder-with-startup sign-up (phase 3); search for employers, investors, startups and jobs, filters and suggestions as you type (phase 4); discovery panels around the feed (phase 5). The header search currently covers what `/search` covers: people, posts, organizations, videos, programs and events.
+
+## Checks
+`tests/ecosystemHome.test.ts`, `tests/pwa.test.ts` (Feed is the current place on `/`), `tests/staffLoginExposure.test.ts`, and `scripts/device-checks/home-feed.cjs` (39 real-database checks: the home page for a visitor, no staff link, search and account buttons, `/feed`, the account summary for six kinds of account, every kind posting, a pending post staying private, an approved post on the home page straight away, the feed switch and its fallback, `/login` and `/join`, and the shared header on seven public pages).
+
+## Deploy and roll back
+No database change. Deploy as usual. Roll back by switching the feed off in the ecosystem settings (instant), or by redeploying the previous version.
