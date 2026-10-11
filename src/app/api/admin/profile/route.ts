@@ -1,3 +1,4 @@
+import { checkUsernameAsHandle, applyUsernameAsHandle } from "@/lib/profiles/profiles";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -65,6 +66,12 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
+    // The username is also the person's /@handle, so it must be a valid, free handle.
+    if (parsed.data.username) {
+      const claim = await checkUsernameAsHandle("STAFF", session.userId, parsed.data.username);
+      if (!claim.ok) return NextResponse.json({ error: claim.error }, { status: claim.error.includes("taken") ? 409 : 400 });
+    }
+
     try {
       const updated = await prisma.user.update({
         where: { id: session.userId },
@@ -85,6 +92,7 @@ export async function PUT(req: NextRequest) {
           profileVisibility: true,
         },
       });
+      if (parsed.data.username) await applyUsernameAsHandle("STAFF", session.userId, parsed.data.username);
       return NextResponse.json(updated);
     } catch (e) {
       const code = (e as { code?: string })?.code;

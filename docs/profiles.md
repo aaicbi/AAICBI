@@ -10,3 +10,10 @@ Every account (member/trainee, training organization, employer, investor, staff)
 - **Backfill:** `npx tsx scripts/backfill-profiles.ts` creates missing profiles and removes shadow-staff ones. Safe to run again.
 - **Checks:** `scripts/device-checks/profiles-check.cjs` and `profiles-signup.cjs` (need the app running against a local database).
 - **Rollback:** the table is new and nothing else reads it except the profile page and the handle check. Dropping `Profile` (migration `20261017090000_profiles`) and removing the rewrite restores the previous behaviour.
+
+## One address per person
+
+- `/profile/u/<username>` (the older address) now forwards to `/@handle`, where the full profile is shown: skills, education, experience, projects, certificates, achievements, links and availability for members; job title, department, bio and areas of responsibility for staff. It applies the same visibility check first, so a hidden profile and an unknown one still look the same (no redirect, no confirmation that the person exists).
+- A member's or staff member's **username is their handle**. Saving a username (`/api/trainee/profile`, `/api/admin/profile`) checks it as a handle first (valid, not reserved, not held by anyone else, including organizations) and then moves the handle with it. The old API `/api/profile/u/<username>` is unchanged.
+- The member profile settings page now shows the member's real `/@handle` address.
+- Check: `scripts/device-checks/profiles-address.cjs`.

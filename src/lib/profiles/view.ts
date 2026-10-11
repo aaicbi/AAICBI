@@ -8,6 +8,9 @@ import { canViewProfile } from "@/lib/profileVisibility";
  * source account (never copied), and an unknown, hidden or private profile
  * returns null so the page cannot be used to learn which accounts exist.
  */
+export interface ProfileSectionItem { primary: string; secondary?: string; href?: string }
+export interface ProfileSection { title: string; style: "chips" | "gold" | "list"; items: ProfileSectionItem[] }
+
 export interface ProfileView {
   kind: Profile["kind"];
   handle: string;
@@ -23,8 +26,14 @@ export interface ProfileView {
   /** The existing detailed page for this account, when there is one. */
   moreHref: string | null;
   moreLabel: string | null;
+  /** Outside links the person chose to share (LinkedIn, GitHub, portfolio). */
+  links: Array<{ label: string; href: string }>;
+  /** A short status line such as "Open to work: Internship, Freelance". */
+  note: string | null;
+  sections: ProfileSection[];
 }
 
+const AVAILABILITY_LABELS: Record<string, string> = { INTERNSHIP: "Internship", FREELANCE: "Freelance", FULL_TIME: "Full-time", PART_TIME: "Part-time" };
 const STAFF_ROLES = ["SUPER_ADMIN", "ADMIN", "INSTRUCTOR"];
 const isStaff = (v: SessionPayload | null) => !!v && STAFF_ROLES.includes(v.role);
 
@@ -33,21 +42,43 @@ export function kindLabel(kind: Profile["kind"]): string {
 }
 
 export async function loadProfileView(profile: Profile, viewer: SessionPayload | null): Promise<ProfileView | null> {
-  const base = { kind: profile.kind, handle: profile.handle, avatarUrl: null as string | null, coverUrl: null as string | null, headline: null as string | null, about: null as string | null, location: null as string | null, verified: false, chips: [] as string[], followers: null as number | null, moreHref: null as string | null, moreLabel: null as string | null };
+  const base = { kind: profile.kind, handle: profile.handle, avatarUrl: null as string | null, coverUrl: null as string | null, headline: null as string | null, about: null as string | null, location: null as string | null, verified: false, chips: [] as string[], followers: null as number | null, moreHref: null as string | null, moreLabel: null as string | null, links: [] as Array<{ label: string; href: string }>, note: null as string | null, sections: [] as ProfileSection[] };
 
   if (profile.kind === "PERSON" && profile.traineeId) {
     const t = await prisma.trainee.findUnique({
       where: { id: profile.traineeId },
-      select: { id: true, name: true, avatarUrl: true, username: true, location: true, profileVisibility: true, skills: { take: 8, select: { skill: { select: { name: true } } } } },
+      select: {
+        id: true, name: true, avatarUrl: true, location: true, linkedinUrl: true, githubUrl: true, portfolioUrl: true, openToWork: true, profileVisibility: true,
+        availabilityTypes: { select: { type: true } },
+        skills: { select: { skill: { select: { name: true } } } },
+        education: { orderBy: { order: "asc" }, select: { id: true, institution: true, fieldOfStudy: true } },
+        workExperiences: { orderBy: { order: "asc" }, select: { id: true, employerName: true, title: true, description: true } },
+        projects: { orderBy: { order: "asc" }, select: { id: true, title: true, description: true, url: true } },
+        badges: { select: { threshold: true, course: { select: { title: true } } } },
+        certificates: { where: { revokedAt: null }, select: { code: true, course: { select: { title: true } } } },
+      },
     });
     if (!t || !(await canViewProfile(t.profileVisibility, t.id, "TRAINEE", viewer))) return null;
-    return { ...base, name: t.name, avatarUrl: t.avatarUrl, location: t.location, chips: t.skills.map((s) => s.skill.name), moreHref: t.username ? `/profile/u/${t.username}` : null, moreLabel: "See full profile" };
+    const open = t.availabilityTypes.map((a) => AVAILABILITY_LABELS[a.type] ?? a.type);
+    const all: ProfileSection[] = [
+      { title: "Skills", style: "chips", items: t.skills.map((x) => ({ primary: x.skill.name })) },
+      { title: "Education", style: "list", items: t.education.map((e) => ({ primary: e.institution, secondary: e.fieldOfStudy ?? undefined })) },
+      { title: "Experience", style: "list", items: t.workExperiences.map((e) => ({ primary: `${e.title} · ${e.employerName}`, secondary: e.description ?? undefined })) },
+      { title: "Projects", style: "list", items: t.projects.map((x) => ({ primary: x.title, secondary: x.description ?? undefined, href: x.url ?? undefined })) },
+      { title: "Certificates", style: "chips", items: t.certificates.map((c) => ({ primary: c.course.title })) },
+      { title: "Achievements", style: "gold", items: t.badges.map((b) => ({ primary: `${b.threshold}% · ${b.course.title}` })) },
+    ];
+    const sections = all.filter((x) => x.items.length > 0);
+    const links = [t.linkedinUrl && { label: "LinkedIn", href: t.linkedinUrl }, t.githubUrl && { label: "GitHub", href: t.githubUrl }, t.portfolioUrl && { label: "Portfolio", href: t.portfolioUrl }].filter((x): x is { label: string; href: string } => !!x);
+    const note = t.openToWork ? (open.length ? `Open to work: ${open.join(", ")}` : "Open to work") : open.length ? `Open to: ${open.join(", ")}` : null;
+    return { ...base, name: t.name, avatarUrl: t.avatarUrl, location: t.location, links, note, sections };
   }
 
   if (profile.kind === "STAFF" && profile.userId) {
-    const u = await prisma.user.findUnique({ where: { id: profile.userId }, select: { id: true, name: true, avatarUrl: true, username: true, bio: true, jobTitle: true, active: true, profileVisibility: true } });
+    const u = await prisma.user.findUnique({ where: { id: profile.userId }, select: { id: true, name: true, avatarUrl: true, bio: true, jobTitle: true, department: true, areasOfResponsibility: true, active: true, profileVisibility: true } });
     if (!u || !u.active || !(await canViewProfile(u.profileVisibility, u.id, "STAFF", viewer))) return null;
-    return { ...base, name: u.name, avatarUrl: u.avatarUrl, headline: u.jobTitle, about: u.bio, moreHref: u.username ? `/profile/u/${u.username}` : null, moreLabel: "See full profile" };
+    const sections: ProfileSection[] = u.areasOfResponsibility ? [{ title: "Areas of responsibility", style: "list", items: [{ primary: u.areasOfResponsibility }] }] : [];
+    return { ...base, name: u.name, avatarUrl: u.avatarUrl, headline: [u.jobTitle ?? "AAICBI team", u.department].filter(Boolean).join(" · "), about: u.bio, sections };
   }
 
   if (profile.kind === "TRAINING_ORG" && profile.trainingOrganizationId) {

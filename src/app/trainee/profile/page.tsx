@@ -40,6 +40,7 @@ const VISIBILITY_LABELS: Record<string, string> = {
 };
 
 interface ProfileCore {
+  handle: string | null;
   name: string;
   avatarUrl: string | null;
   username: string | null;
@@ -355,9 +356,9 @@ export default function TraineeProfilePage() {
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Profile Visibility</p>
               <p className="mt-1 text-xs text-gray-500">
                 Who can view your Skills, Education, Experience, Projects, and Achievements below at{" "}
-                {core?.username ? (
-                  <a href={`/profile/u/${core.username}`} className="text-brand-teal hover:underline" target="_blank" rel="noopener noreferrer">
-                    /profile/u/{core.username}
+                {core?.handle ? (
+                  <a href={`/@${core.handle}`} className="text-brand-teal hover:underline" target="_blank" rel="noopener noreferrer">
+                    /@{core.handle}
                   </a>
                 ) : (
                   "your profile link (set a username above first)"

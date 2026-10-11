@@ -144,3 +144,32 @@ export async function removeShadowStaffProfiles(): Promise<number> {
   const res = await prisma.profile.deleteMany({ where: { userId: { in: shadows.map((s) => s.id) } } });
   return res.count;
 }
+
+export type HandleClaim = { ok: true; handle: string } | { ok: false; error: string };
+
+/**
+ * A member's or staff member's username IS their handle, so that each person has
+ * one address. Call this before saving a username: it says whether /@username
+ * can be theirs (valid, not reserved, and not held by anyone else).
+ */
+export async function checkUsernameAsHandle(kind: ProfileKind, sourceId: string, username: string): Promise<HandleClaim> {
+  const v = validateHandle(username);
+  if (!v.ok) return v;
+  const mine = await prisma.profile.findFirst({ where: { [SOURCE[kind]]: sourceId }, select: { id: true } });
+  if (!(await handleIsFree(v.handle, mine?.id))) return { ok: false, error: "That username is already taken." };
+  return v;
+}
+
+/** After the username was saved: make it the handle. Creates the profile if the account has none. */
+export async function applyUsernameAsHandle(kind: ProfileKind, sourceId: string, username: string): Promise<void> {
+  const v = validateHandle(username);
+  if (!v.ok) return;
+  const profile = await ensureProfile(kind, sourceId);
+  if (!profile || profile.handle === v.handle) return;
+  try {
+    await prisma.profile.update({ where: { id: profile.id }, data: { handle: v.handle } });
+  } catch (e) {
+    // Lost a race for the handle: the username is saved, the old handle keeps working.
+    if (!isUniqueViolation(e)) throw e;
+  }
+}
