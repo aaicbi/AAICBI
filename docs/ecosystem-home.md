@@ -20,3 +20,8 @@ Five account-type cards and the founder-with-startup sign-up (phase 3); search f
 
 ## Deploy and roll back
 No database change. Deploy as usual. Roll back by switching the feed off in the ecosystem settings (instant), or by redeploying the previous version.
+
+## Follow-up: gradient, triangle logo, About page
+- **Card gradient.** The mint-into-gold surface (the intro panel's gradient) is now `bg-card-gradient` in `tailwind.config.ts`, built from the theme tokens, so light mode is soft mint into cream and dark mode is deep teal into deep amber. It is the default for `Card` and is used on post cards, the compose box, the feed's side panels, the join and login cards, the landing sections, dashboards and admin panels. Inputs, menus, dialogs and pills keep plain surfaces so text and controls stay clear. The two other card variants (highlighted, celebratory) are unchanged.
+- **Triangle logo.** The logo is now the equilateral-triangle lockup everywhere it appears (header 48 to 56 px tall, sidebars 64 px). `Logo` takes `layout="beside"` for the rare place with no height to spare.
+- **About page.** The earlier landing page is now `/about` (cached five minutes), with the new header and an "About" link in the header and on the feed's welcome panel. It is still what `/` shows if the feed is switched off.

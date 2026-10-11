@@ -318,7 +318,7 @@ export default function PerformanceDashboard({ courseId }: { courseId: string })
         {filteredRows.length === 0 ? (
           <EmptyState illustration={<GrowthPathDoodle className="h-full w-full" />} title="No trainees match" description="Adjust the filters or search above." />
         ) : (
-          <div className="rounded-xl border border-brand-gray bg-brand-surface p-4">
+          <div className="rounded-xl border border-brand-gray bg-card-gradient p-4">
             <DataTable
               caption="Trainee performance"
               rows={filteredRows}
@@ -387,7 +387,7 @@ export default function PerformanceDashboard({ courseId }: { courseId: string })
             <SkeletonList rows={2} />
           </div>
         ) : (
-          <div className="mt-3 rounded-xl border border-brand-gray bg-brand-surface p-4">
+          <div className="mt-3 rounded-xl border border-brand-gray bg-card-gradient p-4">
             <DataTable
               caption="Module assessment statistics"
               rows={moduleStats}

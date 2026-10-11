@@ -1,5 +1,5 @@
 import Link from "next/link";
-import SiteHeader from "@/components/SiteHeader";
+import HomeHeader from "@/components/ecosystem/HomeHeader";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
@@ -23,8 +23,8 @@ import { getLandingView } from "@/lib/landing/data";
 import type { ProgressSurfaceData } from "@/lib/trainee/progressSurface";
 
 /**
- * The earlier landing page. It is what `/` shows when the feed is switched off in the ecosystem settings (the
- * rollback path for making the feed the home page). Nothing on it reads the visitor's cookies.
+ * The earlier landing page, now the About page at `/about`. It is also what `/` shows when the feed is switched off in the
+ * ecosystem settings (the rollback path for making the feed the home page). Nothing on it reads the visitor's cookies.
  */
 
 /** Illustrative only. Shown on the landing page, labelled as a sample. */
@@ -86,7 +86,7 @@ const SAMPLE_PROGRESS: ProgressSurfaceData = {
  * established posture that nothing reaches a public audience without
  * a real human decision.
  */
-export default async function LegacyHome() {
+export default async function LegacyHome({ path = "/about" }: { path?: string }) {
   let testimonials: Array<{
     id: string;
     quote: string;
@@ -112,31 +112,10 @@ export default async function LegacyHome() {
   const eco = landing?.view ?? null;
   const flags = landing?.flags ?? null;
 
-  const ecosystemNav = flags
-    ? [
-        { label: "Training", href: "/courses" },
-        ...(flags.publicJobs ? [{ label: "Opportunities", href: "/jobs" }] : []),
-        ...(flags.orgPages ? [{ label: "Organizations", href: "/organizations" }] : []),
-        ...(flags.publicTrainees ? [{ label: "Trainees", href: "/trainees" }] : []),
-      ]
-    : [];
-
   return (
     <>
-      <VisitorTracker path="/" />
-      <SiteHeader
-        nav={[
-          ...ecosystemNav,
-          { label: "Verify a Certificate", href: "/certificate" },
-          // Links to the "For Organizations" section lower on this same
-          // page (#for-organizations) rather than straight to
-          // /org/register or /org/login — unlike Employer Login,
-          // there are two real actions here (register or sign in), so
-          // the nav link surfaces the choice instead of guessing one.
-          ...(flags?.orgPages ? [] : [{ label: "Training Organizations", href: "#for-organizations" }]),
-          { label: "Employer Login", href: "/employer/login" },
-        ]}
-      />
+      <VisitorTracker path={path} />
+      <HomeHeader />
       <main>
         {eco && flags ? (
           <>

@@ -35,7 +35,7 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const VARIANT_CLASSES: Record<CardVariant, string> = {
-  default: "border-brand-gray bg-brand-surface",
+  default: "border-brand-gray bg-card-gradient",
   highlighted: "border-brand-teal bg-brand-mint/40",
   celebratory: "border-brand-gold bg-gradient-to-br from-brand-goldLight/60 to-brand-surface",
 };

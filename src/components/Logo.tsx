@@ -21,7 +21,7 @@ function LogoMark({ className }: { className?: string }) {
   );
 }
 
-/** The primary lockup: the mark stands on the word, and the two together fill one equilateral triangle: the mark's legs, extended, reach the first and last letters. Use it where it is at least about 120 px tall; below that the letters get too small to read. */
+/** The primary lockup: the mark stands on the word, and the two together fill one equilateral triangle: the mark's legs, extended, reach the first and last letters. Smaller than about 48 px tall the letters get too small to read. */
 function PyramidLogo({ className }: { className?: string }) {
   return (
     <svg viewBox={`0 0 ${PYRAMID_WIDTH} ${PYRAMID_HEIGHT}`} className={className} role="img" aria-label="AAICBI">
@@ -50,7 +50,7 @@ interface LogoProps {
   href?: string | null;
   /** Symbol only, without the AAICBI wordmark, for tight spaces. */
   compact?: boolean;
-  /** "pyramid" draws the primary lockup (mark above the word) and needs room: give it a height of 120 px or more via `markClassName`. The default, "beside", puts the word next to the mark and is the one for headers and bars. */
+  /** "pyramid" (the default) draws the primary lockup: the mark above the word, both inside an equilateral triangle. "beside" puts the word next to the mark, for the rare place with no height to spare. */
   layout?: "beside" | "pyramid";
   className?: string;
   /** Overrides the mark's own size (default h-8 w-8) — added for the
@@ -63,9 +63,9 @@ interface LogoProps {
   markClassName?: string;
 }
 
-export default function Logo({ href = "/", compact = false, layout = "beside", className = "", markClassName }: LogoProps) {
+export default function Logo({ href = "/", compact = false, layout = "pyramid", className = "", markClassName }: LogoProps) {
   const pyramid = layout === "pyramid" && !compact;
-  const mark = markClassName ?? (pyramid ? "h-40 w-auto shrink-0" : "h-8 w-8 shrink-0");
+  const mark = markClassName ?? (pyramid ? "h-12 w-auto shrink-0" : "h-8 w-8 shrink-0");
   const content = pyramid ? (
     <span className={`inline-flex ${className}`}>
       <PyramidLogo className={mark} />

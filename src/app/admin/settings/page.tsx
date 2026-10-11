@@ -123,7 +123,7 @@ export default function AdminSettingsPage() {
               </div>
             </a>
             <a href="/admin/inbox" className="block">
-              <div className="group flex items-center justify-between rounded-xl border border-brand-gray bg-brand-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-teal hover:shadow-md">
+              <div className="group flex items-center justify-between rounded-xl border border-brand-gray bg-card-gradient p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-teal hover:shadow-md">
                 <div>
                   <p className="flex items-center gap-1.5 font-display font-semibold text-brand-ink">
                     <Icon icon={Inbox} size="sm" /> Admin Inbox

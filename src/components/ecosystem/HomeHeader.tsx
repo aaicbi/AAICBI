@@ -88,7 +88,7 @@ export default function HomeHeader({ initialQuery = "", initial }: { initialQuer
   return (
     <header className="sticky top-0 z-30 border-b border-brand-gray bg-brand-surface/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 sm:px-6">
-        <Logo />
+        <Logo markClassName="h-12 w-auto shrink-0 md:h-14" />
         <form role="search" action="/search" onSubmit={(e) => { const q = String(new FormData(e.currentTarget).get("q") ?? "").trim(); if (!q) e.preventDefault(); }} className="relative hidden min-w-0 flex-1 md:block md:max-w-xl lg:mx-4">
           <Icon icon={Search} size="sm" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-600" />
           <input type="search" name="q" defaultValue={initialQuery} placeholder="Search people, organizations, courses and posts" aria-label="Search the ecosystem" autoComplete="off" className="h-11 w-full rounded-full border border-brand-gray bg-brand-sand pl-11 pr-4 text-sm text-brand-ink placeholder:text-gray-600 focus:border-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal" />
@@ -116,14 +116,15 @@ export default function HomeHeader({ initialQuery = "", initial }: { initialQuer
           {PRIMARY.map((l) => (
             <Link key={l.href} href={l.href} aria-current={active(l.href) ? "page" : undefined} className={`whitespace-nowrap px-4 py-2.5 text-sm font-semibold ${active(l.href) ? "border-b-2 border-brand-teal text-brand-teal" : "text-gray-600 hover:text-brand-ink"}`}>{l.label}</Link>
           ))}
-          <Link href="/certificate" className="ml-auto whitespace-nowrap px-4 py-2.5 text-sm font-semibold text-gray-600 hover:text-brand-ink">Verify a certificate</Link>
+          <Link href="/about" aria-current={pathname === "/about" ? "page" : undefined} className={`ml-auto whitespace-nowrap px-4 py-2.5 text-sm font-semibold ${pathname === "/about" ? "border-b-2 border-brand-teal text-brand-teal" : "text-gray-600 hover:text-brand-ink"}`}>About</Link>
+          <Link href="/certificate" className="whitespace-nowrap px-4 py-2.5 text-sm font-semibold text-gray-600 hover:text-brand-ink">Verify a certificate</Link>
         </div>
       </nav>
 
       {open && (
         <div className="border-t border-brand-gray bg-brand-surface px-4 py-3 md:hidden">
           <nav aria-label="Explore (menu)" className="flex flex-col">
-            {[...PRIMARY, { href: "/courses", label: "Courses" }, { href: "/certificate", label: "Verify a certificate" }].map((l) => (
+            {[...PRIMARY, { href: "/courses", label: "Courses" }, { href: "/about", label: "About" }, { href: "/certificate", label: "Verify a certificate" }].map((l) => (
               <Link key={l.href} href={l.href} aria-current={active(l.href) ? "page" : undefined} className={`flex min-h-[44px] items-center rounded-xl px-3 text-sm font-semibold ${active(l.href) ? "bg-brand-mint text-brand-teal" : "text-brand-ink hover:bg-brand-mint"}`}>{l.label}</Link>
             ))}
           </nav>

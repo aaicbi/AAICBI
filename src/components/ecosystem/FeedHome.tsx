@@ -43,7 +43,7 @@ export default async function FeedHome({ searchParams, base }: { searchParams: {
       <HomeHeader initial={me} />
       <main className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[220px_minmax(0,1fr)_280px]">
         <aside className="hidden lg:block">
-          <nav aria-label="Your space" className="sticky top-32 space-y-1 rounded-3xl border border-brand-gray bg-brand-surface p-3">
+          <nav aria-label="Your space" className="sticky top-32 space-y-1 rounded-3xl border border-brand-gray bg-card-gradient p-3">
             {dashboard && (
               <Link href={dashboard} className="mb-2 flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-brand-teal px-4 text-sm font-semibold text-brand-teal hover:bg-brand-mint"><Icon icon={LayoutDashboard} size="sm" />Go to my dashboard</Link>
             )}
@@ -55,13 +55,14 @@ export default async function FeedHome({ searchParams, base }: { searchParams: {
         <section aria-label="Feed" className="min-w-0">
           <h1 className="sr-only">AAICBI ecosystem feed</h1>
           {!actor && (
-            <div className="mb-4 rounded-3xl bg-gradient-to-r from-brand-mint to-brand-goldLight p-5 text-brand-ink">
+            <div className="mb-4 rounded-3xl bg-card-gradient p-5 text-brand-ink">
               <p className="text-xs font-bold uppercase tracking-wide text-brand-tealDeep">Africa&rsquo;s AI Capacity Building Initiative</p>
               <p className="mt-1 font-display text-xl font-semibold">Where African AI talent, training, jobs and investment meet.</p>
               <p className="mt-2 text-sm">Trainees build skills and a track record. Training organizations teach and show their work. Employers find people with evidence. Startups and investors discover each other. You can read everything below without an account.</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Link href="/join" className="inline-flex min-h-[44px] items-center gap-1 rounded-full bg-brand-teal px-5 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep">Create an account <Icon icon={ArrowRight} size="sm" /></Link>
                 <Link href="/login" className="inline-flex min-h-[44px] items-center rounded-full border border-brand-teal px-5 text-sm font-semibold text-brand-teal hover:bg-brand-surface">Log in</Link>
+                <Link href="/about" className="inline-flex min-h-[44px] items-center px-3 text-sm font-semibold text-brand-ink underline-offset-4 hover:underline">About AAICBI</Link>
               </div>
             </div>
           )}

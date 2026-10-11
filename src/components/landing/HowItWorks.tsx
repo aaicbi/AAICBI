@@ -28,7 +28,7 @@ export default function HowItWorks() {
         </h2>
         <ol className="mt-8 grid gap-6 md:grid-cols-3">
           {STEPS.map((s, i) => (
-            <li key={s.title} className="overflow-hidden rounded-2xl border border-brand-gray bg-brand-surface">
+            <li key={s.title} className="overflow-hidden rounded-2xl border border-brand-gray bg-card-gradient">
               <div className="aspect-[3/2] w-full overflow-hidden bg-brand-mint">{s.scene}</div>
               <div className="p-5">
                 <p className="text-xs font-semibold uppercase tracking-widest text-brand-teal">Step {i + 1}</p>

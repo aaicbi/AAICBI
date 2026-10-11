@@ -89,7 +89,7 @@ export default async function OrganizationPage({ params, searchParams }: { param
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <ProfileViewBeacon slug={profile.slug} />
       <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
-        <div className="overflow-hidden rounded-xl border border-brand-gray bg-brand-surface">
+        <div className="overflow-hidden rounded-xl border border-brand-gray bg-card-gradient">
           <div className="h-32 bg-brand-mint sm:h-44">
             {profile.coverUrl && (
               // eslint-disable-next-line @next/next/no-img-element -- an organization-supplied cover image URL.

@@ -77,7 +77,7 @@ export default async function PublicJobPage({ params }: { params: { id: string }
 
         <div className="mt-6 whitespace-pre-line text-sm leading-relaxed text-gray-700">{job.description}</div>
 
-        <section aria-labelledby="apply-heading" className="mt-10 rounded-2xl border border-brand-gray bg-brand-surface p-5">
+        <section aria-labelledby="apply-heading" className="mt-10 rounded-2xl border border-brand-gray bg-card-gradient p-5">
           <h2 id="apply-heading" className="font-display text-lg font-semibold text-brand-ink">
             Interested in this role?
           </h2>

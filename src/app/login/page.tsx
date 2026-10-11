@@ -30,7 +30,7 @@ export default function LoginPage({ searchParams }: { searchParams: { next?: str
         <p className="mt-2 text-sm text-gray-700">Choose the kind of account you created. You will go to your own dashboard after signing in.</p>
         <ul className="mt-6 grid gap-3 sm:grid-cols-2">
           {KINDS.map((k) => (
-            <li key={k.title} className="rounded-3xl border border-brand-gray bg-brand-surface p-5">
+            <li key={k.title} className="rounded-3xl border border-brand-gray bg-card-gradient p-5">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-mint text-brand-teal"><Icon icon={k.icon} size="md" /></span>
               <h2 className="mt-3 font-display text-lg font-semibold text-brand-ink">{k.title}</h2>
               <p className="mt-1 text-sm text-gray-700">{k.text}</p>

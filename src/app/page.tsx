@@ -15,6 +15,6 @@ export const metadata: Metadata = {
  */
 export default async function HomePage({ searchParams }: { searchParams: { tab?: string; type?: string; n?: string } }) {
   const flags = await getEcosystemFlags();
-  if (!flags.feed || !flags.orgPages) return <LegacyHome />;
+  if (!flags.feed || !flags.orgPages) return <LegacyHome path="/" />;
   return <FeedHome searchParams={searchParams} base="/" />;
 }

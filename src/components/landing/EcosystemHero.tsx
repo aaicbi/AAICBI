@@ -146,7 +146,7 @@ export default function EcosystemHero({ stats, links }: { stats: LandingStats; l
         )}
       </div>
 
-      <div className="rounded-2xl border border-brand-gray bg-brand-surface p-4 sm:p-6">
+      <div className="rounded-2xl border border-brand-gray bg-card-gradient p-4 sm:p-6">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-600">How the ecosystem fits together</h2>
         <div className="relative mt-4 grid grid-cols-2 gap-3 sm:block sm:aspect-[5/4] sm:gap-0">
           {/* connectors, drawn behind the parts */}

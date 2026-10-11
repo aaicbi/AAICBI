@@ -124,7 +124,7 @@ export default function KnowledgeTab({ entries, categories, limit, busy, call, o
       )}
 
       {!navigationOnly && (
-        <details className="rounded-xl border border-brand-gray bg-brand-surface p-4">
+        <details className="rounded-xl border border-brand-gray bg-card-gradient p-4">
           <summary className="cursor-pointer text-sm font-semibold text-brand-teal">Built-in answers ({DEFAULT_ENTRIES.length}): part of the platform code</summary>
           <p className="mt-2 text-sm text-gray-600">Loop always knows these. An approved answer that matches a question better takes priority over them.</p>
           <ul className="mt-3 space-y-1 text-sm text-gray-700">

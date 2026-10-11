@@ -5,7 +5,7 @@ describe("the home page is the feed, with the earlier landing page as the way ba
   const page = readFileSync("src/app/page.tsx", "utf8");
   it("shows the feed unless it is switched off, then the earlier landing page", () => {
     expect(page).toMatch(/flags\.feed/);
-    expect(page).toMatch(/<LegacyHome \/>/);
+    expect(page).toMatch(/<LegacyHome path="\/" \/>/);
     expect(page).toMatch(/<FeedHome /);
   });
   it("/feed is the same feed and goes dark when it is off", () => {
@@ -25,5 +25,12 @@ describe("the account summary the header asks for", () => {
   });
   it("works out the dashboard on the server from the session", () => {
     expect(route).toMatch(/dashboardHrefFor\(session\)/);
+  });
+});
+
+describe("the earlier landing page lives on as the About page", () => {
+  it("/about renders it and the header links to it", () => {
+    expect(readFileSync("src/app/about/page.tsx", "utf8")).toMatch(/<LegacyHome path="\/about" \/>/);
+    expect(readFileSync("src/components/ecosystem/HomeHeader.tsx", "utf8")).toMatch(/href="\/about"/);
   });
 });

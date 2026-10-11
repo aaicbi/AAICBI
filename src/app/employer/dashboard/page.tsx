@@ -150,7 +150,7 @@ export default async function EmployerDashboardPage() {
 
 function Tile({ value, label, href }: { value: number; label: string; href: string }) {
   return (
-    <Link href={href} className="block rounded-xl border border-brand-gray bg-brand-surface p-4 hover:border-brand-teal">
+    <Link href={href} className="block rounded-xl border border-brand-gray bg-card-gradient p-4 hover:border-brand-teal">
       <p className="font-display text-3xl font-semibold tabular-nums text-brand-ink">{value}</p>
       <p className="mt-0.5 text-xs text-gray-600">{label}</p>
     </Link>

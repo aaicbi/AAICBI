@@ -56,7 +56,7 @@ export function PostText({ text, className = "" }: { text: string; className?: s
 export default function PostCard({ post, showStatus = false, headerAction, footer }: { post: PostView; showStatus?: boolean; headerAction?: React.ReactNode; footer?: React.ReactNode }) {
   const when = post.publishedAt ?? post.createdAt;
   return (
-    <article id={`post-${post.id}`} className="scroll-mt-20 rounded-3xl border border-brand-gray bg-brand-surface p-4 shadow-sm sm:p-5" aria-label={`Post by ${post.author.name}`}>
+    <article id={`post-${post.id}`} className="scroll-mt-20 rounded-3xl border border-brand-gray bg-card-gradient p-4 shadow-sm sm:p-5" aria-label={`Post by ${post.author.name}`}>
       <header className="flex items-center gap-3">
         <Avatar who={post.author} />
         <div className="min-w-0 flex-1">

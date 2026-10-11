@@ -54,7 +54,7 @@ export default function InvestorSidebar({ showOrganizations = false }: { showOrg
   const sidebarBody = (
     <div className="flex h-full flex-col">
       <div className="border-b border-brand-gray px-4 py-4">
-        <Logo />
+        <Logo markClassName="h-16 w-auto shrink-0" />
       </div>
 
       <div className="border-b border-brand-gray px-4 py-3">
