@@ -1,12 +1,13 @@
--- Optional: faster text search when the directory grows (tens of thousands of rows).
+-- Manual retry for the text-search indexes (pg_trgm).
 --
--- Search today matches words with case-insensitive "contains" queries and ranks the candidates in the application. That is
--- fine at the size of the platform now. When names, titles or posts reach the tens of thousands, trigram indexes make the
--- same queries use an index instead of reading every row.
+-- These indexes are created automatically by the migration 20261025090000_search_indexes, which is written so it can never
+-- fail or block a deploy: when the database does not allow CREATE EXTENSION (some managed databases reserve it for an
+-- administrator), a lock is busy, or anything else goes wrong, it skips that step and the deploy continues. Search works
+-- without the indexes; they only make it faster once the directory is large.
 --
--- This is NOT part of the automatic migrations on purpose: CREATE EXTENSION needs permission that some managed databases
--- only give to an administrator, and a migration that failed on it would block a deploy. Run it by hand, once, as a database
--- administrator, and check it with EXPLAIN. Nothing in the application depends on it. To undo, drop the indexes.
+-- Check what exists:   SELECT indexname FROM pg_indexes WHERE indexname LIKE '%\_trgm';
+-- If some are missing, run this file once as a database administrator (CONCURRENTLY: no table locks; run each statement on
+-- its own, not in a transaction). To undo, DROP INDEX the ones you do not want.
 
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 

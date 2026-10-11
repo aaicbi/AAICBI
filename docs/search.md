@@ -38,7 +38,7 @@ Text from the address is escaped, lengths and page numbers are capped, unknown k
 ## Not done
 - **Employers and investors by industry or skill**: they record neither.
 - **Search by project or portfolio item** is not separate; a member's skills, place and name are searched, and their posts are searchable as posts.
-- **Database indexes** for text search are optional and are not in the automatic migrations; see `docs/search-indexes.sql` for why and how. At today's size the plain queries are fast (a suggestion answers in about 30 ms in the test database).
+- **Database indexes** for text search are created by the automatic migration `20261025090000_search_indexes`, which is built never to fail or block a deploy (if the database does not allow the `pg_trgm` extension, it skips and logs a notice); see `docs/search-indexes.sql` to check and retry as an administrator. They are not declared in `schema.prisma`, so `prisma migrate dev` may offer to drop them: decline. At today's size the plain queries are fast (a suggestion answers in about 30 ms in the test database).
 - Each kind looks at its 40 to 60 best candidates before ranking, so a very common word shows the best of a large set rather than all of it.
 
 ## Checks
