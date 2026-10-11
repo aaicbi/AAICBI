@@ -5,12 +5,12 @@ import { INDUSTRIES } from "@/lib/startups/startupCore";
  * belong to which kind, how a request is read (never trusting its shape), how a match is ranked, and how links keep the
  * request. The queries themselves are in search.ts and profileSearch.ts.
  */
-export const SEARCH_KINDS = ["all", "people", "organizations", "employers", "investors", "startups", "jobs", "programs", "posts", "videos", "events"] as const;
+export const SEARCH_KINDS = ["all", "people", "organizations", "employers", "investors", "startups", "jobs", "programs", "posts", "comments", "videos", "events"] as const;
 export type SearchKind = (typeof SEARCH_KINDS)[number];
 
 export const KIND_LABEL: Record<SearchKind, string> = {
   all: "All", people: "People", organizations: "Organizations", employers: "Employers", investors: "Investors", startups: "Startups",
-  jobs: "Jobs", programs: "Programs", posts: "Posts", videos: "Videos", events: "Events",
+  jobs: "Jobs", programs: "Programs", posts: "Posts", comments: "Comments", videos: "Videos", events: "Events",
 };
 
 export const SORTS = ["relevance", "recent"] as const;
@@ -31,7 +31,7 @@ export type FilterKey = "skill" | "location" | "industry" | "type";
 /** Which filters make sense for which kind of result. "All" has none; the filters appear once a kind is chosen. */
 export const FILTERS_FOR_KIND: Record<SearchKind, FilterKey[]> = {
   all: [], people: ["skill", "location"], organizations: ["location"], employers: [], investors: [], startups: ["industry", "location"],
-  jobs: ["skill"], programs: ["industry"], posts: ["type"], videos: [], events: [],
+  jobs: ["skill"], programs: ["industry"], posts: ["type"], comments: [], videos: [], events: [],
 };
 export const FILTER_LABEL: Record<FilterKey, string> = { skill: "Skill", location: "Location", industry: "Industry or category", type: "Post type" };
 export { INDUSTRIES };

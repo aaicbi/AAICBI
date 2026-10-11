@@ -64,11 +64,11 @@ export default function TraineeSidebar({ name, avatarUrl }: { name: string; avat
         href="/trainee/profile"
         data-guide-target={navTarget("/trainee/profile")}
         onClick={() => setMobileOpen(false)}
-        className={`flex items-center gap-3 border-b border-brand-gray px-4 py-3 hover:bg-brand-mint ${
+        className={`flex flex-col items-center gap-2 border-b border-brand-gray px-4 py-4 text-center hover:bg-brand-mint ${
           isActive("/trainee/profile") ? "bg-brand-mint" : ""
         }`}
       >
-        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-brand-mint">
+        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-brand-mint">
           {avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
@@ -78,7 +78,7 @@ export default function TraineeSidebar({ name, avatarUrl }: { name: string; avat
             </div>
           )}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 max-w-full">
           <p className="truncate text-sm font-semibold text-brand-ink">{name}</p>
           <Badge variant="neutral">Trainee</Badge>
         </div>

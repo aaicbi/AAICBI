@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import HomeHeader from "@/components/ecosystem/HomeHeader";
 import Card from "@/components/ui/Card";
@@ -47,21 +46,20 @@ function Pager({ p, hasMore }: { p: SearchParams; hasMore: boolean }) {
 }
 
 /**
- * /search: one search across people, organizations, employers, investors, startups, jobs, programs, posts, videos and events.
+ * /search: one search across people, organizations, employers, investors, startups, jobs, programs, posts, comments, videos and events.
  * A word, a filter, or both. "All" gives a short preview of each kind; choosing a kind gives its full list, its own filters,
  * a sort and pages. Everything is read by the same public rules as the page each result opens, so nothing private or
  * unapproved can appear. The address always holds the whole request, so a search can be shared or reloaded.
  */
 export default async function SearchPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
   const flags = await getEcosystemFlags();
-  if (!flags.orgPages) notFound();
   const p = parseSearchParams(searchParams);
   const session = await getSession();
   const actor = await actorOf(session);
   const asking = p.kind !== "all" || hasCriteria(p);
   const results = asking ? await runSearch(p, flags, session, actor) : null;
   const total = results ? totalHits(results) : 0;
-  const shownKinds = SEARCH_KINDS.filter((k) => (k !== "videos" || flags.education) && (k !== "jobs" || flags.publicJobs) && (k !== "people" || flags.publicTrainees) && (k !== "posts" || flags.feed));
+  const shownKinds = SEARCH_KINDS.filter((k) => (k !== "videos" || flags.education) && (k !== "jobs" || flags.publicJobs) && (k !== "posts" || flags.feed) && (k !== "comments" || flags.feed || flags.education) && (flags.orgPages || ["people", "jobs", "posts", "comments"].includes(k) || k === "all"));
   const filters = FILTERS_FOR_KIND[p.kind];
   const active = activeFilters(p);
   const label = KIND_LABEL[p.kind].toLowerCase();
@@ -105,7 +103,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Recor
         {!results && (
           <div className="mt-8 rounded-3xl border border-brand-gray bg-card-gradient p-5 text-sm text-gray-800">
             <p className="font-semibold text-brand-ink">Search the whole ecosystem</p>
-            <p className="mt-1">Type at least two letters, or choose a type above to browse it. You can find people, organizations, startups, employers, jobs, programs, posts, videos and events.</p>
+            <p className="mt-1">Type at least two letters, or choose a type above to browse it. You can find people, organizations, startups, employers, jobs, programs, posts, comments, videos and events.</p>
           </div>
         )}
         {results && total === 0 && (
@@ -165,6 +163,23 @@ export default async function SearchPage({ searchParams }: { searchParams: Recor
           </Section>
         )}
         {results?.posts && <Section id="r-posts" title="Posts" kind="posts" p={p} page={results.posts}><ul className="mx-auto mt-3 max-w-xl space-y-4">{results.posts.items.map((x) => <li key={x.id}><PostItem post={x} /></li>)}</ul></Section>}
+        {results?.comments && (
+          <Section id="r-comments" title="Comments" kind="comments" p={p} page={results.comments}>
+            <ul className="mt-3 space-y-3">
+              {results.comments.items.map((c) => (
+                <li key={`${c.on}-${c.id}`}>
+                  <Link href={c.href} className="block">
+                    <Card interactive>
+                      <p className="text-xs text-gray-700"><span className="font-semibold text-brand-ink">{c.authorName}</span> commented on {c.on === "video" ? "the video" : "the post"} <span className="italic">&ldquo;{c.context}&rdquo;</span> · {new Date(c.at).toLocaleDateString("en-GB", { dateStyle: "medium" })}</p>
+                      <p className="mt-1 text-sm text-brand-ink">{c.body}</p>
+                      <span className="mt-1 block text-sm font-semibold text-brand-teal">Open the conversation</span>
+                    </Card>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Section>
+        )}
         {results?.videos && <Section id="r-videos" title="Videos" kind="videos" p={p} page={results.videos}><div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{results.videos.items.map((v) => <EducationVideoCard key={v.id} post={v} />)}</div></Section>}
         {results?.events && (
           <Section id="r-events" title="Events" kind="events" p={p} page={results.events}>
