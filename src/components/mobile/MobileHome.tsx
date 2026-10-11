@@ -52,7 +52,7 @@ function Block({ b }: { b: MobileBlock }) {
               {b.items.map((n, i) => (
                 <li key={i}>
                   <Link href={n.href} className="flex min-h-[44px] items-center rounded-lg px-1 text-sm text-brand-ink hover:bg-brand-mint focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
-                    <span className="truncate">{n.title}</span>
+                    <span className="line-clamp-2 break-words [overflow-wrap:anywhere]">{n.title}</span>
                   </Link>
                 </li>
               ))}

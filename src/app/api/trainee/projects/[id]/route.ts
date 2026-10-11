@@ -1,3 +1,4 @@
+import { autoReviewShowcaseProject, syncShowcasePosts } from "@/lib/posts/showcaseSync";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -48,6 +49,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         ...(shouldResetForReview ? { showcaseStatus: "PENDING_REVIEW" as const, reviewedById: null, reviewedAt: null } : {}),
       },
     });
+    if (updated.listedInShowcase || existing.listedInShowcase) { await autoReviewShowcaseProject(updated.id).catch(() => false); await syncShowcasePosts().catch(() => null); }
     return NextResponse.json(updated);
   });
 }

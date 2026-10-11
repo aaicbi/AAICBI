@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Menu, X } from "lucide-react";
+import { LayoutDashboard, Menu, PenLine, X } from "lucide-react";
 import Logo from "@/components/Logo";
 import Icon from "@/components/ui/Icon";
 import AvatarFallback from "@/components/ui/AvatarFallback";
@@ -61,6 +61,7 @@ export default function HomeHeader({ initialQuery = "", initial }: { initialQuer
     <div className="h-10 w-44 animate-pulse rounded-full bg-brand-mint" aria-hidden="true" />
   ) : me.signedIn ? (
     <div className="flex items-center gap-2">
+      <Link href="/compose" className="hidden min-h-[40px] items-center gap-1.5 rounded-full border border-brand-teal px-4 text-sm font-semibold text-brand-teal hover:bg-brand-mint sm:inline-flex"><Icon icon={PenLine} size="sm" />Post</Link>
       <Link href={me.dashboardHref ?? "/"} className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-brand-teal px-4 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep">
         <Icon icon={LayoutDashboard} size="sm" />Dashboard
       </Link>

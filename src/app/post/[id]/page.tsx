@@ -38,7 +38,7 @@ export default async function PostPage({ params }: { params: { id: string } }) {
             {post.reviewNote && <p className="mt-1">Reviewer: {post.reviewNote}</p>}
           </div>
         )}
-        <div className="mt-3"><PostCard post={post} showStatus={mine} /></div>
+        <div className="mt-3"><PostCard post={post} showStatus={mine} full /></div>
         {reviewer && <ReviewerPostActions postId={post.id} status={post.status} />}
         {mine && (post.status === "DRAFT" || post.status === "CHANGES_REQUESTED" || post.status === "PUBLISHED") && (
           <p className="mt-3 text-sm"><Link href={`/compose?edit=${post.id}`} className="font-semibold text-brand-teal hover:underline">Edit this post</Link></p>

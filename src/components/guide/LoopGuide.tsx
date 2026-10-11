@@ -16,6 +16,28 @@ const ChatPanel = dynamic(() => import("@/components/guide/ChatPanel"), { ssr: f
 
 const HINT_STORE = "loop-hints-v1";
 const QUIET_STORE = "loop-hints-quiet";
+const POS_STORE = "loop-position-v1";
+const SIZE = 56;
+const EDGE = 8;
+
+interface Pos { right: number; bottom: number }
+
+/** Keeps Loop fully on screen. */
+function clampPos(p: Pos): Pos {
+  const maxRight = Math.max(EDGE, window.innerWidth - SIZE - EDGE);
+  const maxBottom = Math.max(EDGE, window.innerHeight - SIZE - EDGE);
+  return { right: Math.min(Math.max(EDGE, p.right), maxRight), bottom: Math.min(Math.max(EDGE, p.bottom), maxBottom) };
+}
+
+function readPos(): Pos | null {
+  try {
+    const raw = localStorage.getItem(POS_STORE);
+    const p = raw ? (JSON.parse(raw) as Partial<Pos>) : null;
+    return p && typeof p.right === "number" && typeof p.bottom === "number" ? clampPos({ right: p.right, bottom: p.bottom }) : null;
+  } catch {
+    return null;
+  }
+}
 
 function readHints(): BubbleState {
   try {
@@ -60,6 +82,57 @@ export default function LoopGuide() {
   const meLoaded = useRef(false);
   const button = useRef<HTMLButtonElement>(null);
   const hints = useRef<BubbleState>(FRESH_BUBBLE_STATE);
+
+  // Loop can be dragged out of the way (or moved with the arrow keys) so it never covers a button; the spot is remembered.
+  const [pos, setPos] = useState<Pos | null>(null);
+  const drag = useRef<{ id: number; startX: number; startY: number; right: number; bottom: number; moved: boolean } | null>(null);
+  const suppressClick = useRef(false);
+  useEffect(() => {
+    setPos(readPos());
+    const onResize = () => setPos((p) => (p ? clampPos(p) : p));
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  const savePos = (p: Pos) => {
+    try { localStorage.setItem(POS_STORE, JSON.stringify(p)); } catch { /* the spot is just not remembered */ }
+  };
+  const onPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    drag.current = { id: e.pointerId, startX: e.clientX, startY: e.clientY, right: window.innerWidth - r.right, bottom: window.innerHeight - r.bottom, moved: false };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const d = drag.current;
+    if (!d || d.id !== e.pointerId) return;
+    const dx = e.clientX - d.startX;
+    const dy = e.clientY - d.startY;
+    if (!d.moved && Math.hypot(dx, dy) < 8) return;
+    d.moved = true;
+    setHint(null);
+    setPos(clampPos({ right: d.right - dx, bottom: d.bottom - dy }));
+  };
+  const onPointerEnd = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const d = drag.current;
+    drag.current = null;
+    if (d?.moved) {
+      suppressClick.current = true;
+      window.setTimeout(() => { suppressClick.current = false; }, 0);
+      const r = e.currentTarget.getBoundingClientRect();
+      savePos(clampPos({ right: window.innerWidth - r.right, bottom: window.innerHeight - r.bottom }));
+    }
+  };
+  const onKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    const step = e.shiftKey ? 48 : 16;
+    const delta: Record<string, [number, number]> = { ArrowLeft: [step, 0], ArrowRight: [-step, 0], ArrowUp: [0, step], ArrowDown: [0, -step] };
+    const d = delta[e.key];
+    if (!d || !e.altKey) return;
+    e.preventDefault();
+    const r = e.currentTarget.getBoundingClientRect();
+    const next = clampPos({ right: window.innerWidth - r.right + d[0], bottom: window.innerHeight - r.bottom + d[1] });
+    setPos(next);
+    savePos(next);
+  };
+  const resetPos = () => { setPos(null); try { localStorage.removeItem(POS_STORE); } catch { /* nothing to forget */ } };
 
   const ctx = useMemo(() => contextFor(pathname, config?.switches ?? { orgPages: true, education: true, feed: true, publicJobs: true, publicTrainees: true }, me), [pathname, config, me]);
 
@@ -132,7 +205,7 @@ export default function LoopGuide() {
       {open && <ChatPanel pathname={pathname} config={config} me={me} ctx={ctx} onClose={closePanel} onState={setFace} />}
 
       {hint && !open && (
-        <div role="group" aria-label="A hint from Loop" className="fixed right-4 z-40 w-[15.5rem] max-w-[calc(100vw-2rem)] animate-[loop-bubble-in_0.2s_ease-out] sm:right-6" style={{ bottom: `calc(${ABOVE_BANNER_AND_PAGE_FAB} + 4.5rem)` }}>
+        <div role="group" aria-label="A hint from Loop" className="fixed right-4 z-40 w-[15.5rem] max-w-[calc(100vw-2rem)] animate-[loop-bubble-in_0.2s_ease-out] sm:right-6" style={pos ? { right: Math.min(pos.right, Math.max(EDGE, window.innerWidth - 248 - EDGE)), bottom: pos.bottom + 72 > window.innerHeight - 140 ? Math.max(EDGE, pos.bottom - 120) : pos.bottom + 72 } : { bottom: `calc(${ABOVE_BANNER_AND_PAGE_FAB} + 4.5rem)` }}>
           <div className="relative rounded-2xl border-2 border-brand-ink bg-brand-surface py-2.5 pl-3.5 pr-9 shadow-[3px_3px_0_0_rgb(var(--brand-ink))]">
             <button type="button" onClick={openPanel} className="text-left text-sm font-semibold leading-snug text-brand-ink focus:outline-none focus-visible:underline">
               {hint}
@@ -162,12 +235,19 @@ export default function LoopGuide() {
       <button
         ref={button}
         type="button"
-        onClick={() => (open ? closePanel() : openPanel())}
-        aria-label={open ? "Minimize Loop" : "Ask Loop, the ecosystem guide"}
+        onClick={() => { if (suppressClick.current) return; open ? closePanel() : openPanel(); }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerEnd}
+        onPointerCancel={onPointerEnd}
+        onKeyDown={onKeyDown}
+        onDoubleClick={resetPos}
+        title="Drag me out of the way. Double-click to put me back."
+        aria-label={open ? "Minimize Loop" : "Ask Loop, the ecosystem guide. Drag to move; Alt and arrow keys also move it."}
         aria-expanded={open}
         aria-controls={open ? "loop-panel" : undefined}
-        className="fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand-surface shadow-lg transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2 sm:right-6"
-        style={{ bottom: ABOVE_BANNER_AND_PAGE_FAB }}
+        className="fixed right-4 z-40 flex h-14 w-14 touch-none select-none items-center justify-center rounded-full bg-brand-surface shadow-lg transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2 sm:right-6"
+        style={pos ? { right: pos.right, bottom: pos.bottom } : { bottom: ABOVE_BANNER_AND_PAGE_FAB }}
       >
         <LoopFace size={56} state={open ? "idle" : face} />
       </button>

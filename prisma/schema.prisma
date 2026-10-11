@@ -4989,6 +4989,8 @@ model Post {
   appealNote          String?
   /// The EducationPost this was copied from, when it came from the earlier video flow.
   legacyEducationPostId String?      @unique
+  /// The Community Showcase project this was copied from, so everything shown in the showcase is also in the feed.
+  legacyProjectId     String?        @unique
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
 

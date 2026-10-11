@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Briefcase, Building2, CalendarDays, Home, LayoutGrid, MessageSquare, Newspaper, Users, X, BookOpen } from "lucide-react";
+import { Bell, Briefcase, Building2, CalendarDays, Home, LayoutGrid, MessageSquare, Newspaper, Users, X, BookOpen, Plus } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import { setBottomNavLayer } from "@/lib/floatingLayers";
 import { BOTTOM_NAV, MORE_EXTRAS, bottomNavHidden, isTabActive, unreadLabel, type NavIconKey, type NavRole } from "@/lib/pwa/mobileNav";
@@ -10,7 +10,7 @@ import AddToHomeScreenButton from "@/components/pwa/AddToHomeScreenButton";
 import { navTarget } from "@/lib/guide/navigation";
 
 const ICONS: Record<NavIconKey, typeof Home> = {
-  home: Home, messages: MessageSquare, events: CalendarDays, talent: Users, jobs: Briefcase, courses: BookOpen, organizations: Building2, alerts: Bell, feed: Newspaper,
+  home: Home, messages: MessageSquare, events: CalendarDays, talent: Users, jobs: Briefcase, courses: BookOpen, organizations: Building2, alerts: Bell, feed: Newspaper, post: Plus,
 };
 
 /** Unread notification count for the Alerts tab, refreshed every minute while the page is visible. */
@@ -131,6 +131,16 @@ export default function MobileBottomNav({ role, moreItems }: { role: NavRole; mo
           {tabs.map((t) => {
             const active = isTabActive(t, pathname);
             const TabIcon = ICONS[t.key];
+            if (t.key === "post") {
+              return (
+                <li key={t.href} className="flex flex-1">
+                  <Link href={t.href} data-guide-target={navTarget(t.href)} className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[11px] font-semibold text-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-teal">
+                    <span className="flex h-8 w-14 items-center justify-center rounded-full bg-brand-teal text-brand-onAccent shadow-sm"><TabIcon aria-hidden="true" width={22} height={22} strokeWidth={2.75} /></span>
+                    {t.label}
+                  </Link>
+                </li>
+              );
+            }
             return (
               <li key={t.href} className="flex flex-1">
                 <Link href={t.href} data-guide-target={navTarget(t.href)} aria-current={active ? "page" : undefined} className={tabClass(active)}>

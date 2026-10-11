@@ -1,4 +1,5 @@
 "use client";
+import Clamp from "@/components/ui/Clamp";
 import { useState } from "react";
 import Card from "@/components/ui/Card";
 import EmptyState from "@/components/ui/EmptyState";
@@ -59,8 +60,8 @@ export default function NotificationsList({ initialNotifications }: { initialNot
                   {n.senderLabel && (
                     <p className="text-xs font-bold uppercase tracking-wide text-brand-tealDeep">{n.senderLabel}</p>
                   )}
-                  <p className="text-sm font-semibold text-brand-ink">{n.title}</p>
-                  <p className="mt-1 text-sm text-gray-600">{n.body}</p>
+                  <p className="break-words [overflow-wrap:anywhere] text-sm font-semibold text-brand-ink">{n.title}</p>
+                  <Clamp lines={3} className="mt-1 text-sm text-gray-600"><p className="whitespace-pre-line">{n.body}</p></Clamp>
                   <p className="mt-1.5 text-xs text-gray-400">{new Date(n.createdAt).toLocaleString()}</p>
                 </span>
               </button>

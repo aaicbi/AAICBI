@@ -1,3 +1,4 @@
+import Clamp from "@/components/ui/Clamp";
 import Link from "next/link";
 import VideoPlayer from "@/components/video/VideoPlayer";
 import Badge from "@/components/ui/Badge";
@@ -40,9 +41,9 @@ function Gallery({ images }: { images: PostView["images"] }) {
 }
 
 /** The post text with #topics, @mentions and web addresses as links. Built from tokens, never from raw HTML. */
-export function PostText({ text, className = "" }: { text: string; className?: string }) {
-  return (
-    <p className={`whitespace-pre-line break-words ${className}`}>
+export function PostText({ text, className = "", lines }: { text: string; className?: string; lines?: 2 | 3 | 4 | 5 | 6 | 8 | 10 }) {
+  const p = (
+    <p className={`whitespace-pre-line break-words [overflow-wrap:anywhere] ${lines ? "" : className}`}>
       {tokenize(text).map((t, i) =>
         t.type === "text" ? <span key={i}>{t.value}</span>
         : t.type === "url" ? <a key={i} href={t.href} target="_blank" rel="nofollow noopener ugc" className="font-semibold text-brand-teal underline">{t.value}</a>
@@ -50,10 +51,11 @@ export function PostText({ text, className = "" }: { text: string; className?: s
       )}
     </p>
   );
+  return lines ? <Clamp lines={lines} className={className}>{p}</Clamp> : p;
 }
 
 /** One post, the same card everywhere: who wrote it (and for whom), what they wrote, the pictures or video. `headerAction` sits at the top right (a Follow button); `footer` is for the actions under the post. */
-export default function PostCard({ post, showStatus = false, headerAction, footer }: { post: PostView; showStatus?: boolean; headerAction?: React.ReactNode; footer?: React.ReactNode }) {
+export default function PostCard({ post, showStatus = false, headerAction, footer, full = false }: { post: PostView; showStatus?: boolean; headerAction?: React.ReactNode; footer?: React.ReactNode; full?: boolean }) {
   const when = post.publishedAt ?? post.createdAt;
   return (
     <article id={`post-${post.id}`} className="scroll-mt-20 rounded-3xl border border-brand-gray bg-card-gradient p-4 shadow-sm sm:p-5" aria-label={`Post by ${post.author.name}`}>
@@ -69,8 +71,8 @@ export default function PostCard({ post, showStatus = false, headerAction, foote
         {headerAction}
         {showStatus && <Badge variant={post.status === "PUBLISHED" ? "success" : post.status === "REJECTED" || post.status === "SUSPENDED" ? "danger" : "warning"}>{STATUS_LABEL[post.status]}</Badge>}
       </header>
-      {post.title && <h2 className="mt-3 break-words font-display text-lg font-semibold text-brand-ink">{post.title}</h2>}
-      {post.body && <PostText text={post.body} className="mt-2 text-sm leading-relaxed text-brand-ink" />}
+      {post.title && <h2 className="mt-3 break-words [overflow-wrap:anywhere] font-display text-lg font-semibold text-brand-ink">{post.title}</h2>}
+      {post.body && <PostText text={post.body} lines={full ? undefined : 8} className="mt-2 text-sm leading-relaxed text-brand-ink" />}
       <Gallery images={post.images} />
       {post.youtubeId && <div className="mt-3"><VideoPlayer source={{ kind: "youtube", id: post.youtubeId }} title={post.title ?? `Video by ${post.author.name}`} /></div>}
       {post.visibility === "MEMBERS" && <p className="mt-3 text-xs font-semibold text-gray-600">Visible to signed-in members only</p>}

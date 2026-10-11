@@ -7,7 +7,7 @@
  * moved into "More" (with its unread count shown on the More button).
  */
 export type NavRole = "trainee" | "employer" | "investor" | "instructor" | "organization" | "staff";
-export type NavIconKey = "home" | "messages" | "events" | "talent" | "jobs" | "courses" | "organizations" | "alerts" | "feed";
+export type NavIconKey = "home" | "messages" | "events" | "talent" | "jobs" | "courses" | "organizations" | "alerts" | "feed" | "post";
 
 export interface BottomNavItem {
   key: NavIconKey;
@@ -19,47 +19,49 @@ export const BOTTOM_NAV: Record<NavRole, BottomNavItem[]> = {
   trainee: [
     { key: "home", label: "Home", href: "/trainee/dashboard" },
     { key: "messages", label: "Messages", href: "/trainee/messages" },
-    { key: "events", label: "Events", href: "/events" },
+    { key: "post", label: "Post", href: "/compose" },
     { key: "feed", label: "Feed", href: "/feed" },
   ],
   employer: [
     { key: "home", label: "Home", href: "/employer/dashboard" },
     { key: "messages", label: "Messages", href: "/employer/messages" },
-    { key: "talent", label: "Talent", href: "/employer/discover" },
+    { key: "post", label: "Post", href: "/compose" },
     { key: "feed", label: "Feed", href: "/feed" },
   ],
   investor: [
     { key: "home", label: "Home", href: "/investor/dashboard" },
     { key: "organizations", label: "Organizations", href: "/investor/organizations" },
+    { key: "post", label: "Post", href: "/compose" },
     { key: "feed", label: "Feed", href: "/feed" },
   ],
   instructor: [
     { key: "home", label: "Home", href: "/instructor/dashboard" },
     { key: "courses", label: "Courses", href: "/instructor/courses" },
+    { key: "post", label: "Post", href: "/compose" },
     { key: "feed", label: "Feed", href: "/feed" },
   ],
   organization: [
     { key: "home", label: "Overview", href: "/admin/organization" },
     { key: "messages", label: "Messages", href: "/admin/messages" },
-    { key: "events", label: "Events", href: "/admin/organization/events" },
+    { key: "post", label: "Post", href: "/compose" },
     { key: "feed", label: "Feed", href: "/feed" },
   ],
   staff: [
     { key: "home", label: "Home", href: "/admin/dashboard" },
     { key: "messages", label: "Messages", href: "/admin/messages" },
-    { key: "courses", label: "Courses", href: "/admin/courses" },
+    { key: "post", label: "Post", href: "/compose" },
     { key: "feed", label: "Feed", href: "/feed" },
   ],
 };
 
 /** Extra places worth a tap from "More" that are not in the role's own menu (the ecosystem pages everyone can browse). */
 export const MORE_EXTRAS: Record<NavRole, Array<{ label: string; href: string }>> = {
-  trainee: [],
-  employer: [{ label: "Events", href: "/events" }, { label: "Training organizations", href: "/organizations" }],
+  trainee: [{ label: "Events", href: "/events" }],
+  employer: [{ label: "Events", href: "/events" }, { label: "Training organizations", href: "/organizations" }, { label: "Talent", href: "/employer/discover" }],
   investor: [{ label: "Events", href: "/events" }],
-  instructor: [],
-  organization: [],
-  staff: [],
+  instructor: [{ label: "Events", href: "/events" }],
+  organization: [{ label: "Events", href: "/admin/organization/events" }],
+  staff: [{ label: "Events", href: "/events" }],
 };
 
 /** Live exams and assessments lock navigation on purpose; the bar stays out of the way there. */

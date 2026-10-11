@@ -10,6 +10,7 @@ import { PostError, publicPostWhere, toViews, type PostView } from "@/lib/posts/
 import { isPubliclyVisible } from "@/lib/posts/postCore";
 import { canReviewUser } from "@/lib/review/access";
 import { syncEducationPosts } from "@/lib/posts/backfill";
+import { syncShowcaseLazily } from "@/lib/posts/showcaseSync";
 import { canDecide, canEscalate, canReturn, checkReason } from "@/lib/review/reviewCore";
 import { CommentSchema, LIMITS_PER_HOUR, ReportSchema, REACTIONS, canRemoveComment, decodeCursor, encodeCursor, mentionsIn, normalizeTag, type ReactionKind } from "@/lib/posts/interactionCore";
 
@@ -268,6 +269,7 @@ export type FeedPost = PostView & { stats: PostStats; authorFollowed: boolean; c
 export async function feedPage(opts: { tab: "latest" | "following"; actor: Actor | null; cursor?: string | null; take?: number; tag?: string | null }): Promise<{ posts: FeedPost[]; next: string | null }> {
   const take = opts.take ?? PAGE;
   await syncEducationPosts();
+  await syncShowcaseLazily();
   const signedIn = !!opts.actor;
   const c = decodeCursor(opts.cursor);
   const where: Prisma.PostWhereInput = { ...publicPostWhere(signedIn), publishedAt: { not: null } };
