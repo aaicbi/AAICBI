@@ -40,14 +40,12 @@ export default async function ProfilePage({ params }: { params: { handle: string
           {v.coverUrl && /* eslint-disable-next-line @next/next/no-img-element */ <img src={v.coverUrl} alt="" className="no-ring h-full w-full object-cover" />}
         </div>
         <Card className="rounded-t-none border-t-0">
-          <div className="-mt-14 flex flex-wrap items-end gap-4">
-            <div className={`flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden bg-brand-mint ring-4 ring-brand-surface ${square ? "rounded-2xl" : "rounded-full"}`}>
-              {v.avatarUrl ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={v.avatarUrl} alt={`${v.name}`} className="no-ring h-full w-full object-cover" /> : <AvatarFallback variant={square ? "company" : "person"} size="xl" />}
-            </div>
-            <div className="min-w-0 flex-1">
-              <h1 className="break-words font-display text-2xl font-semibold text-brand-ink">{v.name}</h1>
-              <p className="text-sm text-gray-600">@{v.handle}{v.location ? ` · ${v.location}` : ""}</p>
-            </div>
+          <div className={`-mt-14 flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden bg-brand-mint ring-4 ring-brand-surface ${square ? "rounded-2xl" : "rounded-full"}`}>
+            {v.avatarUrl ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={v.avatarUrl} alt={`${v.name}`} className="no-ring h-full w-full object-cover" /> : <AvatarFallback variant={square ? "company" : "person"} size="xl" />}
+          </div>
+          <div className="mt-3 min-w-0">
+            <h1 className="break-words font-display text-2xl font-semibold text-brand-ink">{v.name}</h1>
+            <p className="text-sm text-gray-600">@{v.handle}{v.location ? ` · ${v.location}` : ""}</p>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Badge variant="neutral">{kindLabel(v.kind)}</Badge>
