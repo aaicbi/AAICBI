@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import LoopFace, { type LoopState } from "@/components/guide/LoopFace";
@@ -9,6 +9,8 @@ import GuideSpotlight from "@/components/guide/GuideSpotlight";
 import { loadMe, useGuideConfig, useMeForPath } from "@/components/guide/useGuideConfig";
 import { contextFor, isHiddenPath, type MeKind } from "@/lib/guide/context";
 import { afterShown, BUBBLE_DELAY_MS, BUBBLE_VISIBLE_MS, FRESH_BUBBLE_STATE, nextHint, type BubbleState } from "@/lib/guide/bubble";
+import { showSpot } from "@/lib/guide/interactionStore";
+import type { VisibilityNotice } from "@/lib/guide/visibilityNotice";
 import { ABOVE_BANNER_AND_PAGE_FAB, LOOP_FOOTPRINT_PX, setFloatingOffset } from "@/lib/floatingLayers";
 
 // The chat window (and the matcher it uses) only loads when someone opens it.
@@ -17,6 +19,7 @@ const ChatPanel = dynamic(() => import("@/components/guide/ChatPanel"), { ssr: f
 const HINT_STORE = "loop-hints-v1";
 const QUIET_STORE = "loop-hints-quiet";
 const POS_STORE = "loop-position-v1";
+const NOTICE_SNOOZE = "loop-visibility-notice-snoozed";
 const SIZE = 56;
 const EDGE = 8;
 
@@ -77,6 +80,9 @@ export default function LoopGuide() {
   const [open, setOpen] = useState(false);
   const [face, setFace] = useState<LoopState>("minimized");
   const [hint, setHint] = useState<string | null>(null);
+  const router = useRouter();
+  // Told once, per account, that the profile is public and how to make it private.
+  const [notice, setNotice] = useState<VisibilityNotice | null>(null);
   const [chatMe, setMe] = useState<MeKind | null>(null);
   const me = earlyMe ?? chatMe;
   const meLoaded = useRef(false);
@@ -143,6 +149,40 @@ export default function LoopGuide() {
     return () => setFloatingOffset("loop", 0);
   }, [visible]);
 
+  useEffect(() => {
+    if (!visible) return;
+    try {
+      if (sessionStorage.getItem(NOTICE_SNOOZE) === "1") return;
+    } catch {
+      /* private mode: it may show again after a reload, which is fine */
+    }
+    let live = true;
+    const t = window.setTimeout(() => {
+      loadMe().then((kind) => {
+        if (!live || (kind !== "trainee" && kind !== "employer")) return;
+        fetch("/api/guide/visibility-notice", { cache: "no-store" })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((n) => { if (live && n?.show) setNotice(n as VisibilityNotice); })
+          .catch(() => undefined);
+      });
+    }, 2500);
+    return () => { live = false; window.clearTimeout(t); };
+  }, [visible]);
+
+  const ackNotice = useCallback(() => {
+    fetch("/api/guide/visibility-notice", { method: "POST" }).catch(() => undefined);
+    setNotice(null);
+  }, []);
+  const snoozeNotice = useCallback(() => {
+    try { sessionStorage.setItem(NOTICE_SNOOZE, "1"); } catch { /* nothing to remember it in */ }
+    setNotice(null);
+  }, []);
+  const showHowToHide = useCallback((n: VisibilityNotice) => {
+    ackNotice();
+    showSpot({ target: n.target, text: "Choose who can see your profile here." });
+    if (pathname !== n.href) router.push(n.href);
+  }, [ackNotice, pathname, router]);
+
   const openPanel = useCallback(() => {
     setHint(null);
     setOpen(true);
@@ -204,7 +244,23 @@ export default function LoopGuide() {
       <GuideSpotlight />
       {open && <ChatPanel pathname={pathname} config={config} me={me} ctx={ctx} onClose={closePanel} onState={setFace} onResetPosition={pos ? resetPos : undefined} />}
 
-      {hint && !open && (
+      {notice && !open && (
+        <div role="group" aria-label="A note from Loop about your profile" className="fixed right-4 z-40 w-[18rem] max-w-[calc(100vw-2rem)] animate-[loop-bubble-in_0.2s_ease-out] sm:right-6" style={pos ? { right: Math.min(pos.right, Math.max(EDGE, window.innerWidth - 288 - EDGE)), bottom: pos.bottom + 72 > window.innerHeight - 260 ? Math.max(EDGE, pos.bottom - 230) : pos.bottom + 72 } : { bottom: `calc(${ABOVE_BANNER_AND_PAGE_FAB} + 4.5rem)` }}>
+          <div className="relative rounded-2xl border-2 border-brand-ink bg-brand-surface py-3 pl-3.5 pr-9 shadow-[3px_3px_0_0_rgb(var(--brand-ink))]">
+            <p className="text-sm font-semibold leading-snug text-brand-ink">{notice.text}</p>
+            <div className="mt-2.5 flex flex-col gap-1.5">
+              <button type="button" onClick={() => showHowToHide(notice)} className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-brand-teal px-3 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">{notice.showLabel}</button>
+              <button type="button" onClick={ackNotice} className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-brand-teal px-3 text-sm font-semibold text-brand-teal hover:bg-brand-mint focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">{notice.keepLabel}</button>
+            </div>
+            <button type="button" onClick={snoozeNotice} aria-label="Remind me later" className="absolute right-1 top-1 flex h-8 w-8 items-center justify-center rounded-full text-gray-600 hover:bg-brand-mint hover:text-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
+              <Icon icon={X} size="sm" />
+            </button>
+            <span aria-hidden="true" className="absolute -bottom-[9px] right-7 h-4 w-4 rotate-45 border-b-2 border-r-2 border-brand-ink bg-brand-surface" />
+          </div>
+        </div>
+      )}
+
+      {hint && !open && !notice && (
         <div role="group" aria-label="A hint from Loop" className="fixed right-4 z-40 w-[15.5rem] max-w-[calc(100vw-2rem)] animate-[loop-bubble-in_0.2s_ease-out] sm:right-6" style={pos ? { right: Math.min(pos.right, Math.max(EDGE, window.innerWidth - 248 - EDGE)), bottom: pos.bottom + 72 > window.innerHeight - 140 ? Math.max(EDGE, pos.bottom - 120) : pos.bottom + 72 } : { bottom: `calc(${ABOVE_BANNER_AND_PAGE_FAB} + 4.5rem)` }}>
           <div className="relative rounded-2xl border-2 border-brand-ink bg-brand-surface py-2.5 pl-3.5 pr-9 shadow-[3px_3px_0_0_rgb(var(--brand-ink))]">
             <button type="button" onClick={openPanel} className="text-left text-sm font-semibold leading-snug text-brand-ink focus:outline-none focus-visible:underline">

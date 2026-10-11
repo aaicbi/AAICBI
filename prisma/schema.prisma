@@ -684,6 +684,8 @@ model Trainee {
   resumeUploadedAt DateTime?
   /// New members start PUBLIC so people can find them; they can choose a narrower setting any time. (Earlier accounts keep whatever they have.)
   profileVisibility ProfileVisibility @default(PUBLIC)
+  /// When Loop told this member their profile is public and how to make it private (once).
+  profileNoticeAt   DateTime?
 
   skills           TraineeSkill[]
   education        Education[]
@@ -3443,6 +3445,8 @@ model Employer {
   description String?
   /// New employers start PUBLIC so candidates and members can find them; they can narrow it any time.
   profileVisibility ProfileVisibility @default(PUBLIC)
+  /// When Loop told this employer their profile is public and how to change it (once).
+  profileNoticeAt   DateTime?
 
   introductionRequests IntroductionRequest[]
   jobPostings          JobPosting[]

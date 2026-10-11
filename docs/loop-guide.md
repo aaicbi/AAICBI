@@ -133,3 +133,20 @@ The Claude consultant (Command Center → Guide Bot Knowledge → Claude consult
 - *Suggest a note* asks Claude for a draft (`AI_TRAINING`). It is only a proposal: *Review and approve* opens the editor pre-filled, and nothing changes until the person saves.
 
 The consultant's files cannot write answers, question statuses or guidance (enforced by `tests/guideConsultant.test.ts`). All consultant buttons share the switch, the key check and the 10-runs-an-hour limit.
+
+# Loop knows the whole platform
+
+**Site map (`src/lib/guide/siteMap.ts`).** Every page on the platform is listed with who can open it, a plain sentence on what it is for, and the words people use for it. Id-based pages (one course, one post) are listed as routes with how to reach them. Only pages opened from an emailed link are left out. `tests/guideSiteMap.test.ts` walks `src/app`, so a page added without an entry fails the build; nothing is forgotten.
+
+**Take-me-there buttons.** Each page becomes a destination for Loop (`navigation.ts`), filtered by the person's account type, so Loop only offers what that person can open.
+
+**"Where can I go?"** Asking for the site map, all pages or everywhere (or tapping the quick question) shows a grouped menu of buttons with a line on each page (`buildMenu`, `ChatPanel.tsx`). Sign-up and sign-in pages are left out once signed in.
+
+**Roadmaps (`src/lib/guide/roadmap.ts`).** Step-by-step journeys for a member, an organization, an employer, an investor, a founder and staff, plus how-tos for writing a post, why a post is held, reactions and comments, topics, finding people, the handle, privacy, notifications, moving Loop, installing the app, team roles, sharing, events and videos, startups, and the staff review inbox and switches. Answers carry buttons and, where useful, point at the control on screen.
+
+# The visibility notice
+
+Profiles are public by default and every existing profile was switched to public. Loop tells each member and employer **once**: that the profile is public, what people can see, and how to make it private.
+- The bubble has "Show me how to make it private" (opens the profile page and highlights the visibility control) and "Keep it public". Either one records that they were told; the X only hides it for the session.
+- It is decided on the server (`/api/guide/visibility-notice`, `profileNoticeAt` on Trainee and Employer), so it follows the person across devices and is never repeated.
+- Private profiles, visitors and staff are never shown it.
