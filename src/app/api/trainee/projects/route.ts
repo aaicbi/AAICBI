@@ -1,3 +1,4 @@
+import { autoReviewShowcaseProject, syncShowcasePosts } from "@/lib/posts/showcaseSync";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -40,6 +41,7 @@ export async function POST(req: NextRequest) {
         listedInShowcase: parsed.data.listedInShowcase ?? false,
       },
     });
+    if (created.listedInShowcase) { await autoReviewShowcaseProject(created.id).catch(() => false); await syncShowcasePosts().catch(() => null); }
     return NextResponse.json(created, { status: 201 });
   });
 }

@@ -5,12 +5,14 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import DataTable, { type Column } from "@/components/ui/DataTable";
 import ErrorState from "@/components/ui/ErrorState";
-import { Input } from "@/components/ui/Field";
+import { Input, Select } from "@/components/ui/Field";
+import { MEMBER_ROLES, ROLE_HELP, ROLE_LABEL, type OrgRole } from "@/lib/org/people";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
 import { useToast } from "@/components/ui/Toast";
 
 interface Member {
   id: string;
+  role: string;
   name: string;
   email: string;
   disabledAt: string | null;
@@ -33,6 +35,7 @@ export default function OrgTeamManager() {
   const [failed, setFailed] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState<string>("EDITOR");
   const [adding, setAdding] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [link, setLink] = useState<{ who: string; url: string } | null>(null);
@@ -56,7 +59,7 @@ export default function OrgTeamManager() {
     const res = await fetch("/api/org/members", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email }),
+      body: JSON.stringify({ name, email, role }),
     });
     const body = await res.json().catch(() => ({}));
     setAdding(false);
@@ -68,6 +71,15 @@ export default function OrgTeamManager() {
     setName("");
     setEmail("");
     showToast(`Invitation sent to ${body.member.email}.`, "success");
+    load();
+  }
+
+  async function setMemberRole(member: Member, newRole: string) {
+    setBusyId(member.id);
+    const res = await fetch(`/api/org/members/${member.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "role", role: newRole }) });
+    setBusyId(null);
+    if (!res.ok) return showToast("Could not change the role. Try again.", "error");
+    showToast(`${member.name} is now ${ROLE_LABEL[newRole as OrgRole].toLowerCase()}.`, "success");
     load();
   }
 
@@ -125,6 +137,16 @@ export default function OrgTeamManager() {
       ),
     },
     {
+      key: "role",
+      header: "Role",
+      sortValue: (m) => m.role,
+      render: (m) => (
+        <select aria-label={`Role of ${m.name}`} value={m.role} disabled={busyId === m.id} onChange={(e) => setMemberRole(m, e.target.value)} className="min-h-[36px] rounded-lg border border-brand-gray bg-brand-surface px-2 text-sm text-brand-ink">
+          {MEMBER_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
+        </select>
+      ),
+    },
+    {
       key: "status",
       header: "Status",
       sortValue: (m) => (m.disabledAt ? 2 : m.invitePending ? 1 : 0),
@@ -170,7 +192,7 @@ export default function OrgTeamManager() {
         <h2 className="font-display text-base font-semibold text-brand-ink">Account owner</h2>
         {data ? (
           <p className="mt-1 text-sm text-gray-600">
-            {data.owner.name} ({data.owner.email}). The owner can&apos;t be removed here.
+            {data.owner.name} ({data.owner.email}). The owner can do everything, including billing and the team, and can&apos;t be removed here.
           </p>
         ) : (
           <p className="mt-1 text-sm text-gray-600">Loading…</p>
@@ -180,12 +202,14 @@ export default function OrgTeamManager() {
       <Card className="mt-4">
         <h2 className="font-display text-base font-semibold text-brand-ink">Invite a teammate</h2>
         <p className="mt-1 text-sm text-gray-600">
-          They get an email with a link to choose their own password. Teammates can manage the same courses, trainees and
-          certificates you can.
+          They get an email with a link to choose their own password, and they sign in as themselves: what they change is recorded under their name. {ROLE_HELP[role as OrgRole]}
         </p>
-        <form onSubmit={invite} className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+        <form onSubmit={invite} className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_10rem_auto] sm:items-end">
           <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} required maxLength={100} />
           <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <Select label="Role" value={role} onChange={(e) => setRole(e.target.value)}>
+            {MEMBER_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
+          </Select>
           <Button type="submit" loading={adding}>
             {adding ? "Sending..." : "Send invitation"}
           </Button>

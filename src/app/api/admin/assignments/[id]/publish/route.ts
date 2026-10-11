@@ -18,7 +18,8 @@ import { appUrl } from "@/lib/appUrl";
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedAssignment(params.id, session.userId, session.role);
+    const owned = await requireOwnedAssignment(params.id, session.userId, session.role);
+    if (session.role !== "SUPER_ADMIN" && owned.createdById !== session.userId) return NextResponse.json({ error: "Only the owner of this assignment can change whether it is published." }, { status: 403 });
 
     const questions = await prisma.assignmentQuestion.findMany({ where: { assignmentId: params.id } });
     if (questions.length === 0) {

@@ -1,0 +1,46 @@
+const { launch, device, B, log, cookiesFor } = require('./lib.cjs');
+const psql = (q) => require('child_process').execFileSync('/usr/lib/postgresql/16/bin/psql', ['-h','127.0.0.1','-p','5544','-U','dev','-d','aaicbi_dev','-At','-c',q]).toString().trim();
+(async () => {
+  const cookies = await cookiesFor('/api/auth/trainee-login', 't0@dev.test');
+  const tid = psql(`select id from "Trainee" where email='t0@dev.test'`);
+  psql(`delete from "UserNotification" where title like 'CLAMPCHECK%'`);
+  const long = 'Hi there, thank you for your payment. Here is your receipt. Course: Cybersecurity foundations Amount Paid: N400 Payment Reference: T815784890229146 Date: 9/29/2026 Payment Method: bank_transfer Your subscription will automatically renew the next payment of N400 will be charged on 10/29/2026. https://aaicbi.org/trainee/courses/cmui6l26rabcdefghijklmnopqrstuvwxyz0123456789 Keep this email for your records.';
+  psql(`insert into "UserNotification"(id,"recipientType","recipientId",type,title,body,url,"createdAt") values ('clampchk1','TRAINEE','${tid}','TEST','CLAMPCHECK receipt','${long}','/notifications',now())`);
+  const b = await launch();
+  const ctx = await b.newContext(device('iPhone 13'));
+  await ctx.addCookies(cookies);
+  const p = await ctx.newPage();
+  await p.goto(B + '/notifications', { waitUntil: 'networkidle' });
+  const over = await p.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+  log(!over, 'notifications: no horizontal overflow with a long address in the text');
+  const more = p.locator('button[aria-expanded="false"]', { hasText: 'See more' }).first();
+  log(await more.count() > 0, 'a long notification shows "See more"');
+  const h1 = await more.evaluate((b) => b.previousElementSibling.clientHeight);
+  await more.click();
+  const h2 = await p.locator('button[aria-expanded="true"]', { hasText: 'See less' }).first().evaluate((b) => b.previousElementSibling.clientHeight);
+  log(h2 > h1, `"See more" expands the text (${h1}px to ${h2}px) and "See less" appears`);
+  // the bottom bar has Post
+  const post = p.locator('nav[aria-label="Main"] a[href="/compose"]');
+  log(await post.count() === 1 && await post.isVisible(), 'the phone bottom bar has a Post button');
+  // Loop dragging
+  await p.goto(B + '/trainee/dashboard', { waitUntil: 'networkidle' });
+  const loop = p.getByRole('button', { name: /Ask Loop/ });
+  await loop.waitFor({ timeout: 15000 });
+  const box0 = await loop.boundingBox();
+  await p.mouse.move(box0.x + 28, box0.y + 28); await p.mouse.down(); await p.mouse.move(box0.x - 120, box0.y - 200, { steps: 8 }); await p.mouse.up();
+  const box1 = await loop.boundingBox();
+  log(Math.abs(box1.x - box0.x) > 80 && Math.abs(box1.y - box0.y) > 120, `Loop can be dragged (${Math.round(box0.x)},${Math.round(box0.y)} to ${Math.round(box1.x)},${Math.round(box1.y)})`);
+  log(await p.locator('#loop-panel').count() === 0, 'dragging did not open the chat');
+  await p.reload({ waitUntil: 'networkidle' }); await loop.waitFor();
+  const box2 = await loop.boundingBox();
+  log(Math.abs(box2.x - box1.x) < 3 && Math.abs(box2.y - box1.y) < 3, 'the new place is remembered after a reload');
+  await p.mouse.click(box2.x + 28, box2.y + 28);
+  await p.waitForTimeout(500);
+  log(await p.locator('#loop-panel').count() === 1, 'a tap still opens the chat');
+  await p.getByRole('dialog').getByRole('button', { name: 'Put Loop back' }).click();
+  await p.waitForTimeout(400);
+  const box3 = await p.getByRole('button', { name: /Ask Loop/ }).boundingBox();
+  log(Math.abs(box3.x - box0.x) < 3 && Math.abs(box3.y - box0.y) < 3, `"Put Loop back" returns it to its corner (${Math.round(box3.x)},${Math.round(box3.y)})`);
+  await b.close();
+  psql(`delete from "UserNotification" where title like 'CLAMPCHECK%'`);
+})().catch((e) => { console.error(e); process.exit(1); });

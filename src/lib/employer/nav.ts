@@ -14,6 +14,9 @@ export const EMPLOYER_ORGANIZATIONS_NAV = { label: "Organizations", href: "/empl
 
 export const EMPLOYER_NAV = [
   { label: "Dashboard", href: "/employer/dashboard" },
+  { label: "Feed", href: "/feed" },
+  { label: "Write a post", href: "/compose" },
+  { label: "My posts", href: "/my-posts" },
   { label: "Discover", href: "/employer/discover" },
   { label: "My Introductions", href: "/employer/introductions" },
   { label: "Messages", href: "/employer/messages" },

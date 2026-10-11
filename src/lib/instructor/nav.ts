@@ -6,6 +6,9 @@
  */
 export const INSTRUCTOR_NAV = [
   { label: "Dashboard", href: "/instructor/dashboard" },
+  { label: "Feed", href: "/feed" },
+  { label: "Write a post", href: "/compose" },
+  { label: "My posts", href: "/my-posts" },
   { label: "My Courses", href: "/instructor/courses" },
   { label: "Teaching Materials", href: "/instructor/materials" },
   { label: "My Payments", href: "/instructor/payments" },

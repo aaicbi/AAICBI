@@ -13,7 +13,8 @@ import { loadProfileView } from "@/lib/profiles/view";
 import { can } from "@/lib/startups/startupCore";
 import { canDecide, canEscalate, canReturn, checkReason, orgMayBlock, appealEffect, type AppealAction } from "@/lib/review/reviewCore";
 import { traineeOrganizations } from "@/lib/ecosystem/orgScope";
-import { PostInput, REVIEW_LOG_ACTION, canEdit, canSubmit, canWithdraw, extractTags, isMaterialEdit, isPubliclyVisible, needsReview, nextStatus, statusAfterEdit, typeOf, type ReviewAction } from "@/lib/posts/postCore";
+import { autoReviewEnabled, describeVerdict, isTrusted, review as autoReview } from "@/lib/posts/autoReview";
+import { PostInput, REVIEW_LOG_ACTION, canEdit, canSubmit, canWithdraw, extractTags, isMaterialEdit, isPubliclyVisible, nextStatus, statusAfterEdit, typeOf, type ReviewAction } from "@/lib/posts/postCore";
 
 /**
  * Posts: one model for text, image galleries and YouTube videos. Everything
@@ -74,6 +75,15 @@ export async function identitiesOf(session: SessionPayload): Promise<Identity[]>
   return out;
 }
 
+/** Why a signed-in account has nothing to post as, in words the person can act on. Null when they can post. */
+export async function postingBlockedReason(session: SessionPayload): Promise<string | null> {
+  if ((await identitiesOf(session)).length > 0) return null;
+  if (session.role === "EMPLOYER") return "Your company account is waiting for approval. You can post as soon as the AAICBI team approves it.";
+  if (session.role === "INVESTOR") return "Your investor account is waiting for approval. You can post as soon as the AAICBI team approves it.";
+  if (session.role === "ADMIN" || session.role === "SUPER_ADMIN" || session.role === "INSTRUCTOR") return "Your training organization is waiting for approval. You can post as soon as the AAICBI team approves it.";
+  return "Your account cannot post yet. Please contact support.";
+}
+
 /** Every profile this person may edit posts for (their own author profiles and the startups or organization they publish for). */
 async function profileIdsOf(session: SessionPayload): Promise<Set<string>> {
   const ids = new Set<string>();
@@ -110,6 +120,34 @@ async function nameOf(session: SessionPayload): Promise<string> {
   return (await prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } }))?.name ?? "Staff";
 }
 
+/**
+ * Whether a post goes live now. A super admin's own posts always do. Otherwise the automatic reviewer reads the post:
+ * trusted authors publish unless it shows serious warning signs, everyone else unless it shows any real concern.
+ * Anything held goes to the human review inbox, with the reasons written to the post's history.
+ */
+async function publicationVerdict(identity: Identity, content: { title: string | null; body: string; hasMedia: boolean }, excludePostId?: string): Promise<{ publish: boolean; note: string | null; by: "SUPER_ADMIN" | "AUTO" | null }> {
+  if (identity.skipsReview) return { publish: true, note: "Published directly by a super admin.", by: "SUPER_ADMIN" };
+  if (!autoReviewEnabled()) return { publish: false, note: null, by: null };
+  try {
+    const mine = { authorProfileId: identity.authorProfileId, ...(excludePostId ? { id: { not: excludePostId } } : {}) };
+    const since = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
+    const [published, removed, openReports, recent] = await Promise.all([
+      prisma.post.count({ where: { ...mine, status: "PUBLISHED" } }),
+      prisma.post.count({ where: { ...mine, status: { in: ["REJECTED", "SUSPENDED"] }, updatedAt: { gte: since } } }),
+      prisma.postReport.count({ where: { status: "OPEN", postId: { in: (await prisma.post.findMany({ where: { authorProfileId: identity.authorProfileId }, select: { id: true }, take: 200 })).map((p) => p.id) } } }),
+      prisma.post.findMany({ where: { ...mine, createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } }, select: { body: true }, take: 30 }),
+    ]);
+    const trusted = isTrusted({ published, removed, openReports });
+    const norm = (t: string) => t.replace(/\s+/g, " ").trim().toLowerCase();
+    const duplicateOfRecent = content.body.trim().length > 0 && recent.some((r) => norm(r.body) === norm(content.body));
+    const verdict = autoReview({ ...content, trusted, duplicateOfRecent });
+    return { publish: verdict.publish, note: describeVerdict(verdict, trusted), by: "AUTO" };
+  } catch (e) {
+    console.error("Auto-review failed; sending the post to a person:", e instanceof Error ? e.message : e);
+    return { publish: false, note: null, by: null };
+  }
+}
+
 export async function createPost(session: SessionPayload, identityKey: string, input: PostInput, submit: boolean): Promise<Post> {
   const all = await identitiesOf(session);
   // "self" means the first thing this account speaks as, which is its organization for a training organization's own login.
@@ -118,7 +156,8 @@ export async function createPost(session: SessionPayload, identityKey: string, i
   const recent = await prisma.post.count({ where: { authorProfileId: identity.authorProfileId, createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } } });
   if (recent >= MAX_NEW_PER_DAY) throw new PostError("You have written a lot of posts today. Please try again tomorrow.", 429);
   const video = parseVideo(input.youtubeUrl);
-  const publishNow = submit && !needsReview({ isSuperAdmin: identity.skipsReview });
+  const verdict = submit ? await publicationVerdict(identity, { title: input.title, body: input.body, hasMedia: input.images.length > 0 || !!video }) : null;
+  const publishNow = !!verdict?.publish;
   const post = await prisma.post.create({
     data: {
       type: typeOf({ youtubeUrl: video?.watchUrl ?? null, images: input.images }),
@@ -136,14 +175,14 @@ export async function createPost(session: SessionPayload, identityKey: string, i
       media: { create: input.images.map((m, order) => ({ url: m.url, alt: m.alt, order })) },
     },
   });
-  if (submit) await afterSubmit(post, session, publishNow);
+  if (submit) await afterSubmit(post, session, publishNow, verdict?.by === "AUTO" ? verdict.note : null);
   return post;
 }
 
-async function afterSubmit(post: Post, session: SessionPayload, publishedDirectly: boolean) {
+async function afterSubmit(post: Post, session: SessionPayload, publishedDirectly: boolean, autoNote: string | null = null) {
   const name = await nameOf(session);
-  await log(post.id, publishedDirectly ? "APPROVED" : "SUBMITTED", { userId: session.userId, name }, publishedDirectly ? "Published directly by a super admin." : null);
-  if (publishedDirectly) return;
+  await log(post.id, publishedDirectly ? "APPROVED" : "SUBMITTED", autoNote ? { name: "Auto-review" } : { userId: session.userId, name }, publishedDirectly ? autoNote ?? "Published directly by a super admin." : autoNote);
+  if (publishedDirectly) { publicFeedChanged(); return; }
   try {
     const admins = await prisma.user.findMany({ where: { OR: [{ role: "SUPER_ADMIN" }, { canReview: true }], active: true, trainingOrgAsStaffUser: null }, select: { id: true, email: true } });
     const content = simpleNoticeEmail({ subject: "A post is waiting for review", paragraphs: [`${name} sent a post for review.`], buttonLabel: "Open the review inbox", url: appUrl("/admin/review") });
@@ -160,8 +199,9 @@ export async function updatePost(session: SessionPayload, postId: string, input:
   const before = await prisma.postMedia.findMany({ where: { postId }, orderBy: { order: "asc" }, select: { url: true } });
   const material = isMaterialEdit({ title: post.title, body: post.body, youtubeId: post.youtubeId, images: before.map((m) => m.url) }, { title: input.title, body: input.body, youtubeId: video?.id ?? null, images: input.images.map((m) => m.url) });
   const identity = (await identitiesOf(session)).find((i) => i.authorProfileId === post.authorProfileId);
-  const skips = !!identity?.skipsReview;
-  const status = statusAfterEdit(post.status, material, skips);
+  // An edit that readers would notice on a published post is read again by the automatic reviewer.
+  const reread = material && post.status === "PUBLISHED" && identity ? await publicationVerdict(identity, { title: input.title, body: input.body, hasMedia: input.images.length > 0 || !!video }, postId) : null;
+  const status = statusAfterEdit(post.status, material, !!reread?.publish);
   const goingBack = status === "PENDING_REVIEW" && post.status === "PUBLISHED";
   const updated = await prisma.$transaction(async (tx) => {
     await tx.postMedia.deleteMany({ where: { postId } });
@@ -177,7 +217,7 @@ export async function updatePost(session: SessionPayload, postId: string, input:
       },
     });
   });
-  if (material && post.status === "PUBLISHED") await log(postId, "EDITED", { userId: session.userId, name: await nameOf(session) }, goingBack ? "Edited after publishing; sent back for review." : "Edited by a super admin.");
+  if (material && post.status === "PUBLISHED") await log(postId, "EDITED", { userId: session.userId, name: await nameOf(session) }, goingBack ? `Edited after publishing; sent back for review. ${reread?.note ?? ""}`.trim() : reread?.by === "AUTO" ? `Edited after publishing; ${reread.note}` : "Edited by a super admin.");
   return updated;
 }
 
@@ -185,9 +225,11 @@ export async function submitPost(session: SessionPayload, postId: string): Promi
   const post = await requireManage(session, postId);
   if (!canSubmit(post.status)) throw new PostError("This post is already with a reviewer or has been decided.", 409);
   const identity = (await identitiesOf(session)).find((i) => i.authorProfileId === post.authorProfileId);
-  const publishNow = !needsReview({ isSuperAdmin: !!identity?.skipsReview });
+  const imgs = await prisma.postMedia.count({ where: { postId } });
+  const verdict = identity ? await publicationVerdict(identity, { title: post.title, body: post.body, hasMedia: imgs > 0 || !!post.youtubeId }, postId) : { publish: false, note: null, by: null as null };
+  const publishNow = verdict.publish;
   const updated = await prisma.post.update({ where: { id: postId }, data: { status: publishNow ? "PUBLISHED" : "PENDING_REVIEW", submittedAt: new Date(), publishedAt: publishNow ? post.publishedAt ?? new Date() : null, reviewNote: null } });
-  await afterSubmit(updated, session, publishNow);
+  await afterSubmit(updated, session, publishNow, verdict.by === "AUTO" ? verdict.note : null);
   return updated;
 }
 

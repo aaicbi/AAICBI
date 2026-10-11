@@ -1,4 +1,5 @@
 "use client";
+import ShareCard from "@/components/collab/ShareCard";
 import { useEffect, useState, useRef } from "react";
 import DesktopRecommended from "@/components/pwa/DesktopRecommended";
 import SiteHeader from "@/components/SiteHeader";
@@ -275,6 +276,8 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
       <p className="text-sm text-gray-500">
         Exam code: <span className="font-mono">{exam.code}</span>
       </p>
+
+      <ShareCard type="EXAM" id={params.id} />
 
       {/* Upload */}
       <div className="mt-6 rounded-lg border border-dashed border-brand-gray bg-brand-mint p-6 text-center">

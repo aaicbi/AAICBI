@@ -50,6 +50,7 @@ export default function AdminSidebar({
   avatarUrl,
   role,
   isTrainingOrg,
+  orgLabel,
   canReview,
 }: {
   name: string;
@@ -62,6 +63,8 @@ export default function AdminSidebar({
    * is ADMIN, but that's an implementation detail this account holder
    * has no reason to see). */
   isTrainingOrg?: boolean;
+  /** For an organization: its name and the signed-in person's role, e.g. "Northwind Academy · Editor". */
+  orgLabel?: string;
   /** Whether this staff member may review posts and Loop's questions (shows the review inbox). */
   canReview?: boolean;
 }) {
@@ -124,7 +127,7 @@ export default function AdminSidebar({
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-brand-ink">{name}</p>
-          <Badge variant="neutral">{isTrainingOrg ? "Training Organization" : (ROLE_LABELS[role] ?? role)}</Badge>
+          <Badge variant="neutral">{orgLabel ?? (isTrainingOrg ? "Training Organization" : (ROLE_LABELS[role] ?? role))}</Badge>
         </div>
       </Link>
 

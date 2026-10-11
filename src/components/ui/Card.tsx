@@ -65,7 +65,7 @@ export default function Card({
     : "shadow-sm transition-shadow";
   return (
     <div
-      className={`rounded-xl border p-5 ${elevation} ${VARIANT_CLASSES[variant]} ${className}`}
+      className={`min-w-0 break-words [overflow-wrap:anywhere] rounded-xl border p-5 ${elevation} ${VARIANT_CLASSES[variant]} ${className}`}
       {...rest}
     >
       {children}

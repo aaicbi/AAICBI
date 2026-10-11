@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
-import { createdByFilter } from "@/lib/courseOwnership";
+import { ownedOrSharedWhere } from "@/lib/collab/access";
 import { validateCoursePricing } from "@/lib/coursePricing";
 
 const CreateCourseSchema = z.object({
@@ -45,7 +45,7 @@ export async function GET() {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
     const courses = await prisma.course.findMany({
-      where: createdByFilter(session),
+      where: (await ownedOrSharedWhere(session, "COURSE")) as never,
       orderBy: { createdAt: "desc" },
       include: { _count: { select: { modules: true } } },
     });

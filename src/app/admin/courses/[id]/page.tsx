@@ -30,6 +30,8 @@ import { COURSE_STATUS_VALUES, COURSE_STATUS_LABEL } from "@/lib/courseStatus";
 import type { CourseStatus } from "@prisma/client";
 import CourseMarketingSettings, { type CourseMarketingFields } from "./CourseMarketingSettings";
 import CourseScheduleSettings, { type CourseScheduleFields } from "./CourseScheduleSettings";
+import MoveCourse from "./MoveCourse";
+import ShareCard from "@/components/collab/ShareCard";
 
 import { Checkbox, Input, Select } from "@/components/ui/Field";
 interface MaterialDto {
@@ -111,6 +113,11 @@ interface CourseDto {
   // Training Organizations, Phase 2
   certificateTemplateId: string | null;
   certificateTemplate: { id: string; name: string } | null;
+  viewer?: { isSuperAdmin: boolean };
+  ownerName?: string;
+  platformOwned?: boolean;
+  paymentsTo?: "OWNER" | "PLATFORM";
+  payments?: { routing: string; orgName: string | null };
   trainingOrganization: {
     id: string;
     name: string;
@@ -534,6 +541,10 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
             {publishError && <p className="mt-1 max-w-[16rem] text-xs text-brand-rose">{publishError}</p>}
           </div>
         </div>
+
+        {course.viewer?.isSuperAdmin && <MoveCourse courseId={course.id} ownerName={course.ownerName ?? "AAICBI"} isPlatformOwned={!!course.platformOwned} paid={!course.isFree} paymentsTo={course.paymentsTo ?? "OWNER"} routing={course.payments?.routing ?? null} onMoved={loadCourse} showToast={showToast} />}
+
+        <ShareCard type="COURSE" id={course.id} />
 
         <PricingSettings course={course} onSave={updatePricing} showToast={showToast} />
 

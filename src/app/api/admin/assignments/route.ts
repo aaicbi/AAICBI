@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
-import { assignmentCreatedByFilter } from "@/lib/assignmentOwnership";
+import { assignmentsListWhere } from "@/lib/collab/access";
 
 /**
  * GET /api/admin/assignments — the review-queue/list page's own data
@@ -15,7 +15,7 @@ export async function GET() {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
     const assignments = await prisma.assignment.findMany({
-      where: assignmentCreatedByFilter(session),
+      where: (await assignmentsListWhere(session)) as never,
       orderBy: { createdAt: "desc" },
       include: {
         module: { select: { id: true, title: true } },

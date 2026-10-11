@@ -72,6 +72,7 @@ export default function ChatPanel({
   ctx,
   onClose,
   onState,
+  onResetPosition,
 }: {
   pathname: string;
   config: GuideClientConfig;
@@ -79,6 +80,8 @@ export default function ChatPanel({
   ctx: PageContext;
   onClose: () => void;
   onState: (s: LoopState) => void;
+  /** Given only when Loop has been moved: puts it back in its usual corner. */
+  onResetPosition?: () => void;
 }) {
   const router = useRouter();
   const here = useCurrentPath() ?? pathname;
@@ -255,7 +258,7 @@ export default function ChatPanel({
           onClose();
         }
       }}
-      className="fixed inset-x-3 bottom-[calc(0.75rem_+_var(--layer-banner,0px)_+_var(--layer-nav,0px))] z-50 flex h-[min(36rem,calc(100dvh_-_6rem))] flex-col overflow-hidden rounded-2xl border border-brand-gray bg-brand-surface shadow-2xl focus:outline-none animate-[modal-in_0.15s_ease-out] print:hidden sm:inset-x-auto sm:right-6 sm:bottom-[calc(6.25rem_+_var(--layer-banner,0px)_+_var(--layer-nav,0px)_+_var(--layer-fab,0px))] sm:w-[23rem]"
+      className="fixed inset-x-3 bottom-[calc(0.75rem_+_var(--layer-banner,0px)_+_var(--layer-nav,0px))] z-50 flex h-[min(36rem,calc(100dvh_-_1.5rem_-_var(--layer-banner,0px)_-_var(--layer-nav,0px)))] sm:h-[min(36rem,calc(100dvh_-_6rem))] flex-col overflow-hidden rounded-2xl border border-brand-gray bg-brand-surface shadow-2xl focus:outline-none animate-[modal-in_0.15s_ease-out] print:hidden sm:inset-x-auto sm:right-6 sm:bottom-[calc(6.25rem_+_var(--layer-banner,0px)_+_var(--layer-nav,0px)_+_var(--layer-fab,0px))] sm:w-[23rem]"
     >
       <header className="flex items-center gap-3 border-b border-brand-gray px-4 py-3">
         <LoopFace size={40} state={thinking ? "thinking" : "idle"} />
@@ -277,6 +280,11 @@ export default function ChatPanel({
         >
           Start over
         </button>
+        {onResetPosition && (
+          <button type="button" onClick={() => { onResetPosition(); onClose(); }} className="rounded px-2 py-1 text-xs font-semibold text-gray-600 hover:text-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
+            Put Loop back
+          </button>
+        )}
         <button type="button" onClick={onClose} aria-label="Minimize Loop" className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 hover:bg-brand-mint hover:text-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
           <Icon icon={Minus} size="md" />
         </button>

@@ -1,4 +1,4 @@
-const { B, launch, signedIn, device, cookiesFor } = require('./lib');
+const { B, launch, signedIn, device, cookiesFor } = require('./lib.cjs');
 const psql = (q) => require('child_process').execFileSync('/usr/lib/postgresql/16/bin/psql', ['-h','127.0.0.1','-p','5544','-U','dev','-d','aaicbi_dev','-At','-c',q]).toString().trim();
 const jar = (cs) => cs.map((c) => `${c.name}=${c.value}`).join('; ');
 const api = (m,p,c,b)=>fetch(B+p,{method:m,headers:{'Content-Type':'application/json',Cookie:c},body:b?JSON.stringify(b):undefined}).then(r=>r.json().catch(()=>({})));

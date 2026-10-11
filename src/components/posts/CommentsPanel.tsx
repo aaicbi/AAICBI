@@ -61,7 +61,7 @@ export default function CommentsPanel({ postId, onCount }: { postId: string; onC
       {c.removed ? <p className="text-sm italic text-gray-600">This comment was removed.</p> : (
         <>
           <p className="text-sm"><Who c={c} /> <span className="text-xs text-gray-600">· {new Date(c.createdAt).toLocaleDateString("en-GB", { dateStyle: "medium" })}</span></p>
-          <PostText text={c.body} className="mt-0.5 text-sm text-brand-ink" />
+          <PostText text={c.body} lines={4} className="mt-0.5 text-sm text-brand-ink" />
           <div className="mt-1 flex flex-wrap gap-3 text-xs font-semibold text-gray-600">
             {!isReply && <button type="button" onClick={() => setReplying(replying === c.id ? null : c.id)} className="min-h-[32px] hover:text-brand-teal">Reply</button>}
             {c.mine ? <button type="button" onClick={() => remove(c.id)} className="min-h-[32px] hover:text-brand-rose">Delete</button> : <button type="button" onClick={() => report(c.id)} className="min-h-[32px] hover:text-brand-rose">Report</button>}

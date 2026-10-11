@@ -1,3 +1,4 @@
+import { syncShowcasePosts } from "@/lib/posts/showcaseSync";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -57,6 +58,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       },
     });
 
+    await syncShowcasePosts().catch(() => null);
     try {
       const showcaseUrl = appUrl(parsed.data.action === "APPROVE" ? `/showcase/${project.id}` : "/trainee/profile");
       const content =

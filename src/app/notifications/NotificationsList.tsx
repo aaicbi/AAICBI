@@ -1,4 +1,5 @@
 "use client";
+import Clamp from "@/components/ui/Clamp";
 import { useState } from "react";
 import Card from "@/components/ui/Card";
 import EmptyState from "@/components/ui/EmptyState";
@@ -51,19 +52,22 @@ export default function NotificationsList({ initialNotifications }: { initialNot
         ) : (
           notifications.map((n) => (
             <Card key={n.id} interactive className={!n.readAt ? "bg-brand-mint/20" : ""}>
-              <button onClick={() => handleClick(n)} className="flex w-full items-start gap-3 text-left">
+              {/* The card opens the notification from its title (a real button, so keyboards work) or by tapping the text; "See more" is a separate control and never opens it. */}
+              <div className="flex w-full items-start gap-3 text-left" onClick={(e) => { if (!(e.target as HTMLElement).closest("button, a")) handleClick(n); }}>
                 <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-mint text-brand-teal">
                   <Icon icon={notificationIconFor(n.type)} size="sm" />
                 </span>
-                <span className="min-w-0 flex-1">
-                  {n.senderLabel && (
-                    <p className="text-xs font-bold uppercase tracking-wide text-brand-tealDeep">{n.senderLabel}</p>
-                  )}
-                  <p className="text-sm font-semibold text-brand-ink">{n.title}</p>
-                  <p className="mt-1 text-sm text-gray-600">{n.body}</p>
+                <div className="min-w-0 flex-1 cursor-pointer">
+                  <button type="button" onClick={() => handleClick(n)} className="block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
+                    {n.senderLabel && (
+                      <span className="block text-xs font-bold uppercase tracking-wide text-brand-tealDeep">{n.senderLabel}</span>
+                    )}
+                    <span className="block break-words [overflow-wrap:anywhere] text-sm font-semibold text-brand-ink">{n.title}</span>
+                  </button>
+                  <Clamp lines={3} className="mt-1 text-sm text-gray-600"><p className="whitespace-pre-line">{n.body}</p></Clamp>
                   <p className="mt-1.5 text-xs text-gray-400">{new Date(n.createdAt).toLocaleString()}</p>
-                </span>
-              </button>
+                </div>
+              </div>
             </Card>
           ))
         )}

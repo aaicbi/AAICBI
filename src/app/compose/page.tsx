@@ -20,6 +20,7 @@ function Composer() {
   const { showToast } = useToast();
   const [identities, setIdentities] = useState<Identity[] | null>(null);
   const [signedOut, setSignedOut] = useState(false);
+  const [blocked, setBlocked] = useState<string | null>(null);
   const [identity, setIdentity] = useState("self");
   const [body, setBody] = useState("");
   const [title, setTitle] = useState("");
@@ -36,6 +37,7 @@ function Composer() {
     if (r.status === 401) return setSignedOut(true);
     const d = await r.json();
     setIdentities(d.identities);
+    setBlocked(d.blockedReason ?? null);
     if (d.identities[0]) setIdentity(d.identities[0].key);
     if (editId) {
       const p = await fetch(`/api/posts/${editId}`);
@@ -77,7 +79,7 @@ function Composer() {
       if (!s.ok && s.status !== 409) { setBusy(null); return setError(sd.error ?? "Saved, but it could not be sent for review."); }
     }
     setBusy(null);
-    showToast(submit ? (identities?.find((i) => i.key === identity)?.skipsReview ? "Published." : "Sent for review. You will be told the outcome.") : "Saved as a draft.", "success");
+    showToast(submit ? (identities?.find((i) => i.key === identity)?.skipsReview ? "Published." : "Sent. If it needs a second look you will be told the outcome.") : "Saved as a draft.", "success");
     router.push("/my-posts");
   }
 
@@ -93,7 +95,7 @@ function Composer() {
         {signedOut ? (
           <Card className="mt-4"><p className="text-sm text-gray-700">Please sign in to write a post.</p><div className="mt-3 flex flex-wrap gap-2"><Button href="/trainee/login" size="sm">Member sign in</Button><Button href="/trainee/register" size="sm" variant="secondary">Create an account</Button></div></Card>
         ) : !identities ? <div className="mt-4"><SkeletonList rows={2} /></div> : identities.length === 0 ? (
-          <Card className="mt-4"><p className="text-sm text-gray-700">Your account cannot post yet. Employers and investors need to be approved first.</p></Card>
+          <Card className="mt-4"><p className="text-sm text-gray-700">{blocked ?? "Your account cannot post yet."}</p></Card>
         ) : (
           <form className="mt-4 space-y-4" onSubmit={(e) => { e.preventDefault(); save(true); }}>
             <Card className="space-y-4">
@@ -124,7 +126,7 @@ function Composer() {
               {images.length === 0 && <Input label="YouTube link (optional)" value={youtube} onChange={(e) => setYoutube(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." inputMode="url" hint="A video plays inside the post. A post has a video or images, not both." />}
               <Select label="Who can see it" value={visibility} onChange={(e) => setVisibility(e.target.value as "PUBLIC" | "MEMBERS")}><option value="PUBLIC">Everyone</option><option value="MEMBERS">Signed-in members only</option></Select>
             </Card>
-            <p className="text-sm text-gray-700">{publishing ? "As a super admin your own posts are published straight away." : backToReview ? "This post is published. Changing its words, pictures or video sends it back for review, and it is hidden until a reviewer approves the new version." : "Your post is reviewed by the AAICBI team before it appears publicly. You can follow its status in My posts."}</p>
+            <p className="text-sm text-gray-700">{publishing ? "As a super admin your own posts are published straight away." : backToReview ? "This post is published. Changing its words, pictures or video sends it back for review, and it is hidden until a reviewer approves the new version." : "Your post is checked automatically when you send it. If it looks fine it is published straight away; if anything needs a second look, the AAICBI team reviews it first. You can follow its status in My posts."}</p>
             {error && <p className="text-sm text-brand-rose" role="alert">{error}</p>}
             <div className="flex flex-wrap justify-end gap-2">
               <Link href="/my-posts" className="inline-flex min-h-[44px] items-center px-4 text-sm font-semibold text-gray-700 hover:underline">Cancel</Link>

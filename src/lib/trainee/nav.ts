@@ -18,6 +18,9 @@
 export const TRAINEE_NAV = [
   { label: "Dashboard", href: "/trainee/dashboard" },
   { label: "Courses", href: "/trainee/courses" },
+  { label: "Feed", href: "/feed" },
+  { label: "Write a post", href: "/compose" },
+  { label: "My posts", href: "/my-posts" },
   { label: "Examinations", href: "/trainee/examinations" },
   // AI Assignment Engine — a separate, adjacent concept from
   // Examinations, same reasoning the product spec itself insists on:

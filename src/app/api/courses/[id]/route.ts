@@ -9,7 +9,10 @@ import { validateCoursePricing } from "@/lib/coursePricing";
 import { hasCourseAccess, expireLapsedEnrollmentsForTrainee } from "@/lib/courseAccess";
 import { isModuleIndexInFreePreview } from "@/lib/courseAccessCore";
 import { isCoursePubliclyVisible } from "@/lib/courseStatus";
-import { requireOwnedCourse } from "@/lib/courseOwnership";
+import { requireCourseOwner, requireOwnedCourse } from "@/lib/courseOwnership";
+import { courseAccess } from "@/lib/collab/access";
+import { describeRouting } from "@/lib/courses/payments";
+import { ownerOnlyFieldsIn } from "@/lib/collab/core";
 import { buildMarketingView } from "@/lib/courseMarketing";
 import { publisherNames } from "@/lib/courseOrg";
 import { safeUrl } from "@/lib/materialUrl";
@@ -84,7 +87,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // that very fix. PUT/DELETE below are deliberately untouched —
     // this only broadens VIEWING, never editing or deleting someone
     // else's course.
-    const isOwner = isStaff && (session.role === "SUPER_ADMIN" || course.createdById === session.userId);
+    const isOwner = isStaff && !!(await courseAccess(course, session.userId, session.role));
 
     // Unlisted-course direct-link access — an UNLISTED course is
     // excluded from every catalog/browse listing (that filtering
@@ -135,7 +138,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
             }),
           }
         : null;
-      return NextResponse.json({ ...course, trainingOrganization });
+      const owner = org ? null : await prisma.user.findUnique({ where: { id: course.createdById }, select: { name: true, role: true } });
+      const viewer = { isSuperAdmin: session.role === "SUPER_ADMIN" };
+      const ownerName = org ? org.name : owner?.role === "INSTRUCTOR" ? `${owner.name} (instructor)` : "AAICBI";
+      // Only a super admin sees how the owner is paid; it is not for the owner or an editor.
+      const payments = viewer.isSuperAdmin ? { routing: describeRouting(course, org), orgName: org?.name ?? null } : undefined;
+      return NextResponse.json({ ...course, trainingOrganization, viewer, ownerName, platformOwned: !org, payments });
     }
 
     // Analytics System Phase 1 — a trainee reaching this point has
@@ -472,6 +480,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
+    // Someone invited to edit changes the content; publishing, pricing and the certificate stay with the owner.
+    if ((session.role !== "SUPER_ADMIN" && course.createdById !== session.userId) || session.actor?.role === "EDITOR" || session.actor?.role === "VIEWER") {
+      const blocked = ownerOnlyFieldsIn(parsed.data as Record<string, unknown>);
+      if (blocked.length > 0) return NextResponse.json({ error: "Only the owner of this course can change publishing, pricing and the certificate." }, { status: 403 });
+    }
 
     // Training Organizations, Phase 2 — a non-null template id must
     // belong to the same organization that owns this course (via its
@@ -580,7 +593,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedCourse(params.id, session.userId, session.role);
+    await requireCourseOwner(params.id, session.userId, session.role);
     // M11 audit finding — a Course delete cascades through every one
     // of its modules' assessments too; see deletionGuards.ts.
     await guardCourseDeletable(params.id);
