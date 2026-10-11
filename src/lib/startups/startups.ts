@@ -1,3 +1,4 @@
+import { discoveryChanged } from "@/lib/posts/feedCache";
 import type { Prisma, Startup, StartupMember } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { appUrl } from "@/lib/appUrl";
@@ -90,6 +91,7 @@ export async function decideStartup(startupId: string, action: AdminAction, note
     data: { status: next.status as Startup["status"], reviewNote: note?.trim() || null, reviewedById: actor.userId, reviewedAt: new Date() },
   });
   if (res.count === 0) throw new StartupError("Someone else just decided this startup.", 409);
+  discoveryChanged();
   const profile = await ensureProfile("STARTUP", startupId);
   const founders = await prisma.startupMember.findMany({ where: { startupId, role: "FOUNDER", status: "ACTIVE" }, select: { traineeId: true } });
   const words: Record<AdminAction, string> = { approve: "was approved and is now public", reject: "was not approved", suspend: "was suspended", reinstate: "is public again" };
@@ -103,6 +105,7 @@ export async function setVerified(startupId: string, verified: boolean): Promise
   if (!s) throw new StartupError("Startup not found.", 404);
   if (verified && s.status !== "APPROVED") throw new StartupError("Only an approved startup can be marked verified.", 409);
   await prisma.startup.update({ where: { id: startupId }, data: { verified } });
+  discoveryChanged();
 }
 
 // ---- Team ----
