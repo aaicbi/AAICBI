@@ -71,10 +71,10 @@ export default function PostCard({ post, showStatus = false, headerAction, foote
         {headerAction}
         {showStatus && <Badge variant={post.status === "PUBLISHED" ? "success" : post.status === "REJECTED" || post.status === "SUSPENDED" ? "danger" : "warning"}>{STATUS_LABEL[post.status]}</Badge>}
       </header>
-      {post.title && <h2 className="mt-3 break-words [overflow-wrap:anywhere] font-display text-lg font-semibold text-brand-ink">{post.title}</h2>}
-      {post.body && <PostText text={post.body} lines={full ? undefined : 8} className="mt-2 text-sm leading-relaxed text-brand-ink" />}
-      <Gallery images={post.images} />
       {post.youtubeId && <div className="mt-3"><VideoPlayer source={{ kind: "youtube", id: post.youtubeId }} title={post.title ?? `Video by ${post.author.name}`} /></div>}
+      <Gallery images={post.images} />
+      {post.title && <h2 className="mt-3 break-words [overflow-wrap:anywhere] font-display text-lg font-semibold text-brand-ink">{post.title}</h2>}
+      {post.body && <PostText text={post.body} lines={full ? 8 : 4} className="mt-2 text-sm leading-relaxed text-brand-ink" />}
       {post.visibility === "MEMBERS" && <p className="mt-3 text-xs font-semibold text-gray-600">Visible to signed-in members only</p>}
       {footer}
     </article>

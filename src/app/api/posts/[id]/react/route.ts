@@ -7,7 +7,7 @@ import { postFailure, requireActor } from "@/lib/posts/http";
 
 export const dynamic = "force-dynamic";
 
-/** POST { kind: "LIKE" | "INSIGHTFUL" | "CELEBRATE" | null } — set your one reaction on a post, or remove it with null. */
+/** POST { kind: "LIKE" | "INSIGHTFUL" | "CELEBRATE" | "DISLIKE" | null } — set your one reaction on a post, or remove it with null. */
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const a = await requireActor();

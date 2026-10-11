@@ -63,7 +63,7 @@ export interface PostStats {
 }
 
 export async function statsFor(postIds: string[], actor: Actor | null): Promise<Map<string, PostStats>> {
-  const out = new Map<string, PostStats>(postIds.map((id) => [id, { reactions: { LIKE: 0, INSIGHTFUL: 0, CELEBRATE: 0 }, mine: null, comments: 0, bookmarked: false }]));
+  const out = new Map<string, PostStats>(postIds.map((id) => [id, { reactions: { LIKE: 0, INSIGHTFUL: 0, CELEBRATE: 0, DISLIKE: 0 }, mine: null, comments: 0, bookmarked: false }]));
   if (postIds.length === 0) return out;
   const [rx, cm, mine, bm] = await Promise.all([
     prisma.postReaction.groupBy({ by: ["postId", "kind"], where: { postId: { in: postIds } }, _count: { _all: true } }),
@@ -295,6 +295,14 @@ async function withStats(rows: Array<Post & { media: Array<{ url: string; alt: s
     const subject = v.actingAs?.profileId ?? v.author.profileId;
     return { ...v, stats: stats.get(v.id)!, authorFollowed: followed.has(subject), canFollowAuthor: !actor || actor.profile.id !== subject };
   });
+}
+
+/** One already-loaded post with its reactions, comments and follow state, for the single-post page. */
+export async function feedPostOf(post: PostView, actor: Actor | null): Promise<FeedPost> {
+  const stats = await statsFor([post.id], actor);
+  const subject = post.actingAs?.profileId ?? post.author.profileId;
+  const followed = await followingSet(actor, [subject]);
+  return { ...post, stats: stats.get(post.id)!, authorFollowed: followed.has(subject), canFollowAuthor: !actor || actor.profile.id !== subject };
 }
 
 /** Posts the actor saved, newest save first (only those still public). */

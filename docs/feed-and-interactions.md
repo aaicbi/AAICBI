@@ -11,7 +11,7 @@
 Only posts that pass `publicPostWhere` appear: published, not blocked by the author's organization, and public (or signed-in-only for signed-in readers). A suspended or blocked post disappears from the feed, tag pages and search at once.
 
 ## Interactions
-- **Reactions**: Like, Insightful, Celebrate. One per profile per post; choosing another replaces it; choosing none removes it.
+- **Reactions**: Like, Dislike, Insightful, Celebrate (Like and Dislike are one tap each; Insightful and Celebrate are under the sparkle button). One per profile per post; choosing another replaces it; choosing none removes it.
 - **Comments**: up to 1000 characters, at most 2 links, one level of replies (a reply to a reply attaches to the top comment). The post's author or side, the comment's author and reviewers can remove a comment.
 - **Follow**: profile to profile (people, organizations, startups). Cannot follow yourself; following twice is one follow; private profiles cannot be followed (hidden = missing). Organization follows made the older way are mirrored.
 - **Saved**: private bookmarks, listed at `/saved`.
@@ -33,3 +33,7 @@ Only posts that pass `publicPostWhere` appear: published, not blocked by the aut
 
 ## Checks
 `tests/interactionCore.test.ts` (rules) and `scripts/device-checks/interactions.cjs` (37 real-database checks: visitor reading, the gate on every action, one reaction per profile, comment limits, follows, follower-list privacy, saved, reports to review, tags, search, hidden posts).
+
+## A post, top to bottom
+Video or pictures first, then the title, then the text cut short with "See more" (4 lines in the feed, 8 on the post's own page). Under it: Like, Dislike, Comment, Save, Share and Report. The post's own page (`/post/[id]`) has the same bar as the feed, with the comments already open, a box to write a comment and a Reply under each comment. A visitor can read everything and is asked to join only when they try to take part. Unpublished posts (drafts, held for review) show no reactions.
+`scripts/device-checks/post-detail.cjs` checks the order, the bar, dislike, comment, reply and the visitor gate.

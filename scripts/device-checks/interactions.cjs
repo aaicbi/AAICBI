@@ -9,7 +9,7 @@ const call = async (method, path, cookie, body) => { const r = await fetch(B + p
   const t1 = jar(await cookiesFor('/api/auth/trainee-login', 't1@dev.test'));
   const cleanup = () => psql(`delete from "Post" where "legacyEducationPostId" is null; update "Trainee" set "profileVisibility"='PRIVATE' where email='t0@dev.test'`);
   cleanup();
-  let pv = await call('POST', '/api/follow', jar(await cookiesFor('/api/auth/trainee-login', 't1@dev.test')), { profileId: psql(`select p.id from "Profile" p join "Trainee" t on t.id=p."traineeId" where t.email='t0@dev.test'`) }); log(pv.s === 404, 'a private profile cannot be followed (hidden = missing)');
+  let pv = await call('POST', '/api/follow', jar(await cookiesFor('/api/auth/trainee-login', 't1@dev.test')), { profileId: psql(`select p.id from "Profile" p join "Trainee" t on t.id=p."traineeId" where t.email='t0@dev.test'`) }); log(pv.s === 200, 'a private member is findable by name, so can be followed (only their name shows)');
   psql(`update "Trainee" set "profileVisibility"='PUBLIC' where email='t0@dev.test'`);
   const h0 = psql(`select p.handle from "Profile" p join "Trainee" t on t.id=p."traineeId" where t.email='t0@dev.test'`);
   const p1 = psql(`select p.id from "Profile" p join "Trainee" t on t.id=p."traineeId" where t.email='t1@dev.test'`);
