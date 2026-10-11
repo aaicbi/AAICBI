@@ -13,7 +13,7 @@ import type { QueueItem } from "@/lib/review/queue";
 import type { QueueFilter } from "@/lib/review/reviewCore";
 
 type Counts = Record<QueueFilter, number>;
-const FILTERS: Array<[QueueFilter, string]> = [["all", "Everything"], ["posts", "Posts"], ["loop", "Loop questions"], ["appeals", "Appeals"], ["escalated", "Escalated"]];
+const FILTERS: Array<[QueueFilter, string]> = [["all", "Everything"], ["posts", "Posts"], ["loop", "Loop questions"], ["appeals", "Appeals"], ["reports", "Reports"], ["escalated", "Escalated"]];
 type Pending = { id: string; action: string } | null;
 const when = (v: string) => new Date(v).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
 const PRIORITY: Record<string, "danger" | "warning" | "neutral"> = { HIGH: "danger", MEDIUM: "warning", LOW: "neutral" };
@@ -43,7 +43,7 @@ export default function ReviewInboxPage() {
 
   async function send(item: QueueItem, action: string, extra: Record<string, unknown> = {}) {
     setBusy(item.id);
-    const path = item.kind === "POST" ? `posts/${item.id}` : item.kind === "APPEAL" ? `appeals/${item.id}` : `loop/${item.id}`;
+    const path = item.kind === "POST" ? `posts/${item.id}` : item.kind === "APPEAL" ? `appeals/${item.id}` : item.kind === "REPORT" ? `reports/${item.id}` : `loop/${item.id}`;
     const res = await fetch(`/api/admin/review/${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, note, ...extra }) });
     setBusy(null);
     const d = await res.json().catch(() => ({}));
@@ -68,7 +68,10 @@ export default function ReviewInboxPage() {
     const open = pending?.id === item.id ? pending.action : null;
     const buttons: React.ReactNode[] = [];
     const add = (key: string, label: string, onClick: () => void, variant: "primary" | "secondary" | "danger" = "secondary") => buttons.push(<Button key={key} size="sm" variant={variant} loading={busy === item.id && key === "direct"} onClick={onClick}>{label}</Button>);
-    if (item.kind === "POST") {
+    if (item.kind === "REPORT") {
+      add("action", item.targetKind === "COMMENT" ? "Remove the comment" : "Take the post down", () => start(item.id, "action"), "primary");
+      add("dismiss", "Dismiss the report", () => start(item.id, "dismiss"));
+    } else if (item.kind === "POST") {
       add("direct", "Approve and publish", () => send(item, "approve"), "primary");
       add("changes", "Request changes", () => start(item.id, "request_changes"));
       add("reject", "Reject", () => start(item.id, "reject"));
@@ -88,6 +91,8 @@ export default function ReviewInboxPage() {
         {open === "reject" && reasonBox(item, item.kind === "LOOP" ? "Why should Loop not answer this? (kept in the history)" : "Why is it not approved? (the author will read this)", "reject", true)}
         {open === "lift" && reasonBox(item, "Why are you lifting the organization's hold? (the author will read this)", "lift")}
         {open === "uphold" && reasonBox(item, "Why does the hold stay? (the author will read this)", "uphold", true)}
+        {open === "action" && reasonBox(item, "What are you doing, and why? (kept in the history)", "action", true)}
+        {open === "dismiss" && reasonBox(item, "Why does this not break the rules? (kept in the history)", "dismiss")}
         {open === "escalate" && reasonBox(item, "Why should a super admin decide this?", "escalate")}
         {open === "answer" && item.kind === "LOOP" && (
           <div className="mt-3 space-y-2">
@@ -111,13 +116,20 @@ export default function ReviewInboxPage() {
         {error ? <ErrorState message={error} onRetry={load} /> : !data ? <SkeletonList rows={3} /> : data.items.length === 0 ? <EmptyState title="Nothing waiting" description="The inbox is clear for this filter." /> : data.items.map((item) => (
           <Card key={`${item.kind}-${item.id}`}>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="neutral">{item.kind === "POST" ? "Post" : item.kind === "APPEAL" ? "Appeal" : "Loop question"}</Badge>
+              <Badge variant="neutral">{item.kind === "POST" ? "Post" : item.kind === "APPEAL" ? "Appeal" : item.kind === "REPORT" ? "Report" : "Loop question"}</Badge>
               {item.escalated && <Badge variant="warning">Escalated</Badge>}
               {item.kind === "LOOP" && <Badge variant={PRIORITY[item.priority] ?? "neutral"}>{item.priority.toLowerCase()} priority</Badge>}
               <span className="text-xs text-gray-600">Waiting since {when(item.waitingSince)}</span>
             </div>
             {item.escalated && item.escalationNote && <p className="mt-2 break-words text-sm text-brand-goldText">Escalated{item.escalatedByName ? ` by ${item.escalatedByName}` : ""}: {item.escalationNote}</p>}
-            {(item.kind === "POST" || item.kind === "APPEAL") && <div className="mt-3"><PostCard post={item.post} /></div>}
+            {(item.kind === "POST" || item.kind === "APPEAL" || item.kind === "REPORT") && <div className="mt-3"><PostCard post={item.post} /></div>}
+            {item.kind === "REPORT" && (
+              <div className="mt-3 space-y-1 rounded-xl bg-brand-sand p-3 text-sm">
+                <p><span className="font-semibold">Reported {item.targetKind === "COMMENT" ? "a comment" : "this post"}:</span> {item.reason}{item.details ? ` · ${item.details}` : ""}</p>
+                {item.commentBody && <p className="break-words"><span className="font-semibold">The comment: </span>{item.commentBody}</p>}
+                <p className="text-xs text-gray-600">Reported by {item.reporterName ?? "someone"}{item.reportCount > 1 ? ` and ${item.reportCount - 1} other${item.reportCount > 2 ? "s" : ""}` : ""}.</p>
+              </div>
+            )}
             {item.kind === "APPEAL" && (
               <div className="mt-3 space-y-1 rounded-xl bg-brand-sand p-3 text-sm">
                 <p className="break-words"><span className="font-semibold">The organization hid it because: </span>{item.orgBlockReason ?? "no reason recorded"}</p>

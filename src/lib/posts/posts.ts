@@ -250,7 +250,7 @@ export interface PostView {
   actingAs: (ProfileCard & { linkable: boolean }) | null;
 }
 
-async function toViews(posts: Array<Post & { media: Array<{ url: string; alt: string | null; order: number }> }>, viewer: SessionPayload | null): Promise<PostView[]> {
+export async function toViews(posts: Array<Post & { media: Array<{ url: string; alt: string | null; order: number }> }>, viewer: SessionPayload | null): Promise<PostView[]> {
   const profileIds = [...new Set(posts.flatMap((p) => [p.authorProfileId, p.actingAsProfileId]).filter((x): x is string => !!x))];
   const profiles = await prisma.profile.findMany({ where: { id: { in: profileIds } } });
   const cards = await cardsFor(profiles);

@@ -82,9 +82,9 @@ describe("when to offer installation", () => {
 });
 
 describe("the phone bottom navigation", () => {
-  it("points only at pages that exist for that account, and always includes Alerts", () => {
+  it("points only at pages that exist for that account, and always includes Feed (Alerts live in More)", () => {
     for (const [role, tabs] of Object.entries(BOTTOM_NAV)) {
-      expect(tabs.some((t) => t.key === "alerts"), role).toBe(true);
+      expect(tabs.some((t) => t.key === "feed"), role).toBe(true);
       expect(tabs.length, role).toBeLessThanOrEqual(4); // plus More = at most five targets
     }
     // Investors have no messaging yet, so they are not offered a Messages tab; everyone who can message is.

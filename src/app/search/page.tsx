@@ -10,6 +10,9 @@ import VerifiedBadge from "@/components/ecosystem/VerifiedBadge";
 import { getEcosystemFlags } from "@/lib/ecosystem/flags";
 import { searchEcosystem } from "@/lib/ecosystem/search";
 import { searchPeople } from "@/lib/profiles/profileSearch";
+import { actorOf, searchPosts } from "@/lib/posts/interactions";
+import SocialProvider from "@/components/posts/SocialProvider";
+import PostItem from "@/components/posts/PostItem";
 import { getSession } from "@/lib/auth/session";
 import AvatarFallback from "@/components/ui/AvatarFallback";
 import { normalizeQuery, parseKind, SEARCH_KINDS } from "@/lib/ecosystem/searchCore";
@@ -17,7 +20,7 @@ import { normalizeQuery, parseKind, SEARCH_KINDS } from "@/lib/ecosystem/searchC
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Search", robots: { index: false } };
 
-const KIND_LABEL: Record<(typeof SEARCH_KINDS)[number], string> = { all: "All", people: "People", organizations: "Organizations", videos: "Videos", programs: "Programs", events: "Events" };
+const KIND_LABEL: Record<(typeof SEARCH_KINDS)[number], string> = { all: "All", people: "People", posts: "Posts", organizations: "Organizations", videos: "Videos", programs: "Programs", events: "Events" };
 
 /** /search — organizations, videos, programs and events in one place. */
 export default async function SearchPage({ searchParams }: { searchParams: { q?: string; kind?: string } }) {
@@ -27,11 +30,15 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
   const kind = parseKind(searchParams.kind);
   const results = q ? await searchEcosystem(q, kind, flags) : null;
   // People are found by name, handle or a former handle, and only when their profile can be seen.
-  const people = q && (kind === "all" || kind === "people") ? await searchPeople(q, await getSession()) : [];
-  const total = results ? results.organizations.length + results.videos.length + results.programs.length + results.events.length + people.length : 0;
+  const session = await getSession();
+  const people = q && (kind === "all" || kind === "people") ? await searchPeople(q, session) : [];
+  // Posts: public, published posts matching the words or a #topic.
+  const actor = await actorOf(session);
+  const posts = q && (kind === "all" || kind === "posts") ? await searchPosts(q, actor, kind === "posts" ? 20 : 5) : [];
+  const total = results ? results.organizations.length + results.videos.length + results.programs.length + results.events.length + people.length + posts.length : 0;
 
   return (
-    <>
+    <SocialProvider signedIn={!!actor}>
       <SiteHeader nav={[{ label: "Learn", href: "/learn" }, { label: "Organizations", href: "/organizations" }]} />
       <EcosystemSubnav active="search" feedEnabled={flags.feed} />
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -74,6 +81,13 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
                 </li>
               ))}
             </ul>
+          </section>
+        )}
+        {results && posts.length > 0 && (
+          <section className="mt-8" aria-labelledby="r-posts">
+            <h2 id="r-posts" className="font-display text-lg font-semibold text-brand-ink">Posts</h2>
+            <ul className="mx-auto mt-3 max-w-xl space-y-4">{posts.map((p) => <li key={p.id}><PostItem post={p} /></li>)}</ul>
+            {kind === "all" && posts.length >= 5 && <p className="mt-3 text-sm"><Link href={`/search?q=${encodeURIComponent(q ?? "")}&kind=posts`} className="font-semibold text-brand-teal hover:underline">See all posts</Link></p>}
           </section>
         )}
         {results && results.organizations.length > 0 && (
@@ -130,6 +144,6 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
           </section>
         )}
       </main>
-    </>
+    </SocialProvider>
   );
 }

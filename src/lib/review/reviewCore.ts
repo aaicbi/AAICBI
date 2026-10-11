@@ -34,9 +34,9 @@ export function checkReason(note: unknown): { ok: true; note: string } | { ok: f
   return { ok: true, note: n };
 }
 
-export type QueueKind = "POST" | "APPEAL" | "LOOP";
-export type QueueFilter = "all" | "posts" | "loop" | "appeals" | "escalated";
-export const QUEUE_FILTERS: QueueFilter[] = ["all", "posts", "loop", "appeals", "escalated"];
+export type QueueKind = "POST" | "APPEAL" | "LOOP" | "REPORT";
+export type QueueFilter = "all" | "posts" | "loop" | "appeals" | "reports" | "escalated";
+export const QUEUE_FILTERS: QueueFilter[] = ["all", "posts", "loop", "appeals", "reports", "escalated"];
 
 export function parseFilter(raw: string | null | undefined): QueueFilter {
   return (QUEUE_FILTERS as string[]).includes(raw ?? "") ? (raw as QueueFilter) : "all";
@@ -50,6 +50,7 @@ export function matchesFilter(e: QueueEntry, filter: QueueFilter): boolean {
     case "posts": return e.kind === "POST";
     case "loop": return e.kind === "LOOP";
     case "appeals": return e.kind === "APPEAL";
+    case "reports": return e.kind === "REPORT";
     case "escalated": return e.escalated;
   }
 }

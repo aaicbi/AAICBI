@@ -7,6 +7,11 @@ import Badge from "@/components/ui/Badge";
 import BackLink from "@/components/ui/BackLink";
 import AvatarFallback from "@/components/ui/AvatarFallback";
 import { getSession } from "@/lib/auth/session";
+import SocialProvider from "@/components/posts/SocialProvider";
+import FollowButton from "@/components/posts/FollowButton";
+import FollowersList from "@/components/posts/FollowersList";
+import PostItem from "@/components/posts/PostItem";
+import { actorOf, followingSet, postsOfProfile } from "@/lib/posts/interactions";
 import { profileHref } from "@/lib/profiles/profiles";
 import { resolveHandle } from "@/lib/profiles/handleChanges";
 import { kindLabel, loadProfileView } from "@/lib/profiles/view";
@@ -44,11 +49,16 @@ export default async function ProfilePage({ params }: { params: { handle: string
   // A former handle forwards for good (308), so links and search engines move to the new address.
   if (loaded.former) permanentRedirect(profileHref(loaded.current));
   const v = loaded.view;
-  const back = backTarget((await getSession())?.role ?? null);
+  const session = await getSession();
+  const back = backTarget(session?.role ?? null);
+  const actor = await actorOf(session);
+  const isSelf = !!actor && actor.profile.id === v.profileId;
+  const followed = (await followingSet(actor, [v.profileId])).has(v.profileId);
+  const posts = await postsOfProfile(v.profileId, actor);
   const square = v.kind !== "PERSON" && v.kind !== "STAFF";
 
   return (
-    <>
+    <SocialProvider signedIn={!!actor}>
       <SiteHeader nav={[{ label: "Courses", href: "/courses" }, { label: "Feed", href: "/feed" }]} />
       <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
         <BackLink href={back.href}>{back.label}</BackLink>
@@ -67,7 +77,10 @@ export default async function ProfilePage({ params }: { params: { handle: string
             <Badge variant="neutral">{kindLabel(v.kind)}</Badge>
             {v.verified && <Badge variant="success">Verified</Badge>}
             {v.followers !== null && <span className="text-sm text-gray-700"><span className="font-semibold text-brand-ink">{v.followers.toLocaleString("en-GB")}</span> follower{v.followers === 1 ? "" : "s"}</span>}
+            {v.following !== null && <span className="text-sm text-gray-700"><span className="font-semibold text-brand-ink">{v.following.toLocaleString("en-GB")}</span> following</span>}
+            {!isSelf && <FollowButton profileId={v.profileId} initial={followed} name={v.name} size="md" />}
           </div>
+          {v.followers !== null && <FollowersList handle={v.handle} count={v.followers} />}
           {v.headline && <p className="mt-3 break-words text-base text-brand-ink">{v.headline}</p>}
           {v.about && <p className="mt-2 whitespace-pre-line break-words text-sm text-gray-700">{v.about}</p>}
           {v.note && <p className="mt-2 text-sm font-semibold text-brand-teal">{v.note}</p>}
@@ -106,7 +119,13 @@ export default async function ProfilePage({ params }: { params: { handle: string
             )}
           </Card>
         ))}
+        {posts.length > 0 && (
+          <section className="mt-6" aria-label="Posts">
+            <h2 className="font-display text-lg font-semibold text-brand-ink">Posts</h2>
+            <ul className="mt-3 space-y-4">{posts.map((p) => <li key={p.id}><PostItem post={p} /></li>)}</ul>
+          </section>
+        )}
       </main>
-    </>
+    </SocialProvider>
   );
 }

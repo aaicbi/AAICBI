@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Briefcase, Building2, CalendarDays, Home, LayoutGrid, MessageSquare, Users, X, BookOpen } from "lucide-react";
+import { Bell, Briefcase, Building2, CalendarDays, Home, LayoutGrid, MessageSquare, Newspaper, Users, X, BookOpen } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import { setBottomNavLayer } from "@/lib/floatingLayers";
 import { BOTTOM_NAV, MORE_EXTRAS, bottomNavHidden, isTabActive, unreadLabel, type NavIconKey, type NavRole } from "@/lib/pwa/mobileNav";
@@ -10,7 +10,7 @@ import AddToHomeScreenButton from "@/components/pwa/AddToHomeScreenButton";
 import { navTarget } from "@/lib/guide/navigation";
 
 const ICONS: Record<NavIconKey, typeof Home> = {
-  home: Home, messages: MessageSquare, events: CalendarDays, talent: Users, jobs: Briefcase, courses: BookOpen, organizations: Building2, alerts: Bell,
+  home: Home, messages: MessageSquare, events: CalendarDays, talent: Users, jobs: Briefcase, courses: BookOpen, organizations: Building2, alerts: Bell, feed: Newspaper,
 };
 
 /** Unread notification count for the Alerts tab, refreshed every minute while the page is visible. */
@@ -107,6 +107,12 @@ export default function MobileBottomNav({ role, moreItems }: { role: NavRole; mo
               </button>
             </div>
             <ul className="mt-2 grid grid-cols-2 gap-2">
+              <li>
+                <Link href="/notifications" data-guide-target={navTarget("/notifications")} className="flex min-h-[48px] items-center justify-between rounded-xl border border-brand-teal bg-brand-mint px-3 text-sm font-semibold text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
+                  <span className="flex items-center gap-2"><Bell aria-hidden="true" width={18} height={18} />Alerts</span>
+                  {unread > 0 && <span className="rounded-full bg-brand-rose px-2 text-xs font-bold text-brand-onAccent">{unreadLabel(unread)}<span className="sr-only"> unread</span></span>}
+                </Link>
+              </li>
               {[...moreItems, ...extras].map((item) => (
                 <li key={item.href}>
                   <Link href={item.href} data-guide-target={navTarget(item.href)} className="flex min-h-[48px] items-center rounded-xl border border-brand-gray px-3 text-sm font-semibold text-brand-ink hover:border-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
@@ -130,12 +136,6 @@ export default function MobileBottomNav({ role, moreItems }: { role: NavRole; mo
                 <Link href={t.href} data-guide-target={navTarget(t.href)} aria-current={active ? "page" : undefined} className={tabClass(active)}>
                   <span className={`relative flex h-8 w-14 items-center justify-center rounded-full transition-colors ${pill(active)}`}>
                     <TabIcon aria-hidden="true" width={22} height={22} strokeWidth={active ? 2.5 : 2} />
-                    {t.key === "alerts" && unread > 0 && (
-                      <span className="absolute -right-2.5 -top-1.5 min-w-[18px] rounded-full bg-brand-rose px-1 text-center text-[10px] font-bold leading-[18px] text-brand-onAccent">
-                        {unreadLabel(unread)}
-                        <span className="sr-only"> unread</span>
-                      </span>
-                    )}
                   </span>
                   {t.label}
                 </Link>
@@ -144,8 +144,14 @@ export default function MobileBottomNav({ role, moreItems }: { role: NavRole; mo
           })}
           <li className="flex flex-1">
             <button ref={moreButton} data-guide-target="more" type="button" onClick={() => setMoreOpen((o) => !o)} aria-expanded={moreOpen} aria-haspopup="dialog" className={tabClass(moreOpen)}>
-              <span className={`flex h-8 w-14 items-center justify-center rounded-full transition-colors ${pill(moreOpen)}`}>
+              <span className={`relative flex h-8 w-14 items-center justify-center rounded-full transition-colors ${pill(moreOpen)}`}>
                 <LayoutGrid aria-hidden="true" width={22} height={22} />
+                {unread > 0 && (
+                  <span className="absolute -right-1 -top-1.5 min-w-[18px] rounded-full bg-brand-rose px-1 text-center text-[10px] font-bold leading-[18px] text-brand-onAccent">
+                    {unreadLabel(unread)}
+                    <span className="sr-only"> unread alerts</span>
+                  </span>
+                )}
               </span>
               More
             </button>

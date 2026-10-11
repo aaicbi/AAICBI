@@ -25,6 +25,8 @@ export interface ProfileView {
   verified: boolean;
   chips: string[];
   followers: number | null;
+  following: number | null;
+  profileId: string;
   /** The existing detailed page for this account, when there is one. */
   moreHref: string | null;
   moreLabel: string | null;
@@ -43,7 +45,7 @@ export function kindLabel(kind: Profile["kind"]): string {
   return { PERSON: "Member", TRAINING_ORG: "Training organization", EMPLOYER: "Employer", INVESTOR: "Investor", STAFF: "AAICBI team", STARTUP: "Startup" }[kind];
 }
 
-export async function loadProfileView(profile: Profile, viewer: SessionPayload | null): Promise<ProfileView | null> {
+async function loadProfileViewCore(profile: Profile, viewer: SessionPayload | null): Promise<Omit<ProfileView, "following" | "profileId"> | null> {
   const base = { kind: profile.kind, handle: profile.handle, avatarUrl: null as string | null, coverUrl: null as string | null, headline: null as string | null, about: null as string | null, location: null as string | null, verified: false, chips: [] as string[], followers: null as number | null, moreHref: null as string | null, moreLabel: null as string | null, links: [] as Array<{ label: string; href: string }>, note: null as string | null, sections: [] as ProfileSection[] };
 
   if (profile.kind === "PERSON" && profile.traineeId) {
@@ -127,4 +129,16 @@ export async function loadProfileView(profile: Profile, viewer: SessionPayload |
   }
 
   return null;
+}
+
+/**
+ * What a visitor may see on a profile, or null (the page cannot be used to
+ * learn which accounts exist). Follower and following counts are public for
+ * every profile; who the followers are is not (see followersOf).
+ */
+export async function loadProfileView(profile: Profile, viewer: SessionPayload | null): Promise<ProfileView | null> {
+  const v = await loadProfileViewCore(profile, viewer);
+  if (!v) return null;
+  const [followers, following] = await Promise.all([prisma.follow.count({ where: { followedProfileId: profile.id } }), prisma.follow.count({ where: { followerProfileId: profile.id } })]);
+  return { ...v, followers, following, profileId: profile.id };
 }

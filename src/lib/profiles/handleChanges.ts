@@ -28,7 +28,11 @@ export async function profileForSession(s: SessionPayload): Promise<Profile | nu
     case "TRAINEE": return ensureProfile("PERSON", s.userId);
     case "EMPLOYER": return ensureProfile("EMPLOYER", s.userId);
     case "INVESTOR": return ensureProfile("INVESTOR", s.userId);
-    case "SUPER_ADMIN": case "ADMIN": case "INSTRUCTOR": return ensureProfile("STAFF", s.userId);
+    case "SUPER_ADMIN": case "ADMIN": case "INSTRUCTOR": {
+      // A training organization's own login speaks as the organization, not as a person.
+      const org = s.role === "ADMIN" ? await prisma.trainingOrganization.findFirst({ where: { staffUserId: s.userId }, select: { id: true } }) : null;
+      return org ? ensureProfile("TRAINING_ORG", org.id) : ensureProfile("STAFF", s.userId);
+    }
     default: return null;
   }
 }

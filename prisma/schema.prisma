@@ -4996,6 +4996,7 @@ model Post {
   @@index([status, publishedAt])
   @@index([authorProfileId, status])
   @@index([actingAsProfileId, status])
+  @@index([tags], type: Gin)
 }
 
 model PostMedia {
@@ -5039,4 +5040,83 @@ model ReviewLog {
   createdAt DateTime @default(now())
 
   @@index([kind, itemId, createdAt])
+}
+
+enum PostReactionKind {
+  LIKE
+  INSIGHTFUL
+  CELEBRATE
+}
+
+/// One reaction from one profile on one post (choosing another kind replaces it).
+model PostReaction {
+  postId    String
+  profileId String
+  kind      PostReactionKind
+  createdAt DateTime         @default(now())
+
+  @@id([postId, profileId])
+  @@index([postId, kind])
+  @@index([profileId, createdAt])
+}
+
+/// A comment or a reply (one level deep) on a post.
+model PostComment {
+  id              String   @id @default(cuid())
+  postId          String
+  authorProfileId String
+  /// Set for a reply: the top-level comment it answers.
+  parentId        String?
+  body            String
+  /// VISIBLE | REMOVED (taken down by the author, the post's side or a reviewer)
+  status          String   @default("VISIBLE")
+  createdAt       DateTime @default(now())
+
+  @@index([postId, createdAt])
+  @@index([parentId])
+  @@index([authorProfileId, createdAt])
+}
+
+/// Profile follows profile: a person follows a person, organization or startup.
+model Follow {
+  followerProfileId String
+  followedProfileId String
+  createdAt         DateTime @default(now())
+
+  @@id([followerProfileId, followedProfileId])
+  @@index([followedProfileId, createdAt])
+}
+
+model Bookmark {
+  profileId String
+  postId    String
+  createdAt DateTime @default(now())
+
+  @@id([profileId, postId])
+  @@index([profileId, createdAt])
+}
+
+/// A report about a post or a comment, decided by the review team.
+model PostReport {
+  id                String    @id @default(cuid())
+  /// POST | COMMENT
+  targetKind        String
+  postId            String
+  commentId         String?
+  reporterProfileId String
+  reason            String
+  details           String?
+  /// OPEN | DISMISSED | ACTIONED
+  status            String    @default("OPEN")
+  decidedById       String?
+  decidedByName     String?
+  decisionNote      String?
+  decidedAt         DateTime?
+  escalatedAt       DateTime?
+  escalatedById     String?
+  escalationNote    String?
+  createdAt         DateTime  @default(now())
+
+  @@unique([targetKind, postId, commentId, reporterProfileId])
+  @@index([status, createdAt])
 }
