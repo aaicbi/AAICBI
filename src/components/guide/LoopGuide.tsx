@@ -132,7 +132,7 @@ export default function LoopGuide() {
     setPos(next);
     savePos(next);
   };
-  const resetPos = () => { setPos(null); try { localStorage.removeItem(POS_STORE); } catch { /* nothing to forget */ } };
+  const resetPos = () => { setPos(null); setOpen(false); setFace("minimized"); try { localStorage.removeItem(POS_STORE); } catch { /* nothing to forget */ } };
 
   const ctx = useMemo(() => contextFor(pathname, config?.switches ?? { orgPages: true, education: true, feed: true, publicJobs: true, publicTrainees: true }, me), [pathname, config, me]);
 
