@@ -66,6 +66,7 @@ export default function PostItem({ post, showStatus = false, openComments = fals
   return (
     <PostCard
       post={post}
+      autoplay
       showStatus={showStatus}
       full={openComments}
       headerAction={post.canFollowAuthor ? <FollowButton profileId={subject.profileId} initial={post.authorFollowed} name={subject.name} /> : null}
