@@ -2,7 +2,7 @@
 import { useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import AvatarFallback from "@/components/ui/AvatarFallback";
-import ImageFramer from "@/components/ui/ImageFramer";
+import ImageFramer, { loadAsFile } from "@/components/ui/ImageFramer";
 
 /**
  * M44 — one shared component for both trainee and staff settings,
@@ -26,6 +26,14 @@ export default function AvatarUpload({
   const [uploading, setUploading] = useState(false);
   const [pending, setPending] = useState<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Opens the picture that is already there, so it can be moved or zoomed again.
+  async function adjust() {
+    if (!avatarUrl) return;
+    const f = await loadAsFile(avatarUrl, "picture");
+    if (!f) return showToast("Could not open the saved picture to adjust it. Choose it again with Change.", "error");
+    setPending(f);
+  }
   const { showToast } = useToast();
 
   // Choosing a file opens the placing step; the placed picture is what is uploaded.
@@ -88,6 +96,11 @@ export default function AvatarUpload({
           >
             {uploading ? "Uploading..." : avatarUrl ? "Change" : "Upload"}
           </button>
+          {avatarUrl && (
+            <button onClick={adjust} disabled={uploading} className="rounded-lg border border-brand-gray px-3 py-1.5 text-sm font-semibold text-brand-ink disabled:opacity-60">
+              Adjust
+            </button>
+          )}
           {avatarUrl && (
             <button
               onClick={handleRemove}

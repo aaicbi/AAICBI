@@ -90,7 +90,7 @@ export default async function OrganizationPage({ params, searchParams }: { param
       <ProfileViewBeacon slug={profile.slug} />
       <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
         <div className="overflow-hidden rounded-xl border border-brand-gray bg-card-gradient">
-          <div className="h-32 bg-brand-mint sm:h-44">
+          <div className="aspect-[3/1] bg-brand-mint sm:aspect-[5/1]">
             {profile.coverUrl && (
               // eslint-disable-next-line @next/next/no-img-element -- an organization-supplied cover image URL.
               <img src={profile.coverUrl} alt="" className="h-full w-full object-cover" />

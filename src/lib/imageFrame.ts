@@ -8,6 +8,10 @@
 export interface Crop { x: number; y: number; w: number; h: number }
 export interface FrameState { zoom: number; /** centre of the frame, in the picture's own pixels */ cx: number; cy: number }
 
+/** The organization cover is a wide strip: 5 to 1 on a computer and 3 to 1 on a phone. The public page, the preview and the picture editor all use these, so what is placed is what is seen. */
+export const COVER_ASPECT = 5;
+export const COVER_PHONE_ASPECT = 3;
+
 export const MIN_ZOOM = 0.5;
 export const MAX_ZOOM = 4;
 
@@ -60,4 +64,11 @@ export function needsPadding(imgW: number, imgH: number, c: Crop): boolean {
 export function outputSize(aspect: number, c: Crop, maxWidth = 1600): { w: number; h: number } {
   const w = Math.max(1, Math.round(Math.min(c.w, maxWidth)));
   return { w, h: Math.max(1, Math.round(w / aspect)) };
+}
+
+/** What a narrower box shows of a picture that was kept for a wider one: the middle of it, full height (the way `object-fit: cover` cuts it). */
+export function narrowerView(c: Crop, narrowAspect: number): Crop {
+  const w = Math.min(c.w, c.h * narrowAspect);
+  const h = w / narrowAspect;
+  return { x: c.x + (c.w - w) / 2, y: c.y + (c.h - h) / 2, w, h };
 }

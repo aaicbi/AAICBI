@@ -11,7 +11,8 @@ import { useToast } from "@/components/ui/Toast";
 import StickyActions from "@/components/ui/StickyActions";
 import VerifiedBadge from "./VerifiedBadge";
 import OrgProfilePreview from "./OrgProfilePreview";
-import ImageFramer from "@/components/ui/ImageFramer";
+import ImageFramer, { loadAsFile } from "@/components/ui/ImageFramer";
+import { COVER_ASPECT, COVER_PHONE_ASPECT } from "@/lib/imageFrame";
 
 interface ProfileDto {
   slug: string; tagline: string | null; description: string | null; location: string | null;
@@ -64,6 +65,15 @@ export default function OrgPublicProfileForm() {
     showToast("Public profile saved.", "success");
   }
 
+  // Opens the picture that is already on the page, so it can be moved or zoomed again.
+  async function adjustCover() {
+    if (!profile?.coverUrl) return;
+    setError(null);
+    const f = await loadAsFile(profile.coverUrl, "cover");
+    if (!f) return setError("Could not open the saved picture to adjust it. Choose the picture again with Change picture.");
+    setPending(f);
+  }
+
   async function uploadCover(file: File | undefined) {
     if (!file) return;
     setUploading(true);
@@ -108,6 +118,7 @@ export default function OrgPublicProfileForm() {
             <label htmlFor="org-cover-file" className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full border border-brand-teal px-5 text-sm font-semibold text-brand-teal hover:bg-brand-mint focus-within:ring-2 focus-within:ring-brand-teal">
               {uploading ? "Uploading…" : profile.coverUrl ? "Change picture" : "Upload a picture"}
             </label>
+            {profile.coverUrl && <button type="button" onClick={adjustCover} className="inline-flex min-h-[44px] items-center rounded-full border border-brand-gray px-5 text-sm font-semibold text-brand-ink hover:bg-brand-mint focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">Adjust picture</button>}
             {profile.coverUrl && <button type="button" onClick={() => set({ coverUrl: "" })} className="min-h-[44px] text-sm font-semibold text-brand-rose hover:underline">Remove</button>}
           </div>
           <p className="mt-1 text-xs text-gray-600">JPG, PNG or WEBP, up to 5MB. You can drag and zoom the picture to place it before it is added.</p>
@@ -120,7 +131,27 @@ export default function OrgPublicProfileForm() {
         </StickyActions>
       </Card>
     </form>
-    <ImageFramer file={pending} aspect={16 / 5} title="Place your cover picture" onCancel={() => setPending(null)} onDone={(f) => { setPending(null); uploadCover(f); }} onUnreadable={(f) => { setPending(null); uploadCover(f); }} />
+    <ImageFramer
+      file={pending}
+      aspect={COVER_ASPECT}
+      title="Place your cover picture"
+      alsoShow={[{ label: "On a phone", aspect: COVER_PHONE_ASPECT }]}
+      context={
+        <div className="p-4">
+          {org.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- the organization's own uploaded logo.
+            <img src={org.logoUrl} alt="" className="relative -mt-12 h-16 w-16 rounded-xl border-4 border-brand-surface bg-brand-surface object-cover" />
+          ) : (
+            <span className="relative -mt-12 flex h-16 w-16 items-center justify-center rounded-xl border-4 border-brand-surface bg-brand-mint text-xl font-semibold text-brand-teal">{org.name.slice(0, 1)}</span>
+          )}
+          <p className="mt-2 font-display text-lg font-semibold text-brand-ink">{org.name}</p>
+          {profile.tagline?.trim() && <p className="text-sm text-gray-700">{profile.tagline}</p>}
+        </div>
+      }
+      onCancel={() => setPending(null)}
+      onDone={(f) => { setPending(null); uploadCover(f); }}
+      onUnreadable={(f) => { setPending(null); uploadCover(f); }}
+    />
     <OrgProfilePreview
       name={org.name}
       logoUrl={org.logoUrl}

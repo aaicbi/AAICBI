@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import Icon from "@/components/ui/Icon";
 import { Image as ImageIcon } from "lucide-react";
-import ImageFramer from "@/components/ui/ImageFramer";
+import ImageFramer, { loadAsFile } from "@/components/ui/ImageFramer";
 
 /**
  * Course catalogue upgrade — the flyer counterpart to AvatarUpload.tsx,
@@ -25,6 +25,14 @@ export default function CourseFlyerUpload({
   const [uploading, setUploading] = useState(false);
   const [pending, setPending] = useState<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Opens the picture that is already there, so it can be moved or zoomed again.
+  async function adjust() {
+    if (!flyerUrl) return;
+    const f = await loadAsFile(flyerUrl, "picture");
+    if (!f) return showToast("Could not open the saved picture to adjust it. Choose it again with Change.", "error");
+    setPending(f);
+  }
   const { showToast } = useToast();
 
   // Choosing a file opens the placing step; the placed picture is what is uploaded.
@@ -83,6 +91,11 @@ export default function CourseFlyerUpload({
           >
             {uploading ? "Uploading..." : flyerUrl ? "Change" : "Upload flyer"}
           </button>
+          {flyerUrl && (
+            <button onClick={adjust} disabled={uploading} className="rounded-lg border border-brand-gray px-3 py-1.5 text-sm font-semibold text-brand-ink disabled:opacity-60">
+              Adjust
+            </button>
+          )}
           {flyerUrl && (
             <button
               onClick={handleRemove}

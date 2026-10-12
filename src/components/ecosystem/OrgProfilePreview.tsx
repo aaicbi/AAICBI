@@ -59,7 +59,7 @@ export default function OrgProfilePreview(p: OrgProfilePreviewProps) {
       <div className="mt-3 overflow-x-auto rounded-xl bg-brand-sand p-3 sm:p-4">
         <div className="mx-auto" style={{ maxWidth: width === "phone" ? 360 : 720 }}>
           <div className="overflow-hidden rounded-xl border border-brand-gray bg-card-gradient">
-            <div className="h-28 bg-brand-mint sm:h-36">
+            <div className={`bg-brand-mint ${width === "phone" ? "aspect-[3/1]" : "aspect-[5/1]"}`}>
               {showCover && (
                 // eslint-disable-next-line @next/next/no-img-element -- previewing an address the organization is typing.
                 <img src={p.coverUrl} alt="" onError={() => setCoverFailed(true)} className="h-full w-full object-cover" />
