@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { coverSize, startState, cropRect, panBy, zoomTo, needsPadding, outputSize, narrowerView, COVER_ASPECT, COVER_PHONE_ASPECT } from "@/lib/imageFrame";
+import { backgroundCrop, coverSize, startState, cropRect, panBy, zoomTo, needsPadding, outputSize, narrowerView, COVER_ASPECT, COVER_PHONE_ASPECT } from "@/lib/imageFrame";
 
 const W = 4000, H = 3000; // a wide photo
 describe("image frame", () => {
@@ -34,7 +34,7 @@ describe("image frame", () => {
     const z = zoomTo(W, H, 1, startState(W, H), 0.5);
     const c = cropRect(W, H, 1, z);
     expect(needsPadding(W, H, c)).toBe(true);
-    expect(zoomTo(W, H, 1, startState(W, H), 0.01).zoom).toBe(0.5);
+    expect(zoomTo(W, H, 1, startState(W, H), 0.001).zoom).toBe(0.1);
     expect(zoomTo(W, H, 1, startState(W, H), 99).zoom).toBe(4);
     expect(needsPadding(W, H, cropRect(W, H, 1, startState(W, H)))).toBe(false);
   });
@@ -55,5 +55,16 @@ describe("image frame", () => {
   it("a box as wide as the cover shows all of it", () => {
     const c = cropRect(W, H, COVER_ASPECT, startState(W, H));
     expect(narrowerView(c, COVER_ASPECT)).toEqual(c);
+  });
+  it("the blurred background is the middle of the picture in the frame's shape", () => {
+    const b = backgroundCrop(800, 1600, 5); // a tall picture in a wide frame
+    expect(b.w).toBe(800);
+    expect(b.h).toBeCloseTo(160);
+    expect(b.y + b.h / 2).toBeCloseTo(800);
+  });
+  it("a very tall picture can be zoomed out far enough to fit whole in a wide frame", () => {
+    const z = zoomTo(800, 1600, 5, startState(800, 1600), 0.1);
+    const c = cropRect(800, 1600, 5, z);
+    expect(c.h).toBeGreaterThanOrEqual(1600 - 1);
   });
 });

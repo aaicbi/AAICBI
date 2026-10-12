@@ -86,6 +86,30 @@ const isRed = (c) => c[0] > 200 && c[2] < 60, isBlue = (c) => c[2] > 200 && c[0]
   log(psql(`select count(*) from "OrganizationPublicProfile" where "coverUrl"='https://example.com/framed.png'`) === '1', 'the placed picture is saved on the organization page');
   psql(`update "OrganizationPublicProfile" set "coverUrl"=null where "coverUrl"='https://example.com/framed.png'`);
 
+  // 7a. a tall picture zoomed out to fit: the empty sides hold a blurred copy of the picture
+  const tall = Buffer.from(await p.evaluate(async () => {
+    const c = document.createElement('canvas'); c.width = 800; c.height = 1600; const x = c.getContext('2d');
+    x.fillStyle = '#ff0000'; x.fillRect(0, 0, 400, 1600); x.fillStyle = '#0000ff'; x.fillRect(400, 0, 400, 1600);
+    const b = await new Promise((r) => c.toBlob(r, 'image/png')); return Array.from(new Uint8Array(await b.arrayBuffer()));
+  }));
+  posted = null;
+  await p.setInputFiles('#org-cover-file', { name: 'tall.png', mimeType: 'image/png', buffer: tall }); await frame.waitFor(); await shown();
+  await p.getByRole('button', { name: 'Fit the whole picture' }).click(); await p.waitForTimeout(300);
+  const blurLayer = await p.evaluate(() => [...document.querySelectorAll('[data-testid=image-frame] div')].some((d) => /blur/.test(d.style.filter)));
+  log(blurLayer, 'with the whole picture fitted, the editor shows a blurred copy behind it');
+  await p.getByRole('button', { name: 'Use this picture' }).click(); await p.waitForTimeout(900);
+  const sig = Buffer.from([0x89, 0x50, 0x4e, 0x47]); const st = posted.indexOf(sig); const png2 = posted.subarray(st, posted.indexOf(Buffer.from('IEND')) + 8);
+  const t = await p.evaluate(async (arr) => {
+    const bmp = await createImageBitmap(new Blob([new Uint8Array(arr)], { type: 'image/png' }));
+    const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height; const x = c.getContext('2d'); x.drawImage(bmp, 0, 0);
+    const px = (X, Y) => Array.from(x.getImageData(X, Y, 1, 1).data);
+    return { w: bmp.width, h: bmp.height, left: px(8, bmp.height / 2), right: px(bmp.width - 9, bmp.height / 2), corner: px(2, 2), mid: px(bmp.width / 2, bmp.height / 2) };
+  }, Array.from(png2));
+  log(t.w === 1600 && t.h === 320, `saved in the banner's shape (${t.w} x ${t.h})`);
+  log(t.left[3] === 255 && t.right[3] === 255 && t.corner[3] === 255, 'the saved picture has no see-through space');
+  log(t.left[0] > 150 && t.left[2] < 100, `the left side is a blurred red copy (${t.left.slice(0, 3)})`);
+  log(t.right[2] > 150 && t.right[0] < 100, `the right side is a blurred blue copy (${t.right.slice(0, 3)})`);
+
   // 7b. an already saved picture can be adjusted
   const existing = 'https://example.com/existing.png';
   psql(`update "OrganizationPublicProfile" set "coverUrl"='${existing}'`);
