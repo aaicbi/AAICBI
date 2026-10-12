@@ -22,7 +22,8 @@ const psql = (q) => require('child_process').execFileSync('/usr/lib/postgresql/1
   if (!found) { const links = await p.locator('a[href*="profile"]').evaluateAll((as) => as.map((a) => a.getAttribute('href'))); console.log('links', links.slice(0, 10)); }
   log(found > 0, 'the profile page shows "Cover picture", with an upload button');
   log((await p.getByLabel('Cover image URL').count()) === 0, 'there is no web-address box any more');
-  await p.setInputFiles('#org-cover-file', { name: 'c.png', mimeType: 'image/png', buffer: Buffer.from('89504e470d0a1a0a', 'hex') });
+  await p.setInputFiles('#org-cover-file', { name: 'c.png', mimeType: 'image/png', buffer: Buffer.from(await p.evaluate(async () => { const c = document.createElement('canvas'); c.width = 800; c.height = 400; c.getContext('2d').fillRect(0, 0, 800, 400); const b = await new Promise((r) => c.toBlob(r, 'image/png')); return Array.from(new Uint8Array(await b.arrayBuffer())); })) });
+  await p.getByRole('button', { name: 'Use this picture' }).click();
   await p.getByAltText('Your cover picture').waitFor();
   log(true, 'after choosing a picture it appears as a preview');
   await p.getByRole('button', { name: 'Save' }).click();
