@@ -1,6 +1,7 @@
 "use client";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { signupLoginUrl } from "@/lib/auth/signupRedirect";
 import SiteHeader from "@/components/SiteHeader";
 import AccountTypeBanner from "@/components/accounts/AccountTypeBanner";
 import Logo from "@/components/Logo";
@@ -79,6 +80,8 @@ function TraineeRegisterForm() {
       setError(data.error ?? "Registration failed.");
       return;
     }
+    // Straight to the sign-in form, which tells them to verify their email first.
+    window.location.assign(signupLoginUrl({ email, next: safeNext }));
     setDone(true);
   }
 

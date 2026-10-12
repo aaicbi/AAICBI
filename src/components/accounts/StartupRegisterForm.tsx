@@ -5,6 +5,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
 import { INDUSTRIES, STAGES, STAGE_LABEL } from "@/lib/startups/startupCore";
+import { signupLoginUrl } from "@/lib/auth/signupRedirect";
 
 const STEPS = ["About you", "Your startup", "Check and create"] as const;
 interface Data { name: string; email: string; password: string; confirm: string; phone: string; consent: boolean; sName: string; tagline: string; industry: string; stage: string; website: string; location: string; description: string }
@@ -60,6 +61,8 @@ export default function StartupRegisterForm() {
       const body = await res.json().catch(() => ({}));
       if (!res.ok) { setError(body.error ?? "We could not create your account. Please try again."); return; }
       setDone({ startupId: body.startupId ?? null, startupProblem: !!body.startupProblem });
+      // Straight to the sign-in form, which tells them to verify their email first.
+      window.location.assign(signupLoginUrl({ email: d.email, next: body.startupId ? `/trainee/startups/${body.startupId}` : "/trainee/startups", startupProblem: !!body.startupProblem }));
     } catch {
       setError("We could not reach the server. Check your connection and press Create again; nothing has been lost.");
     } finally {

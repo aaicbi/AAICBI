@@ -14,14 +14,17 @@ export default function AvatarUpload({
   avatarUrl,
   apiPath,
   onChange,
+  square = false,
 }: {
   avatarUrl: string | null;
   // Universal profile system, Phase 6 — widened to include the
   // employer logo endpoint. Genuinely the same upload/remove
   // mechanics this component's own doc comment already describes,
   // just another image field on another Prisma model.
-  apiPath: "/api/trainee/avatar" | "/api/admin/avatar" | "/api/employer/logo" | `/api/startups/${string}/logo`;
+  apiPath: "/api/trainee/avatar" | "/api/admin/avatar" | "/api/employer/logo" | "/api/org/profile/logo" | `/api/startups/${string}/logo`;
   onChange: (url: string | null) => void;
+  /** Shown (and placed) as a rounded square, the way organization logos appear on their public page, instead of a circle. */
+  square?: boolean;
 }) {
   const [uploading, setUploading] = useState(false);
   const [pending, setPending] = useState<File | null>(null);
@@ -73,8 +76,8 @@ export default function AvatarUpload({
 
   return (
     <div className="flex items-center gap-4">
-      <ImageFramer file={pending} aspect={1} round title="Place your picture" onCancel={() => setPending(null)} onDone={(f) => { setPending(null); upload(f); }} onUnreadable={(f) => { setPending(null); upload(f); }} />
-      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full bg-brand-mint">
+      <ImageFramer file={pending} aspect={1} round={!square} title="Place your picture" onCancel={() => setPending(null)} onDone={(f) => { setPending(null); upload(f); }} onUnreadable={(f) => { setPending(null); upload(f); }} />
+      <div className={`h-16 w-16 shrink-0 overflow-hidden bg-brand-mint ${square ? "rounded-xl" : "rounded-full"}`}>
         {avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- a
           // real, dynamically-uploaded external URL, not a static

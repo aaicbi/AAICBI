@@ -12,6 +12,7 @@ import StickyActions from "@/components/ui/StickyActions";
 import VerifiedBadge from "./VerifiedBadge";
 import OrgProfilePreview from "./OrgProfilePreview";
 import ImageFramer, { loadAsFile } from "@/components/ui/ImageFramer";
+import AvatarUpload from "@/components/AvatarUpload";
 import { COVER_ASPECT, COVER_PHONE_ASPECT } from "@/lib/imageFrame";
 
 interface ProfileDto {
@@ -105,6 +106,11 @@ export default function OrgPublicProfileForm() {
         <Input label="Page address" value={profile.slug} onChange={(e) => set({ slug: e.target.value.toLowerCase() })} required hint={`aaicbi.org/organizations/${profile.slug}`} />
         <Input label="Tagline" value={profile.tagline ?? ""} onChange={(e) => set({ tagline: e.target.value })} maxLength={140} />
         <Input label="Location" value={profile.location ?? ""} onChange={(e) => set({ location: e.target.value })} maxLength={120} />
+        <div>
+          <p className="text-sm font-semibold text-brand-ink">Organization picture</p>
+          <p className="mb-2 text-xs text-gray-600">Your logo or profile picture. It shows on your public page, your profile, search and the feed, instead of a letter.</p>
+          <AvatarUpload avatarUrl={org.logoUrl} apiPath="/api/org/profile/logo" square onChange={(u) => setOrg((o) => ({ ...o, logoUrl: u }))} />
+        </div>
         <div>
           <p className="text-sm font-semibold text-brand-ink">Cover picture</p>
           {profile.coverUrl && (

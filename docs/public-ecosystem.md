@@ -112,3 +112,6 @@ Code: `src/components/ui/ImageFramer.tsx`, the geometry in `src/lib/imageFrame.t
 
 ## Light and dark
 A small tab with a sun or moon hangs from the top edge of every page, in the middle, where no header has a control (checked at phone, tablet and desktop widths). It switches at once and remembers the choice in the `theme` cookie that the page reads before it first paints. Dark is the default. `scripts/device-checks/theme-toggle.cjs` and `theme-overlap.cjs` check it.
+
+## The organization's picture
+An organization has one picture. It shows on its public page, its profile (`/@handle`), search, the organizations list and the feed, and it is also the profile picture of the account the organization signs in through, so the two stay the same (`src/lib/orgPicture.ts`). It is set from the public page form (**Organization picture**, placed in a square frame before it is uploaded, `POST /api/org/profile/logo`) or by uploading a profile picture on the account's profile page. Until a picture is set the pages show the organization's first letter. Migration `20261103090000_org_picture_from_profile_picture` copied the profile pictures organizations had already uploaded, so they appear without uploading again. Check: `scripts/device-checks/org-picture.cjs`.
