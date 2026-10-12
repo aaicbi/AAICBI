@@ -13,7 +13,7 @@ const Icon = ({ d, filled }: { d: string; filled?: boolean }) => (
 );
 const PATH = { like: "M7 11v9H3v-9zM7 11l4-8c2 0 3 1 3 3v3h5a2 2 0 012 2l-1 6a3 3 0 01-3 3H7", comment: "M21 12a8 8 0 01-11.5 7.2L3 21l1.8-6.3A8 8 0 1121 12z", save: "M6 3h12v18l-6-4-6 4z", share: "M4 12v7h16v-7M12 3v12M8 7l4-4 4 4", flag: "M5 21V4h12l-2 4 2 4H5" };
 
-const action = "flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-brand-mint focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal";
+const action = "flex min-h-[44px] min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-1 text-sm font-semibold text-gray-700 hover:bg-brand-mint focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal";
 
 /** A post with everything you can do to it: react, comment, save, share, follow its author, report it. */
 export default function PostItem({ post, showStatus = false, openComments = false }: { post: FeedPost; showStatus?: boolean; openComments?: boolean }) {
@@ -84,7 +84,7 @@ export default function PostItem({ post, showStatus = false, openComments = fals
             <button type="button" className={`${action} ${mine === "DISLIKE" ? "text-brand-rose" : ""}`} aria-pressed={mine === "DISLIKE"} aria-label="Dislike" onClick={() => react(mine === "DISLIKE" ? null : "DISLIKE")}>
               <span className="inline-block rotate-180"><Icon d={PATH.like} filled={mine === "DISLIKE"} /></span> <span className="hidden sm:inline">Dislike</span>
             </button>
-            <button type="button" className={action} aria-haspopup="true" aria-expanded={picker} aria-label="More reactions" onClick={() => setPicker((p) => !p)}>
+            <button type="button" className={`${action} !flex-none px-3`} aria-haspopup="true" aria-expanded={picker} aria-label="More reactions" onClick={() => setPicker((p) => !p)}>
               <span aria-hidden="true">✨</span>
             </button>
             {picker && (
