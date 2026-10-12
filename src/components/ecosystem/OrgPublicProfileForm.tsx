@@ -22,6 +22,7 @@ export default function OrgPublicProfileForm() {
   const [org, setOrg] = useState<{ name: string; logoUrl: string | null }>({ name: "Your organization", logoUrl: null });
   const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { showToast } = useToast();
 
@@ -61,6 +62,20 @@ export default function OrgPublicProfileForm() {
     showToast("Public profile saved.", "success");
   }
 
+  async function uploadCover(file: File | undefined) {
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    const body = new FormData();
+    body.append("file", file);
+    const res = await fetch("/api/org/profile/cover", { method: "POST", body }).catch(() => null);
+    setUploading(false);
+    const data = (await res?.json().catch(() => ({}))) ?? {};
+    if (!res?.ok) return setError(data.error ?? "Could not upload that picture.");
+    set({ coverUrl: data.url });
+    showToast("Picture added. Press Save to publish it on your page.", "success");
+  }
+
   const set = (patch: Partial<ProfileDto>) => setProfile({ ...profile, ...patch });
 
   return (
@@ -78,7 +93,23 @@ export default function OrgPublicProfileForm() {
         <Input label="Page address" value={profile.slug} onChange={(e) => set({ slug: e.target.value.toLowerCase() })} required hint={`aaicbi.org/organizations/${profile.slug}`} />
         <Input label="Tagline" value={profile.tagline ?? ""} onChange={(e) => set({ tagline: e.target.value })} maxLength={140} />
         <Input label="Location" value={profile.location ?? ""} onChange={(e) => set({ location: e.target.value })} maxLength={120} />
-        <Input label="Cover image URL" value={profile.coverUrl ?? ""} onChange={(e) => set({ coverUrl: e.target.value })} placeholder="https://" />
+        <div>
+          <p className="text-sm font-semibold text-brand-ink">Cover picture</p>
+          {profile.coverUrl && (
+            <div className="mt-2 aspect-[16/5] max-w-md overflow-hidden rounded-2xl bg-brand-sand">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={profile.coverUrl} alt="Your cover picture" className="no-ring h-full w-full object-cover" />
+            </div>
+          )}
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" id="org-cover-file" onChange={(e) => { uploadCover(e.target.files?.[0]); e.target.value = ""; }} />
+            <label htmlFor="org-cover-file" className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full border border-brand-teal px-5 text-sm font-semibold text-brand-teal hover:bg-brand-mint focus-within:ring-2 focus-within:ring-brand-teal">
+              {uploading ? "Uploading…" : profile.coverUrl ? "Change picture" : "Upload a picture"}
+            </label>
+            {profile.coverUrl && <button type="button" onClick={() => set({ coverUrl: "" })} className="min-h-[44px] text-sm font-semibold text-brand-rose hover:underline">Remove</button>}
+          </div>
+          <p className="mt-1 text-xs text-gray-600">JPG, PNG or WEBP, up to 5MB. A wide picture works best.</p>
+        </div>
         <Textarea label="About" rows={6} value={profile.description ?? ""} onChange={(e) => set({ description: e.target.value })} maxLength={2000} />
         {error && <p role="alert" className="text-sm text-brand-rose">{error}</p>}
         <StickyActions>
