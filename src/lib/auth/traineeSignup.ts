@@ -52,3 +52,16 @@ export async function sendTraineeWelcome(trainee: { id: string; name: string; em
     whatsapp: { templateName: "welcome_verify", variables: { name: trainee.name, verify_url: verifyUrl } },
   });
 }
+
+/**
+ * Sends a fresh verification link to a member who has not verified yet (the first email was lost or the link expired). Returns
+ * whether an email went out; callers must answer the same either way, so nobody can use this to find out who has an account.
+ */
+export async function resendVerification(email: string): Promise<boolean> {
+  const trainee = await prisma.trainee.findUnique({ where: { email }, select: { id: true, name: true, email: true, emailVerified: true, passwordHash: true } });
+  if (!trainee || trainee.emailVerified || !trainee.passwordHash) return false;
+  const verifyToken = randomBytes(24).toString("hex");
+  await prisma.trainee.update({ where: { id: trainee.id }, data: { verifyToken, verifyTokenExpiresAt: new Date(Date.now() + VERIFY_TOKEN_LIFETIME_MS) } });
+  await sendTraineeWelcome(trainee, verifyToken);
+  return true;
+}
