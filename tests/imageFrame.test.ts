@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { coverSize, startState, cropRect, panBy, zoomTo, needsPadding, outputSize } from "@/lib/imageFrame";
+import { coverSize, startState, cropRect, panBy, zoomTo, needsPadding, outputSize, narrowerView, COVER_ASPECT, COVER_PHONE_ASPECT } from "@/lib/imageFrame";
 
 const W = 4000, H = 3000; // a wide photo
 describe("image frame", () => {
@@ -43,5 +43,17 @@ describe("image frame", () => {
     const o = outputSize(16 / 5, c);
     expect(o.w).toBe(1600);
     expect(o.h).toBe(500);
+  });
+  it("a phone sees the middle of the wide cover, full height", () => {
+    const c = cropRect(W, H, COVER_ASPECT, startState(W, H)); // 5 to 1
+    const v = narrowerView(c, COVER_PHONE_ASPECT); // 3 to 1
+    expect(v.h).toBeCloseTo(c.h);
+    expect(v.w).toBeCloseTo(c.h * 3);
+    expect(v.x + v.w / 2).toBeCloseTo(c.x + c.w / 2);
+    expect(v.y).toBeCloseTo(c.y);
+  });
+  it("a box as wide as the cover shows all of it", () => {
+    const c = cropRect(W, H, COVER_ASPECT, startState(W, H));
+    expect(narrowerView(c, COVER_ASPECT)).toEqual(c);
   });
 });

@@ -35,9 +35,15 @@ const isRed = (c) => c[0] > 200 && c[2] < 60, isBlue = (c) => c[2] > 200 && c[0]
   // 1. opens a placing step with the picture in a wide frame
   await choose(); await frame.waitFor(); await shown();
   const fb = await frame.boundingBox();
-  log(Math.abs(fb.width / fb.height - 3.2) < 0.1, `the frame has the shape of the cover (${Math.round(fb.width)} x ${Math.round(fb.height)}, wide 16 to 5)`);
+  log(Math.abs(fb.width / fb.height - 5) < 0.1, `the frame has the shape of the cover on the page (${Math.round(fb.width)} x ${Math.round(fb.height)}, 5 to 1)`);
   log((await p.getByRole('button', { name: 'Use this picture' }).count()) === 1, 'there is a "Use this picture" button, and nothing is uploaded until it is pressed');
   log(posted === null, 'nothing was uploaded yet');
+  const dlg = p.getByRole('dialog');
+  log(await dlg.getByText('Northwind Academy').count() > 0, 'the editor shows the organization name under the picture, like the page');
+  const ph = p.getByTestId('also-On a phone'); const pb = await ph.locator('div').first().boundingBox();
+  log(pb && Math.abs(pb.width / pb.height - 3) < 0.1, `it also shows how the cover looks on a phone (${Math.round(pb.width)} x ${Math.round(pb.height)}, 3 to 1)`);
+  const pageBanner = await p.evaluate(() => { const d = document.querySelector('[role=dialog]'); const f = d.querySelector('[data-testid=image-frame]'); return f.parentElement.parentElement.className.includes('rounded-xl'); });
+  log(pageBanner, 'the frame sits in the same kind of card as the page preview');
 
   // 2. dragging the picture up shows its lower part: all blue
   const cx = fb.x + fb.width / 2, cy = fb.y + fb.height / 2;
@@ -45,7 +51,7 @@ const isRed = (c) => c[0] > 200 && c[2] < 60, isBlue = (c) => c[2] > 200 && c[0]
   await p.getByRole('button', { name: 'Use this picture' }).click();
   await p.waitForTimeout(800);
   let r = posted && await inspect(p, posted);
-  log(r && r.w === 1600 && r.h === 500, `it is saved in the cover's shape (${r && r.w} x ${r && r.h})`);
+  log(r && r.w === 1600 && r.h === 320, `it is saved in the cover's shape (${r && r.w} x ${r && r.h})`);
   log(r && isBlue(r.upper) && isBlue(r.lower), 'dragging it up kept the lower part (the saved picture is blue at both quarter points)');
 
   // 3. dragging down keeps the upper, red part
@@ -66,7 +72,7 @@ const isRed = (c) => c[0] > 200 && c[2] < 60, isBlue = (c) => c[2] > 200 && c[0]
   await p.getByLabel('Zoom', { exact: true }).fill('2');
   await p.getByRole('button', { name: 'Use this picture' }).click(); await p.waitForTimeout(800);
   r = posted && await inspect(p, posted);
-  log(r && r.w === 800 && r.h === 250, `zoomed in, it keeps a closer part (${r && r.w} x ${r && r.h})`);
+  log(r && r.w === 800 && r.h === 160, `zoomed in, it keeps a closer part (${r && r.w} x ${r && r.h})`);
 
   // 6. cancel uploads nothing
   posted = null; await choose(); await frame.waitFor();
@@ -79,6 +85,20 @@ const isRed = (c) => c[0] > 200 && c[2] < 60, isBlue = (c) => c[2] > 200 && c[0]
   await p.getByRole('button', { name: 'Save' }).click(); await p.waitForTimeout(1200);
   log(psql(`select count(*) from "OrganizationPublicProfile" where "coverUrl"='https://example.com/framed.png'`) === '1', 'the placed picture is saved on the organization page');
   psql(`update "OrganizationPublicProfile" set "coverUrl"=null where "coverUrl"='https://example.com/framed.png'`);
+
+  // 7b. an already saved picture can be adjusted
+  const existing = 'https://example.com/existing.png';
+  psql(`update "OrganizationPublicProfile" set "coverUrl"='${existing}'`);
+  await p.route(existing, (route) => route.fulfill({ status: 200, contentType: 'image/png', headers: { 'access-control-allow-origin': '*' }, body: png }));
+  posted = null; await p.reload({ waitUntil: 'load' }); await p.getByText('Cover picture').waitFor();
+  await p.getByRole('button', { name: 'Adjust picture' }).click(); await frame.waitFor(); await shown();
+  log(true, 'Adjust picture opens the saved picture in the editor');
+  const fb2 = await frame.boundingBox(); const ax = fb2.x + fb2.width / 2, ay = fb2.y + fb2.height / 2;
+  await p.mouse.move(ax, ay); await p.mouse.down(); await p.mouse.move(ax, ay + 300, { steps: 8 }); await p.mouse.up();
+  await p.getByRole('button', { name: 'Use this picture' }).click(); await p.waitForTimeout(800);
+  r = posted && await inspect(p, posted);
+  log(r && isRed(r.upper) && isRed(r.lower), 'the adjusted picture is saved with the new placement');
+  psql(`update "OrganizationPublicProfile" set "coverUrl"=null where "coverUrl"='${existing}' or "coverUrl"='https://example.com/framed.png'`);
 
   // 8. a profile picture: a round frame, saved square
   const mctx = await signedIn(br, device('Desktop Chrome'), '/api/auth/trainee-login', 't0@dev.test');
