@@ -200,7 +200,7 @@ export default function CourseMarketingView({ data, actions }: { data: Marketing
                 href={data.curriculumUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-brand-teal px-5 py-2.5 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep"
+                className="inline-flex items-center gap-2 rounded-lg bg-brand-action px-5 py-2.5 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover"
               >
                 <Icon icon={FileText} size="sm" /> Download Curriculum
               </a>

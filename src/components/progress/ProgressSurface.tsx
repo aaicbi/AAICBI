@@ -98,7 +98,7 @@ export default function ProgressSurface({ data, sample = false }: { data: Progre
                     aria-valuemax={100}
                     aria-valuenow={pct}
                   >
-                    <div className="h-full rounded-full bg-brand-teal" style={{ width: `${pct}%` }} />
+                    <div className="h-full rounded-full bg-brand-action" style={{ width: `${pct}%` }} />
                   </div>
                 </li>
               );

@@ -52,8 +52,8 @@ export default function SocialProvider({ signedIn, children }: { signedIn: boole
       <Modal open={open !== null} onClose={() => setOpen(null)} title="Join AAICBI to take part" size="sm">
         <p className="text-sm text-gray-700">You can read everything here without an account. To react, comment, follow, save or post, create a free account. We will bring you back to where you were.</p>
         <div className="mt-4 grid gap-2">
-          <Link href={`/trainee/register?next=${next}`} className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-brand-teal px-5 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">Create a free account</Link>
-          <Link href={`/trainee/login?next=${next}`} className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-brand-teal px-5 text-sm font-semibold text-brand-teal hover:bg-brand-mint focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">I already have an account</Link>
+          <Link href={`/trainee/register?next=${next}`} className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-brand-action px-5 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">Create a free account</Link>
+          <Link href={`/trainee/login?next=${next}`} className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-brand-action px-5 text-sm font-semibold text-brand-action hover:bg-brand-mint focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">I already have an account</Link>
         </div>
         <p className="mt-3 text-xs text-gray-600">Employers and investors: <Link href="/employer/login" className="font-semibold text-brand-teal hover:underline">employer sign in</Link> · <Link href="/investor/login" className="font-semibold text-brand-teal hover:underline">investor sign in</Link></p>
       </Modal>

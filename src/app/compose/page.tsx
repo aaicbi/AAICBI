@@ -119,7 +119,7 @@ function Composer() {
                 {!youtube && images.length < LIMITS.images && (
                   <>
                     <input ref={file} type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" id="post-images" onChange={(e) => upload(e.target.files)} />
-                    <label htmlFor="post-images" className="mt-2 inline-flex min-h-[44px] cursor-pointer items-center rounded-full border border-brand-teal px-5 text-sm font-semibold text-brand-teal hover:bg-brand-mint focus-within:ring-2 focus-within:ring-brand-teal">{busy === "upload" ? "Uploading…" : "Add images"}</label>
+                    <label htmlFor="post-images" className="mt-2 inline-flex min-h-[44px] cursor-pointer items-center rounded-full border border-brand-action px-5 text-sm font-semibold text-brand-action hover:bg-brand-mint focus-within:ring-2 focus-within:ring-brand-teal">{busy === "upload" ? "Uploading…" : "Add images"}</label>
                   </>
                 )}
               </div>

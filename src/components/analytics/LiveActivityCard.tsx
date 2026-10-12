@@ -52,8 +52,8 @@ export default function LiveActivityCard() {
     <Card className="mt-6">
       <div className="flex items-center gap-2">
         <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-teal opacity-75" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-teal" />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-action opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-action" />
         </span>
         <p className="flex items-center gap-1.5 text-sm font-semibold text-brand-ink">
           <Icon icon={Radio} size="sm" /> Live Activity

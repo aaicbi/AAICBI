@@ -13,7 +13,7 @@ export default function ProfileCompletionBanner({ percent, missing }: { percent:
         <p className="text-sm font-semibold text-brand-ink">Profile completion: {percent}%</p>
       </div>
       <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-brand-gray/50">
-        <div className="h-full rounded-full bg-brand-teal transition-all" style={{ width: `${percent}%` }} />
+        <div className="h-full rounded-full bg-brand-action transition-all" style={{ width: `${percent}%` }} />
       </div>
       {missing.length > 0 && (
         <ul className="mt-3 flex flex-wrap gap-1.5">

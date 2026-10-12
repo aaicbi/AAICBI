@@ -44,7 +44,7 @@ export default function OrgProfilePreview(p: OrgProfilePreviewProps) {
               type="button"
               aria-pressed={width === w}
               onClick={() => setWidth(w)}
-              className={`px-3 py-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-teal ${width === w ? "bg-brand-teal text-brand-onAccent" : "bg-brand-surface text-gray-700 hover:text-brand-teal"}`}
+              className={`px-3 py-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-teal ${width === w ? "bg-brand-action text-brand-onAccent" : "bg-brand-surface text-gray-700 hover:text-brand-teal"}`}
             >
               {w === "computer" ? "Computer" : "Phone"}
             </button>
@@ -77,7 +77,7 @@ export default function OrgProfilePreview(p: OrgProfilePreviewProps) {
               {p.location.trim() && <p className="text-sm text-gray-600">{p.location}</p>}
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 {p.tagline.trim() && <p className="text-sm text-gray-700">{p.tagline}</p>}
-                <span aria-hidden="true" className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent">Follow</span>
+                <span aria-hidden="true" className="rounded-lg bg-brand-action px-3 py-1.5 text-xs font-semibold text-brand-onAccent">Follow</span>
               </div>
             </div>
             <div aria-hidden="true" className="flex gap-1 overflow-hidden border-t border-brand-gray px-3 text-sm font-semibold text-gray-600">

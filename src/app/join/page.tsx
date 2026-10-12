@@ -35,7 +35,7 @@ export default function JoinPage() {
               <p className="mt-2 text-sm text-gray-800">{a.summary}</p>
 
               <h3 className="mt-4 text-xs font-bold uppercase tracking-wide text-gray-700">What you can do</h3>
-              <ul className="mt-1.5 space-y-1.5 text-sm text-brand-ink">{a.can.map((c) => <li key={c} className="flex gap-2"><span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-teal" /><span>{c}</span></li>)}</ul>
+              <ul className="mt-1.5 space-y-1.5 text-sm text-brand-ink">{a.can.map((c) => <li key={c} className="flex gap-2"><span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-action" /><span>{c}</span></li>)}</ul>
 
               <h3 className="mt-4 text-xs font-bold uppercase tracking-wide text-gray-700">What it asks for</h3>
               <ul className="mt-1.5 space-y-1.5 text-sm text-brand-ink">{a.needs.map((c) => <li key={c} className="flex gap-2"><span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-gold" /><span>{c}</span></li>)}</ul>
@@ -45,7 +45,7 @@ export default function JoinPage() {
 
               <p className="mt-4 text-sm text-gray-800"><span className="font-semibold text-brand-ink">What happens next: </span>{a.next}</p>
               <div className="mt-auto pt-5">
-                <Link href={a.href} className="inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-brand-teal px-5 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep">{a.cta}</Link>
+                <Link href={a.href} className="inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-brand-action px-5 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover">{a.cta}</Link>
               </div>
             </li>
           ))}

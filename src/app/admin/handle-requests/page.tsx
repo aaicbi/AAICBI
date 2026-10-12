@@ -61,7 +61,7 @@ export default function HandleRequestsPage() {
 
       <div className="mt-4 flex gap-2" role="group" aria-label="Show">
         {([["PENDING", "Waiting"], ["ALL", "All requests"]] as const).map(([v, l]) => (
-          <button key={v} type="button" aria-pressed={status === v} onClick={() => setStatus(v)} className={`min-h-[40px] rounded-full px-4 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal ${status === v ? "bg-brand-teal text-brand-onAccent" : "border border-brand-gray text-brand-ink"}`}>{l}</button>
+          <button key={v} type="button" aria-pressed={status === v} onClick={() => setStatus(v)} className={`min-h-[40px] rounded-full px-4 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal ${status === v ? "bg-brand-action text-brand-onAccent" : "border border-brand-gray text-brand-ink"}`}>{l}</button>
         ))}
       </div>
 

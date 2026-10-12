@@ -361,7 +361,7 @@ export default async function TraineeDashboardPage() {
             {resumeTarget && <p className="mt-1 text-sm text-gray-600">Next: {resumeTarget.label}</p>}
             <div className="mt-3 h-2 w-full rounded-full bg-gray-100">
               <div
-                className="h-2 rounded-full bg-brand-teal transition-all"
+                className="h-2 rounded-full bg-brand-action transition-all"
                 style={{ width: `${topCourse.percentComplete}%` }}
               />
             </div>
@@ -484,7 +484,7 @@ export default async function TraineeDashboardPage() {
                     </div>
                     <div className="mt-2.5 h-1.5 w-full rounded-full bg-gray-100">
                       <div
-                        className="h-1.5 rounded-full bg-brand-teal transition-all"
+                        className="h-1.5 rounded-full bg-brand-action transition-all"
                         style={{ width: `${c.percentComplete}%` }}
                       />
                     </div>

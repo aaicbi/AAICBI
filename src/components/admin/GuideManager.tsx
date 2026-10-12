@@ -127,7 +127,7 @@ export default function GuideManager() {
             type="button"
             onClick={() => setTab(id)}
             onKeyDown={(e) => onKey(e, i)}
-            className={`min-h-[44px] shrink-0 rounded-lg px-3 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal ${tab === id ? "bg-brand-teal text-brand-onAccent" : "text-gray-700 hover:bg-brand-mint"}`}
+            className={`min-h-[44px] shrink-0 rounded-lg px-3 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal ${tab === id ? "bg-brand-action text-brand-onAccent" : "text-gray-700 hover:bg-brand-mint"}`}
           >
             {label}
             {id === "queue" && data.metrics.queue.open + data.metrics.queue.inReview > 0 ? ` (${data.metrics.queue.open + data.metrics.queue.inReview})` : ""}

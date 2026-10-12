@@ -26,7 +26,7 @@ export default function JoinChooser() {
               </span>
               <h3 className="mt-3 font-display text-base font-semibold text-brand-ink">{r.title}</h3>
               <p className="mt-1 text-sm leading-relaxed text-gray-600">{r.text}</p>
-              <Link href={r.register} className="mt-4 inline-flex min-h-[44px] items-center justify-center gap-1 rounded-lg bg-brand-teal px-4 text-sm font-semibold text-brand-onAccent transition-colors hover:bg-brand-tealDeep focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
+              <Link href={r.register} className="mt-4 inline-flex min-h-[44px] items-center justify-center gap-1 rounded-lg bg-brand-action px-4 text-sm font-semibold text-brand-onAccent transition-colors hover:bg-brand-actionHover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
                 Create an account <Icon icon={ArrowRight} size="sm" />
               </Link>
               <Link href={r.login} className="mt-2 inline-flex min-h-[44px] items-center justify-center text-sm font-semibold text-brand-teal hover:underline">

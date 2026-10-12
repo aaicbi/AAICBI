@@ -690,7 +690,7 @@ function EarlyWarningSettings({
             <button
               onClick={handleSave}
               disabled={saving}
-              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
+              className="rounded-lg bg-brand-action px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
             >
               {saving ? "Saving..." : "Save"}
             </button>
@@ -908,7 +908,7 @@ function PricingSettings({
             <button
               onClick={handleSave}
               disabled={saving}
-              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
+              className="rounded-lg bg-brand-action px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
             >
               {saving ? "Saving..." : "Save"}
             </button>
@@ -1077,7 +1077,7 @@ function ReminderSettings({
             <button
               onClick={handleSave}
               disabled={saving}
-              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
+              className="rounded-lg bg-brand-action px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
             >
               {saving ? "Saving..." : "Save"}
             </button>
@@ -1161,7 +1161,7 @@ function AiCreditOverrideSettings({
             <button
               onClick={handleSave}
               disabled={saving}
-              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
+              className="rounded-lg bg-brand-action px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
             >
               {saving ? "Saving..." : "Save"}
             </button>
@@ -1222,7 +1222,7 @@ function QaScopeSettings({
           disabled={saving}
           onClick={() => handleChange("OPEN")}
           className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-            course.qaScope === "OPEN" ? "bg-brand-teal text-brand-onAccent" : "border border-brand-gray"
+            course.qaScope === "OPEN" ? "bg-brand-action text-brand-onAccent" : "border border-brand-gray"
           }`}
         >
           Open (everyone)
@@ -1231,7 +1231,7 @@ function QaScopeSettings({
           disabled={saving}
           onClick={() => handleChange("COHORT_SCOPED")}
           className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-            course.qaScope === "COHORT_SCOPED" ? "bg-brand-teal text-brand-onAccent" : "border border-brand-gray"
+            course.qaScope === "COHORT_SCOPED" ? "bg-brand-action text-brand-onAccent" : "border border-brand-gray"
           }`}
         >
           Cohort-scoped
@@ -1303,7 +1303,7 @@ function WhatsappGroupSettings({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
+          className="rounded-lg bg-brand-action px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
         >
           {saving ? "Saving..." : "Save"}
         </button>
@@ -1827,7 +1827,7 @@ function MaterialForm({
             setSaving(false);
             if (err) setError(err);
           }}
-          className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
+          className="rounded-lg bg-brand-action px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
         >
           {saving ? "Saving..." : submitLabel}
         </button>
@@ -1885,7 +1885,7 @@ function AddForm({
             setSaving(false);
             if (err) setError(err);
           }}
-          className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
+          className="rounded-lg bg-brand-action px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
         >
           {saving ? "Saving..." : submitLabel}
         </button>

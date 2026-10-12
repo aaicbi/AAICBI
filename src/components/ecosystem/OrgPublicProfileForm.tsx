@@ -121,7 +121,7 @@ export default function OrgPublicProfileForm() {
           )}
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" id="org-cover-file" onChange={(e) => { setPending(e.target.files?.[0] ?? null); e.target.value = ""; }} />
-            <label htmlFor="org-cover-file" className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full border border-brand-teal px-5 text-sm font-semibold text-brand-teal hover:bg-brand-mint focus-within:ring-2 focus-within:ring-brand-teal">
+            <label htmlFor="org-cover-file" className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full border border-brand-action px-5 text-sm font-semibold text-brand-action hover:bg-brand-mint focus-within:ring-2 focus-within:ring-brand-teal">
               {uploading ? "Uploading…" : profile.coverUrl ? "Change picture" : "Upload a picture"}
             </label>
             {profile.coverUrl && <button type="button" onClick={adjustCover} className="inline-flex min-h-[44px] items-center rounded-full border border-brand-gray px-5 text-sm font-semibold text-brand-ink hover:bg-brand-mint focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">Adjust picture</button>}

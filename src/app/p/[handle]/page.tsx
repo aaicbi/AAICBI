@@ -86,7 +86,7 @@ export default async function ProfilePage({ params }: { params: { handle: string
           {v.note && <p className="mt-2 text-sm font-semibold text-brand-teal">{v.note}</p>}
           {v.links.length > 0 && (
             <ul className="mt-3 flex flex-wrap gap-2" aria-label="Links">
-              {v.links.map((l) => <li key={l.href}><a href={l.href} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[40px] items-center rounded-full border border-brand-gray px-4 text-sm font-semibold text-brand-teal hover:border-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">{l.label}</a></li>)}
+              {v.links.map((l) => <li key={l.href}><a href={l.href} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[40px] items-center rounded-full border border-brand-gray px-4 text-sm font-semibold text-brand-action hover:border-brand-action focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal bg-brand-surface">{l.label}</a></li>)}
             </ul>
           )}
           {v.chips.length > 0 && (
@@ -95,7 +95,7 @@ export default async function ProfilePage({ params }: { params: { handle: string
             </ul>
           )}
           {v.moreHref && (
-            <Link href={v.moreHref} className="mt-4 inline-flex min-h-[44px] items-center rounded-full border border-brand-teal px-5 text-sm font-semibold text-brand-teal hover:bg-brand-mint focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
+            <Link href={v.moreHref} className="mt-4 inline-flex min-h-[44px] items-center rounded-full border border-brand-action px-5 text-sm font-semibold text-brand-action hover:bg-brand-mint focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">
               {v.moreLabel}
             </Link>
           )}

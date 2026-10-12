@@ -31,7 +31,7 @@ export function HowItWorksPanel() {
         <li><span className="font-semibold">Build and share.</span> Post what you are working on and learn in public.</li>
         <li><span className="font-semibold">Get discovered.</span> Employers, organizations and investors find people and startups by evidence.</li>
       </ol>
-      <Link href="/join" className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-brand-teal px-4 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep">Create an account</Link>
+      <Link href="/join" className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-brand-action px-4 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover">Create an account</Link>
       <Link href="/about" className="mt-1 flex min-h-[36px] items-center justify-center text-sm font-semibold text-brand-teal hover:underline">More about AAICBI</Link>
     </Card>
   );

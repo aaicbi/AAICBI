@@ -459,7 +459,7 @@ function WhatsAppSettings({
             <button
               onClick={verifyCode}
               disabled={busy || code.length !== 6}
-              className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
+              className="rounded-lg bg-brand-action px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
             >
               Verify
             </button>
@@ -475,7 +475,7 @@ function WhatsAppSettings({
           <button
             onClick={requestCode}
             disabled={busy || !phoneInput.trim()}
-            className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
+            className="rounded-lg bg-brand-action px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60"
           >
             Enable WhatsApp Notifications
           </button>

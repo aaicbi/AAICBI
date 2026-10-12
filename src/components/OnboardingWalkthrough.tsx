@@ -68,7 +68,7 @@ export default function OnboardingWalkthrough({
             <span
               key={i}
               className={`h-1.5 rounded-full transition-all ${
-                i === index ? "w-5 bg-brand-teal" : "w-1.5 bg-brand-gray"
+                i === index ? "w-5 bg-brand-action" : "w-1.5 bg-brand-gray"
               }`}
             />
           ))}
@@ -85,7 +85,7 @@ export default function OnboardingWalkthrough({
           <button
             autoFocus
             onClick={() => (isLast ? onComplete() : setIndex((i) => i + 1))}
-            className="rounded-lg bg-brand-teal px-5 py-2 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep"
+            className="rounded-lg bg-brand-action px-5 py-2 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover"
           >
             {isLast ? "Get Started" : "Next"}
           </button>

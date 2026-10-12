@@ -159,7 +159,7 @@ export default function EcosystemHero({ stats, links }: { stats: LandingStats; l
               <path d="M70 14 Q 62 12 56 12" vectorEffect="non-scaling-stroke" />
             </g>
           </svg>
-          <div className="pointer-events-none absolute left-1/2 top-1/2 hidden h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl bg-brand-teal sm:flex" aria-hidden="true">
+          <div className="pointer-events-none absolute left-1/2 top-1/2 hidden h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl bg-brand-action sm:flex" aria-hidden="true">
             <svg viewBox="0 0 40 40" className="h-10 w-10">
               <path d="M20 9 L31.5 15 L20 21 L8.5 15 Z" fill="#FFFFFF" />
               <path d="M14 17.3 V23.5 C14 25.7 16.7 27.5 20 27.5 C23.3 27.5 26 25.7 26 23.5 V17.3" stroke="#85C79A" strokeWidth="2" fill="none" strokeLinecap="round" />
@@ -186,7 +186,7 @@ export default function EcosystemHero({ stats, links }: { stats: LandingStats; l
                     selected ? "border-brand-teal bg-brand-mint" : "border-brand-gray bg-brand-surface hover:border-brand-teal"
                   }`}
                 >
-                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${selected ? "bg-brand-teal text-brand-onAccent" : "bg-brand-mint text-brand-teal"}`}>
+                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${selected ? "bg-brand-action text-brand-onAccent" : "bg-brand-mint text-brand-teal"}`}>
                     <Icon icon={n.icon} size="md" />
                   </span>
                   <span className="min-w-0">

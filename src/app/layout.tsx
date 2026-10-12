@@ -4,6 +4,7 @@ import { ToastProvider } from "@/components/ui/Toast";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
 import TourGuideButton from "@/components/TourGuideButton";
 import ThemeToggle from "@/components/ThemeToggle";
+import DesignPreview from "@/components/DesignPreview";
 import LoopGuide from "@/components/guide/LoopGuide";
 import PwaRegister from "@/components/pwa/PwaRegister";
 import NetworkStatus from "@/components/pwa/NetworkStatus";
@@ -95,6 +96,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             fixed-position affordance rather than an element-anchored
             tour. */}
         <ThemeToggle />
+        <DesignPreview />
         <TourGuideButton />
         {/* Loop, the ecosystem guide — mounted once, here, like the page
             help button it replaces wherever it shows. See

@@ -55,7 +55,7 @@ export default function DesktopRecommended({ what, below = "sm" }: { what: strin
           <p className="text-sm font-semibold">{what} is optimized for a larger screen.</p>
           <p className="mt-1 text-sm">Please continue on a laptop or desktop for the best experience. You can still look around here.</p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" onClick={copy} className="inline-flex min-h-[44px] items-center rounded-lg bg-brand-teal px-4 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
+            <button type="button" onClick={copy} className="inline-flex min-h-[44px] items-center rounded-lg bg-brand-action px-4 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
               Copy link
             </button>
             <button

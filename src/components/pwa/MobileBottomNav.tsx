@@ -135,7 +135,7 @@ export default function MobileBottomNav({ role, moreItems }: { role: NavRole; mo
               return (
                 <li key={t.href} className="flex flex-1">
                   <Link href={t.href} data-guide-target={navTarget(t.href)} className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[11px] font-semibold text-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-teal">
-                    <span className="flex h-8 w-14 items-center justify-center rounded-full bg-brand-teal text-brand-onAccent shadow-sm"><TabIcon aria-hidden="true" width={22} height={22} strokeWidth={2.75} /></span>
+                    <span className="flex h-8 w-14 items-center justify-center rounded-full bg-brand-action text-brand-onAccent shadow-sm"><TabIcon aria-hidden="true" width={22} height={22} strokeWidth={2.75} /></span>
                     {t.label}
                   </Link>
                 </li>

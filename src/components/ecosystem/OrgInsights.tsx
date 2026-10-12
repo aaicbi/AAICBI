@@ -83,7 +83,7 @@ export default function OrgInsights() {
               {COMPONENTS.map((c) => (
                 <div key={c}>
                   <div className="flex justify-between text-xs text-gray-600"><span>{COMPONENT_LABELS[c]}</span><span>{Math.round(data.visibility!.components[c] * 100)}%</span></div>
-                  <div className="h-2 rounded-full bg-brand-gray/40" role="presentation"><div className="h-2 rounded-full bg-brand-teal" style={{ width: `${Math.round(data.visibility!.components[c] * 100)}%` }} /></div>
+                  <div className="h-2 rounded-full bg-brand-gray/40" role="presentation"><div className="h-2 rounded-full bg-brand-action" style={{ width: `${Math.round(data.visibility!.components[c] * 100)}%` }} /></div>
                 </div>
               ))}
             </Card>

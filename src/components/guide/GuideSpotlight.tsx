@@ -255,14 +255,14 @@ export default function GuideSpotlight() {
             </button>
           </div>
           <div role="progressbar" aria-label="Guide progress" aria-valuemin={1} aria-valuemax={total} aria-valuenow={tour.step + 1} className="mt-1 h-1.5 overflow-hidden rounded-full bg-brand-gray">
-            <div className="h-full bg-brand-teal transition-[width]" style={{ width: `${((tour.step + 1) / total) * 100}%` }} />
+            <div className="h-full bg-brand-action transition-[width]" style={{ width: `${((tour.step + 1) / total) * 100}%` }} />
           </div>
           <h3 className="mt-2 text-sm font-semibold">{step.title}</h3>
           <p className="mt-1 whitespace-pre-line text-sm">
             <Marked text={step.text} />
           </p>
           {!onPage && page && (
-            <button type="button" onClick={takeMeThere} className="mt-2.5 inline-flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg bg-brand-teal px-3 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
+            <button type="button" onClick={takeMeThere} className="mt-2.5 inline-flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg bg-brand-action px-3 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
               <span className="inline-flex items-center gap-1.5">
                 <Icon icon={MapPin} size="sm" /> Take me there
               </span>
@@ -288,7 +288,7 @@ export default function GuideSpotlight() {
             <button type="button" onClick={previousStep} disabled={tour.step === 0} className="inline-flex min-h-[44px] items-center gap-1 rounded-lg px-2 text-sm font-semibold text-gray-700 hover:text-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal disabled:cursor-not-allowed disabled:text-gray-400">
               <Icon icon={ArrowLeft} size="sm" /> Back
             </button>
-            <button type="button" onClick={() => nextStep(total, book.title)} className={`inline-flex min-h-[44px] items-center gap-1 rounded-lg px-3 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2 ${waiting ? "text-brand-teal hover:underline" : "bg-brand-teal text-brand-onAccent hover:bg-brand-tealDeep"}`}>
+            <button type="button" onClick={() => nextStep(total, book.title)} className={`inline-flex min-h-[44px] items-center gap-1 rounded-lg px-3 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2 ${waiting ? "text-brand-teal hover:underline" : "bg-brand-action text-brand-onAccent hover:bg-brand-actionHover"}`}>
               {tour.step + 1 === total ? (
                 <>
                   <Icon icon={Check} size="sm" /> Finish

@@ -74,10 +74,10 @@ function Block({ b }: { b: MobileBlock }) {
           <p className="text-xs font-semibold uppercase tracking-wide text-brand-teal">Continue learning</p>
           <p className="font-display font-semibold text-brand-ink">{b.title}</p>
           <div role="progressbar" aria-label="Course progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={b.percent} className="h-2 overflow-hidden rounded-full bg-brand-gray">
-            <div className="h-full bg-brand-teal" style={{ width: `${b.percent}%` }} />
+            <div className="h-full bg-brand-action" style={{ width: `${b.percent}%` }} />
           </div>
           <p className="text-xs text-gray-600">{b.detail}</p>
-          <Link href={b.href} className="inline-flex min-h-[48px] w-full items-center justify-center rounded-lg bg-brand-teal px-4 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
+          <Link href={b.href} className="inline-flex min-h-[48px] w-full items-center justify-center rounded-lg bg-brand-action px-4 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
             Resume
           </Link>
         </Card>

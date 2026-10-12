@@ -53,7 +53,7 @@ export default function FormSteps({ labels, children, footer, className = "space
           Step {p.number} of {p.total} · {labels[step] ?? ""}
         </p>
         <div role="progressbar" aria-label="Form progress" aria-valuemin={1} aria-valuemax={p.total} aria-valuenow={p.number} className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-brand-gray">
-          <div className="h-full bg-brand-teal transition-all" style={{ width: `${(p.number / p.total) * 100}%` }} />
+          <div className="h-full bg-brand-action transition-all" style={{ width: `${(p.number / p.total) * 100}%` }} />
         </div>
       </div>
 
@@ -68,7 +68,7 @@ export default function FormSteps({ labels, children, footer, className = "space
           <Icon icon={ArrowLeft} size="sm" /> Back
         </button>
         {!p.isLast && (
-          <button type="button" onClick={next} className="inline-flex min-h-[44px] items-center gap-1 rounded-lg bg-brand-teal px-5 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
+          <button type="button" onClick={next} className="inline-flex min-h-[44px] items-center gap-1 rounded-lg bg-brand-action px-5 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
             Next <Icon icon={ArrowRight} size="sm" />
           </button>
         )}

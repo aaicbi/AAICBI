@@ -278,7 +278,7 @@ export default function FloatingMessagesButton() {
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-label={unreadCount > 0 ? `Messages, ${unreadCount} unread` : "Messages"}
-        className="relative flex h-12 w-12 items-center justify-center rounded-full bg-brand-teal text-brand-onAccent shadow-lg transition-transform hover:scale-105 hover:bg-brand-tealDeep"
+        className="relative flex h-12 w-12 items-center justify-center rounded-full bg-brand-action text-brand-onAccent shadow-lg transition-transform hover:scale-105 hover:bg-brand-actionHover"
       >
         <Icon icon={open ? X : MessageSquare} size="md" />
         {!open && unreadCount > 0 && (

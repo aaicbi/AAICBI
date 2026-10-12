@@ -125,7 +125,7 @@ export default function PitchLoopPanel({ draft }: { draft: PitchDraft }) {
                   key={s}
                   type="button"
                   onClick={() => send(s)}
-                  className="rounded-full border border-brand-gray px-3 py-1 text-xs font-semibold text-gray-600 hover:border-brand-teal hover:text-brand-teal"
+                  className="rounded-full border border-brand-gray px-3 py-1 text-xs font-semibold text-gray-600 hover:border-brand-action hover:text-brand-action bg-brand-surface"
                 >
                   {s}
                 </button>
@@ -137,7 +137,7 @@ export default function PitchLoopPanel({ draft }: { draft: PitchDraft }) {
         {messages.map((m) =>
           m.role === "trainee" ? (
             <div key={m.id} className="flex justify-end">
-              <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-brand-teal px-3 py-2 text-xs font-medium text-brand-onAccent">{m.text}</div>
+              <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-brand-action px-3 py-2 text-xs font-medium text-brand-onAccent">{m.text}</div>
             </div>
           ) : (
             <div key={m.id} className="flex justify-start">

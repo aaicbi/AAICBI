@@ -401,7 +401,7 @@ export default function CourseExaminationPage({ params }: { params: { id: string
               <button
                 onClick={saveSettings}
                 disabled={savingSettings}
-                className="rounded-lg bg-brand-teal px-4 py-2 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep disabled:opacity-60"
+                className="rounded-lg bg-brand-action px-4 py-2 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover disabled:opacity-60"
               >
                 {savingSettings ? "Saving..." : "Save Settings"}
               </button>

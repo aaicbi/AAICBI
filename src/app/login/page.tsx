@@ -34,7 +34,7 @@ export default function LoginPage({ searchParams }: { searchParams: { next?: str
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-mint text-brand-teal"><Icon icon={k.icon} size="md" /></span>
               <h2 className="mt-3 font-display text-lg font-semibold text-brand-ink">{k.title}</h2>
               <p className="mt-1 text-sm text-gray-700">{k.text}</p>
-              <Link href={withNext(k.login)} className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-full bg-brand-teal px-5 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep">Sign in</Link>
+              <Link href={withNext(k.login)} className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-full bg-brand-action px-5 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover">Sign in</Link>
             </li>
           ))}
         </ul>
