@@ -3,6 +3,7 @@ import { Fraunces, Manrope } from "next/font/google";
 import { ToastProvider } from "@/components/ui/Toast";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
 import TourGuideButton from "@/components/TourGuideButton";
+import ThemeToggle from "@/components/ThemeToggle";
 import LoopGuide from "@/components/guide/LoopGuide";
 import PwaRegister from "@/components/pwa/PwaRegister";
 import NetworkStatus from "@/components/pwa/NetworkStatus";
@@ -93,6 +94,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             TourGuideButton.tsx's own comment for why this is a
             fixed-position affordance rather than an element-anchored
             tour. */}
+        <ThemeToggle />
         <TourGuideButton />
         {/* Loop, the ecosystem guide — mounted once, here, like the page
             help button it replaces wherever it shows. See
