@@ -1,6 +1,8 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Maximize2, Play, X } from "lucide-react";
+import ControlledYouTube from "@/components/video/ControlledYouTube";
+import { watchVideo } from "@/lib/video/activity";
 import Icon from "@/components/ui/Icon";
 import { EMBED_ALLOW, embedSrc, posterUrl, type VideoSource } from "@/lib/video/embed";
 
@@ -10,6 +12,13 @@ interface Props {
   /** Skip the poster picture until the viewer taps play (low-bandwidth mode). */
   lowBandwidthMode?: boolean;
   className?: string;
+  /**
+   * Feed and post pages: the video that is most on screen plays by itself, muted, grows a little while it plays, and pauses when
+   * you scroll on to another. Not used where learners expect to press play themselves (course lessons).
+   */
+  autoplayInView?: boolean;
+  /** Negative margins that let the playing video reach the edges of the card it sits in. */
+  bleedClass?: string;
 }
 
 function Frame({ source, title, autoplay }: { source: VideoSource; title: string; autoplay: boolean }) {
@@ -60,7 +69,7 @@ function VideoModal({ source, title, onClose }: { source: VideoSource; title: st
           </button>
         </div>
         <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-black shadow-2xl">
-          <Frame source={source} title={title} autoplay />
+          {source.kind === "youtube" ? <ControlledYouTube id={source.id} title={title} active /> : <Frame source={source} title={title} autoplay />}
         </div>
       </div>
     </div>
@@ -74,23 +83,52 @@ function VideoModal({ source, title, onClose }: { source: VideoSource; title: st
  * "Expand" opens the same video much larger in a modal. Nothing here links
  * out to youtube.com, so the YouTube app is never launched.
  */
-export default function VideoPlayer({ source, title, lowBandwidthMode = false, className = "" }: Props) {
-  const [playing, setPlaying] = useState(false);
+export default function VideoPlayer({ source, title, lowBandwidthMode = false, className = "", autoplayInView = false, bleedClass = "" }: Props) {
+  const [started, setStarted] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [posterFailed, setPosterFailed] = useState(false);
+  const [managedActive, setManagedActive] = useState(false);
+  const [forced, setForced] = useState(false);
+  const [autoAllowed, setAutoAllowed] = useState(false);
+  const frame = useRef<HTMLDivElement>(null);
   const poster = posterUrl(source);
   const showPoster = !lowBandwidthMode && !posterFailed && poster;
   const closeModal = useCallback(() => setExpanded(false), []);
+  const isYouTube = source.kind === "youtube";
+
+  // Autoplay only when asked for, and never in low-data mode, with data saver on, or for people who ask their device for less motion.
+  useEffect(() => {
+    if (!autoplayInView || !isYouTube || lowBandwidthMode) return setAutoAllowed(false);
+    const saver = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true;
+    const calm = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setAutoAllowed(!saver && !calm);
+  }, [autoplayInView, isYouTube, lowBandwidthMode]);
+
+  // While autoplay is on, the page decides which video plays.
+  useEffect(() => {
+    if (!autoAllowed || !frame.current) return;
+    return watchVideo(frame.current, setManagedActive);
+  }, [autoAllowed]);
+  useEffect(() => { if (autoAllowed && managedActive) setStarted(true); }, [autoAllowed, managedActive]);
+  // Someone who taps play on a video before the page has picked it keeps it playing until it scrolls away.
+  useEffect(() => { if (!managedActive) return; return () => setForced(false); }, [managedActive]);
+
+  const playing = started && isYouTube;
+  const active = autoAllowed ? (managedActive || forced) && !expanded : !expanded;
+  const grow = autoAllowed && managedActive && started;
+  const sizing = autoAllowed ? `w-auto transition-[margin,border-radius] duration-300 motion-reduce:transition-none ${grow ? `${bleedClass} rounded-lg` : "mx-3 rounded-xl sm:mx-4"}` : "w-full rounded-xl";
 
   return (
-    <div className={`relative aspect-video w-full overflow-hidden rounded-xl border border-brand-gray bg-black shadow-md ${className}`}>
-      {playing && !expanded ? (
+    <div ref={frame} data-testid="video-frame" data-active={grow ? "true" : "false"} className={`relative aspect-video overflow-hidden border border-brand-gray bg-black shadow-md ${sizing} ${className}`}>
+      {playing ? (
+        <ControlledYouTube id={source.id} title={title} active={active} onFullscreen={() => setExpanded(true)} />
+      ) : started && !isYouTube ? (
         <Frame source={source} title={title} autoplay />
       ) : (
-        <button type="button" onClick={() => setPlaying(true)} aria-label={`Play video: ${title}`} className="group absolute inset-0 block h-full w-full cursor-pointer bg-[#111827] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-teal">
+        <button type="button" onClick={() => { setStarted(true); setForced(true); }} aria-label={`Play video: ${title}`} className="group absolute inset-0 block h-full w-full cursor-pointer bg-[#111827] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white">
           {showPoster ? (
             // eslint-disable-next-line @next/next/no-img-element -- a video poster served by YouTube/Drive, not a local asset.
-            <img src={poster as string} alt="" loading="lazy" decoding="async" onError={() => setPosterFailed(true)} className="h-full w-full object-cover opacity-90 transition duration-300 group-hover:scale-[1.02] group-hover:opacity-75" />
+            <img src={poster as string} alt="" loading="lazy" decoding="async" onError={() => setPosterFailed(true)} className="h-full w-full object-cover opacity-90 transition duration-300 group-hover:opacity-100" />
           ) : null}
           <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white">
             <span className="flex h-16 w-16 items-center justify-center rounded-full bg-black/65 ring-1 ring-white/30 transition-transform group-hover:scale-110 sm:h-20 sm:w-20">
@@ -100,15 +138,10 @@ export default function VideoPlayer({ source, title, lowBandwidthMode = false, c
           </span>
         </button>
       )}
-      {!playing && (
-      <button
-        type="button"
-        onClick={() => setExpanded(true)}
-        aria-label={`Expand video: ${title}`}
-        className="absolute right-2 top-2 z-10 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-black/60 text-white backdrop-blur hover:bg-black/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-      >
-        <Icon icon={Maximize2} size="md" />
-      </button>
+      {!started && (
+        <button type="button" onClick={() => setExpanded(true)} aria-label={`Expand video: ${title}`} className="absolute right-2 top-2 z-10 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-black/60 text-white backdrop-blur hover:bg-black/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
+          <Icon icon={Maximize2} size="md" />
+        </button>
       )}
       {expanded && <VideoModal source={source} title={title} onClose={closeModal} />}
     </div>

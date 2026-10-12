@@ -55,7 +55,7 @@ export function PostText({ text, className = "", lines }: { text: string; classN
 }
 
 /** One post, the same card everywhere: who wrote it (and for whom), what they wrote, the pictures or video. `headerAction` sits at the top right (a Follow button); `footer` is for the actions under the post. */
-export default function PostCard({ post, showStatus = false, headerAction, footer, full = false }: { post: PostView; showStatus?: boolean; headerAction?: React.ReactNode; footer?: React.ReactNode; full?: boolean }) {
+export default function PostCard({ post, showStatus = false, headerAction, footer, full = false, autoplay = false }: { post: PostView; showStatus?: boolean; headerAction?: React.ReactNode; footer?: React.ReactNode; full?: boolean; /** The video plays by itself when it is the one most on screen (feed and post pages). */ autoplay?: boolean }) {
   const when = post.publishedAt ?? post.createdAt;
   return (
     <article id={`post-${post.id}`} className="scroll-mt-20 rounded-3xl border border-brand-gray bg-card-gradient p-4 shadow-sm sm:p-5" aria-label={`Post by ${post.author.name}`}>
@@ -71,7 +71,7 @@ export default function PostCard({ post, showStatus = false, headerAction, foote
         {headerAction}
         {showStatus && <Badge variant={post.status === "PUBLISHED" ? "success" : post.status === "REJECTED" || post.status === "SUSPENDED" ? "danger" : "warning"}>{STATUS_LABEL[post.status]}</Badge>}
       </header>
-      {post.youtubeId && <div className="mt-3"><VideoPlayer source={{ kind: "youtube", id: post.youtubeId }} title={post.title ?? `Video by ${post.author.name}`} /></div>}
+      {post.youtubeId && <div className="mt-3"><VideoPlayer source={{ kind: "youtube", id: post.youtubeId }} title={post.title ?? `Video by ${post.author.name}`} autoplayInView={autoplay} bleedClass="-mx-4 sm:-mx-5" /></div>}
       <Gallery images={post.images} />
       {post.title && <h2 className="mt-3 break-words [overflow-wrap:anywhere] font-display text-lg font-semibold text-brand-ink">{post.title}</h2>}
       {post.body && <PostText text={post.body} lines={full ? 8 : 4} className="mt-2 text-sm leading-relaxed text-brand-ink" />}

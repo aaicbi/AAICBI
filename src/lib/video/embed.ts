@@ -27,3 +27,24 @@ export const EMBED_ALLOW = "accelerometer; autoplay; clipboard-write; encrypted-
 export function posterUrl(source: VideoSource): string | null {
   return source.kind === "youtube" ? `https://i.ytimg.com/vi/${encodeURIComponent(source.id)}/hqdefault.jpg` : `https://drive.google.com/thumbnail?id=${encodeURIComponent(source.id)}&sz=w1280`;
 }
+
+/**
+ * Settings for the YouTube player when the platform draws the controls itself (the player's own bar, title and buttons are switched
+ * off; the platform shows play and pause, sound, a progress bar and full screen). `mute` lets a phone start it without a tap.
+ * YouTube may still show its small mark or the title when a video loads or is paused; that is YouTube's own and is left as it is.
+ */
+export function playerVars(opts: { autoplay: boolean; mute: boolean }): Record<string, string | number> {
+  return {
+    autoplay: opts.autoplay ? 1 : 0,
+    mute: opts.mute ? 1 : 0,
+    controls: 0,
+    modestbranding: 1,
+    rel: 0,
+    playsinline: 1,
+    iv_load_policy: 3,
+    fs: 0,
+    disablekb: 1,
+    cc_load_policy: 0,
+    enablejsapi: 1,
+  };
+}
