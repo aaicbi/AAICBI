@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
-import { MAX_ZOOM, MIN_ZOOM, coverSize, cropRect, narrowerView, needsPadding, outputSize, panBy, startState, zoomTo, type Crop, type FrameState } from "@/lib/imageFrame";
+import { MAX_ZOOM, MIN_ZOOM, backgroundCrop, coverSize, cropRect, narrowerView, needsPadding, outputSize, panBy, startState, zoomTo, type Crop, type FrameState } from "@/lib/imageFrame";
 
 const MAX_BYTES = 4.8 * 1024 * 1024; // the server accepts 5MB
 
@@ -20,10 +20,26 @@ export async function loadAsFile(url: string, name = "picture"): Promise<File | 
 }
 
 /** The picture shown through a window of the given crop (used for the main frame and the small phone strip). */
-function Shot({ src, imgW, imgH, crop, boxWidth }: { src: string; imgW: number; imgH: number; crop: Crop; boxWidth: number }) {
+function Shot({ src, imgW, imgH, crop, boxWidth, blurred = false }: { src: string; imgW: number; imgH: number; crop: Crop; boxWidth: number; blurred?: boolean }) {
   const k = boxWidth / crop.w;
   // eslint-disable-next-line @next/next/no-img-element -- a local preview of the person's own file
-  return <img src={src} alt="" draggable={false} className="pointer-events-none absolute max-w-none" style={{ width: imgW * k, height: imgH * k, left: -crop.x * k, top: -crop.y * k }} />;
+  const img = <img src={src} alt="" draggable={false} className="pointer-events-none absolute max-w-none" style={{ width: imgW * k, height: imgH * k, left: -crop.x * k, top: -crop.y * k }} />;
+  // The blurred copy is enlarged a little so its soft edges never show inside the frame.
+  return blurred ? <div className="pointer-events-none absolute inset-0" style={{ filter: `blur(${Math.max(8, boxWidth / 28)}px)`, transform: "scale(1.12)" }}>{img}</div> : img;
+}
+
+/** Draws a blurred, enlarged copy of the picture over the whole canvas (shrinking it and stretching it back blurs it in every browser). */
+function drawBlurredBackground(ctx: CanvasRenderingContext2D, img: HTMLImageElement, out: { w: number; h: number }) {
+  const W = img.naturalWidth, H = img.naturalHeight;
+  const small = document.createElement("canvas");
+  small.width = Math.max(2, Math.round(out.w / 40)); small.height = Math.max(2, Math.round(out.h / 40));
+  const sctx = small.getContext("2d");
+  if (!sctx) return;
+  sctx.imageSmoothingQuality = "high";
+  const sk = Math.max(small.width / W, small.height / H);
+  sctx.drawImage(img, (small.width - W * sk) / 2, (small.height - H * sk) / 2, W * sk, H * sk);
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(small, 0, 0, out.w, out.h);
 }
 
 /**
@@ -73,7 +89,8 @@ export default function ImageFramer({ file, aspect, round = false, title, contex
   if (!file) return null;
   const W = img?.naturalWidth ?? 1, H = img?.naturalHeight ?? 1;
   const crop = state ? cropRect(W, H, aspect, state) : null;
-  const scale = crop ? width / crop.w : 1;
+  const padded = !!crop && needsPadding(W, H, crop);
+  const bg = backgroundCrop(W, H, aspect);
   const height = width / aspect;
 
   const move = (dx: number, dy: number) => setState((s) => (s ? panBy(W, H, aspect, s, dx, dy, width) : s));
@@ -89,11 +106,11 @@ export default function ImageFramer({ file, aspect, round = false, title, contex
     const ctx = canvas.getContext("2d");
     if (!ctx) { setBusy(false); return onUnreadable ? onUnreadable(file!) : onCancel(); }
     const k = out.w / crop.w;
-    const padded = needsPadding(W, H, crop);
+    // Space around a zoomed-out picture is filled with a blurred copy of the picture, so the result is always a solid picture.
+    if (needsPadding(W, H, crop)) drawBlurredBackground(ctx, img, out);
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(img, -crop.x * k, -crop.y * k, W * k, H * k);
-    // Empty space around a zoomed-out picture stays see-through, which only PNG and WEBP can hold.
-    let type = padded && file!.type === "image/jpeg" ? "image/png" : file!.type;
+    let type = file!.type;
     let blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, type, 0.92));
     if (blob && blob.size > MAX_BYTES) { type = "image/webp"; blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, type, 0.85)); }
     setBusy(false);
@@ -130,6 +147,7 @@ export default function ImageFramer({ file, aspect, round = false, title, contex
                 else if (e.key === "-") zoom((state?.zoom ?? 1) - 0.1);
               }}
             >
+              {src && crop && padded && <Shot src={src} imgW={W} imgH={H} crop={bg} boxWidth={width} blurred />}
               {src && crop && <Shot src={src} imgW={W} imgH={H} crop={crop} boxWidth={width} />}
             </div>
           </div>
@@ -143,6 +161,7 @@ export default function ImageFramer({ file, aspect, round = false, title, contex
           <div key={v.label} className="mt-3" data-testid={`also-${v.label}`}>
             <p className="text-xs font-semibold text-gray-600">{v.label}</p>
             <div className="relative mt-1 overflow-hidden rounded-xl bg-brand-sand ring-1 ring-brand-gray" style={{ width: boxW, height: boxW / v.aspect }}>
+              {src && sub && padded && <Shot src={src} imgW={W} imgH={H} crop={narrowerView(bg, v.aspect)} boxWidth={boxW} blurred />}
               {src && sub && <Shot src={src} imgW={W} imgH={H} crop={sub} boxWidth={boxW} />}
             </div>
           </div>

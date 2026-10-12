@@ -3,7 +3,7 @@
  * of the original is kept. No browser or database here, so it can be tested.
  *
  * Zoom 1 is the smallest picture that still fills the frame (the "cover" fit). More than 1 is closer in. Less than 1 shows the
- * whole picture with empty space around it (for logos that must not be cut).
+ * whole picture with space around it, which is filled with a blurred, enlarged copy of the picture itself.
  */
 export interface Crop { x: number; y: number; w: number; h: number }
 export interface FrameState { zoom: number; /** centre of the frame, in the picture's own pixels */ cx: number; cy: number }
@@ -12,7 +12,7 @@ export interface FrameState { zoom: number; /** centre of the frame, in the pict
 export const COVER_ASPECT = 5;
 export const COVER_PHONE_ASPECT = 3;
 
-export const MIN_ZOOM = 0.5;
+export const MIN_ZOOM = 0.1;
 export const MAX_ZOOM = 4;
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
@@ -55,7 +55,7 @@ export function zoomTo(imgW: number, imgH: number, aspect: number, s: FrameState
   return { ...next, cx: r.x + r.w / 2, cy: r.y + r.h / 2 };
 }
 
-/** True when the kept part reaches outside the picture, so the result needs transparent space (and so must be a PNG). */
+/** True when the kept part reaches outside the picture, so the space around it needs a background (a blurred copy of the picture). */
 export function needsPadding(imgW: number, imgH: number, c: Crop): boolean {
   return c.w > imgW + 0.5 || c.h > imgH + 0.5;
 }
@@ -71,4 +71,10 @@ export function narrowerView(c: Crop, narrowAspect: number): Crop {
   const w = Math.min(c.w, c.h * narrowAspect);
   const h = w / narrowAspect;
   return { x: c.x + (c.w - w) / 2, y: c.y + (c.h - h) / 2, w, h };
+}
+
+/** The part of the picture that fills a frame of this shape from the middle: what the blurred background is made from. */
+export function backgroundCrop(imgW: number, imgH: number, aspect: number): Crop {
+  const b = coverSize(imgW, imgH, aspect);
+  return { x: (imgW - b.w) / 2, y: (imgH - b.h) / 2, w: b.w, h: b.h };
 }
