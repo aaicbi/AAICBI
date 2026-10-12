@@ -6,6 +6,7 @@
 - **Secondary buttons**: white with a greenish-black outline and text (`Button` variant `secondary`, and the hand-written outline pills).
 - **Links and accents** (`text-brand-teal`, rings, outlines) keep the mid green, so a link still looks different from body text.
 - The logo keeps its own green.
+- **Text** is a step darker than the first version: body text (`brand-ink` 12 36 31), the gray scale used for secondary text, captions and placeholders (`gray-400` to `gray-900`), links and accents (`brand-teal` 0 86 77), gold text (110 72 14) and error text (`brand-rose` 150 38 52). The relationships between them are kept (caption lighter than secondary, secondary lighter than body), and `tests/designTokens.test.ts` still requires every pair to meet WCAG AA.
 - The colour values live in `src/app/globals.css` and are mirrored in `src/lib/designTokens.ts`, where `tests/designTokens.test.ts` checks that they match and that every text and background pair meets WCAG AA (4.5 to 1).
 
 ## Wallpaper strength
