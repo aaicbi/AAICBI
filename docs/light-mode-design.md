@@ -8,5 +8,5 @@
 - The logo keeps its own green.
 - The colour values live in `src/app/globals.css` and are mirrored in `src/lib/designTokens.ts`, where `tests/designTokens.test.ts` checks that they match and that every text and background pair meets WCAG AA (4.5 to 1).
 
-## Trying the wallpaper strength
-Add `?preview=design` to any address to show a small "Wallpaper 19% / 30% / 42%" picker in the corner (it stays on for that browser tab; `?preview=off` hides it). It only changes how the page looks in that tab. Once a strength is chosen, set the number in `public/wallpaper-pattern.svg` and delete `src/components/DesignPreview.tsx` and its line in `src/app/layout.tsx`.
+## Wallpaper strength
+The doodle wallpaper is set to 30% (the `opacity` on the first line of `public/wallpaper-pattern.svg`; the dark-mode copy is unchanged). 19% and 42% were compared on the live preview and 30% was chosen: clearly visible on the gray page without competing with the content.
