@@ -42,9 +42,12 @@
 :root {
   --brand-teal: 1 107 97;
   --brand-teal-deep: 1 74 67;
+  /* Filled buttons and chips: a greenish black in light mode (the teal above stays for links, outlines and accents so a link still looks like a link). */
+  --brand-action: 11 43 38;
+  --brand-action-hover: 22 69 61;
   --brand-green: 133 199 154;
-  --brand-mint: 228 238 231;
-  --brand-gray: 217 217 217;
+  --brand-mint: 234 240 235;
+  --brand-gray: 226 224 218;
   --brand-ink: 22 48 43;
   /* An exact hex supplied directly: #F7F5F0 = 247/245/240. Still the
      same warm, barely-there cream cast (R > G > B), just the precise
@@ -53,11 +56,11 @@
      Dark mode's own brand-sand value (below) is a separate variable,
      deliberately left alone — this request was about the light-mode
      wallpaper only. */
-  --brand-sand: 247 245 240;
+  --brand-sand: 240 240 238;
   --brand-surface: 255 255 255;
-  /* The card gradient: mint into gold in light mode. Dark mode keeps cards flat (both ends are the surface colour). */
-  --card-gradient-from: 228 238 231;
-  --card-gradient-to: 246 232 204;
+  /* Cards are a flat off-white in light mode (both ends of the gradient are the same colour, so it stays one token); dark mode keeps them flat too. */
+  --card-gradient-from: 250 249 246;
+  --card-gradient-to: 250 249 246;
   --brand-gold: 217 154 52;
   --brand-gold-light: 246 232 204;
   /* A genuinely new, dedicated token, not a repurposed existing one —
@@ -123,6 +126,8 @@
 .dark {
   --brand-teal: 79 187 168;
   --brand-teal-deep: 110 212 192;
+  --brand-action: 79 187 168;
+  --brand-action-hover: 110 212 192;
   --brand-green: 154 212 172;
   --brand-mint: 27 56 51;
   --brand-gray: 51 57 60;

@@ -59,7 +59,7 @@ export default function NetworkStatus() {
   if (online && !showBack) return null;
   return (
     <div role="status" aria-live="polite" className="pointer-events-none fixed inset-x-0 z-[90] flex justify-center px-3" style={{ top: "max(env(safe-area-inset-top), 0.5rem)" }}>
-      <div className={`pointer-events-auto flex max-w-md items-center gap-3 rounded-full px-4 py-2 text-sm font-semibold shadow-lg ${online ? "bg-brand-teal text-brand-onAccent" : "bg-brand-ink text-brand-sand"}`}>
+      <div className={`pointer-events-auto flex max-w-md items-center gap-3 rounded-full px-4 py-2 text-sm font-semibold shadow-lg ${online ? "bg-brand-action text-brand-onAccent" : "bg-brand-ink text-brand-sand"}`}>
         <span>{online ? "Back online" : "You're offline. Some pages won't load."}</span>
         {!online && (
           <button type="button" onClick={retry} disabled={checking} className="min-h-[32px] rounded-full bg-brand-sand px-3 text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal disabled:opacity-60">

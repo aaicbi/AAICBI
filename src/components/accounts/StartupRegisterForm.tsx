@@ -79,7 +79,7 @@ export default function StartupRegisterForm() {
         {done.startupProblem
           ? <p role="status" className="mt-2 text-sm text-brand-goldText">Your account is ready, but we could not save the startup. After signing in, add it from My Startups.</p>
           : <p className="mt-2 text-sm text-gray-800">Your startup <span className="font-semibold">{d.sName.trim()}</span> is saved as a draft. Sign in, finish its profile (tagline, the problem, your solution and its industry) and send it for review. It becomes public once the AAICBI team approves it.</p>}
-        <Link href={`/trainee/login?next=${encodeURIComponent(to)}`} className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-full bg-brand-teal px-5 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep">Sign in and finish the startup</Link>
+        <Link href={`/trainee/login?next=${encodeURIComponent(to)}`} className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-full bg-brand-action px-5 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover">Sign in and finish the startup</Link>
       </Card>
     );
   }
@@ -87,7 +87,7 @@ export default function StartupRegisterForm() {
   return (
     <Card>
       <ol aria-label="Progress" className="mb-5 flex gap-2 text-xs font-semibold">
-        {STEPS.map((s, i) => <li key={s} aria-current={i === step ? "step" : undefined} className={`flex-1 rounded-full px-3 py-1.5 text-center ${i === step ? "bg-brand-teal text-brand-onAccent" : i < step ? "bg-brand-mint text-brand-tealDeep" : "bg-brand-gray/40 text-gray-700"}`}>{i + 1}. {s}</li>)}
+        {STEPS.map((s, i) => <li key={s} aria-current={i === step ? "step" : undefined} className={`flex-1 rounded-full px-3 py-1.5 text-center ${i === step ? "bg-brand-action text-brand-onAccent" : i < step ? "bg-brand-mint text-brand-tealDeep" : "bg-brand-gray/40 text-gray-700"}`}>{i + 1}. {s}</li>)}
       </ol>
       <form noValidate onSubmit={(e) => { e.preventDefault(); if (step < 2) next(); else void submit(); }} className="space-y-4">
         {step === 0 && (

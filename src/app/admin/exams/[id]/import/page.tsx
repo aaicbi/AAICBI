@@ -292,7 +292,7 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="mt-3 rounded-lg bg-brand-teal px-4 py-2 font-semibold text-brand-onAccent hover:bg-brand-tealDeep disabled:opacity-60"
+          className="mt-3 rounded-lg bg-brand-action px-4 py-2 font-semibold text-brand-onAccent hover:bg-brand-actionHover disabled:opacity-60"
         >
           {uploading ? "Processing..." : "Choose .docx file"}
         </button>
@@ -372,7 +372,7 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
             <button
               onClick={handlePublish}
               disabled={outstandingCount > 0 || exam.questions.length === 0}
-              className="mt-3 rounded-lg bg-brand-teal px-5 py-2.5 font-semibold text-brand-onAccent hover:bg-brand-tealDeep disabled:cursor-not-allowed disabled:opacity-40"
+              className="mt-3 rounded-lg bg-brand-action px-5 py-2.5 font-semibold text-brand-onAccent hover:bg-brand-actionHover disabled:cursor-not-allowed disabled:opacity-40"
             >
               Publish Examination
             </button>
@@ -417,7 +417,7 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
             <button
               type="submit"
               disabled={granting}
-              className="rounded-lg bg-brand-teal px-4 py-2 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep disabled:opacity-60"
+              className="rounded-lg bg-brand-action px-4 py-2 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover disabled:opacity-60"
             >
               {granting ? "Granting..." : "Grant Access"}
             </button>
@@ -515,7 +515,7 @@ function QuestionCard({
                 onSave(text, options);
                 setEditing(false);
               }}
-              className="rounded-lg bg-brand-teal px-3 py-1.5 text-sm font-semibold text-brand-onAccent"
+              className="rounded-lg bg-brand-action px-3 py-1.5 text-sm font-semibold text-brand-onAccent"
             >
               Save
             </button>
@@ -543,7 +543,7 @@ function QuestionCard({
               Edit
             </button>
             {question.needsReview && (
-              <button onClick={onApprove} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent">
+              <button onClick={onApprove} className="rounded-lg bg-brand-action px-3 py-1.5 text-xs font-semibold text-brand-onAccent">
                 Approve as-is
               </button>
             )}

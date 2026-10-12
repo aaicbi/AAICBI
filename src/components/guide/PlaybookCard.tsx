@@ -73,7 +73,7 @@ export default function PlaybookCard({ id, onNavigate, onAsk, onShow }: { id: st
         {book.title} · Step {step + 1} of {total}
       </p>
       <div role="progressbar" aria-label="Guide progress" aria-valuemin={1} aria-valuemax={total} aria-valuenow={step + 1} className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-brand-gray">
-        <div className="h-full bg-brand-teal" style={{ width: `${((step + 1) / total) * 100}%` }} />
+        <div className="h-full bg-brand-action" style={{ width: `${((step + 1) / total) * 100}%` }} />
       </div>
       <h3 className="mt-2.5 text-sm font-semibold text-brand-ink">{s.title}</h3>
       <p className="mt-1 whitespace-pre-line text-sm text-brand-ink">
@@ -86,7 +86,7 @@ export default function PlaybookCard({ id, onNavigate, onAsk, onShow }: { id: st
         </p>
       )}
       {canShow && (
-        <button type="button" onClick={showMe} className="mt-2.5 inline-flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg bg-brand-teal px-3 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
+        <button type="button" onClick={showMe} className="mt-2.5 inline-flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg bg-brand-action px-3 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
           <span className="inline-flex items-center gap-1.5">
             <Eye size={16} aria-hidden="true" /> Show me on screen
           </span>
@@ -103,11 +103,11 @@ export default function PlaybookCard({ id, onNavigate, onAsk, onShow }: { id: st
           <Icon icon={ArrowLeft} size="sm" /> Back
         </button>
         {last ? (
-          <button type="button" onClick={() => go(0)} className="inline-flex min-h-[40px] items-center gap-1 rounded-lg bg-brand-teal px-3 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
+          <button type="button" onClick={() => go(0)} className="inline-flex min-h-[40px] items-center gap-1 rounded-lg bg-brand-action px-3 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
             <Icon icon={Check} size="sm" /> Done · restart
           </button>
         ) : (
-          <button type="button" onClick={() => go(step + 1)} className="inline-flex min-h-[40px] items-center gap-1 rounded-lg bg-brand-teal px-3 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
+          <button type="button" onClick={() => go(step + 1)} className="inline-flex min-h-[40px] items-center gap-1 rounded-lg bg-brand-action px-3 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
             Next <Icon icon={ArrowRight} size="sm" />
           </button>
         )}

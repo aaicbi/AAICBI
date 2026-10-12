@@ -302,7 +302,7 @@ export default function ChatPanel({
       <div ref={logRef} role="log" aria-live="polite" aria-relevant="additions" aria-label="Conversation with Loop" tabIndex={0} className="flex-1 space-y-3 overflow-y-auto px-4 py-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-teal">
         {messages.map((m) => (
           <div key={m.id} className={m.from === "me" ? "flex justify-end" : "flex justify-start"}>
-            <div className={`max-w-[92%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${m.from === "me" ? "bg-brand-teal text-brand-onAccent" : "bg-brand-sand text-brand-ink"}`}>
+            <div className={`max-w-[92%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${m.from === "me" ? "bg-brand-action text-brand-onAccent" : "bg-brand-sand text-brand-ink"}`}>
               <p className="whitespace-pre-line">
                 <Marked text={m.text} />
               </p>
@@ -314,7 +314,7 @@ export default function ChatPanel({
                       <button
                         type="button"
                         onClick={() => (a.kind === "show" ? show(a) : go(a))}
-                        className={`inline-flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg px-3 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2 ${a.kind === "go" ? "bg-brand-teal text-brand-onAccent hover:bg-brand-tealDeep" : "border border-brand-teal bg-brand-surface text-brand-teal hover:bg-brand-mint"}`}
+                        className={`inline-flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg px-3 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2 ${a.kind === "go" ? "bg-brand-action text-brand-onAccent hover:bg-brand-actionHover" : "border border-brand-teal bg-brand-surface text-brand-teal hover:bg-brand-mint"}`}
                       >
                         <span className="inline-flex items-center gap-1.5">
                           <Icon icon={a.kind === "go" ? MapPin : Eye} size="sm" /> {a.label}
@@ -453,7 +453,7 @@ export default function ChatPanel({
             placeholder="Ask about training, jobs, joining…"
             className="min-h-[44px] min-w-0 flex-1 rounded-lg border border-brand-gray bg-brand-surface px-3 text-sm text-brand-ink placeholder:text-gray-500 focus:border-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal"
           />
-          <button type="submit" disabled={!typed || thinking} aria-label="Send" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-brand-teal text-brand-onAccent hover:bg-brand-tealDeep focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-brand-gray disabled:text-gray-500">
+          <button type="submit" disabled={!typed || thinking} aria-label="Send" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-brand-action text-brand-onAccent hover:bg-brand-actionHover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-brand-gray disabled:text-gray-500">
             <Icon icon={Send} size="md" />
           </button>
         </form>

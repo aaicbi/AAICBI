@@ -85,8 +85,8 @@ export default function AdminPaymentsPage() {
               onClick={() => setFilter(f.value)}
               className={
                 filter === f.value
-                  ? "rounded-full bg-brand-teal px-3 py-1 text-xs font-semibold text-brand-onAccent"
-                  : "rounded-full border border-brand-gray px-3 py-1 text-xs font-semibold text-gray-600 hover:border-brand-teal hover:text-brand-teal"
+                  ? "rounded-full bg-brand-action px-3 py-1 text-xs font-semibold text-brand-onAccent"
+                  : "rounded-full border border-brand-gray px-3 py-1 text-xs font-semibold text-gray-600 hover:border-brand-action hover:text-brand-action bg-brand-surface"
               }
             >
               {f.label}

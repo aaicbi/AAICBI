@@ -115,7 +115,7 @@ export default function ConsultantTab({
 
       <div className="flex flex-wrap gap-1" role="group" aria-label="Consultant sections">
         {SECTIONS.map(([v, l]) => (
-          <button key={v} type="button" aria-pressed={section === v} onClick={() => setSection(v)} className={`min-h-[44px] rounded-lg px-4 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal ${section === v ? "bg-brand-teal text-brand-onAccent" : "bg-brand-mint text-brand-ink hover:bg-brand-teal/10"}`}>
+          <button key={v} type="button" aria-pressed={section === v} onClick={() => setSection(v)} className={`min-h-[44px] rounded-lg px-4 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal ${section === v ? "bg-brand-action text-brand-onAccent" : "bg-brand-mint text-brand-ink hover:bg-brand-teal/10"}`}>
             {l}
           </button>
         ))}
@@ -151,7 +151,7 @@ export default function ConsultantTab({
           <h3 id="sug-heading" className="font-display text-base font-semibold text-brand-ink">Proposals and advice</h3>
           <div className="flex gap-1" role="group" aria-label="Show">
             {([["PENDING", "Waiting for you"], ["ALL", "Everything"]] as const).map(([v, l]) => (
-              <button key={v} type="button" aria-pressed={status === v} onClick={() => setStatus(v)} className={`min-h-[40px] rounded-lg px-3 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal ${status === v ? "bg-brand-teal text-brand-onAccent" : "text-gray-700 hover:bg-brand-mint"}`}>
+              <button key={v} type="button" aria-pressed={status === v} onClick={() => setStatus(v)} className={`min-h-[40px] rounded-lg px-3 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal ${status === v ? "bg-brand-action text-brand-onAccent" : "text-gray-700 hover:bg-brand-mint"}`}>
                 {l}
               </button>
             ))}

@@ -3,7 +3,7 @@ import Link from "next/link";
 
 /**
  * The shared Button — replaces 29 separate files each hand-writing
- * their own `rounded-lg bg-brand-teal px-4 py-2...` string. One place
+ * their own `rounded-lg bg-brand-action px-4 py-2...` string. One place
  * to get spacing, states, and the brand's interaction feel right,
  * used everywhere instead of copied everywhere.
  *
@@ -36,9 +36,9 @@ type ButtonAsLink = ButtonOwnProps &
 type ButtonProps = ButtonAsButton | ButtonAsLink;
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  primary: "bg-brand-teal text-brand-onAccent hover:bg-brand-tealDeep disabled:bg-brand-gray disabled:text-gray-500",
+  primary: "bg-brand-action text-brand-onAccent hover:bg-brand-actionHover disabled:bg-brand-gray disabled:text-gray-500",
   secondary:
-    "border border-brand-teal text-brand-teal hover:bg-brand-mint disabled:opacity-50",
+    "border border-brand-action bg-brand-surface text-brand-action hover:bg-brand-mint disabled:opacity-50",
   danger: "bg-brand-rose text-brand-onAccent hover:bg-brand-rose/90 disabled:bg-brand-gray disabled:text-gray-500",
   ghost: "text-brand-teal hover:bg-brand-mint disabled:opacity-50",
 };

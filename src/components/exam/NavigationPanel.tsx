@@ -24,7 +24,7 @@ function stateFor(
 
 const STATE_STYLES: Record<QuestionState, string> = {
   unanswered: "bg-gray-100 text-gray-500 border border-brand-gray",
-  answered: "bg-brand-teal text-brand-onAccent",
+  answered: "bg-brand-action text-brand-onAccent",
   // Contrast/consistency fix — this used an off-palette bg-blue-600 and
   // bg-amber-400 (the latter a real WCAG failure: white text on a
   // light amber has nowhere near enough contrast), neither of which
@@ -58,7 +58,7 @@ export function NavigationGrid({ total, currentIndex, answeredIndices, markedInd
       </div>
       <div className="mt-4 space-y-1.5 text-xs text-gray-600">
         <Legend swatch="bg-gray-100 border border-brand-gray" label="Unanswered" />
-        <Legend swatch="bg-brand-teal" label="Answered" />
+        <Legend swatch="bg-brand-action" label="Answered" />
         <Legend swatch="bg-brand-tealDeep" label="Current" />
         <Legend swatch="bg-brand-gold" label="Marked for review" />
       </div>

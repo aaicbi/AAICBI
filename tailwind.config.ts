@@ -28,6 +28,8 @@ const config: Config = {
         brand: {
           teal: "rgb(var(--brand-teal) / <alpha-value>)",
           tealDeep: "rgb(var(--brand-teal-deep) / <alpha-value>)",
+          action: "rgb(var(--brand-action) / <alpha-value>)",
+          actionHover: "rgb(var(--brand-action-hover) / <alpha-value>)",
           green: "rgb(var(--brand-green) / <alpha-value>)",
           mint: "rgb(var(--brand-mint) / <alpha-value>)",
           gray: "rgb(var(--brand-gray) / <alpha-value>)",

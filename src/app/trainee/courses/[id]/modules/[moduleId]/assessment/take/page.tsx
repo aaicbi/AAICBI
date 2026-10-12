@@ -174,7 +174,7 @@ export default function TakeModuleAssessmentPage({ params }: { params: { id: str
           </div>
           <div className="mb-4 h-1.5 w-full rounded-full bg-gray-100">
             <div
-              className="h-1.5 rounded-full bg-brand-teal transition-all"
+              className="h-1.5 rounded-full bg-brand-action transition-all"
               style={{ width: `${((current + 1) / attempt.questions.length) * 100}%` }}
             />
           </div>
@@ -233,7 +233,7 @@ export default function TakeModuleAssessmentPage({ params }: { params: { id: str
             />
             <button
               onClick={() => setConfirmSubmit(true)}
-              className="mt-4 w-full rounded-lg bg-brand-teal py-2.5 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep"
+              className="mt-4 w-full rounded-lg bg-brand-action py-2.5 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover"
             >
               Submit Assessment
             </button>
@@ -266,7 +266,7 @@ export default function TakeModuleAssessmentPage({ params }: { params: { id: str
                 setNavOpen(false);
                 setConfirmSubmit(true);
               }}
-              className="mt-4 w-full rounded-lg bg-brand-teal py-2.5 text-sm font-semibold text-brand-onAccent"
+              className="mt-4 w-full rounded-lg bg-brand-action py-2.5 text-sm font-semibold text-brand-onAccent"
             >
               Submit Assessment
             </button>

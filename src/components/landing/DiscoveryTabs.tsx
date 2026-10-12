@@ -90,7 +90,7 @@ export default function DiscoveryTabs({ view, show }: DiscoveryProps) {
                 onClick={() => setActive(t.key)}
                 onKeyDown={(e) => onKeyDown(e, i)}
                 className={`min-h-[44px] shrink-0 rounded-full border px-4 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal ${
-                  selected ? "border-brand-teal bg-brand-teal text-brand-onAccent" : "border-brand-gray bg-brand-surface text-brand-ink hover:border-brand-teal"
+                  selected ? "border-brand-teal bg-brand-action text-brand-onAccent" : "border-brand-gray bg-brand-surface text-brand-ink hover:border-brand-teal"
                 }`}
               >
                 {t.label}

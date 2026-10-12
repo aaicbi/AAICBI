@@ -75,11 +75,11 @@ export default function InstallPrompt() {
             )}
             <div className="mt-3 flex flex-wrap gap-2">
               {canPrompt ? (
-                <button type="button" onClick={async () => { const r = await promptInstall(); if (r === "dismissed") dismiss(); }} className="inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-brand-teal px-4 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
+                <button type="button" onClick={async () => { const r = await promptInstall(); if (r === "dismissed") dismiss(); }} className="inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-brand-action px-4 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
                   <Icon icon={Download} size="sm" /> Install
                 </button>
               ) : (
-                <button type="button" onClick={() => setShowSteps((s) => !s)} aria-expanded={showSteps} className="inline-flex min-h-[44px] items-center rounded-lg bg-brand-teal px-4 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
+                <button type="button" onClick={() => setShowSteps((s) => !s)} aria-expanded={showSteps} className="inline-flex min-h-[44px] items-center rounded-lg bg-brand-action px-4 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
                   {showSteps ? "Hide steps" : "How to add it"}
                 </button>
               )}

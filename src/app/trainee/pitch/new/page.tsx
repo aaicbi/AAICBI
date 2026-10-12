@@ -142,7 +142,7 @@ export default function NewPitchPage() {
                 type="button"
                 onClick={() => set("fundingType", "GRANT")}
                 className={`rounded-full px-4 py-2 text-xs font-semibold ${
-                  form.fundingType === "GRANT" ? "bg-brand-teal text-brand-onAccent" : "border border-brand-gray text-brand-ink"
+                  form.fundingType === "GRANT" ? "bg-brand-action text-brand-onAccent" : "border border-brand-gray text-brand-ink"
                 }`}
               >
                 Grant
@@ -151,7 +151,7 @@ export default function NewPitchPage() {
                 type="button"
                 onClick={() => set("fundingType", "DEBT")}
                 className={`rounded-full px-4 py-2 text-xs font-semibold ${
-                  form.fundingType === "DEBT" ? "bg-brand-teal text-brand-onAccent" : "border border-brand-gray text-brand-ink"
+                  form.fundingType === "DEBT" ? "bg-brand-action text-brand-onAccent" : "border border-brand-gray text-brand-ink"
                 }`}
               >
                 Debt

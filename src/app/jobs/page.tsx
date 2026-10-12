@@ -76,7 +76,7 @@ export default async function PublicJobsPage({ searchParams }: { searchParams: {
             Search by role, skill or company
           </label>
           <input id="jobs-q" name="q" defaultValue={q} placeholder="Role, skill or company" maxLength={80} className="min-h-[44px] w-full rounded-lg border border-brand-gray bg-brand-surface px-3 text-sm text-brand-ink placeholder:text-gray-500 focus:border-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal" />
-          <button type="submit" className="min-h-[44px] shrink-0 rounded-lg bg-brand-teal px-4 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
+          <button type="submit" className="min-h-[44px] shrink-0 rounded-lg bg-brand-action px-4 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">
             Search
           </button>
         </form>

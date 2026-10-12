@@ -179,7 +179,7 @@ export default function CohortDetailPage({ params }: { params: { id: string } })
                           aria-valuemax={100}
                           aria-valuenow={pct}
                         >
-                          <div className="h-full rounded-full bg-brand-teal transition-all" style={{ width: `${pct}%` }} />
+                          <div className="h-full rounded-full bg-brand-action transition-all" style={{ width: `${pct}%` }} />
                         </div>
                         <span className="text-xs text-gray-600">
                           {r.completedModules}/{r.totalModules}

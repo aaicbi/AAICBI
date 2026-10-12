@@ -27,7 +27,7 @@ export default function Toggle({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={`relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-60 ${
-        checked ? "bg-brand-teal" : "bg-gray-300"
+        checked ? "bg-brand-action" : "bg-gray-300"
       }`}
     >
       <span

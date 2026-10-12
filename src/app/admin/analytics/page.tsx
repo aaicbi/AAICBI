@@ -183,7 +183,7 @@ export default function AdminAnalyticsPage() {
                 <button
                   key={d}
                   onClick={() => setDays(d)}
-                  className={`px-3 py-1.5 text-sm font-semibold ${d === days ? "bg-brand-teal text-brand-onAccent" : "bg-brand-surface text-brand-ink hover:bg-gray-50"}`}
+                  className={`px-3 py-1.5 text-sm font-semibold ${d === days ? "bg-brand-action text-brand-onAccent" : "bg-brand-surface text-brand-ink hover:bg-gray-50"}`}
                 >
                   {d}d
                 </button>
@@ -309,7 +309,7 @@ export default function AdminAnalyticsPage() {
                     <div className="w-36 shrink-0 text-sm text-gray-600">{stage.label}</div>
                     <div className="h-6 flex-1 overflow-hidden rounded-full bg-gray-100">
                       <div
-                        className="h-full rounded-full bg-brand-teal"
+                        className="h-full rounded-full bg-brand-action"
                         style={{
                           width: `${data.funnel[0]?.count ? Math.max(4, (stage.count / data.funnel[0].count) * 100) : 0}%`,
                         }}

@@ -249,7 +249,7 @@ export default function LoopGuide() {
           <div className="relative rounded-2xl border-2 border-brand-ink bg-brand-surface py-3 pl-3.5 pr-9 shadow-[3px_3px_0_0_rgb(var(--brand-ink))]">
             <p className="text-sm font-semibold leading-snug text-brand-ink">{notice.text}</p>
             <div className="mt-2.5 flex flex-col gap-1.5">
-              <button type="button" onClick={() => showHowToHide(notice)} className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-brand-teal px-3 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">{notice.showLabel}</button>
+              <button type="button" onClick={() => showHowToHide(notice)} className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-brand-action px-3 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2">{notice.showLabel}</button>
               <button type="button" onClick={ackNotice} className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-brand-teal px-3 text-sm font-semibold text-brand-teal hover:bg-brand-mint focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">{notice.keepLabel}</button>
             </div>
             <button type="button" onClick={snoozeNotice} aria-label="Remind me later" className="absolute right-1 top-1 flex h-8 w-8 items-center justify-center rounded-full text-gray-600 hover:bg-brand-mint hover:text-brand-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal">

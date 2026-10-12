@@ -110,7 +110,7 @@ export default function ReviewInboxPage() {
       <h1 className="font-display text-2xl font-semibold text-brand-ink">Review inbox</h1>
       <p className="mt-1 text-sm text-gray-700">Posts waiting for a decision, authors&apos; appeals of an organization&apos;s hold, and questions Loop could not answer. Decide what you can; escalate an unusual case to a super admin with a reason.</p>
       <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Show">
-        {FILTERS.map(([v, l]) => <button key={v} type="button" aria-pressed={filter === v} onClick={() => setFilter(v)} className={`min-h-[40px] rounded-full px-4 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal ${filter === v ? "bg-brand-teal text-brand-onAccent" : "border border-brand-gray text-brand-ink"}`}>{l}{data ? ` ${data.counts[v]}` : ""}</button>)}
+        {FILTERS.map(([v, l]) => <button key={v} type="button" aria-pressed={filter === v} onClick={() => setFilter(v)} className={`min-h-[40px] rounded-full px-4 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal ${filter === v ? "bg-brand-action text-brand-onAccent" : "border border-brand-gray text-brand-ink"}`}>{l}{data ? ` ${data.counts[v]}` : ""}</button>)}
       </div>
       <section className="mt-4 space-y-4" aria-live="polite">
         {error ? <ErrorState message={error} onRetry={load} /> : !data ? <SkeletonList rows={3} /> : data.items.length === 0 ? <EmptyState title="Nothing waiting" description="The inbox is clear for this filter." /> : data.items.map((item) => (

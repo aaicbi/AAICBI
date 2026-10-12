@@ -38,9 +38,9 @@ function Pager({ p, hasMore }: { p: SearchParams; hasMore: boolean }) {
   if (p.kind === "all" || (p.page === 1 && !hasMore)) return null;
   return (
     <nav aria-label="More results" className="mt-6 flex items-center justify-between">
-      {p.page > 1 ? <Link href={searchHref(p, { page: p.page - 1 })} rel="prev" className="inline-flex min-h-[44px] items-center rounded-full border border-brand-teal px-5 text-sm font-semibold text-brand-teal hover:bg-brand-mint">Previous</Link> : <span />}
+      {p.page > 1 ? <Link href={searchHref(p, { page: p.page - 1 })} rel="prev" className="inline-flex min-h-[44px] items-center rounded-full border border-brand-action px-5 text-sm font-semibold text-brand-action hover:bg-brand-mint">Previous</Link> : <span />}
       <span className="text-sm text-gray-700">Page {p.page}</span>
-      {hasMore ? <Link href={searchHref(p, { page: p.page + 1 })} rel="next" className="inline-flex min-h-[44px] items-center rounded-full bg-brand-teal px-5 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep">Next</Link> : <span />}
+      {hasMore ? <Link href={searchHref(p, { page: p.page + 1 })} rel="next" className="inline-flex min-h-[44px] items-center rounded-full bg-brand-action px-5 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover">Next</Link> : <span />}
     </nav>
   );
 }
@@ -75,7 +75,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Recor
           <div className="flex flex-col gap-2 sm:flex-row">
             <label htmlFor="q" className="sr-only">Words to search for</label>
             <input id="q" name="q" defaultValue={p.q ?? ""} maxLength={80} placeholder={p.kind === "all" ? "Try “data analytics”, “Kora” or “Lagos”" : `Search ${label}`} className={`${FIELD} flex-1`} />
-            <button type="submit" className="min-h-[44px] rounded-xl bg-brand-teal px-5 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep">Search</button>
+            <button type="submit" className="min-h-[44px] rounded-xl bg-brand-action px-5 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover">Search</button>
           </div>
           {(filters.length > 0 || p.kind !== "all") && (
             <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

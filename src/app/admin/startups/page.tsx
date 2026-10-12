@@ -47,7 +47,7 @@ export default function AdminStartupsPage() {
       <h1 className="font-display text-2xl font-semibold text-brand-ink">Startups</h1>
       <p className="mt-1 text-sm text-gray-700">A startup is public only after you approve it. Declining or suspending needs a reason the team will see. &quot;Verified&quot; is a separate mark: set it only when you have actually checked the startup.</p>
       <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Show">
-        {FILTERS.map(([v, l]) => <button key={v} type="button" aria-pressed={status === v} onClick={() => setStatus(v)} className={`min-h-[40px] rounded-full px-4 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal ${status === v ? "bg-brand-teal text-brand-onAccent" : "border border-brand-gray text-brand-ink"}`}>{l}</button>)}
+        {FILTERS.map(([v, l]) => <button key={v} type="button" aria-pressed={status === v} onClick={() => setStatus(v)} className={`min-h-[40px] rounded-full px-4 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal ${status === v ? "bg-brand-action text-brand-onAccent" : "border border-brand-gray text-brand-ink"}`}>{l}</button>)}
       </div>
       <section className="mt-4 space-y-3" aria-live="polite">
         {error ? <ErrorState message="Could not load startups." onRetry={load} /> : rows === null ? <SkeletonList rows={2} /> : rows.length === 0 ? <EmptyState title="No startups here" description="Nothing matches this filter yet." /> : rows.map((r) => (

@@ -32,7 +32,7 @@ export default function AddToHomeScreenButton({ className = "", label = "Add to 
       <button
         type="button"
         onClick={press}
-        className={`inline-flex min-h-[44px] shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-brand-teal px-3 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2 ${className}`}
+        className={`inline-flex min-h-[44px] shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-brand-action px-3 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2 ${className}`}
       >
         <Icon icon={Download} size="sm" /> {label}
       </button>

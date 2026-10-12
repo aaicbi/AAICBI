@@ -756,7 +756,7 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
               href={course.whatsappGroupUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full border-2 border-brand-teal px-4 py-2 text-sm font-semibold text-brand-teal transition-colors hover:bg-brand-teal hover:text-brand-onAccent"
+              className="inline-flex items-center gap-2 rounded-full border-2 border-brand-action px-4 py-2 text-sm font-semibold text-brand-action transition-colors hover:bg-brand-action hover:text-brand-onAccent"
             >
               <Icon icon={MessageCircle} size="sm" />
               Join WhatsApp Group
@@ -839,7 +839,7 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
             </div>
             <div className="mt-1 h-1.5 w-full rounded-full bg-gray-100">
               <div
-                className="h-1.5 rounded-full bg-brand-teal transition-all"
+                className="h-1.5 rounded-full bg-brand-action transition-all"
                 style={{ width: `${(completedModules / totalModules) * 100}%` }}
               />
             </div>

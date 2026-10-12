@@ -309,7 +309,7 @@ function AssignmentSettings({
             </div>
           )}
           <div className="flex gap-2">
-            <button onClick={handleSave} disabled={saving} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60">{saving ? "Saving..." : "Save"}</button>
+            <button onClick={handleSave} disabled={saving} className="rounded-lg bg-brand-action px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60">{saving ? "Saving..." : "Save"}</button>
             <button onClick={() => setEditing(false)} className="rounded-lg border border-brand-gray px-3 py-1.5 text-xs font-semibold">Cancel</button>
           </div>
         </div>
@@ -481,7 +481,7 @@ function QuestionEditForm({
       <Input label="Expected concepts (comma-separated, optional)" compact value={form.expectedConcepts} onChange={(e) => setForm({ ...form, expectedConcepts: e.target.value })} placeholder="missing data, consistency, reliable analysis" />
       <Textarea label="Rubric (optional — one criterion per line, &quot;Name — marks&quot;)" compact controlClassName="font-mono" value={form.rubricText} onChange={(e) => setForm({ ...form, rubricText: e.target.value })} rows={3} placeholder={"Understanding — 3\nAccuracy — 3\nApplication — 2\nExplanation — 2"} />
       <div className="flex gap-2">
-        <button onClick={onSave} disabled={saving} className="rounded-lg bg-brand-teal px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60">{saving ? "Saving..." : "Save"}</button>
+        <button onClick={onSave} disabled={saving} className="rounded-lg bg-brand-action px-3 py-1.5 text-xs font-semibold text-brand-onAccent disabled:opacity-60">{saving ? "Saving..." : "Save"}</button>
         <button onClick={onCancel} className="rounded-lg border border-brand-gray px-3 py-1.5 text-xs font-semibold">Cancel</button>
       </div>
     </div>

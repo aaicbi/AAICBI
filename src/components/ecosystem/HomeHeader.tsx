@@ -61,8 +61,8 @@ export default function HomeHeader({ initialQuery = "", initial }: { initialQuer
     <div className="h-10 w-44 animate-pulse rounded-full bg-brand-mint" aria-hidden="true" />
   ) : me.signedIn ? (
     <div className="flex items-center gap-2">
-      <Link href="/compose" className="hidden min-h-[40px] items-center gap-1.5 rounded-full border border-brand-teal px-4 text-sm font-semibold text-brand-teal hover:bg-brand-mint sm:inline-flex"><Icon icon={PenLine} size="sm" />Post</Link>
-      <Link href={me.dashboardHref ?? "/"} className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-brand-teal px-4 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep">
+      <Link href="/compose" className="hidden min-h-[40px] items-center gap-1.5 rounded-full border border-brand-action px-4 text-sm font-semibold text-brand-action hover:bg-brand-mint sm:inline-flex"><Icon icon={PenLine} size="sm" />Post</Link>
+      <Link href={me.dashboardHref ?? "/"} className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-brand-action px-4 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover">
         <Icon icon={LayoutDashboard} size="sm" />Dashboard
       </Link>
       <div ref={box} className="relative">
@@ -83,7 +83,7 @@ export default function HomeHeader({ initialQuery = "", initial }: { initialQuer
   ) : (
     <div className="flex items-center gap-2">
       <Link href={`/login?next=${next}`} className="inline-flex min-h-[40px] items-center rounded-full px-4 text-sm font-semibold text-brand-teal hover:bg-brand-mint">Log in</Link>
-      <Link href="/join" className="inline-flex min-h-[40px] items-center rounded-full bg-brand-teal px-4 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep">Create account</Link>
+      <Link href="/join" className="inline-flex min-h-[40px] items-center rounded-full bg-brand-action px-4 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover">Create account</Link>
     </div>
   );
 
@@ -95,9 +95,9 @@ export default function HomeHeader({ initialQuery = "", initial }: { initialQuer
         <div className="ml-auto hidden md:block">{accountArea}</div>
         <div className="ml-auto flex items-center gap-1 md:hidden">
           {me?.signedIn ? (
-            <Link href={me.dashboardHref ?? "/"} className="inline-flex min-h-[40px] items-center rounded-full bg-brand-teal px-3 text-sm font-semibold text-brand-onAccent">Dashboard</Link>
+            <Link href={me.dashboardHref ?? "/"} className="inline-flex min-h-[40px] items-center rounded-full bg-brand-action px-3 text-sm font-semibold text-brand-onAccent">Dashboard</Link>
           ) : me ? (
-            <Link href="/join" className="inline-flex min-h-[40px] items-center rounded-full bg-brand-teal px-3 text-sm font-semibold text-brand-onAccent">Join</Link>
+            <Link href="/join" className="inline-flex min-h-[40px] items-center rounded-full bg-brand-action px-3 text-sm font-semibold text-brand-onAccent">Join</Link>
           ) : null}
           <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label={open ? "Close menu" : "Open menu"} className="flex h-10 w-10 items-center justify-center rounded-full text-brand-ink hover:bg-brand-mint">
             <Icon icon={open ? X : Menu} size="md" />
@@ -133,8 +133,8 @@ export default function HomeHeader({ initialQuery = "", initial }: { initialQuer
               </div>
             ) : me ? (
               <div className="flex gap-2">
-                <Link href={`/login?next=${next}`} className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-full border border-brand-teal text-sm font-semibold text-brand-teal">Log in</Link>
-                <Link href="/join" className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-full bg-brand-teal text-sm font-semibold text-brand-onAccent">Create account</Link>
+                <Link href={`/login?next=${next}`} className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-full border border-brand-action text-sm font-semibold text-brand-action bg-brand-surface">Log in</Link>
+                <Link href="/join" className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-full bg-brand-action text-sm font-semibold text-brand-onAccent">Create account</Link>
               </div>
             ) : null}
           </div>

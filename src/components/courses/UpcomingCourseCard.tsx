@@ -109,7 +109,7 @@ export default function UpcomingCourseCard({ course }: { course: UpcomingCourseR
             View Course
           </span>
           {registrationOpen && (
-            <span className="flex-1 rounded-lg bg-brand-teal px-3 py-2 text-center text-xs font-semibold text-brand-onAccent">
+            <span className="flex-1 rounded-lg bg-brand-action px-3 py-2 text-center text-xs font-semibold text-brand-onAccent">
               Register Now
             </span>
           )}

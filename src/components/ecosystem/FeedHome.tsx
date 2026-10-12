@@ -47,9 +47,9 @@ export default async function FeedHome({ searchParams, base }: { searchParams: {
         <aside className="hidden lg:block">
           <nav aria-label="Your space" className="sticky top-32 space-y-1 rounded-3xl border border-brand-gray bg-card-gradient p-3">
             {dashboard && (
-              <Link href={dashboard} className="mb-2 flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-brand-teal px-4 text-sm font-semibold text-brand-teal hover:bg-brand-mint"><Icon icon={LayoutDashboard} size="sm" />Go to my dashboard</Link>
+              <Link href={dashboard} className="mb-2 flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-brand-action px-4 text-sm font-semibold text-brand-action hover:bg-brand-mint"><Icon icon={LayoutDashboard} size="sm" />Go to my dashboard</Link>
             )}
-            <Link href="/compose" className="mb-2 flex min-h-[44px] items-center justify-center rounded-full bg-brand-teal px-4 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep">Write a post</Link>
+            <Link href="/compose" className="mb-2 flex min-h-[44px] items-center justify-center rounded-full bg-brand-action px-4 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover">Write a post</Link>
             {(actor ? [["/my-posts", "My posts"], ["/saved", "Saved posts"], ["/certificate", "Verify a certificate"]] : [["/organizations", "Training organizations"], ["/jobs", "Jobs and opportunities"], ["/startups", "Startups"], ["/certificate", "Verify a certificate"]]).map(([h, l]) => <Link key={h} href={h} className="flex min-h-[44px] items-center rounded-xl px-3 text-sm font-semibold text-brand-ink hover:bg-brand-mint">{l}</Link>)}
           </nav>
         </aside>
@@ -62,8 +62,8 @@ export default async function FeedHome({ searchParams, base }: { searchParams: {
               <p className="mt-1 font-display text-xl font-semibold">Where African AI talent, training, jobs and investment meet.</p>
               <p className="mt-2 text-sm">Trainees build skills and a track record. Training organizations teach and show their work. Employers find people with evidence. Startups and investors discover each other. You can read everything below without an account.</p>
               <div className="mt-3 flex flex-wrap gap-2">
-                <Link href="/join" className="inline-flex min-h-[44px] items-center gap-1 rounded-full bg-brand-teal px-5 text-sm font-semibold text-brand-onAccent hover:bg-brand-tealDeep">Create an account <Icon icon={ArrowRight} size="sm" /></Link>
-                <Link href="/login" className="inline-flex min-h-[44px] items-center rounded-full border border-brand-teal px-5 text-sm font-semibold text-brand-teal hover:bg-brand-surface">Log in</Link>
+                <Link href="/join" className="inline-flex min-h-[44px] items-center gap-1 rounded-full bg-brand-action px-5 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover">Create an account <Icon icon={ArrowRight} size="sm" /></Link>
+                <Link href="/login" className="inline-flex min-h-[44px] items-center rounded-full border border-brand-action px-5 text-sm font-semibold text-brand-action hover:bg-brand-surface">Log in</Link>
                 <Link href="/about" className="inline-flex min-h-[44px] items-center px-3 text-sm font-semibold text-brand-ink underline-offset-4 hover:underline">About AAICBI</Link>
               </div>
             </div>
@@ -76,7 +76,7 @@ export default async function FeedHome({ searchParams, base }: { searchParams: {
             </details>
           )}
           <nav aria-label="Feed tabs" className="mt-4 flex gap-2 overflow-x-auto pb-2">
-            {TABS.map(([t, l]) => <Link key={t} href={tabHref(t)} aria-current={tab === t ? "page" : undefined} className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold ${tab === t ? "bg-brand-teal text-brand-onAccent" : "border border-brand-gray bg-brand-surface text-brand-ink hover:border-brand-teal"}`}>{l}</Link>)}
+            {TABS.map(([t, l]) => <Link key={t} href={tabHref(t)} aria-current={tab === t ? "page" : undefined} className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold ${tab === t ? "bg-brand-action text-brand-onAccent" : "border border-brand-gray bg-brand-surface text-brand-ink hover:border-brand-teal"}`}>{l}</Link>)}
           </nav>
           <div className="mt-3">
             {tab === "discover" ? <DiscoverFeed searchParams={searchParams} session={session} flags={flags} />

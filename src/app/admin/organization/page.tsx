@@ -140,7 +140,7 @@ export default async function OrganizationOverviewPage() {
             aria-valuenow={Math.min(activeTrainees, seatCap)}
           >
             <div
-              className={`h-full rounded-full ${seatPercent >= 90 ? "bg-brand-rose" : "bg-brand-teal"}`}
+              className={`h-full rounded-full ${seatPercent >= 90 ? "bg-brand-rose" : "bg-brand-action"}`}
               style={{ width: `${seatPercent}%` }}
             />
           </div>
