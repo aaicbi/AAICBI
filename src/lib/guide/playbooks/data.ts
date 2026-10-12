@@ -153,7 +153,7 @@ export const PLAYBOOKS: Playbook[] = [
     keywords: ["public profile", "public page", "profile", "tagline", "cover", "about", "slug", "page address", "visible", "show my organization", "listing"],
     steps: [
       { title: "Open Public profile", text: "In the menu under **Organization** choose **Public profile**.", href: "/admin/organization/profile", hrefLabel: "Open Public profile", target: "nav:/admin/organization/profile" },
-      { title: "Fill the details", text: "Set your **Page address**, **Tagline**, **Location**, **Cover picture** (upload one from your device) and **About**. Only these fields are ever shown publicly." },
+      { title: "Fill the details", text: "Set your **Page address**, **Tagline**, **Location**, **Organization picture**, **Cover picture** (upload one from your device) and **About**. Only these fields are ever shown publicly." },
       { title: "Switch it on", text: "Turn on **Show my organization page publicly**, then press **Save**.", tip: "It is off by default. A **Verified** badge is added by AAICBI; you cannot set it yourself." },
       { title: "See it", text: "Press **View page** to see what visitors see." },
     ],
