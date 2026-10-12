@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import Icon from "@/components/ui/Icon";
 import { Image as ImageIcon } from "lucide-react";
+import ImageFramer from "@/components/ui/ImageFramer";
 
 /**
  * Course catalogue upgrade — the flyer counterpart to AvatarUpload.tsx,
@@ -22,14 +23,18 @@ export default function CourseFlyerUpload({
   onChange: (url: string | null) => void;
 }) {
   const [uploading, setUploading] = useState(false);
+  const [pending, setPending] = useState<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { showToast } = useToast();
 
-  async function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+  // Choosing a file opens the placing step; the placed picture is what is uploaded.
+  function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (!file) return;
+    if (file) setPending(file);
+  }
 
+  async function upload(file: File) {
     const formData = new FormData();
     formData.append("file", file);
     setUploading(true);
@@ -59,6 +64,7 @@ export default function CourseFlyerUpload({
 
   return (
     <div className="flex items-start gap-4">
+      <ImageFramer file={pending} aspect={16 / 9} title="Place your flyer" onCancel={() => setPending(null)} onDone={(f) => { setPending(null); upload(f); }} onUnreadable={(f) => { setPending(null); upload(f); }} />
       <div className="flex h-28 w-44 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-brand-gray bg-brand-mint">
         {flyerUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- a real, dynamically-uploaded external URL.
@@ -87,7 +93,7 @@ export default function CourseFlyerUpload({
             </button>
           )}
         </div>
-        <p className="mt-1 text-xs text-gray-500">JPG, PNG, or WEBP. Up to 8MB. Optional.</p>
+        <p className="mt-1 text-xs text-gray-500">JPG, PNG, or WEBP. Up to 8MB. Optional. You can drag and zoom it to place it.</p>
       </div>
     </div>
   );

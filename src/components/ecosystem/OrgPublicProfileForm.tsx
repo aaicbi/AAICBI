@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/Toast";
 import StickyActions from "@/components/ui/StickyActions";
 import VerifiedBadge from "./VerifiedBadge";
 import OrgProfilePreview from "./OrgProfilePreview";
+import ImageFramer from "@/components/ui/ImageFramer";
 
 interface ProfileDto {
   slug: string; tagline: string | null; description: string | null; location: string | null;
@@ -23,6 +24,7 @@ export default function OrgPublicProfileForm() {
   const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [pending, setPending] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { showToast } = useToast();
 
@@ -102,13 +104,13 @@ export default function OrgPublicProfileForm() {
             </div>
           )}
           <div className="mt-2 flex flex-wrap items-center gap-3">
-            <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" id="org-cover-file" onChange={(e) => { uploadCover(e.target.files?.[0]); e.target.value = ""; }} />
+            <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" id="org-cover-file" onChange={(e) => { setPending(e.target.files?.[0] ?? null); e.target.value = ""; }} />
             <label htmlFor="org-cover-file" className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full border border-brand-teal px-5 text-sm font-semibold text-brand-teal hover:bg-brand-mint focus-within:ring-2 focus-within:ring-brand-teal">
               {uploading ? "Uploading…" : profile.coverUrl ? "Change picture" : "Upload a picture"}
             </label>
             {profile.coverUrl && <button type="button" onClick={() => set({ coverUrl: "" })} className="min-h-[44px] text-sm font-semibold text-brand-rose hover:underline">Remove</button>}
           </div>
-          <p className="mt-1 text-xs text-gray-600">JPG, PNG or WEBP, up to 5MB. A wide picture works best.</p>
+          <p className="mt-1 text-xs text-gray-600">JPG, PNG or WEBP, up to 5MB. You can drag and zoom the picture to place it before it is added.</p>
         </div>
         <Textarea label="About" rows={6} value={profile.description ?? ""} onChange={(e) => set({ description: e.target.value })} maxLength={2000} />
         {error && <p role="alert" className="text-sm text-brand-rose">{error}</p>}
@@ -118,6 +120,7 @@ export default function OrgPublicProfileForm() {
         </StickyActions>
       </Card>
     </form>
+    <ImageFramer file={pending} aspect={16 / 5} title="Place your cover picture" onCancel={() => setPending(null)} onDone={(f) => { setPending(null); uploadCover(f); }} onUnreadable={(f) => { setPending(null); uploadCover(f); }} />
     <OrgProfilePreview
       name={org.name}
       logoUrl={org.logoUrl}

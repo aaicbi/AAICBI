@@ -105,3 +105,10 @@ Migrations must stay additive (new tables and columns with defaults) so the old 
 - **Organization side** (`/admin/education`): "Videos trainees sent you" with Approve / Decline (a reason is required to decline).
 - **Report a Concern** (`/trainee/report`): a trainee reports an organization they are enrolled with. Reports are stored in `OrganizationReport`, read only by the Super Admin on the Ecosystem page ("Reports about organizations"), and never exposed through any organization route. The trainee sees only the status and is notified when it is resolved or closed.
 - Migration: `20261012090000_trainee_videos_and_reports` (two new `EducationPostStatus` values, trainee-submission columns, `OrganizationReport`).
+
+## Placing pictures before they are uploaded
+Choosing a picture opens a frame in the shape it will be shown in: a wide banner for an organization's cover picture (16 by 5), a round frame for profile pictures and logos (square when saved), and 16 by 9 for a course flyer. The person drags the picture to place it, zooms with the slider (or the arrow keys, + and −), can press **Fit the whole picture** (useful for logos that must not be cut) or **Reset**, then **Use this picture**. The kept part is cut out in the browser and that is what is uploaded (at most 1600 pixels wide, JPG, PNG or WEBP, under 5MB), so what they saw is what visitors see. Cancel uploads nothing. If the browser cannot read a file, the original is uploaded as it is. Post images are not placed this way yet.
+Code: `src/components/ui/ImageFramer.tsx`, the geometry in `src/lib/imageFrame.ts` (tested in `tests/imageFrame.test.ts`); real-browser check `scripts/device-checks/image-framer.cjs`.
+
+## Light and dark
+A small tab with a sun or moon hangs from the top edge of every page, in the middle, where no header has a control (checked at phone, tablet and desktop widths). It switches at once and remembers the choice in the `theme` cookie that the page reads before it first paints. Dark is the default. `scripts/device-checks/theme-toggle.cjs` and `theme-overlap.cjs` check it.
