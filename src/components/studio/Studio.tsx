@@ -30,7 +30,66 @@ const REWARD_LABELS: Record<string, string> = {
   MODULE_COMPLETED: "Badge and XP when the module is completed",
 };
 
-export default function Studio() {
+interface Person {
+  id: string;
+  name: string;
+  role: string;
+  level: number;
+}
+
+/** Super Admin only: how much Loop may do on its own for each person who builds courses. */
+function PeoplePanel() {
+  const { showToast } = useToast();
+  const [people, setPeople] = useState<Person[] | null>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open || people) return;
+    fetch("/api/admin/studio/people")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => setPeople(d.people))
+      .catch(() => setPeople([]));
+  }, [open, people]);
+
+  async function setLevel(id: string, level: number) {
+    const r = await call("PUT", "/api/admin/studio/people", { userId: id, level });
+    if (!r.ok) return showToast(String(r.json.error ?? "Could not save that."), "error");
+    setPeople((list) => (list ?? []).map((p) => (p.id === id ? { ...p, level } : p)));
+    showToast("Saved.", "success");
+  }
+
+  return (
+    <section aria-label="Who can use Loop in the studio" data-testid="people-panel">
+      <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-1.5 text-left text-sm font-semibold text-brand-ink">
+        <Icon icon={open ? ChevronDown : ChevronRight} size="sm" />
+        Loop for your team
+      </button>
+      {open && (
+        <div className="mt-2 space-y-2">
+          <p className="text-xs text-gray-600">Staff can build games for their own modules with Loop. Choose how much Loop may do on its own for each person: 1 asks first, 2 is balanced, 3 is autonomous. They start at 1.</p>
+          {people === null && <p className="text-xs text-gray-500">Loading…</p>}
+          <ul className="space-y-1.5">
+            {(people ?? []).map((p) => (
+              <li key={p.id} className="flex items-center gap-2 rounded-xl border border-brand-gray bg-brand-surface px-2.5 py-1.5">
+                <span className="min-w-0 flex-1 truncate text-xs text-brand-ink">
+                  {p.name} <span className="text-gray-500">({p.role === "ADMIN" ? "admin" : "instructor"})</span>
+                </span>
+                <Select label={`Loop level for ${p.name}`} hideLabel compact value={String(p.level)} onChange={(e) => void setLevel(p.id, Number(e.target.value))} wrapperClassName="w-28">
+                  <option value="1">1 Ask first</option>
+                  <option value="2">2 Balanced</option>
+                  <option value="3">3 Autonomous</option>
+                </Select>
+              </li>
+            ))}
+            {people && people.length === 0 && <li className="text-xs text-gray-600">No admins or instructors yet.</li>}
+          </ul>
+        </div>
+      )}
+    </section>
+  );
+}
+
+export default function Studio({ isSuper = false }: { isSuper?: boolean } = {}) {
   const { showToast } = useToast();
   const { confirm, modal } = useConfirmModal();
   const [overview, setOverview] = useState<StudioOverview | null>(null);
@@ -48,6 +107,7 @@ export default function Studio() {
   const [previewIndex, setPreviewIndex] = useState(0);
   const [previewKey, setPreviewKey] = useState(0);
   const [showForm, setShowForm] = useState(false);
+  const [openPools, setOpenPools] = useState<string | null>(null);
 
   const game: StudioGame | null = useMemo(() => overview?.games.find((g) => g.id === gameId) ?? null, [overview, gameId]);
 
@@ -196,6 +256,8 @@ export default function Studio() {
           {overview && overview.games.length === 0 && <li className="text-xs text-gray-600">No games yet. Create one, or ask Loop to.</li>}
         </ul>
       </section>
+
+      {isSuper && <PeoplePanel />}
 
       <section aria-label="Modules">
         <h2 className="text-sm font-semibold text-brand-ink">Modules</h2>
@@ -406,6 +468,44 @@ export default function Studio() {
                         Practice {o.coverage.practice}/{workspace.quest.minimums.practice} · Formal {o.coverage.formal}/{workspace.quest.minimums.formal} · Not assigned {o.coverage.untagged}
                       </p>
                     )}
+                    <button type="button" aria-expanded={openPools === o.id} onClick={() => setOpenPools(openPools === o.id ? null : o.id)} className="mt-1.5 block text-xs font-semibold text-brand-teal underline" data-testid="assign-questions">
+                      {openPools === o.id ? "Hide the questions" : `Assign questions (${o.questions.length})`}
+                    </button>
+                    {openPools === o.id && (
+                      <div className="mt-2 space-y-2">
+                        {o.questions.some((q) => q.pool === null) && (
+                          <div className="flex flex-wrap gap-2">
+                            <Button size="sm" variant="secondary" disabled={busy} onClick={() => void act("POST", `/api/modules/${workspace.module.id}/quest`, { action: "setPool", questionIds: o.questions.filter((q) => q.pool === null).map((q) => q.id), pool: "PRACTICE" })}>
+                              Unassigned to practice
+                            </Button>
+                            <Button size="sm" variant="secondary" disabled={busy} onClick={() => void act("POST", `/api/modules/${workspace.module.id}/quest`, { action: "setPool", questionIds: o.questions.filter((q) => q.pool === null).map((q) => q.id), pool: "FORMAL" })}>
+                              Unassigned to the formal assessment
+                            </Button>
+                          </div>
+                        )}
+                        <ul className="space-y-1.5">
+                          {o.questions.map((q) => (
+                            <li key={q.id} className="flex flex-col gap-1.5 rounded-xl bg-brand-gray/20 p-2 sm:flex-row sm:items-center">
+                              <p className="flex-1 text-xs text-brand-ink">{q.text}</p>
+                              <Select
+                                label={`Pool for: ${q.text.slice(0, 40)}`}
+                                hideLabel
+                                compact
+                                value={q.pool ?? ""}
+                                disabled={busy}
+                                onChange={(e) => void act("POST", `/api/modules/${workspace.module.id}/quest`, { action: "setPool", questionIds: [q.id], pool: e.target.value || null })}
+                                wrapperClassName="sm:w-44"
+                              >
+                                <option value="">Not assigned</option>
+                                <option value="PRACTICE">Practice</option>
+                                <option value="FORMAL">Formal assessment</option>
+                              </Select>
+                            </li>
+                          ))}
+                          {o.questions.length === 0 && <li className="text-xs text-gray-600">No approved questions for this objective yet.</li>}
+                        </ul>
+                      </div>
+                    )}
                     <Checkbox
                       wrapperClassName="mt-1.5"
                       label="Required to pass the assessment"
@@ -425,9 +525,6 @@ export default function Studio() {
                 Split unassigned questions (about 40% formal)
               </Button>
             )}
-            <a className="mt-3 block text-xs font-semibold text-brand-teal underline" href={`/admin/modules/${workspace.module.id}/quest`}>
-              Assign questions one by one (opens the detailed page)
-            </a>
           </Card>
 
           <Card data-testid="gates-card">

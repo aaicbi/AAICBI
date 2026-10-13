@@ -34,8 +34,9 @@ import {
   type Served,
 } from "@/lib/quest/games";
 import { QuestAdminError, applyQuestSettings, questSnapshot } from "@/lib/quest/admin";
-import { addXp, assertModuleReachable, cleanRewards } from "@/lib/quest/server";
+import { addXp, assertModuleReachable, awardStreak, cleanRewards, settleMastery } from "@/lib/quest/server";
 import { shuffle } from "@/lib/shuffle";
+import { coursesWhere, gamesWhere, type StudioSession } from "@/lib/quest/studioAccess";
 
 export class StudioError extends Error {
   constructor(message: string, public status: number) {
@@ -50,9 +51,11 @@ export const isGameFormat = (f: unknown): f is GameFormat => typeof f === "strin
 // Library and overview
 // ---------------------------------------------------------------------------
 
-export async function studioOverview() {
+export async function studioOverview(session: StudioSession) {
+  const courseFilter = await coursesWhere(session);
   const [games, courses] = await Promise.all([
     prisma.game.findMany({
+      where: gamesWhere(session),
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -64,6 +67,7 @@ export async function studioOverview() {
       },
     }),
     prisma.course.findMany({
+      where: courseFilter,
       orderBy: { createdAt: "desc" },
       take: 200,
       select: {
@@ -491,6 +495,9 @@ export async function answerGameItem(traineeId: string, moduleId: string, gameId
   const base = { traineeId, moduleId, dayKey: today, objectiveId: play.objectiveId, questionId: play.itemId };
   const answerXp = await addXp({ ...base, kind: "ANSWER", points: award.answerPoints, dedupeKey: `GANSWER:${traineeId}:${play.itemId}:${today}` });
   const bonusXp = await addXp({ ...base, kind: "MISSED_BONUS", points: award.missedBonusPoints, dedupeKey: `GMISSED:${traineeId}:${play.itemId}` });
+  // Game plays count toward streaks and mastery exactly like quiz answers: a full-marks, not-too-fast play is evidence.
+  const { paid: streakPaid, streak } = await awardStreak(traineeId, moduleId, enabled, now, graded.correct && !tooFast);
+  const settled = await settleMastery(traineeId, moduleId, play.objectiveId, enabled, now);
   const totals = await prisma.xpEntry.aggregate({ where: { traineeId, dayKey: today, kind: { in: ["ANSWER", "MISSED_BONUS"] } }, _sum: { points: true } });
 
   return {
@@ -500,7 +507,19 @@ export async function answerGameItem(traineeId: string, moduleId: string, gameId
     tooFast,
     minSeconds,
     feedback: graded.feedback,
-    xp: { earned: answerXp + bonusXp, today: totals._sum.points ?? 0, dailyCap: QUEST_DEFAULTS.xp.dailyAnswerCap, cappedByDailyLimit: award.cappedByDailyLimit },
+    xp: {
+      earned: answerXp + bonusXp + streakPaid + settled.objectiveXp + settled.moduleXp,
+      streak: streakPaid,
+      objective: settled.objectiveXp,
+      module: settled.moduleXp,
+      today: totals._sum.points ?? 0,
+      dailyCap: QUEST_DEFAULTS.xp.dailyAnswerCap,
+      cappedByDailyLimit: award.cappedByDailyLimit,
+    },
+    streakDays: streak,
+    mastery: settled.mastery,
+    objectiveJustMastered: settled.objectiveJustMastered,
+    moduleCompleted: settled.moduleCompleted,
   };
 }
 

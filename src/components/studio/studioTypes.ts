@@ -52,7 +52,7 @@ export interface Workspace {
   module: { id: string; title: string; courseId: string; courseTitle: string };
   quest: {
     settings: { practiceEnabled: boolean; practiceBeforeFormal: boolean; practiceRequiredPercent: number; enabledRewards: string[] };
-    objectives: { id: string; text: string; isCritical: boolean; coverage?: Coverage }[];
+    objectives: { id: string; text: string; isCritical: boolean; coverage?: Coverage; questions: { id: string; text: string; pool: "PRACTICE" | "FORMAL" | null }[] }[];
     ready: boolean;
     minimums: { practice: number; formal: number };
     rewardOptions: { kind: string; label: string }[];

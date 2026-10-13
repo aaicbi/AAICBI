@@ -131,11 +131,23 @@ function groupByObjective(rows: readonly AnsweredRow[]): Map<string, AnswerRecor
   return map;
 }
 
+/**
+ * Everything a trainee has answered toward their objectives: practice quiz answers and game plays.
+ * A game play counts as one different "question" (its item id) and is correct only for full marks,
+ * so a half-right matching set does not count toward mastery. Same rules, same thresholds.
+ */
 async function answeredRows(traineeId: string, where: { moduleId?: string; objectiveId?: { in: string[] } }): Promise<AnsweredRow[]> {
-  return prisma.practiceAnswer.findMany({
-    where: { traineeId, answeredAt: { not: null }, ...where },
-    select: { objectiveId: true, questionId: true, correct: true, answeredAt: true, tooFast: true },
-  });
+  const [quiz, plays] = await Promise.all([
+    prisma.practiceAnswer.findMany({
+      where: { traineeId, answeredAt: { not: null }, ...where },
+      select: { objectiveId: true, questionId: true, correct: true, answeredAt: true, tooFast: true },
+    }),
+    prisma.gamePlay.findMany({
+      where: { traineeId, answeredAt: { not: null }, ...where },
+      select: { objectiveId: true, itemId: true, correct: true, answeredAt: true, tooFast: true },
+    }),
+  ]);
+  return [...quiz, ...plays.map((p) => ({ objectiveId: p.objectiveId, questionId: p.itemId, correct: p.correct, answeredAt: p.answeredAt, tooFast: p.tooFast }))];
 }
 
 /** Mastery for every objective of a module, for one trainee. */
@@ -155,11 +167,49 @@ export async function moduleMasteries(traineeId: string, moduleId: string, now =
 
 async function evidenceDays(traineeId: string, now: Date): Promise<Set<string>> {
   const since = new Date(now.getTime() - 40 * 86_400_000);
-  const rows = await prisma.practiceAnswer.findMany({
-    where: { traineeId, answeredAt: { gte: since }, correct: true, tooFast: false },
-    select: { answeredAt: true },
-  });
-  return new Set(rows.map((r) => dayKey(r.answeredAt as Date)));
+  const [quiz, plays] = await Promise.all([
+    prisma.practiceAnswer.findMany({ where: { traineeId, answeredAt: { gte: since }, correct: true, tooFast: false }, select: { answeredAt: true } }),
+    prisma.gamePlay.findMany({ where: { traineeId, answeredAt: { gte: since }, correct: true, tooFast: false }, select: { answeredAt: true } }),
+  ]);
+  return new Set([...quiz, ...plays].map((r) => dayKey(r.answeredAt as Date)));
+}
+
+/** Streak XP: a correct, not-too-fast answer is evidence of practice today. Paid once a day. Shared by quiz answers and game plays. */
+export async function awardStreak(traineeId: string, moduleId: string, enabled: ReadonlySet<RewardKind>, now: Date, evidence: boolean): Promise<{ paid: number; streak: number }> {
+  const today = dayKey(now);
+  const streak = streakLength(await evidenceDays(traineeId, now), today);
+  if (!evidence) return { paid: 0, streak };
+  const paid = await addXp({ traineeId, moduleId, kind: "STREAK", points: streakXp(streak, enabled), dayKey: today, dedupeKey: `STREAK:${traineeId}:${today}` });
+  return { paid, streak };
+}
+
+/**
+ * After an answer or a game play: did this objective just become mastered (and so the module complete)?
+ * Pays the one-time mastery and completion XP (idempotent by key), and returns the objective's mastery now.
+ * `answeredAt` is the moment of the answer that was just recorded, so "a moment ago" can leave it out.
+ */
+export async function settleMastery(traineeId: string, moduleId: string, objectiveId: string, enabled: ReadonlySet<RewardKind>, answeredAt: Date) {
+  const today = dayKey(answeredAt);
+  const grouped = groupByObjective(await answeredRows(traineeId, { moduleId }));
+  const after = masteryFor(grouped.get(objectiveId) ?? [], answeredAt);
+  const beforeRecords = (grouped.get(objectiveId) ?? []).filter((r) => r.answeredAt.getTime() !== answeredAt.getTime());
+  const before = masteryFor(beforeRecords, new Date(answeredAt.getTime() - 1));
+  const objectiveJustMastered = after.state === "MASTERED" && before.state !== "MASTERED";
+
+  let objectiveXp = 0;
+  let moduleXp = 0;
+  let moduleCompleted = false;
+  if (objectiveJustMastered && enabled.has("OBJECTIVE_MASTERED")) {
+    objectiveXp = await addXp({ traineeId, moduleId, kind: "OBJECTIVE_MASTERED", points: QUEST_DEFAULTS.xp.objectiveMastered, dayKey: today, objectiveId, dedupeKey: `OBJ:${traineeId}:${objectiveId}` });
+  }
+  if (objectiveJustMastered) {
+    const all = await prisma.moduleLearningObjective.findMany({ where: { moduleId }, select: { id: true } });
+    moduleCompleted = all.every((o) => masteryFor(grouped.get(o.id) ?? [], answeredAt).state === "MASTERED");
+    if (moduleCompleted && enabled.has("MODULE_COMPLETED")) {
+      moduleXp = await addXp({ traineeId, moduleId, kind: "MODULE_COMPLETED", points: QUEST_DEFAULTS.xp.moduleCompleted, dayKey: today, dedupeKey: `MOD:${traineeId}:${moduleId}` });
+    }
+  }
+  return { mastery: overviewOf(after), objectiveJustMastered, moduleCompleted, objectiveXp, moduleXp };
 }
 
 async function xpTotals(traineeId: string, moduleId: string, today: string) {
@@ -542,57 +592,11 @@ export async function submitAnswer(
   const answerXp = await addXp({ ...base, kind: "ANSWER", points: award.answerPoints, dedupeKey: `ANSWER:${traineeId}:${row.questionId}:${today}` });
   const bonusXp = await addXp({ ...base, kind: "MISSED_BONUS", points: award.missedBonusPoints, dedupeKey: `MISSED:${traineeId}:${row.questionId}` });
 
-  // --- streak XP (a correct, not-too-fast answer is evidence of practice today) ---
-  let streakPaid = 0;
-  const days = await evidenceDays(traineeId, now);
-  const streak = streakLength(days, today);
-  if (correct && !tooFast) {
-    streakPaid = await addXp({
-      traineeId,
-      moduleId,
-      kind: "STREAK",
-      points: streakXp(streak, enabled),
-      dayKey: today,
-      dedupeKey: `STREAK:${traineeId}:${today}`,
-    });
-  }
-
-  // --- mastery now and a moment ago ---
-  const rows = await answeredRows(traineeId, { moduleId });
-  const grouped = groupByObjective(rows);
-  const after = masteryFor(grouped.get(row.objectiveId) ?? [], now);
-  const beforeRecords = (grouped.get(row.objectiveId) ?? []).filter((r) => r.answeredAt.getTime() !== now.getTime());
-  const before = masteryFor(beforeRecords, new Date(now.getTime() - 1));
-  const objectiveJustMastered = after.state === "MASTERED" && before.state !== "MASTERED";
-
-  let objectiveXp = 0;
-  let moduleXp = 0;
-  let moduleCompleted = false;
-  if (objectiveJustMastered && enabled.has("OBJECTIVE_MASTERED")) {
-    objectiveXp = await addXp({
-      traineeId,
-      moduleId,
-      kind: "OBJECTIVE_MASTERED",
-      points: QUEST_DEFAULTS.xp.objectiveMastered,
-      dayKey: today,
-      objectiveId: row.objectiveId,
-      dedupeKey: `OBJ:${traineeId}:${row.objectiveId}`,
-    });
-  }
-  if (objectiveJustMastered) {
-    const all = await prisma.moduleLearningObjective.findMany({ where: { moduleId }, select: { id: true } });
-    moduleCompleted = all.every((o) => masteryFor(grouped.get(o.id) ?? [], now).state === "MASTERED");
-    if (moduleCompleted && enabled.has("MODULE_COMPLETED")) {
-      moduleXp = await addXp({
-        traineeId,
-        moduleId,
-        kind: "MODULE_COMPLETED",
-        points: QUEST_DEFAULTS.xp.moduleCompleted,
-        dayKey: today,
-        dedupeKey: `MOD:${traineeId}:${moduleId}`,
-      });
-    }
-  }
+  // --- streak XP, and mastery now and a moment ago ---
+  const { paid: streakPaid, streak } = await awardStreak(traineeId, moduleId, enabled, now, correct && !tooFast);
+  const settled = await settleMastery(traineeId, moduleId, row.objectiveId, enabled, now);
+  const { objectiveXp, moduleXp, objectiveJustMastered, moduleCompleted } = settled;
+  const after = settled.mastery;
 
   const totals = await xpTotals(traineeId, moduleId, today);
   const earned = answerXp + bonusXp + streakPaid + objectiveXp + moduleXp;
@@ -620,7 +624,7 @@ export async function submitAnswer(
       total: totals.totalXp,
     },
     streakDays: streak,
-    mastery: overviewOf(after),
+    mastery: after,
     objectiveJustMastered,
     moduleCompleted,
   };

@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import { ActionInputError, LOOP_ACTIONS, LOOP_ACTION_BY_NAME, type EngineState } from "@/lib/loop/actions";
 import { BROADCAST_CONFIRM_THRESHOLD, decideExecution } from "@/lib/loop/policy";
 
-const empty: EngineState = { resolvedRecipients: null, reviewedTrainee: null };
+const scope = { userId: "u1", role: "SUPER_ADMIN", isSuper: true };
+const empty: EngineState = { scope, resolvedRecipients: null, reviewedTrainee: null };
 const resolved = (count: number): EngineState => ({
+  scope,
   resolvedRecipients: { filter: { scope: "ALL_TRAINEES" }, description: "All trainees", count, truncated: false },
   reviewedTrainee: null,
 });
@@ -38,7 +40,7 @@ describe("Loop actions", () => {
   it("suspending messaging needs a trainee Loop actually read, and cannot name another", async () => {
     const suspend = LOOP_ACTION_BY_NAME.get("suspend_messaging")!;
     await expect(suspend.prepare({ reason: "abuse" }, empty)).rejects.toBeInstanceOf(ActionInputError);
-    const p = await suspend.prepare({ reason: "abuse", traineeId: "someone-else" }, { resolvedRecipients: null, reviewedTrainee: { traineeId: "t1", traineeName: "Ada" } });
+    const p = await suspend.prepare({ reason: "abuse", traineeId: "someone-else" }, { scope, resolvedRecipients: null, reviewedTrainee: { traineeId: "t1", traineeName: "Ada" } });
     expect(p.input.traineeId).toBe("t1");
     expect(p.risk).toBe("high");
   });

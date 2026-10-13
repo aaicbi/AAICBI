@@ -362,6 +362,9 @@ model User {
   // and the default autonomy level (1 ask first, 2 balanced, 3 autonomous).
   // Only a Super Admin can raise anyone's level.
   loopLevel         Int                 @default(1)
+  // The highest autonomy level (1 ask first, 2 balanced, 3 autonomous) this person may use in Loop.
+  // A Super Admin is always allowed 3; everyone else starts at 1 until a Super Admin raises it.
+  loopMaxLevel      Int                 @default(1)
   loopConversations LoopConversation[]
   loopActions       LoopPendingAction[]
   games             Game[]

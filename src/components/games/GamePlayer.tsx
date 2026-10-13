@@ -39,7 +39,10 @@ export interface PlayResult {
   tooFast?: boolean;
   minSeconds?: number;
   feedback: Record<string, unknown>;
-  xp?: { earned: number; today: number; dailyCap: number; cappedByDailyLimit: boolean };
+  xp?: { earned: number; streak?: number; objective?: number; module?: number; today: number; dailyCap: number; cappedByDailyLimit: boolean };
+  mastery?: { state: string; distinctCorrect: number; progress: number; needs: string[] };
+  objectiveJustMastered?: boolean;
+  moduleCompleted?: boolean;
 }
 
 export interface PlayerApi {
@@ -388,8 +391,28 @@ export default function GamePlayer({ api, mode, onEmpty }: { api: PlayerApi; mod
           {mode === "play" && result.xp && result.xp.earned > 0 && (
             <p className="flex items-center gap-2 text-sm font-semibold text-brand-ink">
               <Badge variant="gold">+{result.xp.earned} XP</Badge>
+              {(result.xp.streak ?? 0) > 0 && <Badge variant="success">+{result.xp.streak} streak bonus</Badge>}
+              {(result.xp.objective ?? 0) > 0 && <Badge variant="gold">+{result.xp.objective} objective mastered</Badge>}
+              {(result.xp.module ?? 0) > 0 && <Badge variant="gold">+{result.xp.module} module completed</Badge>}
               <span className="text-xs font-normal text-gray-600">{Math.min(result.xp.today, result.xp.dailyCap)} of {result.xp.dailyCap} today</span>
             </p>
+          )}
+          {mode === "play" && result.objectiveJustMastered && (
+            <p className="rounded-2xl bg-brand-goldLight px-4 py-3 text-sm font-semibold text-brand-goldText">
+              You mastered this objective.{result.moduleCompleted ? " That completes every objective in this module." : ""}
+            </p>
+          )}
+          {mode === "play" && result.mastery && (
+            <div>
+              <p className="flex items-center justify-between text-xs text-gray-700">
+                <span>This objective: {({ NOT_STARTED: "Not started", LEARNING: "Learning", NEARLY_THERE: "Nearly there", MASTERED: "Mastered", NEEDS_REFRESH: "Needs refresh" } as Record<string, string>)[result.mastery.state] ?? result.mastery.state}</span>
+                <span>{result.mastery.distinctCorrect} different ones right</span>
+              </p>
+              <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-brand-gray/60" role="progressbar" aria-label="Progress toward mastering this objective" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(result.mastery.progress * 100)}>
+                <div className="h-full rounded-full bg-brand-action transition-[width] duration-500 motion-reduce:transition-none" style={{ width: `${Math.round(result.mastery.progress * 100)}%` }} />
+              </div>
+              {result.mastery.needs.length > 0 && <p className="mt-1 text-xs text-gray-600">Still needed: {result.mastery.needs.join("; ")}.</p>}
+            </div>
           )}
           {mode === "play" && result.xp && result.xp.earned === 0 && result.correct && !result.tooFast && (
             <p className="text-xs text-gray-600">{result.xp.cappedByDailyLimit ? "You've reached today's XP goal." : "No XP this time: this one already earned XP today."}</p>

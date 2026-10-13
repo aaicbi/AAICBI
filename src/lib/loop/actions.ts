@@ -25,12 +25,16 @@ import { sendLoopBroadcast } from "@/lib/messaging/loopBroadcast";
 import type { RecipientFilter } from "@/lib/messaging/recipients";
 import { issueMessagingSuspension } from "@/lib/messagingModeration";
 import { FORMAT_INFO, isItemFormat, validateItemContent, type ItemFormat } from "@/lib/quest/games";
+import { gamesWhere } from "@/lib/quest/studioAccess";
+import { resolveModuleForScope } from "@/lib/loop/scope";
 import { StudioError, approveDrafts, assignGame, createGame, createItem, isGameFormat, updateGame } from "@/lib/quest/studio";
 
 export class ActionInputError extends Error {}
 
 /** What the engine remembers from this conversation turn's read steps (never shown to Claude). */
 export interface EngineState {
+  /** Who is asking. Organization staff and instructors are limited to their own modules and games. */
+  scope: { userId: string; role: string; isSuper: boolean };
   resolvedRecipients: { filter: RecipientFilter; description: string; count: number; truncated: boolean } | null;
   reviewedTrainee: { traineeId: string; traineeName: string } | null;
 }
@@ -52,10 +56,10 @@ export interface ActionDef {
   execute(input: Record<string, unknown>, ctx: { userId: string }): Promise<unknown>;
 }
 
-async function moduleFrom(raw: Record<string, unknown>) {
+async function moduleFrom(raw: Record<string, unknown>, state: EngineState) {
   const query = typeof raw.moduleQuery === "string" ? raw.moduleQuery.trim() : "";
   if (!query) throw new ActionInputError("moduleQuery is required: the module's name or part of it.");
-  const lookup = await resolveModuleByQuery(query);
+  const lookup = await resolveModuleForScope(query, state.scope);
   if (!lookup.module) {
     throw new ActionInputError(
       lookup.ambiguousMatches
@@ -82,8 +86,8 @@ const saveObjectives: ActionDef = {
     },
     required: ["moduleQuery", "objectives"],
   },
-  async prepare(raw) {
-    const { module, label } = await moduleFrom(raw);
+  async prepare(raw, state) {
+    const { module, label } = await moduleFrom(raw, state);
     const list = z.array(z.string().trim().min(1).max(500)).min(1).max(20).safeParse(raw.objectives);
     if (!list.success) throw new ActionInputError("objectives must be 1 to 20 short sentences.");
     return {
@@ -119,8 +123,8 @@ const generateQuestions: ActionDef = {
     },
     required: ["moduleQuery", "objectiveQuery", "count"],
   },
-  async prepare(raw) {
-    const { module, label } = await moduleFrom(raw);
+  async prepare(raw, state) {
+    const { module, label } = await moduleFrom(raw, state);
     const objectiveQuery = typeof raw.objectiveQuery === "string" ? raw.objectiveQuery.trim() : "";
     if (!objectiveQuery) throw new ActionInputError("objectiveQuery is required.");
     const count = typeof raw.count === "number" && raw.count > 0 ? Math.floor(raw.count) : 10;
@@ -144,8 +148,8 @@ const validateQuestions: ActionDef = {
     properties: { moduleQuery: MODULE_PROP, count: { type: "number", description: "How many pending questions (capped by the system)." } },
     required: ["moduleQuery", "count"],
   },
-  async prepare(raw) {
-    const { module, label } = await moduleFrom(raw);
+  async prepare(raw, state) {
+    const { module, label } = await moduleFrom(raw, state);
     const count = typeof raw.count === "number" && raw.count > 0 ? Math.floor(raw.count) : 10;
     return {
       input: { moduleQuery: module.title, count },
@@ -162,8 +166,8 @@ const splitPools: ActionDef = {
   name: "split_question_pools",
   description: "Split a module's approved questions that have no pool yet between the practice pool and the formal-assessment pool (about 40% formal).",
   inputSchema: { type: "object", properties: { moduleQuery: MODULE_PROP }, required: ["moduleQuery"] },
-  async prepare(raw) {
-    const { module, label } = await moduleFrom(raw);
+  async prepare(raw, state) {
+    const { module, label } = await moduleFrom(raw, state);
     return {
       input: { moduleId: module.id, moduleLabel: label },
       summary: `Split the approved questions of ${label} between the practice pool and the formal pool (about 40% formal). Questions already assigned stay as they are.`,
@@ -191,8 +195,8 @@ const practiceSettings: ActionDef = {
     },
     required: ["moduleQuery"],
   },
-  async prepare(raw) {
-    const { module, label } = await moduleFrom(raw);
+  async prepare(raw, state) {
+    const { module, label } = await moduleFrom(raw, state);
     const input: Record<string, unknown> = { moduleId: module.id, moduleLabel: label };
     const parts: string[] = [];
     if (typeof raw.practiceEnabled === "boolean") {
@@ -305,10 +309,10 @@ const suspendMessaging: ActionDef = {
 // Game Studio actions
 // ---------------------------------------------------------------------------
 
-async function gameFrom(raw: Record<string, unknown>) {
+async function gameFrom(raw: Record<string, unknown>, state: EngineState) {
   const query = typeof raw.gameQuery === "string" ? raw.gameQuery.trim() : "";
   if (!query) throw new ActionInputError("gameQuery is required: the game's name or part of it (see list_games).");
-  const games = await prisma.game.findMany({ where: { title: { contains: query, mode: "insensitive" } }, select: { id: true, title: true, format: true }, take: 10 });
+  const games = await prisma.game.findMany({ where: { title: { contains: query, mode: "insensitive" }, ...gamesWhere(state.scope) }, select: { id: true, title: true, format: true }, take: 10 });
   if (games.length === 0) throw new ActionInputError("No game matched that name. Use list_games to see them, or create_game first.");
   if (games.length > 1) throw new ActionInputError(`More than one game matched. Ask which one was meant: ${games.map((g) => g.title).join("; ")}`);
   return games[0];
@@ -325,7 +329,7 @@ const createGameAction: ActionDef = {
     properties: { title: { type: "string" }, format: FORMAT_ENUM, description: { type: "string", description: "One sentence on what trainees do." } },
     required: ["title", "format"],
   },
-  async prepare(raw) {
+  async prepare(raw, state) {
     const title = typeof raw.title === "string" ? raw.title.trim() : "";
     if (!title) throw new ActionInputError("A title is required.");
     if (!isGameFormat(raw.format)) throw new ActionInputError("format must be QUIZ, MATCHING, ORDERING or SCENARIO.");
@@ -346,8 +350,8 @@ const setGameRewards: ActionDef = {
     properties: { gameQuery: GAME_PROP, enabledRewards: { type: "array", items: { type: "string", enum: ["ANSWER", "MISSED_BONUS", "STREAK", "OBJECTIVE_MASTERED", "MODULE_COMPLETED"] } } },
     required: ["gameQuery", "enabledRewards"],
   },
-  async prepare(raw) {
-    const game = await gameFrom(raw);
+  async prepare(raw, state) {
+    const game = await gameFrom(raw, state);
     const rewards = Array.isArray(raw.enabledRewards) ? raw.enabledRewards.filter((x): x is string => typeof x === "string") : [];
     return { input: { gameId: game.id, gameTitle: game.title, enabledRewards: rewards }, summary: `Set the rewards for “${game.title}” to: ${rewards.join(", ") || "none"}.`, risk: "low" };
   },
@@ -366,9 +370,9 @@ const assignGameAction: ActionDef = {
     properties: { gameQuery: GAME_PROP, moduleQuery: MODULE_PROP, assigned: { type: "boolean", description: "false removes it from the module. Default true." }, live: { type: "boolean", description: "true makes it playable by trainees, false hides it." } },
     required: ["gameQuery", "moduleQuery"],
   },
-  async prepare(raw) {
-    const game = await gameFrom(raw);
-    const { module, label } = await moduleFrom(raw);
+  async prepare(raw, state) {
+    const game = await gameFrom(raw, state);
+    const { module, label } = await moduleFrom(raw, state);
     const assigned = raw.assigned !== false;
     const live = typeof raw.live === "boolean" ? raw.live : undefined;
     const what = !assigned ? `Remove “${game.title}” from ${label}` : live === true ? `Assign “${game.title}” to ${label} and make it live for trainees` : live === false ? `Assign “${game.title}” to ${label}, hidden from trainees` : `Assign “${game.title}” to ${label}`;
@@ -400,8 +404,8 @@ const addGameItems: ActionDef = {
     },
     required: ["moduleQuery", "objectiveQuery", "format", "items"],
   },
-  async prepare(raw) {
-    const { module, label } = await moduleFrom(raw);
+  async prepare(raw, state) {
+    const { module, label } = await moduleFrom(raw, state);
     if (typeof raw.format !== "string" || !isItemFormat(raw.format)) throw new ActionInputError("format must be MATCHING, ORDERING or SCENARIO.");
     const format: ItemFormat = raw.format;
     const q = typeof raw.objectiveQuery === "string" ? raw.objectiveQuery.trim().toLowerCase() : "";
@@ -442,8 +446,8 @@ const approveGameItems: ActionDef = {
   description:
     "Approve every DRAFT item of one format in a module so trainees can play them. This is the human review step: it is ALWAYS shown to the admin for approval, whatever the chat's level, and you should encourage them to try the preview first.",
   inputSchema: { type: "object", properties: { moduleQuery: MODULE_PROP, format: { type: "string", enum: ["MATCHING", "ORDERING", "SCENARIO"] } }, required: ["moduleQuery", "format"] },
-  async prepare(raw) {
-    const { module, label } = await moduleFrom(raw);
+  async prepare(raw, state) {
+    const { module, label } = await moduleFrom(raw, state);
     if (typeof raw.format !== "string" || !isItemFormat(raw.format)) throw new ActionInputError("format must be MATCHING, ORDERING or SCENARIO.");
     const drafts = await prisma.gameItem.count({ where: { moduleId: module.id, format: raw.format, status: "DRAFT" } });
     if (drafts === 0) throw new ActionInputError("There are no drafts of that format to approve in this module.");

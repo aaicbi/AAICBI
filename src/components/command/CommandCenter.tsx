@@ -99,6 +99,7 @@ export default function CommandCenter({ compact = false, studio, onChanged }: { 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [level, setLevel] = useState<LoopLevel>(1);
+  const [maxLevel, setMaxLevel] = useState<LoopLevel>(3);
   const [input, setInput] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [streaming, setStreaming] = useState(false);
@@ -118,6 +119,7 @@ export default function CommandCenter({ compact = false, studio, onChanged }: { 
     if (!res.ok) return setConversations([]);
     const data = await res.json();
     setConversations(data.conversations);
+    if (data.maxLevel) setMaxLevel(clampLevel(data.maxLevel));
     return data as { conversations: ConversationItem[]; defaultLevel: number };
   }, []);
 
@@ -554,7 +556,7 @@ export default function CommandCenter({ compact = false, studio, onChanged }: { 
                 <Icon icon={Paperclip} size="md" />
               </button>
               <div className="ml-auto flex items-center gap-1">
-                <LevelPicker level={level} onChange={changeLevel} disabled={streaming} />
+                <LevelPicker level={level} onChange={changeLevel} disabled={streaming} max={maxLevel} />
                 {streaming ? (
                   <button type="button" aria-label="Stop" data-testid="stop" onClick={stop} className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-brand-action text-brand-onAccent hover:bg-brand-actionHover">
                     <Icon icon={Square} size="sm" />
