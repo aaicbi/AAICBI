@@ -219,7 +219,7 @@ async function seed() {
   await p.getByTestId('items-card').waitFor();
   log(true, 'choosing a module shows its items without leaving the page');
 
-  await p.getByTestId('game-detail').getByLabel('This game is part of Studio Module One').check();
+  await p.getByTestId('game-detail').getByLabel('This game is part of Studio Module One').click();
   await p.waitForFunction(() => document.querySelector('[data-testid=game-detail] input[type=checkbox]:not([disabled])'));
   log((await prisma.gameAssignment.count({ where: { moduleId: M, game: { title: 'SC Ui game' } } })) === 1, 'the game is assigned to the module from the studio');
 
@@ -250,7 +250,7 @@ async function seed() {
   await p.getByTestId('approve-all').click();
   await p.locator('[data-testid=item-row][data-status=DRAFT]').first().waitFor({ state: 'detached' });
   log((await prisma.gameItem.count({ where: { moduleId: M, status: 'APPROVED' } })) >= 2, 'approve all makes the drafts playable');
-  await p.getByTestId('game-detail').getByLabel(/Live: trainees can play it/).check();
+  await p.getByTestId('game-detail').getByLabel(/Live: trainees can play it/).click();
   await p.waitForFunction(async () => true);
   await sleep(700);
   log((await prisma.gameAssignment.findFirst({ where: { moduleId: M, game: { title: 'SC Ui game' } } })).live === true, 'the game is made live from the studio');

@@ -71,7 +71,8 @@ function Matching({ served, disabled, result, onChange }: { served: Extract<Play
       setActiveLeft(i);
       return;
     }
-    setActiveLeft(i === activeLeft ? null : i);
+    // Tapping the term that is already highlighted keeps it highlighted: after a match the next term is picked for you.
+    setActiveLeft(i);
   };
   const pickRight = (text: string) => {
     if (disabled) return;
