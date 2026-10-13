@@ -206,7 +206,7 @@ export async function generateBankQuestionBatch(
 
   const materials = await getModuleMaterialsText(moduleId);
   if (materials.usable.length === 0) {
-    throw new Error("No usable materials found for this module — only Word documents can be analyzed right now.");
+    throw new Error("No usable materials found for this module — Word, PDF and PowerPoint files can be read, but videos can't.");
   }
   const materialsBlock = buildMaterialsBlock(materials.usable);
 

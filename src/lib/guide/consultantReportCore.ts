@@ -156,7 +156,7 @@ export function cleanReport(raw: z.infer<typeof ReportSchema>, periodDays: numbe
 }
 
 export function cleanMaterialReview(raw: z.infer<typeof MaterialReviewSchema>, label: string, skipped: number): { title: string; rationale: string; proposal: Record<string, unknown>; warnings: string[] } {
-  const warnings = [AUTOMATIC, "Claude read only the text of the Word documents, in the part shown to it. It cannot see videos, slides or PDFs."];
+  const warnings = [AUTOMATIC, "Claude read only the text of the Word, PDF and PowerPoint files, in the part shown to it. It cannot see videos or pictures."];
   if (skipped > 0) warnings.push(`${skipped} material${skipped === 1 ? " was" : "s were"} not read (not a Word document, or not reachable).`);
   const issues = raw.issues
     .map((i) => ({ material: take(i.material, 120) || null, quote: take(i.quote, 200) || null, issue: take(i.issue, 500), suggestion: take(i.suggestion, 500), priority: i.priority }))

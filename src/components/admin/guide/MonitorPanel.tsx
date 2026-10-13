@@ -113,7 +113,7 @@ export default function MonitorPanel({ ready, onChanged }: { ready: boolean; onC
           </div>
           <div className="space-y-2 border-t border-gray-200 pt-4">
             <h3 className="text-sm font-semibold text-brand-ink">Review a module&apos;s lesson materials</h3>
-            <p className="text-xs text-gray-600">Claude reads the Word documents in one module and points out what is unclear, missing or inconsistent. Videos, slides and PDFs cannot be read yet.</p>
+            <p className="text-xs text-gray-600">Claude reads the Word, PDF and PowerPoint files in one module and points out what is unclear, missing or inconsistent. Videos cannot be read.</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <Select label="Course" value={courseId} onChange={(e) => { setCourseId(e.target.value); setModuleId(""); }}>
                 <option value="">Choose a course</option>
