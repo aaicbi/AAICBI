@@ -63,6 +63,44 @@ interface AttemptSummary {
 }
 
 /**
+ * Knowledge Quest — a small "Practice" strip above the assessment strip, shown
+ * only when the instructor has switched practice on for this module (the
+ * practice API answers 404 otherwise). Practice XP never counts toward a
+ * certificate; the strip says so, and shows where the trainee stands.
+ */
+function ModulePracticeStrip({ courseId, moduleId }: { courseId: string; moduleId: string }) {
+  const [info, setInfo] = useState<{ mastered: number; total: number; streak: number } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/modules/${moduleId}/practice`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        setInfo({ mastered: data.masteredCount, total: data.objectives.length, streak: data.streak });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [moduleId]);
+
+  if (!info) return null;
+  return (
+    <Card className="flex flex-col items-start gap-2 p-3 sm:flex-row sm:items-center sm:justify-between" data-testid="practice-strip">
+      <div className="text-xs text-gray-600">
+        <span className="font-semibold text-brand-ink">Practice</span> — {info.mastered} of {info.total} objectives mastered
+        {info.streak >= 2 && <span className="ml-2 font-semibold text-brand-teal">· {info.streak}-day streak</span>}
+        <span className="block sm:inline sm:ml-2">Great for preparing. Practice XP never counts toward your certificate.</span>
+      </div>
+      <Button href={`/trainee/courses/${courseId}/modules/${moduleId}/practice`} size="sm" variant="secondary">
+        {info.mastered === 0 ? "Start practising" : "Keep practising"}
+      </Button>
+    </Card>
+  );
+}
+
+/**
  * M11 — a small "Assessment" strip inside each module's expanded
  * section. Two independent fetches per module (assessment meta +
  * attempt history), both of which 404/return-empty harmlessly for a
@@ -989,7 +1027,8 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
 
               {openModule === mod.id && mod.unlocked && (
                 <div className="space-y-0 border-t border-brand-gray bg-gray-50/60 p-0 sm:space-y-3 sm:p-4">
-                  <div className="p-3 sm:p-0">
+                  <div className="space-y-2 p-3 sm:p-0">
+                    <ModulePracticeStrip courseId={course.id} moduleId={mod.id} />
                     <ModuleAssessmentStrip courseId={course.id} moduleId={mod.id} />
                   </div>
                   {mod.lessons.map((lesson) => (

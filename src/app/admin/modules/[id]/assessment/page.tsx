@@ -302,6 +302,11 @@ export default function ModuleAssessmentPage({ params }: { params: { id: string 
         <h1 className="mt-2 font-display text-2xl font-semibold text-brand-ink">
           {moduleTitle ? `${moduleTitle} — Assessment` : "Module Assessment"}
         </h1>
+        <p className="mt-1 text-sm">
+          <a className="font-semibold text-brand-teal underline" href={`/admin/modules/${params.id}/quest`}>
+            Practice and mastery: question pools, required objectives and rewards
+          </a>
+        </p>
         {!exam && (
           <p className="mt-1 text-sm text-gray-600">
             This module doesn&apos;t have an assessment yet. Upload a question document below to create one, or configure

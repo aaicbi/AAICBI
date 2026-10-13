@@ -1,6 +1,6 @@
-# AAICBI Knowledge Quest — design (draft 3)
+# AAICBI Knowledge Quest — design (draft 4)
 
-Status: design agreed in conversation, nothing built yet. All numbers below are
+Status: step 1 is built (see "What step 1 contains" at the end); the rest is design only. All numbers below are
 starting values, to be tuned with real trainee data. This is the shared
 reference we edit before any code is written. Source idea: "gaming in AAICBI"
 (26-page discussion document).
@@ -106,7 +106,7 @@ shows which objectives are short.
 | Correct answer with a hint | 5 |
 | Correct on a retry after a wrong answer | 5 |
 | Bonus for correctly answering a question missed before | +5, once per question |
-| Practice day streak | +10 per day, stops growing after 7 days |
+| Practice day streak | +10 each day you continue a streak (from the second consecutive day) |
 | Objective mastered | +50, once per objective |
 | Module completed | +100, once per module |
 
@@ -222,3 +222,40 @@ earlier phases.
   stakes because XP never decides levels, ranking or certificates).
 - Level boundaries beyond Problem Solver, once scenario and practical content
   exists.
+
+## What step 1 contains (built)
+
+Data and rules
+- `src/lib/quest/core.ts`: every number above, as pure tested functions
+  (mastery, XP, minimum answer time, levels, pool coverage, auto-split, next
+  question choice, formal draw, mastery gates). Tests in `tests/questCore.test.ts`.
+- `src/lib/quest/server.ts`: access, practice sessions, answers, hints, XP
+  ledger, formal unlock and gate helpers.
+- Tables: `PracticeAnswer`, `XpEntry` (idempotent via `dedupeKey`),
+  `ModuleQuestSettings`, `FormalUnlock`; `Question.bankPool`,
+  `ModuleLearningObjective.isCritical`.
+
+Trainee
+- Practice screen `/trainee/courses/[id]/modules/[moduleId]/practice`:
+  objectives with mastery and progress, question card with hint, feedback with
+  explanation and lesson pointers, XP, streak, level, daily goal.
+- Practice strip on the course page; "Practise first" notice and link on the
+  assessment page; required objectives named on a result that was held back.
+
+Instructor
+- `/admin/modules/[id]/quest`: pool coverage per objective, per-question pool,
+  automatic split, required objectives, go-live switch (refused until both
+  pools meet the minimums), practice-before-formal with a percentage, and
+  reward switches.
+
+Formal assessment
+- Draws only formal-pool questions (untagged legacy questions stay formal),
+  guarantees up to 3 questions per required objective, and fails an attempt that
+  clears the pass mark but misses a required objective.
+
+Not in step 1 (on purpose)
+- Trainee privacy setting and organization leaderboards (step 2).
+- Staff tuning view (step 3), mission map (step 4), scenarios, spaced
+  repetition, teams.
+- XP is stored from day one but only the practice screen and the module strip
+  show it; no public profile exposure yet.

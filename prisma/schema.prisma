@@ -130,6 +130,24 @@ enum QuestionType {
 // these; every question ANY other feature creates (hand-authored,
 // DOCX-imported, course-exam-paraphrased) leaves Question.bankStatus
 // null and is untouched by any of this.
+// Knowledge Quest — which pool an approved bank question belongs to. A question
+// is in exactly one pool: the formal assessment never uses PRACTICE questions
+// and practice never shows FORMAL ones. Null (every question that predates
+// Knowledge Quest) counts as FORMAL, so existing assessments behave as before.
+enum QuestionPool {
+  PRACTICE
+  FORMAL
+}
+
+// Knowledge Quest — what an XP ledger entry was paid for.
+enum XpKind {
+  ANSWER
+  MISSED_BONUS
+  STREAK
+  OBJECTIVE_MASTERED
+  MODULE_COMPLETED
+}
+
 enum QuestionBankStatus {
   PENDING_REVIEW      // fresh from generation + its own self-check, awaiting gate 1
   PENDING_VALIDATION  // gate 1 approved by a human, queued for independent validation
@@ -567,6 +585,9 @@ model Trainee {
   // M12
   lessonProgress LessonProgress[]
   moduleCompletions ModuleCompletion[]
+  practiceAnswers   PracticeAnswer[]
+  xpEntries         XpEntry[]
+  formalUnlocks     FormalUnlock[]
   // M15
   certificates Certificate[]
   // Standalone-exam certificates — see ExamCertificate's own comment
@@ -1470,6 +1491,12 @@ model Module {
   // optional/unique shape as `assessment` above.
   assignment Assignment?
 
+  // Knowledge Quest
+  questSettings   ModuleQuestSettings?
+  practiceAnswers PracticeAnswer[]
+  xpEntries       XpEntry[]
+  formalUnlocks   FormalUnlock[]
+
   @@index([courseId])
 }
 
@@ -1641,6 +1668,97 @@ model ModuleCompletion {
 
   @@unique([moduleId, traineeId])
   @@index([traineeId])
+}
+
+// ---------------------------------------------------------------------
+// Knowledge Quest (see docs/knowledge-quest-design.md). Practice mode and
+// the game layer live beside the formal assessment, never inside it:
+// nothing here feeds a certificate. Mastery is NOT stored — it is
+// calculated from PracticeAnswer rows every time (src/lib/quest/core.ts),
+// so tuning a threshold needs no data migration. XP is an append-only
+// ledger: rule changes apply going forward and nobody loses XP.
+// ---------------------------------------------------------------------
+
+// Per-module instructor settings. No row = everything off / defaults.
+model ModuleQuestSettings {
+  id       String @id @default(cuid())
+  moduleId String @unique
+  module   Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  // Practice mode is visible to trainees only when this is on. Switching it
+  // on is refused until every objective has enough approved questions in
+  // both pools (see poolCoverage).
+  practiceEnabled Boolean @default(false)
+  // Formal assessment unlocks only after enough objectives are mastered in
+  // practice. Checked once, when the assessment is first started.
+  practiceBeforeFormal    Boolean @default(false)
+  practiceRequiredPercent Int     @default(70)
+  // Which reward kinds are paid in this module (XpKind names).
+  enabledRewards String[] @default(["ANSWER", "MISSED_BONUS", "STREAK", "OBJECTIVE_MASTERED", "MODULE_COMPLETED"])
+
+  updatedAt DateTime @updatedAt
+}
+
+// One practice question served to a trainee. Created when served (the server
+// clock is the only clock that counts), completed when answered.
+model PracticeAnswer {
+  id          String                   @id @default(cuid())
+  traineeId   String
+  trainee     Trainee                  @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  moduleId    String
+  module      Module                   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  objectiveId String
+  objective   ModuleLearningObjective  @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  questionId  String
+  question    Question                 @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  servedAt          DateTime  @default(now())
+  answeredAt        DateTime?
+  selectedOptionKey String?
+  correct           Boolean?
+  secondsTaken      Int?
+  // Answered faster than the minimum time: no XP, never evidence of mastery.
+  tooFast  Boolean @default(false)
+  hintUsed Boolean @default(false)
+
+  @@index([traineeId, objectiveId, answeredAt])
+  @@index([traineeId, questionId])
+  @@index([traineeId, moduleId, answeredAt])
+}
+
+// Append-only XP ledger. `dedupeKey` makes each payment idempotent (once per
+// question per day, once per objective, and so on) even under races.
+model XpEntry {
+  id          String   @id @default(cuid())
+  traineeId   String
+  trainee     Trainee  @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  moduleId    String
+  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  kind        XpKind
+  points      Int
+  objectiveId String?
+  questionId  String?
+  // Day in the quest time zone (YYYY-MM-DD), for daily caps and streaks.
+  dayKey      String
+  dedupeKey   String   @unique
+  createdAt   DateTime @default(now())
+
+  @@index([traineeId, moduleId])
+  @@index([traineeId, dayKey])
+}
+
+// Written once, when a trainee first meets the practice requirement for a
+// module's formal assessment — so a later lapse in practice mastery never
+// locks them out again.
+model FormalUnlock {
+  id         String   @id @default(cuid())
+  traineeId  String
+  trainee    Trainee  @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  moduleId   String
+  module     Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  unlockedAt DateTime @default(now())
+
+  @@unique([traineeId, moduleId])
 }
 
 model Exam {
@@ -1885,6 +2003,9 @@ model Question {
   bankStatus      QuestionBankStatus?
   bankObjectiveId String?
   bankObjective   ModuleLearningObjective? @relation(fields: [bankObjectiveId], references: [id], onDelete: SetNull)
+  // Knowledge Quest — see QuestionPool. Null = legacy question, treated as FORMAL.
+  bankPool        QuestionPool?
+  practiceAnswers PracticeAnswer[]
   sourceMaterials QuestionSourceMaterial[]
   bankEvents      QuestionBankEvent[]
 
@@ -1909,6 +2030,12 @@ model ModuleLearningObjective {
   createdAt     DateTime @default(now())
 
   generatedQuestions Question[]
+
+  // Knowledge Quest — a critical objective is a mastery gate: the formal
+  // assessment is not passed unless the trainee clears it, whatever the
+  // overall score.
+  isCritical Boolean @default(false)
+  practiceAnswers PracticeAnswer[]
 
   @@index([moduleId])
 }

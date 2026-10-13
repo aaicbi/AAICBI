@@ -6,6 +6,7 @@ import { withApiErrors } from "@/lib/apiError";
 import { requireOwnedModule } from "@/lib/courseOwnership";
 import { getModuleLockStatus } from "@/lib/progress";
 import { getModuleAccessLevel } from "@/lib/courseAccess";
+import { formalEligibility, loadQuestSettings } from "@/lib/quest/server";
 
 // Same code-generation helper as POST /api/exams, duplicated locally on
 // purpose rather than imported — it's five lines with zero dependencies
@@ -121,7 +122,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         numQuestions: true,
         published: true,
         courseModule: { select: { courseId: true } },
-        _count: { select: { questions: true } },
+        _count: { select: { questions: { where: { NOT: { bankPool: "PRACTICE" } } } } },
       },
     });
     if (!exam || !exam.published || !exam.courseModule) {
@@ -159,6 +160,11 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: "This module doesn't have an assessment available yet." }, { status: 404 });
     }
 
+    // Knowledge Quest: whether practice is on for this module, and whether the
+    // instructor requires it before this assessment.
+    const quest = await formalEligibility(session.userId, params.id);
+    const questSettings = await loadQuestSettings(params.id);
+
     return NextResponse.json({
       id: exam.id,
       title: exam.title,
@@ -166,7 +172,10 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       durationMinutes: exam.durationMinutes,
       passMarkPercent: exam.passMarkPercent,
       maxAttempts: exam.maxAttempts,
+      // Practice-pool questions are never part of the formal assessment.
       totalQuestions: exam.numQuestions ?? exam._count.questions,
+      practiceAvailable: questSettings.practiceEnabled,
+      practiceRequired: quest.required && !quest.met ? quest : null,
     });
   });
 }
