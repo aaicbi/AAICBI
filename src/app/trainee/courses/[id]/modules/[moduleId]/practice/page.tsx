@@ -244,7 +244,7 @@ export default function PracticePage({ params }: { params: { id: string; moduleI
         <section aria-label="Your progress" className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat icon={<Icon icon={Trophy} size="sm" />} label="Level" value={LEVEL_LABEL[lv.level]} hint={lv.nextLevel ? `Master ${lv.neededForNext} more objective${lv.neededForNext === 1 ? "" : "s"} in this course to level up` : "Top level for now"} />
           <Stat icon={<Icon icon={Flame} size="sm" />} label="Streak" value={`${overview.streak} day${overview.streak === 1 ? "" : "s"}`} hint={overview.streak >= 2 ? "Keep it going tomorrow" : "Practise on consecutive days"} />
-          <Stat icon={<Icon icon={Sparkles} size="sm" />} label="XP today" value={`${overview.xp.today} / ${overview.xp.dailyCap}`} hint={overview.xp.today >= overview.xp.dailyCap ? "Daily XP goal reached. Mastery still counts." : undefined} />
+          <Stat icon={<Icon icon={Sparkles} size="sm" />} label="XP today" value={`${Math.min(overview.xp.today, overview.xp.dailyCap)} / ${overview.xp.dailyCap}`} hint={overview.xp.today >= overview.xp.dailyCap ? "Daily XP goal reached. Mastery still counts." : undefined} />
           <Stat icon={<Icon icon={CheckCircle2} size="sm" />} label="Mastered" value={`${overview.masteredCount} of ${overview.objectives.length}`} hint={`${overview.xp.module} XP in this module`} />
         </section>
 

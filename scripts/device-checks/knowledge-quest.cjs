@@ -30,7 +30,7 @@ async function seed(traineeEmail) {
   });
   await prisma.courseEnrollment.upsert({
     where: { traineeId_courseId: { traineeId: trainee.id, courseId: course.id } },
-    update: {}, create: { traineeId: trainee.id, courseId: course.id, source: 'ADMIN_GRANTED' },
+    update: { unlockedAt: new Date() }, create: { traineeId: trainee.id, courseId: course.id, source: 'ADMIN_GRANTED', unlockedAt: new Date() },
   });
   const mod = await prisma.module.create({ data: { courseId: course.id, title: 'Automation basics', order: 0 } });
   const lesson = await prisma.lesson.create({ data: { moduleId: mod.id, title: 'What is a workflow?', order: 0 } });
@@ -200,14 +200,15 @@ async function seed(traineeEmail) {
   const p = await ctx.newPage(); p.setDefaultTimeout(20000);
   const errors = []; p.on('pageerror', (e) => errors.push(e.message));
   await p.goto(`${B}/trainee/courses/${course.id}`, { waitUntil: 'load' });
-  await p.getByText('Automation basics').first().click().catch(() => {});
+  await p.waitForTimeout(2500);
+  if (!(await p.getByTestId('practice-strip').count())) await p.getByText('Automation basics').first().click().catch(() => {});
   await p.getByTestId('practice-strip').first().waitFor();
   log(true, 'the course page shows a Practice strip for the module');
   await p.goto(`${B}/trainee/courses/${course.id}/modules/${mod.id}/practice`, { waitUntil: 'load' });
   await p.getByRole('heading', { name: /Practice: Automation basics/ }).waitFor();
   const txt = await p.locator('main').innerText();
   log(/never counts\s+toward your certificate/.test(txt.replace(/\n/g, ' ')) , 'the practice screen says practice never counts toward the certificate');
-  log(/Explorer|Problem Solver/.test(txt) && /Streak/.test(txt) && /XP today/.test(txt), 'level, streak and XP today are shown');
+  log(/explorer|problem solver/i.test(txt) && /streak/i.test(txt) && /xp today/i.test(txt), 'level, streak and XP today are shown');
   await p.screenshot({ path: '/tmp/dev/quest-overview-phone.png', fullPage: true });
   await p.getByRole('button', { name: 'Practise what needs work' }).click();
   await p.getByRole('button', { name: 'Check answer' }).waitFor();
