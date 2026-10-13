@@ -85,19 +85,28 @@ const practicePoolWhere = (moduleId: string) => ({
 // Access
 // ---------------------------------------------------------------------------
 
-export async function assertPracticeAccess(traineeId: string, moduleId: string) {
+/** The trainee may reach this module at all: enrolled, course reachable, module unlocked. */
+export async function assertModuleReachable(traineeId: string, moduleId: string) {
   const mod = await prisma.module.findUnique({
     where: { id: moduleId },
     select: { id: true, title: true, courseId: true, course: { select: { id: true, title: true, status: true } } },
   });
-  const notAvailable = httpError(404, "Practice isn't available for this module.");
+  const notAvailable = httpError(404, "This isn't available for this module.");
   if (!mod) throw notAvailable;
   if (!(await canTraineeAccessCourse(mod.course.status, traineeId, mod.courseId))) throw notAvailable;
   if ((await getModuleAccessLevel(traineeId, mod.courseId, moduleId)) === "NONE") throw notAvailable;
-  const settings = await loadQuestSettings(moduleId);
-  if (!settings.practiceEnabled) throw notAvailable;
   const lock = await getModuleLockStatus(mod.courseId, moduleId, traineeId);
   if (!lock?.unlocked) throw httpError(403, "This module isn't unlocked yet — complete the previous module first.");
+  return mod;
+}
+
+export async function assertPracticeAccess(traineeId: string, moduleId: string) {
+  const mod = await assertModuleReachable(traineeId, moduleId).catch((e: Error & { status?: number }) => {
+    if (e.status === 404) throw httpError(404, "Practice isn't available for this module.");
+    throw e;
+  });
+  const settings = await loadQuestSettings(moduleId);
+  if (!settings.practiceEnabled) throw httpError(404, "Practice isn't available for this module.");
   return { module: mod, settings };
 }
 
@@ -410,7 +419,7 @@ async function hintFor(questionId: string, objectiveText: string, courseId: stri
 // Answering
 // ---------------------------------------------------------------------------
 
-async function addXp(entry: {
+export async function addXp(entry: {
   traineeId: string;
   moduleId: string;
   kind: "ANSWER" | "MISSED_BONUS" | "STREAK" | "OBJECTIVE_MASTERED" | "MODULE_COMPLETED";

@@ -364,6 +364,7 @@ model User {
   loopLevel         Int                 @default(1)
   loopConversations LoopConversation[]
   loopActions       LoopPendingAction[]
+  games             Game[]
   // Loop broadcast messaging — every message send this staff member
   // has personally authorized, the real internal audit trail behind
   // whatever the recipient sees as "Loop — Systems Manager." Same
@@ -594,6 +595,7 @@ model Trainee {
   practiceAnswers   PracticeAnswer[]
   xpEntries         XpEntry[]
   formalUnlocks     FormalUnlock[]
+  gamePlays         GamePlay[]
   // M15
   certificates Certificate[]
   // Standalone-exam certificates — see ExamCertificate's own comment
@@ -1502,6 +1504,9 @@ model Module {
   practiceAnswers PracticeAnswer[]
   xpEntries       XpEntry[]
   formalUnlocks   FormalUnlock[]
+  gameAssignments GameAssignment[]
+  gameItems       GameItem[]
+  gamePlays       GamePlay[]
 
   @@index([courseId])
 }
@@ -2042,6 +2047,7 @@ model ModuleLearningObjective {
   // overall score.
   isCritical Boolean @default(false)
   practiceAnswers PracticeAnswer[]
+  gameItems       GameItem[]
 
   @@index([moduleId])
 }
@@ -4075,6 +4081,109 @@ model Testimonial {
 // when their autonomy level allows it for that action's risk, straight away
 // (and then recorded here as autoExecuted).
 // ---------------------------------------------------------------------
+
+// ---------------------------------------------------------------------
+// Game Studio (docs/game-studio.md): games are built once in the studio and
+// assigned to modules. A game has a FORMAT; the formats other than QUIZ play
+// from GameItem rows (drafted by Loop or written by staff, hidden from
+// trainees until a person approves them). QUIZ plays from the module's
+// approved question bank exactly as practice mode already does, and assigning
+// a QUIZ game switches that module's practice on.
+// ---------------------------------------------------------------------
+
+enum GameFormat {
+  QUIZ
+  MATCHING
+  ORDERING
+  SCENARIO
+}
+
+enum GameItemStatus {
+  DRAFT
+  APPROVED
+  REJECTED
+}
+
+model Game {
+  id             String   @id @default(cuid())
+  title          String
+  format         GameFormat
+  description    String?
+  // Which rewards this game pays (XpKind names), the same switches practice mode has.
+  enabledRewards String[] @default(["ANSWER", "MISSED_BONUS", "STREAK", "OBJECTIVE_MASTERED", "MODULE_COMPLETED"])
+  createdById    String
+  createdBy      User     @relation(fields: [createdById], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  assignments GameAssignment[]
+  plays       GamePlay[]
+
+  @@index([format])
+}
+
+model GameAssignment {
+  id        String   @id @default(cuid())
+  gameId    String
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  moduleId  String
+  module    Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  // Trainees see it only while live.
+  live      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([gameId, moduleId])
+  @@index([moduleId])
+}
+
+// One playable item for a module, in one non-QUIZ format. `content` is validated
+// per format (src/lib/quest/games.ts). Trainees only ever get APPROVED items.
+model GameItem {
+  id           String                   @id @default(cuid())
+  moduleId     String
+  module       Module                   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  objectiveId  String
+  objective    ModuleLearningObjective  @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  format       GameFormat
+  content      Json
+  status       GameItemStatus           @default(DRAFT)
+  // "LOOP" or "STAFF": who wrote it.
+  source       String                   @default("STAFF")
+  createdAt    DateTime                 @default(now())
+  reviewedById String?
+  reviewedAt   DateTime?
+
+  plays GamePlay[]
+
+  @@index([moduleId, format, status])
+  @@index([objectiveId])
+}
+
+// One item served to a trainee: created when served (the server clock counts),
+// completed when answered.
+model GamePlay {
+  id          String                   @id @default(cuid())
+  traineeId   String
+  trainee     Trainee                  @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  moduleId    String
+  module      Module                   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  gameId      String
+  game        Game                     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  itemId      String
+  item        GameItem                 @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  objectiveId String
+  servedAt    DateTime                 @default(now())
+  answeredAt  DateTime?
+  response    Json?
+  // 0 to 1: the share of the item answered correctly.
+  score       Float?
+  correct     Boolean?
+  secondsTaken Int?
+  tooFast     Boolean                  @default(false)
+
+  @@index([traineeId, itemId])
+  @@index([traineeId, moduleId, answeredAt])
+}
 
 enum LoopActionStatus {
   PENDING
