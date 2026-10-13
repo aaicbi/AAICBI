@@ -358,6 +358,12 @@ model User {
   // Center. SUPER_ADMIN only in practice (see that route's own
   // requireRole), but the relation itself isn't role-restricted.
   aiCommandLogs AiCommandLog[]
+  // Command Center chat: saved conversations, actions Loop proposed or took,
+  // and the default autonomy level (1 ask first, 2 balanced, 3 autonomous).
+  // Only a Super Admin can raise anyone's level.
+  loopLevel         Int                 @default(1)
+  loopConversations LoopConversation[]
+  loopActions       LoopPendingAction[]
   // Loop broadcast messaging — every message send this staff member
   // has personally authorized, the real internal audit trail behind
   // whatever the recipient sees as "Loop — Systems Manager." Same
@@ -4061,6 +4067,86 @@ model Testimonial {
 // (src/app/api/admin/messages/broadcast/route.ts) that runs only when
 // a human clicks Send. Loop still never acts on its own — it prepares,
 // a person decides.
+// ---------------------------------------------------------------------
+// Command Center chat (docs/loop-command-center.md): saved conversations
+// like Claude's, and a ledger of every action Loop proposed or took.
+// Nothing here changes platform data by itself: a LoopPendingAction is
+// executed by server code only, either on the person's own approval or,
+// when their autonomy level allows it for that action's risk, straight away
+// (and then recorded here as autoExecuted).
+// ---------------------------------------------------------------------
+
+enum LoopActionStatus {
+  PENDING
+  EXECUTED
+  REJECTED
+  FAILED
+}
+
+model LoopConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String   @default("New chat")
+  // Autonomy for this chat: 1 ask first, 2 balanced, 3 autonomous.
+  level     Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages LoopMessage[]
+  actions  LoopPendingAction[]
+
+  @@index([userId, updatedAt])
+}
+
+model LoopMessage {
+  id             String           @id @default(cuid())
+  conversationId String
+  conversation   LoopConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  // "user" or "assistant".
+  role           String
+  text           String
+  // Extracted text of files attached to this message, replayed to Claude on
+  // later turns so it can keep working from them.
+  context        String?
+  // [{ name, kind, chars, truncated }] — what was attached, for display.
+  attachments    Json?
+  // [{ tool, label }] — what Loop looked at while answering, for display.
+  toolEvents     Json?
+  createdAt      DateTime         @default(now())
+
+  actions LoopPendingAction[]
+
+  @@index([conversationId, createdAt])
+}
+
+model LoopPendingAction {
+  id             String           @id @default(cuid())
+  conversationId String
+  conversation   LoopConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  messageId      String?
+  message        LoopMessage?     @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  userId         String
+  user           User             @relation(fields: [userId], references: [id])
+  // The action's name in the registry (src/lib/loop/actions.ts).
+  kind           String
+  // Plain-words summary shown on the card.
+  summary        String
+  // "low" or "high".
+  risk           String
+  // Validated input, exactly what will be executed.
+  input          Json
+  status         LoopActionStatus @default(PENDING)
+  // True when it ran without waiting for approval (autonomy level allowed it).
+  autoExecuted   Boolean          @default(false)
+  result         Json?
+  createdAt      DateTime         @default(now())
+  resolvedAt     DateTime?
+
+  @@index([conversationId, createdAt])
+  @@index([userId, status])
+}
+
 model AiCommandLog {
   id        String   @id @default(cuid())
   // Staff-authored Loop turns (the Executive Assistant persona) — the

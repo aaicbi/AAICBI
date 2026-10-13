@@ -456,7 +456,7 @@ export const RESOLVE_RECIPIENTS_TOOL = {
 export const ANALYZE_MODULE_MATERIALS_TOOL = {
   name: "analyze_module_materials",
   description:
-    "Read a module's lesson materials (Word documents only, for now) and draft learning objectives grounded in them. Call this before propose_learning_objectives whenever the admin asks about a module's objectives, or asks you to generate exam questions for a module that doesn't have confirmed objectives yet.",
+    "Read a module's lesson materials (Word, PDF and PowerPoint files; videos can't be read) and draft learning objectives grounded in them. Call this before propose_learning_objectives whenever the admin asks about a module's objectives, or asks you to generate exam questions for a module that doesn't have confirmed objectives yet.",
   input_schema: {
     type: "object" as const,
     properties: {

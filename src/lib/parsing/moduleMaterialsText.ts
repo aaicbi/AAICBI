@@ -1,13 +1,12 @@
 /**
  * Loop Question Bank — the one place that turns "a module's lesson
  * materials" into plain text an AI generation/objective-drafting call
- * can actually read. DOCX-only for now, a deliberate scope cut (not an
- * oversight): `mammoth` (docxParser.ts) is already a proven dependency
- * here; PDF, PPTX, and VIDEO materials are all skipped with an honest
+ * can actually read. Word, PDF and PowerPoint files are read (see
+ * parsing/anyDocument.ts); VIDEO materials are skipped with an honest
  * reason rather than silently dropped, so the admin/Loop conversation
  * can say plainly "2 of 5 materials could be analyzed."
  *
- * Fetches each DOCX material's bytes the exact same safe way
+ * Fetches each document material's bytes the exact same safe way
  * src/app/api/materials/[id]/download/route.ts already does — resolve
  * the real download URL (materialUrl.ts, handling the Google Drive
  * viewer-link special case), refuse anything that doesn't resolve to a
@@ -19,7 +18,8 @@
 import { prisma } from "@/lib/prisma";
 import { resolveDownloadUrl } from "@/lib/materialUrl";
 import { isPubliclyFetchableUrl } from "@/lib/ssrfGuard";
-import { extractTextFromDocx, DocxParseError } from "@/lib/parsing/docxParser";
+import { DocxParseError } from "@/lib/parsing/docxParser";
+import { extractDocumentText } from "@/lib/parsing/anyDocument";
 import type { MaterialType } from "@prisma/client";
 
 export interface UsableMaterialText {
@@ -39,22 +39,19 @@ export interface ModuleMaterialsTextResult {
   skipped: SkippedMaterial[];
 }
 
-const UNSUPPORTED_TYPE_REASON: Record<"PDF" | "PPTX" | "VIDEO", string> = {
-  PDF: "PDF materials aren't supported for AI analysis yet.",
-  PPTX: "PowerPoint materials aren't supported for AI analysis yet.",
-  VIDEO: "Video materials aren't supported for AI analysis yet.",
+const UNSUPPORTED_TYPE_REASON: Record<"VIDEO", string> = {
+  VIDEO: "Video materials can't be read (there is no transcript). Attach the video's transcript or notes as a document to include it.",
 };
 
 /**
- * Pure dispatch: null means "DOCX, proceed to fetch it"; a string is
- * the exact skip reason for any other material type. Split out from
- * the loop below specifically so this dispatch decision — the thing
- * that guarantees a PDF/PPTX/VIDEO material never triggers a network
- * fetch at all — is unit-testable without Prisma or a real fetch.
+ * Pure dispatch: null means "a document type we can read, proceed to fetch
+ * it"; a string is the exact skip reason. Videos are skipped before any
+ * network fetch, because there is nothing to read. Word, PDF and PowerPoint
+ * are all readable now (see parsing/anyDocument.ts).
  */
 export function getUnsupportedMaterialTypeReason(type: MaterialType): string | null {
-  if (type === "DOCX") return null;
-  return UNSUPPORTED_TYPE_REASON[type];
+  if (type === "VIDEO") return UNSUPPORTED_TYPE_REASON.VIDEO;
+  return null;
 }
 
 /**
@@ -109,7 +106,7 @@ export async function getModuleMaterialsText(moduleId: string): Promise<ModuleMa
 
     try {
       const buffer = Buffer.from(await upstream.arrayBuffer());
-      const text = await extractTextFromDocx(buffer);
+      const { text } = await extractDocumentText(buffer, { filename: material.title });
       usable.push({ materialId: material.id, title: material.title, text });
     } catch (e) {
       skipped.push({
