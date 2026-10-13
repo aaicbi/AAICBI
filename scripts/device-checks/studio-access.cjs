@@ -75,24 +75,25 @@ async function seed() {
 
   // =============== mastery and streaks from games ===============
   const rewardsAll = ['ANSWER', 'MISSED_BONUS', 'STREAK', 'OBJECTIVE_MASTERED', 'MODULE_COMPLETED'];
-  let r = await api(sa, 'POST', '/api/admin/studio/games', { title: 'AC Matching', format: 'MATCHING' }); const gM = r.json.id;
+  let r = await api(sa, 'POST', '/api/admin/studio/games', { title: 'AC Matching', format: 'MATCHING' }); const gM = r.json.id; if (!gM) console.log('create game', r.status, JSON.stringify(r.json));
   r = await api(sa, 'PATCH', `/api/admin/studio/games/${gM}`, { enabledRewards: rewardsAll });
   const MAP = {}; const ids = [];
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 6; i++) {
     const pairs = [0, 1, 2].map((k) => ({ left: `T${i}${k}`, right: `M${i}${k}` })); pairs.forEach((p) => (MAP[p.left] = p.right));
-    r = await api(sa, 'POST', `/api/admin/studio/modules/${M}/items`, { objectiveId: o1.id, format: 'MATCHING', content: { prompt: `Match set ${i}`, pairs } }); ids.push(r.json.id);
+    r = await api(sa, 'POST', `/api/admin/studio/modules/${M}/items`, { objectiveId: o1.id, format: 'MATCHING', content: { prompt: `Match set ${i}`, pairs } }); if (!r.json.id) console.log('item', r.status, JSON.stringify(r.json)); ids.push(r.json.id);
   }
   r = await api(sa, 'PUT', `/api/admin/studio/games/${gM}/assign`, { moduleId: M, assigned: true, live: true });
-  log(r.status === 200, 'a matching game with seven approved items goes live');
+  if (r.status !== 200) console.log('assign', r.status, JSON.stringify(r.json));
+  log(r.status === 200, 'a matching game with six approved items goes live');
   const back = (d) => new Date(Date.now() - d * 86_400_000);
-  for (const [i, id] of ids.slice(0, 6).entries()) await prisma.gamePlay.create({ data: { traineeId: t0.id, moduleId: M, gameId: gM, itemId: id, objectiveId: o1.id, servedAt: back(i < 3 ? 3 : 1), answeredAt: back(i < 3 ? 3 : 1), score: 1, correct: true, secondsTaken: 30, tooFast: false } });
+  for (const [i, id] of ids.slice(0, 5).entries()) await prisma.gamePlay.create({ data: { traineeId: t0.id, moduleId: M, gameId: gM, itemId: id, objectiveId: o1.id, servedAt: back(i < 3 ? 3 : 1), answeredAt: back(i < 3 ? 3 : 1), score: 1, correct: true, secondsTaken: 30, tooFast: false } });
   const ans = (served) => Object.fromEntries(served.lefts.map((l, i) => [String(i), MAP[l]]));
   r = await api(t0Ck, 'POST', `/api/modules/${M}/games/${gM}/next`);
   const play = r.json;
-  log(r.status === 200 && play.served.lefts[0].startsWith('T6'), 'the one item the trainee has not played is served first');
+  log(r.status === 200 && play.served.lefts[0].startsWith('T5'), 'the one item the trainee has not played is served first');
   await sleep((play.minSeconds + 0.4) * 1000);
   r = await api(t0Ck, 'POST', `/api/modules/${M}/games/${gM}/answer`, { playId: play.playId, response: { matches: ans(play.served) } });
-  log(r.status === 200 && r.json.mastery.state === 'MASTERED' && r.json.mastery.distinctCorrect === 7, 'six earlier correct plays on two days plus this one make the objective mastered, from games alone');
+  log(r.status === 200 && r.json.mastery.state === 'MASTERED' && r.json.mastery.distinctCorrect === 6, 'five earlier correct plays on two days plus this one make the objective mastered, from games alone');
   log(r.json.objectiveJustMastered === true && r.json.xp.objective === 50, 'the one-time mastery XP is paid by a game play');
   log(r.json.streakDays === 2 && r.json.xp.streak === 10, 'a game play continues the practice-day streak and pays the streak bonus');
   const keys = await prisma.xpEntry.findMany({ where: { traineeId: t0.id } });
@@ -107,7 +108,7 @@ async function seed() {
   log(r.status === 200, 'a quiz game goes live on the same module');
   r = await api(t0Ck, 'GET', `/api/modules/${M}/practice`);
   const ob1 = r.json.objectives.find((o) => o.id === o1.id); const ob2 = r.json.objectives.find((o) => o.id === o2.id);
-  log(ob1.mastery.state === 'MASTERED' && ob1.mastery.answered >= 7, 'the practice screen shows the objective mastered by games alone');
+  log(ob1.mastery.state === 'MASTERED' && ob1.mastery.answered >= 6, 'the practice screen shows the objective mastered by games alone');
   log(ob2.mastery.state !== 'MASTERED' && ob2.mastery.distinctCorrect === 0, 'half-right plays do not count toward mastery');
   log(r.json.streak >= 2, 'the practice streak counts game days');
 

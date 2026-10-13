@@ -1,6 +1,6 @@
 # Game Studio
 
-One page, `/admin/studio` (sidebar: Teaching, **Game Studio**, Super Admin only), where games are made,
+One page, `/admin/studio` (sidebar: Teaching, **Game Studio**, Super Admin and organisation staff), where games are made,
 written with Loop, previewed exactly as trainees will play them, and assigned to modules. It replaces
 moving between the assessment page, the question bank and the Practice and mastery page.
 
@@ -50,14 +50,22 @@ Items are served shuffled with no answer key; the server grades. Matching and or
 (10 XP, once per item per day, 100 XP daily cap, minimum answer time of the larger of 3 seconds or words / 4,
 missed-before bonus, the game's reward switches). XP never counts toward certificates.
 
-## Not built in this step
+## Mastery, streaks and pools
 
-- Matching, ordering and scenario plays do **not** feed mastery yet (mastery still comes from quiz answers
-  only). They pay XP and are recorded in `GamePlay`.
-- Streaks do not count game plays yet.
-- Per-question pool assignment for quizzes stays on the detailed Practice and mastery page (linked from the
-  studio); coverage, the automatic split and required objectives are in the studio.
-- Instructors and organization staff do not get the studio; they keep the Practice and mastery page.
+- A matching, ordering or scenario play counts toward mastery only for full marks. Each item is a different
+  "question", so the same distinct-question, accuracy and days rules apply as for quiz answers. Half-right
+  plays pay XP but do not count.
+- Game plays count as practice days for the streak, and pay the streak bonus and the one-time
+  objective-mastered and module-completed XP (same ledger keys, so nothing is paid twice).
+- Per-question pool assignment for quizzes is in the studio (single question, or move all untagged ones).
+
+## Who can use it
+
+- Super Admin sees everything and can set, per person, the highest Loop level they may use (`/people`).
+- Organisation staff (admin, instructor) see only their own courses and the games they made. Other
+  people's modules, games and items return "not found".
+- Staff Loop gets the studio tools only (no platform data, no messaging), a limited prompt, and starts at
+  level 1 until a Super Admin raises it. Approving drafts always asks, at any level.
 
 ## Loop in the studio
 
