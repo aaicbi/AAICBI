@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth/session";
+import { requireStudioUser, clampToAllowed } from "@/lib/quest/studioAccess";
 import { withApiErrors } from "@/lib/apiError";
 import { clampLevel } from "@/lib/loop/policy";
 import { cardOf } from "@/lib/loop/runAction";
@@ -13,7 +13,7 @@ async function own(id: string, userId: string) {
 /** GET — one saved chat with its messages, attachments and action cards. */
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
-    const session = await requireRole("SUPER_ADMIN");
+    const session = await requireStudioUser();
     const conv = await own(params.id, session.userId);
     if (!conv) return NextResponse.json({ error: "That conversation could not be found." }, { status: 404 });
     const messages = await prisma.loopMessage.findMany({
@@ -43,12 +43,12 @@ const Patch = z.object({ title: z.string().trim().min(1).max(120).optional(), le
 /** PATCH — rename a chat or change its autonomy level. */
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
-    const session = await requireRole("SUPER_ADMIN");
+    const session = await requireStudioUser();
     const conv = await own(params.id, session.userId);
     if (!conv) return NextResponse.json({ error: "That conversation could not be found." }, { status: 404 });
     const parsed = Patch.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Nothing to change." }, { status: 400 });
-    const level = parsed.data.level !== undefined ? clampLevel(parsed.data.level) : undefined;
+    const level = parsed.data.level !== undefined ? await clampToAllowed(clampLevel(parsed.data.level), session) : undefined;
     const updated = await prisma.loopConversation.update({
       where: { id: conv.id },
       data: { ...(parsed.data.title ? { title: parsed.data.title } : {}), ...(level ? { level } : {}) },
@@ -62,7 +62,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 /** DELETE — remove a chat. Actions Loop took stay in the audit trail only through the chat they belong to, so deleting removes both. */
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
-    const session = await requireRole("SUPER_ADMIN");
+    const session = await requireStudioUser();
     const conv = await own(params.id, session.userId);
     if (!conv) return NextResponse.json({ error: "That conversation could not be found." }, { status: 404 });
     await prisma.loopConversation.delete({ where: { id: conv.id } });

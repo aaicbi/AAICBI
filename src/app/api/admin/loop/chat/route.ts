@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth/session";
+import { requireStudioUser, clampToAllowed } from "@/lib/quest/studioAccess";
 import { withApiErrors } from "@/lib/apiError";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
 import { buildHistory, attachmentContext, runLoopTurn, userContent, type LoopEvent } from "@/lib/loop/engine";
@@ -20,6 +20,8 @@ const Body = z.object({
   message: z.string().max(8000),
   conversationId: z.string().min(1).nullish(),
   level: z.union([z.number(), z.string()]).optional(),
+  // Set by the Game Studio so Loop knows which module and game are on screen.
+  studio: z.object({ moduleId: z.string().nullish(), gameId: z.string().nullish() }).nullish(),
 });
 
 const sse = (event: LoopEvent | { type: "meta"; conversationId: string; title: string; assistantMessageId: string; userMessageId: string }) =>
@@ -27,7 +29,9 @@ const sse = (event: LoopEvent | { type: "meta"; conversationId: string; title: s
 
 export async function POST(req: NextRequest) {
   return withApiErrors(async () => {
-    const session = await requireRole("SUPER_ADMIN");
+    // Super Admins use Loop everywhere; admins, instructors and organization staff use it inside the Game Studio,
+    // limited to their own modules and games and to the autonomy level a Super Admin has granted them.
+    const session = await requireStudioUser();
 
     const limited = await rateLimit(`loop-chat:${session.userId}:${clientIp(req)}`, 40, 15 * 60 * 1000);
     if (!limited.allowed) {
@@ -44,7 +48,13 @@ export async function POST(req: NextRequest) {
     let files: File[] = [];
     if ((req.headers.get("content-type") ?? "").includes("multipart/form-data")) {
       const form = await req.formData();
-      fields = { message: String(form.get("message") ?? ""), conversationId: form.get("conversationId") || null, level: form.get("level") ?? undefined };
+      let studio: unknown = null;
+      try {
+        studio = form.get("studio") ? JSON.parse(String(form.get("studio"))) : null;
+      } catch {
+        studio = null;
+      }
+      fields = { message: String(form.get("message") ?? ""), conversationId: form.get("conversationId") || null, level: form.get("level") ?? undefined, studio };
       files = form.getAll("files").filter((f): f is File => typeof f !== "string" && f.size > 0);
     } else {
       fields = await req.json().catch(() => null);
@@ -62,7 +72,7 @@ export async function POST(req: NextRequest) {
       throw e;
     }
 
-    const level = clampLevel(parsed.data.level);
+    const level = await clampToAllowed(clampLevel(parsed.data.level), session);
     const existing = parsed.data.conversationId
       ? await prisma.loopConversation.findFirst({ where: { id: parsed.data.conversationId, userId: session.userId } })
       : null;
@@ -104,6 +114,8 @@ export async function POST(req: NextRequest) {
             level,
             history,
             signal: req.signal,
+            studio: parsed.data.studio ?? undefined,
+            scope: { userId: session.userId, role: session.role, isSuper: session.isSuper },
           })) {
             if (ev.type === "done") {
               finalText = ev.text;

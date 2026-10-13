@@ -1,5 +1,5 @@
 import type { ComponentType, SVGProps } from "react";
-import { Download, Flag, LayoutGrid, Newspaper, PenLine, FileText } from "lucide-react";
+import { Download, Flag, Gamepad2, LayoutGrid, Newspaper, PenLine, FileText } from "lucide-react";
 import {
   AchievementIcon,
   AssessmentIcon,
@@ -43,6 +43,7 @@ const BY_PATH: Record<string, IconComponent> = {
   "/exams": AssessmentIcon,
   "/examinations": AssessmentIcon,
   "/assignments": AssignmentsIcon,
+  "/studio": Gamepad2,
   "/certificates": CertificateIcon,
   "/certificate-templates": CertificateIcon,
   "/progress": AchievementIcon,

@@ -24,7 +24,7 @@ const blocksOf = (c) => (typeof c === 'string' ? [{ type: 'text', text: c }] : c
 http.createServer((req, res) => {
   let body = ''; req.on('data', (c) => (body += c)); req.on('end', async () => {
     let j = {}; try { j = JSON.parse(body); } catch {}
-    fs.appendFileSync('/tmp/fakeclaude-stream.log', JSON.stringify({ url: req.url, stream: j.stream, tools: (j.tools || []).map((t) => t.name), messages: (j.messages || []).map((m) => ({ role: m.role, blocks: blocksOf(m.content).map((b) => ({ type: b.type, text: b.text ? String(b.text).slice(0, 300) : undefined, name: b.name })) })) }) + '\n');
+    fs.appendFileSync('/tmp/fakeclaude-stream.log', JSON.stringify({ url: req.url, stream: j.stream, system: typeof j.system === 'string' ? j.system : JSON.stringify(j.system || ''), tools: (j.tools || []).map((t) => t.name), messages: (j.messages || []).map((m) => ({ role: m.role, blocks: blocksOf(m.content).map((b) => ({ type: b.type, text: b.text ? String(b.text).slice(0, 300) : undefined, name: b.name })) })) }) + '\n');
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' });
     const msgs = j.messages || [];
     // the human's message for this turn, and how many tool rounds have happened since
@@ -40,6 +40,27 @@ http.createServer((req, res) => {
       if (stage === 0) return toolReply(res, 'find_module', { query: name }, j.model, 'tu_find');
       if (stage === 1) return toolReply(res, 'save_learning_objectives', { moduleQuery: name, objectives: [`Explain the basics of ${name}`, `Apply ${name} in practice`] }, j.model, 'tu_save');
       return textReply(res, /awaitingApproval/.test(lastResult) ? "I've prepared the objectives. They are **waiting for your approval**." : 'Done. I saved the objectives for that module.', j.model);
+    }
+    if ((m = text.match(/GAME:([A-Za-z0-9 ]+?)(?:\.|$|\n)/))) {
+      if (stage === 0) return toolReply(res, 'create_game', { title: m[1].trim(), format: 'MATCHING', description: 'Match the terms.' }, j.model, 'tu_cg');
+      return textReply(res, /awaitingApproval/.test(lastResult) ? 'The game is ready and waiting for your approval.' : 'I created the game.', j.model);
+    }
+    if ((m = text.match(/ITEMS:([A-Za-z0-9 ]+?)(?:\.|$|\n)/))) {
+      const mod = m[1].trim();
+      if (stage === 0) return toolReply(res, 'get_game_items', { moduleQuery: mod, format: 'MATCHING' }, j.model, 'tu_gi');
+      if (stage === 1) return toolReply(res, 'add_game_items', { moduleQuery: mod, objectiveQuery: 'trigger', format: 'MATCHING', items: [
+        { prompt: 'Match the automation terms', pairs: [{ left: 'Trigger', right: 'Starts a workflow' }, { left: 'Action', right: 'A step it performs' }, { left: 'Filter', right: 'Stops unwanted runs' }] },
+        { prompt: 'Match the app terms', pairs: [{ left: 'Webhook', right: 'A message sent to a URL' }, { left: 'Connector', right: 'Links two apps' }, { left: 'Run', right: 'One execution of a workflow' }, { left: 'Task', right: 'One unit of work' }] },
+        { prompt: 'Too few pairs', pairs: [{ left: 'Only', right: 'One' }] } ] }, j.model, 'tu_add');
+      return textReply(res, /awaitingApproval/.test(lastResult) ? 'I wrote the items and they are waiting for your approval.' : 'I added the draft items. Try them in the preview, then approve.', j.model);
+    }
+    if ((m = text.match(/APPROVE:([A-Za-z0-9 ]+?)(?:\.|$|\n)/))) {
+      if (stage === 0) return toolReply(res, 'approve_game_items', { moduleQuery: m[1].trim(), format: 'MATCHING' }, j.model, 'tu_ap');
+      return textReply(res, /awaitingApproval/.test(lastResult) ? 'The approval is waiting for you.' : 'Approved.', j.model);
+    }
+    if ((m = text.match(/ASSIGN:([A-Za-z0-9 ]+?)\|([A-Za-z0-9 ]+?)(?:\.|$|\n)/))) {
+      if (stage === 0) return toolReply(res, 'assign_game', { gameQuery: m[1].trim(), moduleQuery: m[2].trim(), live: true }, j.model, 'tu_as');
+      return textReply(res, /awaitingApproval/.test(lastResult) ? 'Assigned, waiting for your approval to go live.' : 'Assigned and live.', j.model);
     }
     if (/MSG:/.test(text)) {
       if (stage === 0) return toolReply(res, 'resolve_recipients', { scope: 'ROLE', role: 'SUPER_ADMIN', description: 'Super admins' }, j.model, 'tu_res');

@@ -5,7 +5,7 @@ import Icon from "@/components/ui/Icon";
 import { LOOP_LEVELS, type LoopLevel } from "@/lib/loop/policy";
 
 /** Picks how much Loop may do on its own, the way Claude picks a model. */
-export default function LevelPicker({ level, onChange, disabled }: { level: LoopLevel; onChange: (l: LoopLevel) => void; disabled?: boolean }) {
+export default function LevelPicker({ level, onChange, disabled, max = 3 }: { level: LoopLevel; onChange: (l: LoopLevel) => void; disabled?: boolean; max?: LoopLevel }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const current = LOOP_LEVELS.find((l) => l.level === level)!;
@@ -48,17 +48,19 @@ export default function LevelPicker({ level, onChange, disabled }: { level: Loop
                 type="button"
                 role="option"
                 aria-selected={l.level === level}
+                aria-disabled={l.level > max}
+                disabled={l.level > max}
                 data-testid={`level-${l.level}`}
                 onClick={() => {
                   onChange(l.level);
                   setOpen(false);
                 }}
-                className="flex w-full items-start gap-2 rounded-xl px-3 py-2 text-left hover:bg-brand-gray/30"
+                className="flex w-full items-start gap-2 rounded-xl px-3 py-2 text-left hover:bg-brand-gray/30 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
               >
                 <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded bg-brand-mint text-xs font-bold text-brand-tealDeep">{l.level}</span>
                 <span className="flex-1">
                   <span className="block text-sm font-semibold text-brand-ink">{l.name}</span>
-                  <span className="block text-xs text-gray-600">{l.description}</span>
+                  <span className="block text-xs text-gray-600">{l.level > max ? "Not unlocked for you. A Super Admin can allow it." : l.description}</span>
                 </span>
                 {l.level === level && <Icon icon={Check} size="sm" className="mt-1 text-brand-teal" />}
               </button>

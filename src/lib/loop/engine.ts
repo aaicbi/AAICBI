@@ -9,9 +9,11 @@
  */
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
+import { courseAccess } from "@/lib/collab/access";
 import { LOOP_TOOL_SCHEMAS, runLoopTool, buildRecipientFilterFromToolInput } from "@/lib/loop/tools";
 import { resolveRecipients } from "@/lib/messaging/recipients";
-import { resolveModuleByQuery } from "@/lib/loop/moduleLookup";
+import { resolveModuleForScope, type LoopScope } from "@/lib/loop/scope";
+import { gamesWhere } from "@/lib/quest/studioAccess";
 import { getModuleMaterialsText } from "@/lib/parsing/moduleMaterialsText";
 import { getTraineeConversationMessagesForReview } from "@/lib/messaging";
 import { withGuidance } from "@/lib/guide/aiGuidance";
@@ -38,6 +40,58 @@ export interface TurnAttachment {
   truncated?: boolean;
   /** Pictures are shown to Claude for this turn only. */
   image?: { mediaType: "image/png" | "image/jpeg" | "image/webp" | "image/gif"; base64: string };
+}
+
+export interface StudioContext {
+  moduleId?: string | null;
+  gameId?: string | null;
+}
+
+/** A short description of what the admin is looking at in the Game Studio, added to the prompt. */
+export async function studioNote(ctx: StudioContext | undefined, scope?: LoopScope): Promise<string> {
+  if (!ctx) return "";
+  const lines: string[] = [
+    "You are working inside the Game Studio: a page where the admin builds games, assigns them to modules and previews them beside this chat. The studio shows your changes as soon as an action runs, so keep replies short and say what you did or what is waiting for approval.",
+    "Games are built once and assigned to many modules. Formats: QUIZ (practice from the approved question bank), MATCHING, ORDERING, SCENARIO. You write items for the non-quiz formats with add_game_items (always saved as drafts); a person approves them, and approve_game_items always asks first, so suggest the admin try the preview before approving. Trainees only ever see approved items in live games.",
+    "Base every item on the module's real materials and one confirmed learning objective. If the module has no confirmed objectives, write and save them first.",
+  ];
+  if (ctx.moduleId) {
+    const m = await prisma.module.findUnique({ where: { id: ctx.moduleId }, select: { title: true, course: { select: { id: true, title: true, createdById: true } } } });
+    const allowed = m && (!scope || scope.isSuper || (await courseAccess({ id: m.course.id, createdById: m.course.createdById }, scope.userId, scope.role)));
+    if (m && allowed) lines.push(`The admin has selected the module “${m.course.title} — ${m.title}”. Unless they say otherwise, "this module" means that one.`);
+  }
+  if (ctx.gameId) {
+    const g = await prisma.game.findFirst({ where: { id: ctx.gameId, ...(scope ? gamesWhere(scope) : {}) }, select: { title: true, format: true } });
+    if (g) lines.push(`The admin has selected the game “${g.title}” (${g.format}). Unless they say otherwise, "this game" means that one.`);
+  }
+  return `\n\n${lines.join("\n")}`;
+}
+
+/** Actions a person who is not a Super Admin may use: the studio's own, on their own modules. */
+export const LIMITED_ACTIONS = new Set([
+  "create_game",
+  "set_game_rewards",
+  "assign_game",
+  "add_game_items",
+  "approve_game_items",
+  "split_question_pools",
+  "set_practice_settings",
+  "save_learning_objectives",
+]);
+
+function limitedPrompt(level: LoopLevel): string {
+  const lv = LOOP_LEVELS.find((l) => l.level === level)!;
+  return `You are Loop, an assistant inside the AAICBI Game Studio for a training organization's staff. You help them build learning games for THEIR OWN modules: matching cards, put-in-order sequences, scenario choices, and quiz practice.
+
+What you can do: find their modules, read their modules' lesson materials (Word, PDF and PowerPoint files; videos cannot be read), see their games, write playable items as drafts, create games, choose rewards, assign games to modules, split question pools and set practice settings.
+What you cannot do: you have no access to platform data, other people's modules or games, trainees, messages or analytics. If asked, say plainly that it is outside what you can see here.
+
+How you work:
+- Modules are found by name with find_module. Never ask for ids.
+- Ground items in the module's real materials and one confirmed learning objective. If the module has none, write good objectives from its materials and save them first with save_learning_objectives.
+- Everything that changes something is an action. This chat's autonomy level is ${level} (${lv.name}): ${lv.description} After calling an action, read its result: if it says it is awaiting approval, tell the person it is waiting for them; never say it is done until it is. Never claim a change you did not make.
+- Items you write are always drafts. A person approves them, and approve_game_items always asks first. Suggest they try the preview before approving.
+- Write in clear Markdown, short and friendly.`;
 }
 
 function systemPrompt(level: LoopLevel): string {
@@ -77,14 +131,31 @@ const READ_MODULE_MATERIALS_TOOL = {
   input_schema: { type: "object" as const, properties: { moduleQuery: { type: "string" } }, required: ["moduleQuery"] },
 };
 
+const LIST_GAMES_TOOL = {
+  name: "list_games",
+  description: "List the games in the studio library with their format, which modules they are assigned to, and whether each is live for trainees.",
+  input_schema: { type: "object" as const, properties: {}, required: [] as string[] },
+};
+
+const GET_GAME_ITEMS_TOOL = {
+  name: "get_game_items",
+  description: "Read the playable items written for a module (matching sets, sequences, scenarios) with their status (DRAFT, APPROVED, REJECTED), so you can see what exists before adding more.",
+  input_schema: {
+    type: "object" as const,
+    properties: { moduleQuery: { type: "string" }, format: { type: "string", enum: ["MATCHING", "ORDERING", "SCENARIO"] } },
+    required: ["moduleQuery"],
+  },
+};
+
 /** Tools handled by the engine itself. */
-const ENGINE_TOOLS = [FIND_MODULE_TOOL, GET_MODULE_DETAILS_TOOL, READ_MODULE_MATERIALS_TOOL];
+const ENGINE_TOOLS = [FIND_MODULE_TOOL, GET_MODULE_DETAILS_TOOL, READ_MODULE_MATERIALS_TOOL, LIST_GAMES_TOOL, GET_GAME_ITEMS_TOOL];
 /** Old tools replaced by actions or by the engine's own reading tools. */
 const REPLACED = new Set(["analyze_module_materials", "generate_bank_questions", "run_bank_validation"]);
 
-function buildTools(): Anthropic.Tool[] {
-  const reads = (LOOP_TOOL_SCHEMAS as Anthropic.Tool[]).filter((t) => !REPLACED.has(t.name));
-  const actions = LOOP_ACTIONS.map((a) => ({ name: a.name, description: a.description, input_schema: a.inputSchema })) as Anthropic.Tool[];
+function buildTools(isSuper: boolean): Anthropic.Tool[] {
+  const actions = LOOP_ACTIONS.filter((a) => isSuper || LIMITED_ACTIONS.has(a.name)).map((a) => ({ name: a.name, description: a.description, input_schema: a.inputSchema })) as Anthropic.Tool[];
+  // A person who is not a Super Admin gets the studio's tools only: no platform-wide reads, no messaging.
+  const reads = isSuper ? (LOOP_TOOL_SCHEMAS as Anthropic.Tool[]).filter((t) => !REPLACED.has(t.name)) : [];
   return [...reads, ...(ENGINE_TOOLS as Anthropic.Tool[]), ...actions];
 }
 
@@ -108,6 +179,8 @@ const TOOL_LABELS: Record<string, string> = {
   find_module: "Finding the module",
   get_module_details: "Reading the module's details",
   read_module_materials: "Reading the module's materials",
+  list_games: "Looking at the game library",
+  get_game_items: "Reading the module's game items",
 };
 export const toolLabel = (name: string) => TOOL_LABELS[name] ?? LOOP_ACTION_BY_NAME.get(name)?.name.replace(/_/g, " ") ?? name.replace(/_/g, " ");
 
@@ -115,19 +188,24 @@ function cap(text: string): string {
   return text.length <= MAX_TOOL_RESULT_CHARS ? text : `${text.slice(0, MAX_TOOL_RESULT_CHARS)}\n[… cut: result longer than ${MAX_TOOL_RESULT_CHARS.toLocaleString()} characters]`;
 }
 
-async function findModule(query: string) {
-  const modules = await prisma.module.findMany({
+async function findModule(query: string, scope: LoopScope) {
+  const found = await prisma.module.findMany({
     where: { title: { contains: query, mode: "insensitive" } },
-    take: 10,
+    take: 40,
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
       title: true,
-      course: { select: { title: true } },
+      course: { select: { id: true, title: true, createdById: true } },
       _count: { select: { learningObjectives: true, lessons: true } },
       assessment: { select: { published: true, _count: { select: { questions: true } } } },
     },
   });
+  const modules = [];
+  for (const m of found) {
+    if (scope.isSuper || (await courseAccess({ id: m.course.id, createdById: m.course.createdById }, scope.userId, scope.role))) modules.push(m);
+    if (modules.length >= 10) break;
+  }
   return {
     matches: modules.map((m) => ({
       module: `${m.course.title} — ${m.title}`,
@@ -139,8 +217,8 @@ async function findModule(query: string) {
   };
 }
 
-async function moduleDetails(query: string) {
-  const lookup = await resolveModuleByQuery(query);
+async function moduleDetails(query: string, scope: LoopScope) {
+  const lookup = await resolveModuleForScope(query, scope);
   if (!lookup.module) return { found: false, ambiguousMatches: lookup.ambiguousMatches };
   const id = lookup.module.id;
   const [mod, objectives, byStatus, byPool, settings] = await Promise.all([
@@ -168,8 +246,8 @@ async function moduleDetails(query: string) {
   };
 }
 
-async function readMaterials(query: string) {
-  const lookup = await resolveModuleByQuery(query);
+async function readMaterials(query: string, scope: LoopScope) {
+  const lookup = await resolveModuleForScope(query, scope);
   if (!lookup.module) return { found: false, ambiguousMatches: lookup.ambiguousMatches };
   const m = await getModuleMaterialsText(lookup.module.id);
   return {
@@ -178,6 +256,33 @@ async function readMaterials(query: string) {
     readable: m.usable.map((u) => ({ title: u.title, text: u.text.length > 25_000 ? `${u.text.slice(0, 25_000)}\n[… cut]` : u.text })),
     skipped: m.skipped.map((s) => ({ title: s.title, reason: s.reason })),
   };
+}
+
+async function listGames(scope: LoopScope) {
+  const games = await prisma.game.findMany({
+    where: gamesWhere(scope),
+    orderBy: { createdAt: "desc" },
+    select: { title: true, format: true, assignments: { select: { live: true, module: { select: { title: true, course: { select: { title: true } } } } } } },
+  });
+  return {
+    games: games.map((g) => ({
+      title: g.title,
+      format: g.format,
+      assignedTo: g.assignments.map((a) => ({ module: `${a.module.course.title} — ${a.module.title}`, live: a.live })),
+    })),
+  };
+}
+
+async function gameItems(query: string, format: unknown, scope: LoopScope) {
+  const lookup = await resolveModuleForScope(query, scope);
+  if (!lookup.module) return { found: false, ambiguousMatches: lookup.ambiguousMatches };
+  const items = await prisma.gameItem.findMany({
+    where: { moduleId: lookup.module.id, ...(typeof format === "string" && format ? { format: format as never } : {}) },
+    orderBy: { createdAt: "asc" },
+    take: 60,
+    select: { format: true, status: true, source: true, content: true, objective: { select: { text: true } } },
+  });
+  return { found: true, module: `${lookup.module.courseTitle} — ${lookup.module.title}`, items: items.map((i) => ({ format: i.format, status: i.status, source: i.source, objective: i.objective.text, content: i.content })) };
 }
 
 /** Replays a saved conversation to Claude. Earlier attachments come back as text; actions' outcomes are noted. */
@@ -240,11 +345,15 @@ export async function* runLoopTurn(opts: {
   history: Anthropic.MessageParam[];
   signal?: AbortSignal;
   client?: Anthropic;
+  studio?: StudioContext;
+  /** Who is asking. Omitted means a Super Admin (the original Command Center). */
+  scope?: LoopScope;
 }): AsyncGenerator<LoopEvent> {
+  const scope: LoopScope = opts.scope ?? { userId: opts.userId, role: "SUPER_ADMIN", isSuper: true };
   const client = opts.client ?? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 120_000 });
-  const tools = buildTools();
-  const system = await withGuidance(systemPrompt(opts.level), "command-loop");
-  const state: EngineState = { resolvedRecipients: null, reviewedTrainee: null };
+  const tools = buildTools(scope.isSuper);
+  const system = await withGuidance((scope.isSuper ? systemPrompt(opts.level) : limitedPrompt(opts.level)) + (await studioNote(opts.studio, scope)), "command-loop");
+  const state: EngineState = { scope, resolvedRecipients: null, reviewedTrainee: null };
   let messages = opts.history;
   let fullText = "";
   const toolEvents: { tool: string; label: string }[] = [];
@@ -284,6 +393,9 @@ export async function* runLoopTurn(opts: {
       let isError = false;
       try {
         const action = LOOP_ACTION_BY_NAME.get(block.name);
+        if (action && !scope.isSuper && !LIMITED_ACTIONS.has(action.name)) {
+          throw new ActionInputError("That isn't something you can do from here.");
+        }
         if (action) {
           const prepared = await action.prepare(input, state);
           const decision = decideExecution({ level: opts.level, risk: prepared.risk, alwaysConfirm: prepared.alwaysConfirm });
@@ -311,11 +423,15 @@ export async function* runLoopTurn(opts: {
             content = { awaitingApproval: true, note: "The admin will see an approval card. It has NOT been done yet. Do not say it is done." };
           }
         } else if (block.name === "find_module") {
-          content = await findModule(String(input.query ?? ""));
+          content = await findModule(String(input.query ?? ""), scope);
         } else if (block.name === "get_module_details") {
-          content = await moduleDetails(String(input.moduleQuery ?? ""));
+          content = await moduleDetails(String(input.moduleQuery ?? ""), scope);
         } else if (block.name === "read_module_materials") {
-          content = await readMaterials(String(input.moduleQuery ?? ""));
+          content = await readMaterials(String(input.moduleQuery ?? ""), scope);
+        } else if (block.name === "list_games") {
+          content = await listGames(scope);
+        } else if (block.name === "get_game_items") {
+          content = await gameItems(String(input.moduleQuery ?? ""), input.format, scope);
         } else if (block.name === "resolve_recipients") {
           const filter = buildRecipientFilterFromToolInput(input);
           const description = typeof input.description === "string" ? input.description : "the selected recipients";

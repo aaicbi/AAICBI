@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireRole } from "@/lib/auth/session";
+import { requireStudioUser } from "@/lib/quest/studioAccess";
 import { withApiErrors } from "@/lib/apiError";
 import { executeLoopAction, rejectLoopAction } from "@/lib/loop/runAction";
 
@@ -13,7 +13,7 @@ const Body = z.object({ decision: z.enum(["approve", "reject"]) });
  */
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
-    const session = await requireRole("SUPER_ADMIN");
+    const session = await requireStudioUser();
     const parsed = Body.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Approve or reject." }, { status: 400 });
     const card =
