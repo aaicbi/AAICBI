@@ -98,12 +98,14 @@ export async function requireOwnedExam(examId: string, userId: string) {
   return exam;
 }
 
-export async function requireOwnedQuestion(questionId: string, userId: string) {
+// A Super Admin may review (edit or approve) any question; pass `role` where that applies.
+export async function requireOwnedQuestion(questionId: string, userId: string, role?: string) {
   const question = await prisma.question.findUnique({
     where: { id: questionId },
     include: { exam: true },
   });
-  if (!question || !(await examAccess(question.exam, userId))) throw notFound("Question not found.");
+  if (!question) throw notFound("Question not found.");
+  if (role !== "SUPER_ADMIN" && !(await examAccess(question.exam, userId))) throw notFound("Question not found.");
   return question;
 }
 

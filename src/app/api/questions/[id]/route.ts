@@ -24,7 +24,7 @@ const UpdateQuestionSchema = z.object({
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedQuestion(params.id, session.userId); // M11 audit finding — see courseOwnership.ts
+    await requireOwnedQuestion(params.id, session.userId, session.role); // M11 audit finding — see courseOwnership.ts
     const body = await req.json();
     const parsed = UpdateQuestionSchema.safeParse(body);
     if (!parsed.success) {
