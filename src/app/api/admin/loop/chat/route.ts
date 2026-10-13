@@ -20,6 +20,8 @@ const Body = z.object({
   message: z.string().max(8000),
   conversationId: z.string().min(1).nullish(),
   level: z.union([z.number(), z.string()]).optional(),
+  // Set by the Game Studio so Loop knows which module and game are on screen.
+  studio: z.object({ moduleId: z.string().nullish(), gameId: z.string().nullish() }).nullish(),
 });
 
 const sse = (event: LoopEvent | { type: "meta"; conversationId: string; title: string; assistantMessageId: string; userMessageId: string }) =>
@@ -44,7 +46,13 @@ export async function POST(req: NextRequest) {
     let files: File[] = [];
     if ((req.headers.get("content-type") ?? "").includes("multipart/form-data")) {
       const form = await req.formData();
-      fields = { message: String(form.get("message") ?? ""), conversationId: form.get("conversationId") || null, level: form.get("level") ?? undefined };
+      let studio: unknown = null;
+      try {
+        studio = form.get("studio") ? JSON.parse(String(form.get("studio"))) : null;
+      } catch {
+        studio = null;
+      }
+      fields = { message: String(form.get("message") ?? ""), conversationId: form.get("conversationId") || null, level: form.get("level") ?? undefined, studio };
       files = form.getAll("files").filter((f): f is File => typeof f !== "string" && f.size > 0);
     } else {
       fields = await req.json().catch(() => null);
@@ -104,6 +112,7 @@ export async function POST(req: NextRequest) {
             level,
             history,
             signal: req.signal,
+            studio: parsed.data.studio ?? undefined,
           })) {
             if (ev.type === "done") {
               finalText = ev.text;

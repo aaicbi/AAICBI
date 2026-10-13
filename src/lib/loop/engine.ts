@@ -40,6 +40,30 @@ export interface TurnAttachment {
   image?: { mediaType: "image/png" | "image/jpeg" | "image/webp" | "image/gif"; base64: string };
 }
 
+export interface StudioContext {
+  moduleId?: string | null;
+  gameId?: string | null;
+}
+
+/** A short description of what the admin is looking at in the Game Studio, added to the prompt. */
+export async function studioNote(ctx: StudioContext | undefined): Promise<string> {
+  if (!ctx) return "";
+  const lines: string[] = [
+    "You are working inside the Game Studio: a page where the admin builds games, assigns them to modules and previews them beside this chat. The studio shows your changes as soon as an action runs, so keep replies short and say what you did or what is waiting for approval.",
+    "Games are built once and assigned to many modules. Formats: QUIZ (practice from the approved question bank), MATCHING, ORDERING, SCENARIO. You write items for the non-quiz formats with add_game_items (always saved as drafts); a person approves them, and approve_game_items always asks first, so suggest the admin try the preview before approving. Trainees only ever see approved items in live games.",
+    "Base every item on the module's real materials and one confirmed learning objective. If the module has no confirmed objectives, write and save them first.",
+  ];
+  if (ctx.moduleId) {
+    const m = await prisma.module.findUnique({ where: { id: ctx.moduleId }, select: { title: true, course: { select: { title: true } } } });
+    if (m) lines.push(`The admin has selected the module “${m.course.title} — ${m.title}”. Unless they say otherwise, "this module" means that one.`);
+  }
+  if (ctx.gameId) {
+    const g = await prisma.game.findUnique({ where: { id: ctx.gameId }, select: { title: true, format: true } });
+    if (g) lines.push(`The admin has selected the game “${g.title}” (${g.format}). Unless they say otherwise, "this game" means that one.`);
+  }
+  return `\n\n${lines.join("\n")}`;
+}
+
 function systemPrompt(level: LoopLevel): string {
   const lv = LOOP_LEVELS.find((l) => l.level === level)!;
   return `You are Loop, the AI executive assistant to the Super Admin of the AAICBI Ecosystem (a platform where trainees learn, training organizations run courses, and employers and investors find talent).
@@ -77,8 +101,24 @@ const READ_MODULE_MATERIALS_TOOL = {
   input_schema: { type: "object" as const, properties: { moduleQuery: { type: "string" } }, required: ["moduleQuery"] },
 };
 
+const LIST_GAMES_TOOL = {
+  name: "list_games",
+  description: "List the games in the studio library with their format, which modules they are assigned to, and whether each is live for trainees.",
+  input_schema: { type: "object" as const, properties: {}, required: [] as string[] },
+};
+
+const GET_GAME_ITEMS_TOOL = {
+  name: "get_game_items",
+  description: "Read the playable items written for a module (matching sets, sequences, scenarios) with their status (DRAFT, APPROVED, REJECTED), so you can see what exists before adding more.",
+  input_schema: {
+    type: "object" as const,
+    properties: { moduleQuery: { type: "string" }, format: { type: "string", enum: ["MATCHING", "ORDERING", "SCENARIO"] } },
+    required: ["moduleQuery"],
+  },
+};
+
 /** Tools handled by the engine itself. */
-const ENGINE_TOOLS = [FIND_MODULE_TOOL, GET_MODULE_DETAILS_TOOL, READ_MODULE_MATERIALS_TOOL];
+const ENGINE_TOOLS = [FIND_MODULE_TOOL, GET_MODULE_DETAILS_TOOL, READ_MODULE_MATERIALS_TOOL, LIST_GAMES_TOOL, GET_GAME_ITEMS_TOOL];
 /** Old tools replaced by actions or by the engine's own reading tools. */
 const REPLACED = new Set(["analyze_module_materials", "generate_bank_questions", "run_bank_validation"]);
 
@@ -108,6 +148,8 @@ const TOOL_LABELS: Record<string, string> = {
   find_module: "Finding the module",
   get_module_details: "Reading the module's details",
   read_module_materials: "Reading the module's materials",
+  list_games: "Looking at the game library",
+  get_game_items: "Reading the module's game items",
 };
 export const toolLabel = (name: string) => TOOL_LABELS[name] ?? LOOP_ACTION_BY_NAME.get(name)?.name.replace(/_/g, " ") ?? name.replace(/_/g, " ");
 
@@ -180,6 +222,32 @@ async function readMaterials(query: string) {
   };
 }
 
+async function listGames() {
+  const games = await prisma.game.findMany({
+    orderBy: { createdAt: "desc" },
+    select: { title: true, format: true, assignments: { select: { live: true, module: { select: { title: true, course: { select: { title: true } } } } } } },
+  });
+  return {
+    games: games.map((g) => ({
+      title: g.title,
+      format: g.format,
+      assignedTo: g.assignments.map((a) => ({ module: `${a.module.course.title} — ${a.module.title}`, live: a.live })),
+    })),
+  };
+}
+
+async function gameItems(query: string, format: unknown) {
+  const lookup = await resolveModuleByQuery(query);
+  if (!lookup.module) return { found: false, ambiguousMatches: lookup.ambiguousMatches };
+  const items = await prisma.gameItem.findMany({
+    where: { moduleId: lookup.module.id, ...(typeof format === "string" && format ? { format: format as never } : {}) },
+    orderBy: { createdAt: "asc" },
+    take: 60,
+    select: { format: true, status: true, source: true, content: true, objective: { select: { text: true } } },
+  });
+  return { found: true, module: `${lookup.module.courseTitle} — ${lookup.module.title}`, items: items.map((i) => ({ format: i.format, status: i.status, source: i.source, objective: i.objective.text, content: i.content })) };
+}
+
 /** Replays a saved conversation to Claude. Earlier attachments come back as text; actions' outcomes are noted. */
 export async function buildHistory(conversationId: string): Promise<Anthropic.MessageParam[]> {
   const rows = await prisma.loopMessage.findMany({
@@ -240,10 +308,11 @@ export async function* runLoopTurn(opts: {
   history: Anthropic.MessageParam[];
   signal?: AbortSignal;
   client?: Anthropic;
+  studio?: StudioContext;
 }): AsyncGenerator<LoopEvent> {
   const client = opts.client ?? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 120_000 });
   const tools = buildTools();
-  const system = await withGuidance(systemPrompt(opts.level), "command-loop");
+  const system = await withGuidance(systemPrompt(opts.level) + (await studioNote(opts.studio)), "command-loop");
   const state: EngineState = { resolvedRecipients: null, reviewedTrainee: null };
   let messages = opts.history;
   let fullText = "";
@@ -316,6 +385,10 @@ export async function* runLoopTurn(opts: {
           content = await moduleDetails(String(input.moduleQuery ?? ""));
         } else if (block.name === "read_module_materials") {
           content = await readMaterials(String(input.moduleQuery ?? ""));
+        } else if (block.name === "list_games") {
+          content = await listGames();
+        } else if (block.name === "get_game_items") {
+          content = await gameItems(String(input.moduleQuery ?? ""), input.format);
         } else if (block.name === "resolve_recipients") {
           const filter = buildRecipientFilterFromToolInput(input);
           const description = typeof input.description === "string" ? input.description : "the selected recipients";

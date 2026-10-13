@@ -218,6 +218,7 @@ const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
       { label: "Courses", href: "/admin/courses", audience: "staffAndOrg" },
       { label: "Examinations", href: "/admin/exams", audience: "staffAndOrg" },
       { label: "Assignments", href: "/admin/assignments", audience: "staffAndOrg" },
+      { label: "Game Studio", href: "/admin/studio", audience: "superadmin" },
       { label: "Certificates", href: "/admin/certificate-templates", audience: "org" },
     ],
   },

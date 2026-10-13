@@ -63,6 +63,47 @@ interface AttemptSummary {
 }
 
 /**
+ * Game Studio: the other games live for this module (matching cards, put in
+ * order, scenario choices). Quiz practice has its own strip above. Renders
+ * nothing when there are none.
+ */
+function ModuleGamesStrip({ courseId, moduleId }: { courseId: string; moduleId: string }) {
+  const [games, setGames] = useState<{ id: string; title: string; format: string; description: string | null }[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/modules/${moduleId}/games`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        setGames((data.games as { id: string; title: string; format: string; description: string | null }[]).filter((g) => g.format !== "QUIZ"));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [moduleId]);
+
+  if (games.length === 0) return null;
+  return (
+    <Card className="p-3" data-testid="games-strip">
+      <p className="text-xs text-gray-600">
+        <span className="font-semibold text-brand-ink">Games</span> to help you prepare. The XP never counts toward your certificate.
+      </p>
+      <ul className="mt-2 flex flex-wrap gap-2">
+        {games.map((g) => (
+          <li key={g.id}>
+            <Button href={`/trainee/courses/${courseId}/modules/${moduleId}/games/${g.id}`} size="sm" variant="secondary">
+              {g.title}
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+/**
  * Knowledge Quest — a small "Practice" strip above the assessment strip, shown
  * only when the instructor has switched practice on for this module (the
  * practice API answers 404 otherwise). Practice XP never counts toward a
@@ -1029,6 +1070,7 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
                 <div className="space-y-0 border-t border-brand-gray bg-gray-50/60 p-0 sm:space-y-3 sm:p-4">
                   <div className="space-y-2 p-3 sm:p-0">
                     <ModulePracticeStrip courseId={course.id} moduleId={mod.id} />
+                    <ModuleGamesStrip courseId={course.id} moduleId={mod.id} />
                     <ModuleAssessmentStrip courseId={course.id} moduleId={mod.id} />
                   </div>
                   {mod.lessons.map((lesson) => (

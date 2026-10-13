@@ -34,6 +34,13 @@ const SUGGESTIONS = [
   { title: "Write an announcement", prompt: "Help me write a clear, warm announcement to our trainees. Ask me what it is about." },
 ];
 
+const STUDIO_SUGGESTIONS = [
+  { title: "Draft matching cards", prompt: "Read this module's materials and draft a matching-cards game for it: one set per learning objective." },
+  { title: "Draft a put-in-order game", prompt: "Draft a put-in-order game for this module from a real process in its materials." },
+  { title: "Draft a scenario game", prompt: "Draft scenario choices for this module: a short case, a few options, and what happens for each." },
+  { title: "Make my first game", prompt: "Help me create my first game. Ask me which format and which module, then set it up." },
+];
+
 const ACCEPT = ".pdf,.docx,.doc,.pptx,.xlsx,.txt,.md,.csv,.json,image/png,image/jpeg,image/webp,image/gif";
 
 function groupLabel(iso: string): string {
@@ -70,7 +77,22 @@ async function* readEvents(res: Response): AsyncGenerator<Record<string, unknown
   }
 }
 
-export default function CommandCenter() {
+export interface StudioChatContext {
+  moduleId?: string | null;
+  gameId?: string | null;
+}
+
+/**
+ * The Loop chat. On the Command Center page it fills the screen with the chat
+ * list beside it; in the Game Studio it is the compact panel next to the
+ * preview (`compact`), told which module and game are on screen (`studio`) and
+ * calling `onChanged` whenever Loop changed something so the studio can refresh.
+ */
+export default function CommandCenter({ compact = false, studio, onChanged }: { compact?: boolean; studio?: StudioChatContext; onChanged?: () => void } = {}) {
+  const studioRef = useRef(studio);
+  studioRef.current = studio;
+  const changedRef = useRef(onChanged);
+  changedRef.current = onChanged;
   const { showToast } = useToast();
   const { confirm, modal } = useConfirmModal();
   const [conversations, setConversations] = useState<ConversationItem[] | null>(null);
@@ -179,6 +201,7 @@ export default function CommandCenter() {
       form.set("message", text);
       form.set("level", String(level));
       if (activeId) form.set("conversationId", activeId);
+      if (studioRef.current) form.set("studio", JSON.stringify(studioRef.current));
       for (const f of sending) form.append("files", f);
       const res = await fetch("/api/admin/loop/chat", { method: "POST", body: form, signal: controller.signal });
       if (!res.ok || !res.body) {
@@ -215,6 +238,7 @@ export default function CommandCenter() {
       setStreaming(false);
       abortRef.current = null;
       void loadList();
+      changedRef.current?.();
     }
   }
 
@@ -230,6 +254,7 @@ export default function CommandCenter() {
     if (!res.ok) return showToast(typeof data.error === "string" ? data.error : "That didn't work. Please try again.", "error");
     setMessages((prev) => prev.map((m) => ({ ...m, actions: m.actions.map((a) => (a.id === actionId ? (data as ActionCardData) : a)) })));
     if (data.status === "EXECUTED") showToast("Done.", "success");
+    changedRef.current?.();
   }
 
   async function changeLevel(l: LoopLevel) {
@@ -349,12 +374,14 @@ export default function CommandCenter() {
           </div>
         ))}
       </nav>
-      <details className="border-t border-brand-gray p-3 text-sm">
-        <summary className="cursor-pointer select-none font-semibold text-gray-700">Loop settings</summary>
-        <div className="mt-3">
-          <GuideSwitchCard />
-        </div>
-      </details>
+      {!compact && (
+        <details className="border-t border-brand-gray p-3 text-sm">
+          <summary className="cursor-pointer select-none font-semibold text-gray-700">Loop settings</summary>
+          <div className="mt-3">
+            <GuideSwitchCard />
+          </div>
+        </details>
+      )}
     </div>
   );
 
@@ -362,7 +389,7 @@ export default function CommandCenter() {
 
   return (
     <div
-      className="relative flex h-[calc(100dvh-4.5rem)] min-h-[520px] overflow-hidden rounded-none border-brand-gray bg-brand-sand sm:rounded-2xl sm:border"
+      className={`relative flex overflow-hidden border-brand-gray bg-brand-sand ${compact ? "h-full min-h-[360px] rounded-2xl border" : "h-[calc(100dvh-4.5rem)] min-h-[520px] rounded-none sm:rounded-2xl sm:border"}`}
       onDragOver={(e) => {
         e.preventDefault();
         setDragging(true);
@@ -375,10 +402,10 @@ export default function CommandCenter() {
       }}
     >
       {modal}
-      <aside className="hidden w-72 shrink-0 border-r border-brand-gray bg-brand-surface md:block">{sidebar}</aside>
+      {!compact && <aside className="hidden w-72 shrink-0 border-r border-brand-gray bg-brand-surface md:block">{sidebar}</aside>}
 
       {drawer && (
-        <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true" aria-label="Your chats">
+        <div className={`fixed inset-0 z-40 ${compact ? "" : "md:hidden"}`} role="dialog" aria-modal="true" aria-label="Your chats">
           <button type="button" aria-label="Close" className="absolute inset-0 bg-black/40" onClick={() => setDrawer(false)} />
           <div className="absolute inset-y-0 left-0 flex w-[85%] max-w-xs flex-col bg-brand-surface shadow-xl">
             <div className="flex items-center justify-between px-3 pt-3">
@@ -393,7 +420,7 @@ export default function CommandCenter() {
       )}
 
       <section className="flex min-w-0 flex-1 flex-col" aria-label="Conversation">
-        <div className="flex items-center gap-2 border-b border-brand-gray px-3 py-2 md:hidden">
+        <div className={`flex items-center gap-2 border-b border-brand-gray px-3 py-2 ${compact ? "" : "md:hidden"}`}>
           <button type="button" aria-label="Open chats" onClick={() => setDrawer(true)} className="rounded-full p-2 text-brand-ink hover:bg-brand-gray/40">
             <Icon icon={Menu} size="md" />
           </button>
@@ -407,10 +434,17 @@ export default function CommandCenter() {
           {empty ? (
             <div className="mx-auto flex h-full max-w-2xl flex-col items-center justify-center px-5 py-8 text-center">
               <span aria-hidden className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand-action text-xl font-bold text-brand-onAccent">L</span>
-              <h1 className="mt-4 font-display text-2xl font-semibold text-brand-ink sm:text-3xl">How can I help today?</h1>
-              <p className="mt-2 max-w-md text-sm text-gray-600">Ask about anything on the platform, attach a document, or tell me what to set up. You decide how much I do on my own with the level beside the send button.</p>
-              <div className="mt-6 grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
-                {SUGGESTIONS.map((s) => (
+              {(() => {
+                const Heading = compact ? "h2" : "h1";
+                return <Heading className={`mt-4 font-display font-semibold text-brand-ink ${compact ? "text-lg" : "text-2xl sm:text-3xl"}`}>{studio ? "What shall we build?" : "How can I help today?"}</Heading>;
+              })()}
+              <p className="mt-2 max-w-md text-sm text-gray-600">
+                {studio
+                  ? "Tell me what game to make and for which module. I read the module's materials, write the items as drafts, and you try them in the preview before approving."
+                  : "Ask about anything on the platform, attach a document, or tell me what to set up. You decide how much I do on my own with the level beside the send button."}
+              </p>
+              <div className={`mt-6 grid w-full grid-cols-1 gap-2 ${compact ? "" : "sm:grid-cols-2"}`}>
+                {(studio ? STUDIO_SUGGESTIONS : SUGGESTIONS).map((s) => (
                   <button
                     key={s.title}
                     type="button"
