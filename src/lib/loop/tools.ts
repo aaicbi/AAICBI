@@ -531,10 +531,11 @@ async function generateBankQuestionsTool(input: Record<string, unknown>, askedBy
     return { error: "No matching module found.", ambiguousMatches: moduleLookup.ambiguousMatches };
   }
 
-  const objectives = await prisma.moduleLearningObjective.findMany({
-    where: { moduleId: moduleLookup.module.id, text: { contains: objectiveQuery, mode: "insensitive" } },
-    select: { id: true, text: true },
-  });
+  // Compared with quotes, dashes and spacing flattened, so a curly quote or an extra space in the request still matches.
+  const flat = (t: string) => t.toLowerCase().replace(/[\u2018\u2019\u201C\u201D"'`]/g, "").replace(/[\u2013\u2014-]/g, " ").replace(/\s+/g, " ").trim();
+  const wanted = flat(objectiveQuery);
+  const all = await prisma.moduleLearningObjective.findMany({ where: { moduleId: moduleLookup.module.id }, select: { id: true, text: true } });
+  const objectives = wanted ? all.filter((o) => flat(o.text).includes(wanted) || wanted.includes(flat(o.text))) : [];
   if (objectives.length === 0) {
     return {
       error:

@@ -149,11 +149,17 @@ export default function ModuleAssessmentPage({ params }: { params: { id: string 
   }
 
   async function approveQuestion(qId: string) {
-    await fetch(`/api/questions/${qId}`, {
+    const res = await fetch(`/api/questions/${qId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ approve: true }),
     });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showToast(typeof data.error === "string" ? data.error : "Could not approve the question. Try again.", "error");
+      return;
+    }
+    showToast("Question approved.", "success");
     await loadAssessment();
   }
 
