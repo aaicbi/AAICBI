@@ -59,6 +59,25 @@ missed-before bonus, the game's reward switches). XP never counts toward certifi
   objective-mastered and module-completed XP (same ledger keys, so nothing is paid twice).
 - Per-question pool assignment for quizzes is in the studio (single question, or move all untagged ones).
 
+## Tool permissions
+
+A Super Admin chooses, per person, which tools they may use (studio page, "Your team: Loop level and permissions"). The same list limits what Loop will offer and run for that person, and the server refuses the matching actions even if a request is crafted by hand.
+
+| Permission | Covers |
+|---|---|
+| Use Loop | Chatting with Loop at all |
+| Make and edit games | Create, rename, delete, rewards |
+| Write and approve items | Add, edit, delete items; approve Loop's drafts |
+| Assign games to modules | Assign, switch live or off |
+| Question pools and practice settings | Pools, practice rules, objectives |
+| Generate and validate bank questions | Loop drafts exam questions for their own modules (uses AI credits) |
+| Platform analytics and overview *(all organisations)* | Platform numbers and module statistics |
+| Cohort reports *(all organisations)* | List cohorts, read reports |
+| People and reports *(all organisations)* | Search people; trainee, employer and staff reports |
+| Messaging through Loop *(all organisations)* | Find recipients, read a trainee's chat, send, pause messaging |
+
+Someone nobody has configured gets the first five (the studio set). The tools marked *all organisations* are not limited to the person's own modules, so they are always opt-in. Loop's own module and game reading tools stay limited to what the person owns or was invited to edit. `log_change_request` and the Super Admin's other tools can never be granted.
+
 ## Who can use it
 
 - Super Admin sees everything and can set, per person, the highest Loop level they may use (`/people`).

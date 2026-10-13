@@ -26,7 +26,9 @@ import type { RecipientFilter } from "@/lib/messaging/recipients";
 import { issueMessagingSuspension } from "@/lib/messagingModeration";
 import { FORMAT_INFO, isItemFormat, validateItemContent, type ItemFormat } from "@/lib/quest/games";
 import { gamesWhere } from "@/lib/quest/studioAccess";
-import { resolveModuleForScope } from "@/lib/loop/scope";
+import { resolveModuleForScope, type LoopScope } from "@/lib/loop/scope";
+import { cleanRequestInput } from "@/lib/changeRequests/core";
+import { ChangeRequestError, createRequest } from "@/lib/changeRequests/server";
 import { StudioError, approveDrafts, assignGame, createGame, createItem, isGameFormat, updateGame } from "@/lib/quest/studio";
 
 export class ActionInputError extends Error {}
@@ -34,7 +36,7 @@ export class ActionInputError extends Error {}
 /** What the engine remembers from this conversation turn's read steps (never shown to Claude). */
 export interface EngineState {
   /** Who is asking. Organization staff and instructors are limited to their own modules and games. */
-  scope: { userId: string; role: string; isSuper: boolean };
+  scope: LoopScope;
   resolvedRecipients: { filter: RecipientFilter; description: string; count: number; truncated: boolean } | null;
   reviewedTrainee: { traineeId: string; traineeName: string } | null;
 }
@@ -464,6 +466,32 @@ const approveGameItems: ActionDef = {
   },
 };
 
+// A change the Super Admin wants Claude Code to make. Loop only SAVES it as a proposal: approving it is a separate click on the
+// Change requests page, so no setting of Loop's autonomy can approve a request on its own.
+const logChangeRequest: ActionDef = {
+  name: "log_change_request",
+  description: "Save a change the admin wants made to the platform as a change request. It is saved as waiting for approval; the admin approves it on the Change requests page, and only approved requests are handed to Claude Code. Use the admin's own words and include what should change and what they expect to see.",
+  inputSchema: {
+    type: "object",
+    properties: { title: { type: "string", description: "A short title." }, details: { type: "string", description: "What is wrong or missing, what should change, and the result they expect." }, page: { type: "string", description: "The page it applies to, if one was mentioned." } },
+    required: ["title", "details"],
+  },
+  async prepare(raw) {
+    const cleaned = cleanRequestInput(raw);
+    if (!cleaned.ok) throw new ActionInputError(cleaned.error);
+    return { input: { ...cleaned.value }, summary: `Save a change request: “${cleaned.value.title}” (it will wait for your approval on the Change requests page).`, risk: "low" };
+  },
+  async execute(input, ctx) {
+    try {
+      const created = await createRequest(ctx.userId, input);
+      return { requestId: created.id, status: "PROPOSED", note: "Saved as waiting for approval. The admin approves it on the Change requests page." };
+    } catch (e) {
+      if (e instanceof ChangeRequestError) throw new ActionInputError(e.message);
+      throw e;
+    }
+  },
+};
+
 export const LOOP_ACTIONS: ActionDef[] = [
   saveObjectives,
   generateQuestions,
@@ -477,6 +505,7 @@ export const LOOP_ACTIONS: ActionDef[] = [
   approveGameItems,
   sendMessage,
   suspendMessaging,
+  logChangeRequest,
 ];
 
 export const LOOP_ACTION_BY_NAME = new Map(LOOP_ACTIONS.map((a) => [a.name, a]));

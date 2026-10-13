@@ -35,19 +35,33 @@ interface Person {
   name: string;
   role: string;
   level: number;
+  permissions: string[];
+}
+
+interface PermissionOption {
+  key: string;
+  group: "STUDIO" | "PLATFORM";
+  label: string;
+  blurb: string;
+  wide: boolean;
 }
 
 /** Super Admin only: how much Loop may do on its own for each person who builds courses. */
 function PeoplePanel() {
   const { showToast } = useToast();
   const [people, setPeople] = useState<Person[] | null>(null);
+  const [options, setOptions] = useState<PermissionOption[]>([]);
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open || people) return;
     fetch("/api/admin/studio/people")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d) => setPeople(d.people))
+      .then((d) => {
+        setOptions(d.permissionOptions ?? []);
+        setPeople(d.people);
+      })
       .catch(() => setPeople([]));
   }, [open, people]);
 
@@ -58,27 +72,58 @@ function PeoplePanel() {
     showToast("Saved.", "success");
   }
 
+  async function togglePermission(person: Person, key: string) {
+    const next = person.permissions.includes(key) ? person.permissions.filter((k) => k !== key) : [...person.permissions, key];
+    const r = await call("PUT", "/api/admin/studio/people", { userId: person.id, permissions: next });
+    if (!r.ok) return showToast(String(r.json.error ?? "Could not save that."), "error");
+    setPeople((list) => (list ?? []).map((p) => (p.id === person.id ? { ...p, permissions: next } : p)));
+  }
+
   return (
     <section aria-label="Who can use Loop in the studio" data-testid="people-panel">
       <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-1.5 text-left text-sm font-semibold text-brand-ink">
         <Icon icon={open ? ChevronDown : ChevronRight} size="sm" />
-        Loop for your team
+        Your team: Loop level and permissions
       </button>
       {open && (
         <div className="mt-2 space-y-2">
-          <p className="text-xs text-gray-600">Staff can build games for their own modules with Loop. Choose how much Loop may do on its own for each person: 1 asks first, 2 is balanced, 3 is autonomous. They start at 1.</p>
+          <p className="text-xs text-gray-600">Staff can build games for their own modules with Loop. Choose how much Loop may do on its own for each person (1 asks first, 2 is balanced, 3 is autonomous; they start at 1) and which tools they may use. Tools marked “all organisations” reach data beyond their own modules, so they are off until you allow them.</p>
           {people === null && <p className="text-xs text-gray-500">Loading…</p>}
           <ul className="space-y-1.5">
             {(people ?? []).map((p) => (
-              <li key={p.id} className="flex items-center gap-2 rounded-xl border border-brand-gray bg-brand-surface px-2.5 py-1.5">
-                <span className="min-w-0 flex-1 truncate text-xs text-brand-ink">
-                  {p.name} <span className="text-gray-500">({p.role === "ADMIN" ? "admin" : "instructor"})</span>
-                </span>
-                <Select label={`Loop level for ${p.name}`} hideLabel compact value={String(p.level)} onChange={(e) => void setLevel(p.id, Number(e.target.value))} wrapperClassName="w-28">
-                  <option value="1">1 Ask first</option>
-                  <option value="2">2 Balanced</option>
-                  <option value="3">3 Autonomous</option>
-                </Select>
+              <li key={p.id} className="rounded-xl border border-brand-gray bg-brand-surface px-2.5 py-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="min-w-0 flex-1 truncate text-xs text-brand-ink">
+                    {p.name} <span className="text-gray-500">({p.role === "ADMIN" ? "admin" : "instructor"})</span>
+                  </span>
+                  <Select label={`Loop level for ${p.name}`} hideLabel compact value={String(p.level)} onChange={(e) => void setLevel(p.id, Number(e.target.value))} wrapperClassName="w-28">
+                    <option value="1">1 Ask first</option>
+                    <option value="2">2 Balanced</option>
+                    <option value="3">3 Autonomous</option>
+                  </Select>
+                </div>
+                <button type="button" aria-expanded={editing === p.id} data-testid={`permissions-toggle-${p.id}`} onClick={() => setEditing(editing === p.id ? null : p.id)} className="mt-1 text-xs font-medium text-brand-teal hover:underline">
+                  {editing === p.id ? "Hide tools" : `Tools (${p.permissions.length} of ${options.length})`}
+                </button>
+                {editing === p.id && (
+                  <ul className="mt-1.5 space-y-1.5" aria-label={`Tools ${p.name} may use`}>
+                    {options.map((o) => (
+                      <li key={o.key}>
+                        <Checkbox
+                          label={
+                            <span className="text-xs">
+                              <span className="font-medium text-brand-ink">{o.label}</span>
+                              {o.wide && <span className="ml-1.5 rounded bg-brand-roseLight px-1.5 py-0.5 text-[10px] font-semibold text-brand-rose">all organisations</span>}
+                              <span className="block text-gray-600">{o.blurb}</span>
+                            </span>
+                          }
+                          checked={p.permissions.includes(o.key)}
+                          onChange={() => void togglePermission(p, o.key)}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))}
             {people && people.length === 0 && <li className="text-xs text-gray-600">No admins or instructors yet.</li>}
@@ -614,7 +659,14 @@ export default function Studio({ isSuper = false }: { isSuper?: boolean } = {}) 
             {previewPanel}
           </section>
           <section className={`min-h-0 ${tab === "loop" ? "block" : "hidden xl:block"}`} aria-label="Loop" data-testid="loop-panel">
-            <CommandCenter compact studio={{ moduleId, gameId }} onChanged={() => void refresh()} />
+            {overview && !overview.permissions.includes("LOOP") ? (
+              <Card className="text-sm text-gray-700" data-testid="loop-locked">
+                <p className="font-semibold text-brand-ink">Loop isn't switched on for you</p>
+                <p className="mt-1">A Super Admin decides who may use Loop. Ask them to allow it.</p>
+              </Card>
+            ) : (
+              <CommandCenter compact studio={{ moduleId, gameId }} onChanged={() => void refresh()} />
+            )}
           </section>
         </div>
       </div>

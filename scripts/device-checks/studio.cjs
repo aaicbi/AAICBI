@@ -58,7 +58,7 @@ async function seed() {
 
   // ---------- access ----------
   let r = await api(staffCk, 'GET', '/api/admin/studio');
-  log([401, 403].includes(r.status), 'an admin who is not a Super Admin cannot open the studio');
+  log(r.status === 200 && r.json.courses.every((c) => c.title !== 'Studio check course'), 'an admin who is not a Super Admin opens the studio but sees only their own courses');
   r = await api(t0Ck, 'GET', '/api/admin/studio');
   log([401, 403].includes(r.status), 'nor can a trainee');
   r = await api(sa, 'GET', '/api/admin/studio');

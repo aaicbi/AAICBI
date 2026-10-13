@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireStudioUser, clampToAllowed } from "@/lib/quest/studioAccess";
+import { requireStudioUser, requireStudioPermission, clampToAllowed } from "@/lib/quest/studioAccess";
 import { withApiErrors } from "@/lib/apiError";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
 import { buildHistory, attachmentContext, runLoopTurn, userContent, type LoopEvent } from "@/lib/loop/engine";
@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
     // Super Admins use Loop everywhere; admins, instructors and organization staff use it inside the Game Studio,
     // limited to their own modules and games and to the autonomy level a Super Admin has granted them.
     const session = await requireStudioUser();
+    requireStudioPermission(session, "LOOP");
 
     const limited = await rateLimit(`loop-chat:${session.userId}:${clientIp(req)}`, 40, 15 * 60 * 1000);
     if (!limited.allowed) {
@@ -115,7 +116,7 @@ export async function POST(req: NextRequest) {
             history,
             signal: req.signal,
             studio: parsed.data.studio ?? undefined,
-            scope: { userId: session.userId, role: session.role, isSuper: session.isSuper },
+            scope: { userId: session.userId, role: session.role, isSuper: session.isSuper, permissions: session.permissions },
           })) {
             if (ev.type === "done") {
               finalText = ev.text;

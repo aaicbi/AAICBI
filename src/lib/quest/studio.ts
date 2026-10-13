@@ -86,6 +86,7 @@ export async function studioOverview(session: StudioSession) {
     }),
   ]);
   return {
+    permissions: session.permissions,
     games: games.map((g) => ({
       id: g.id,
       title: g.title,

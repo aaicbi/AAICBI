@@ -23,6 +23,7 @@ const TITLES: Record<string, string> = {
   set_practice_settings: "Change practice settings",
   send_message: "Send a message",
   suspend_messaging: "Suspend messaging access",
+  log_change_request: "Save a change request",
 };
 
 export function actionTitle(kind: string): string {

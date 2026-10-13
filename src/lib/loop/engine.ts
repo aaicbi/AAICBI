@@ -7,6 +7,7 @@
  * Claude's own capacity is not narrowed here: it can discuss, analyse, draft
  * and plan anything. What it can DO is exactly the tools and actions below.
  */
+import { DEFAULT_STUDIO_PERMISSIONS, STUDIO_PERMISSIONS, mayUseTool } from "@/lib/quest/permissions";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import { courseAccess } from "@/lib/collab/access";
@@ -67,28 +68,21 @@ export async function studioNote(ctx: StudioContext | undefined, scope?: LoopSco
   return `\n\n${lines.join("\n")}`;
 }
 
-/** Actions a person who is not a Super Admin may use: the studio's own, on their own modules. */
-export const LIMITED_ACTIONS = new Set([
-  "create_game",
-  "set_game_rewards",
-  "assign_game",
-  "add_game_items",
-  "approve_game_items",
-  "split_question_pools",
-  "set_practice_settings",
-  "save_learning_objectives",
-]);
-
-function limitedPrompt(level: LoopLevel): string {
+function limitedPrompt(level: LoopLevel, scope?: LoopScope): string {
+  const perms = scope?.permissions ?? DEFAULT_STUDIO_PERMISSIONS;
   const lv = LOOP_LEVELS.find((l) => l.level === level)!;
-  return `You are Loop, an assistant inside the AAICBI Game Studio for a training organization's staff. You help them build learning games for THEIR OWN modules: matching cards, put-in-order sequences, scenario choices, and quiz practice.
+  const granted = STUDIO_PERMISSIONS.filter((p) => perms.includes(p.key) && p.key !== "LOOP").map((p) => `- ${p.label}: ${p.blurb}`).join("\n");
+  const denied = STUDIO_PERMISSIONS.filter((p) => !perms.includes(p.key) && p.key !== "LOOP").map((p) => p.label.toLowerCase());
+  return `You are Loop, an assistant inside the AAICBI platform for a training organization's staff. Your main job is helping them build learning games for THEIR OWN modules: matching cards, put-in-order sequences, scenario choices, and quiz practice.
 
-What you can do: find their modules, read their modules' lesson materials (Word, PDF and PowerPoint files; videos cannot be read), see their games, write playable items as drafts, create games, choose rewards, assign games to modules, split question pools and set practice settings.
-What you cannot do: you have no access to platform data, other people's modules or games, trainees, messages or analytics. If asked, say plainly that it is outside what you can see here.
+A Super Admin decides what each person may do here. This person was allowed:
+${granted || "- nothing beyond finding and reading their own modules and games"}
+${denied.length ? `They were NOT allowed to: ${denied.join("; ")}. You have no tools for those. If asked, say plainly that a Super Admin has to allow it.` : ""}
+You can always find their modules, read their modules' lesson materials (Word, PDF and PowerPoint files; videos cannot be read) and see their games. Anything else you cannot see.
 
 How you work:
 - Modules are found by name with find_module. Never ask for ids.
-- Ground items in the module's real materials and one confirmed learning objective. If the module has none, write good objectives from its materials and save them first with save_learning_objectives.
+- Ground items in the module's real materials and one confirmed learning objective. If the module has none and you may save objectives, write good objectives from its materials and save them first with save_learning_objectives.
 - Everything that changes something is an action. This chat's autonomy level is ${level} (${lv.name}): ${lv.description} After calling an action, read its result: if it says it is awaiting approval, tell the person it is waiting for them; never say it is done until it is. Never claim a change you did not make.
 - Items you write are always drafts. A person approves them, and approve_game_items always asks first. Suggest they try the preview before approving.
 - Write in clear Markdown, short and friendly.`;
@@ -108,6 +102,7 @@ How you work:
 - To message people: search_people if a person is named, call resolve_recipients to find who and how many, then send_message. You cannot choose recipients in send_message; they are exactly who resolve_recipients returned. If the match is ambiguous or empty, ask a clarifying question instead.
 - To set up learning objectives for a module: find_module, then read_module_materials, then write good objectives yourself from what you read and call save_learning_objectives. Then, if asked, generate_bank_questions for one objective at a time.
 - To review a trainee's messages for abuse, call get_conversation_messages. Only if what you read genuinely warrants it, call suspend_messaging. If nothing warrants it, say so.
+- When the admin wants something changed in the platform itself (a page, a button, wording, behaviour), save it with log_change_request in their own words. It only saves a proposal: they approve it on the Change requests page, and only approved requests go to Claude Code. Never tell them the change has been made.
 - When describing a change in analytics, say what changed, not why. A behavioural association is not proof of cause.
 - You can only do what your tools allow. If the admin asks for something no tool covers, say so plainly and suggest how they can do it themselves.
 - Write in clear Markdown: short paragraphs, lists, tables and code blocks where they help. Be concise; do not pad.`;
@@ -152,10 +147,15 @@ const ENGINE_TOOLS = [FIND_MODULE_TOOL, GET_MODULE_DETAILS_TOOL, READ_MODULE_MAT
 /** Old tools replaced by actions or by the engine's own reading tools. */
 const REPLACED = new Set(["analyze_module_materials", "generate_bank_questions", "run_bank_validation"]);
 
-function buildTools(isSuper: boolean): Anthropic.Tool[] {
-  const actions = LOOP_ACTIONS.filter((a) => isSuper || LIMITED_ACTIONS.has(a.name)).map((a) => ({ name: a.name, description: a.description, input_schema: a.inputSchema })) as Anthropic.Tool[];
-  // A person who is not a Super Admin gets the studio's tools only: no platform-wide reads, no messaging.
-  const reads = isSuper ? (LOOP_TOOL_SCHEMAS as Anthropic.Tool[]).filter((t) => !REPLACED.has(t.name)) : [];
+/** True when this person may use the tool or action: a Super Admin anything; everyone else what their permissions include. */
+function mayRun(name: string, scope: LoopScope): boolean {
+  return scope.isSuper || mayUseTool(name, scope.permissions ?? DEFAULT_STUDIO_PERMISSIONS);
+}
+
+function buildTools(scope: LoopScope): Anthropic.Tool[] {
+  const actions = LOOP_ACTIONS.filter((a) => mayRun(a.name, scope)).map((a) => ({ name: a.name, description: a.description, input_schema: a.inputSchema })) as Anthropic.Tool[];
+  // Platform reads are offered only to those a Super Admin has allowed them.
+  const reads = (LOOP_TOOL_SCHEMAS as Anthropic.Tool[]).filter((t) => !REPLACED.has(t.name) && mayRun(t.name, scope));
   return [...reads, ...(ENGINE_TOOLS as Anthropic.Tool[]), ...actions];
 }
 
@@ -351,8 +351,8 @@ export async function* runLoopTurn(opts: {
 }): AsyncGenerator<LoopEvent> {
   const scope: LoopScope = opts.scope ?? { userId: opts.userId, role: "SUPER_ADMIN", isSuper: true };
   const client = opts.client ?? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 120_000 });
-  const tools = buildTools(scope.isSuper);
-  const system = await withGuidance((scope.isSuper ? systemPrompt(opts.level) : limitedPrompt(opts.level)) + (await studioNote(opts.studio, scope)), "command-loop");
+  const tools = buildTools(scope);
+  const system = await withGuidance((scope.isSuper ? systemPrompt(opts.level) : limitedPrompt(opts.level, scope)) + (await studioNote(opts.studio, scope)), "command-loop");
   const state: EngineState = { scope, resolvedRecipients: null, reviewedTrainee: null };
   let messages = opts.history;
   let fullText = "";
@@ -392,10 +392,9 @@ export async function* runLoopTurn(opts: {
       let content: unknown;
       let isError = false;
       try {
+        // One check for every tool and action, so a permission cannot be skipped by calling a tool the prompt never offered.
+        if (!mayRun(block.name, scope)) throw new ActionInputError("You don't have permission to do that. Ask a Super Admin to allow it.");
         const action = LOOP_ACTION_BY_NAME.get(block.name);
-        if (action && !scope.isSuper && !LIMITED_ACTIONS.has(action.name)) {
-          throw new ActionInputError("That isn't something you can do from here.");
-        }
         if (action) {
           const prepared = await action.prepare(input, state);
           const decision = decideExecution({ level: opts.level, risk: prepared.risk, alwaysConfirm: prepared.alwaysConfirm });
