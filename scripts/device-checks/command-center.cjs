@@ -1,7 +1,7 @@
 // Command Center end to end against the private test database and a stand-in for the Claude API
 // (fake-claude-stream.cjs on port 4599): conversations, streaming, formatting, attachments, the three
 // autonomy levels, approval cards, access limits, and the screens on desktop and phone.
-const { B, log, launch, device, cookiesFor, signedIn, results } = require('./lib.cjs');
+const { B, log, launch, device, cookiesFor, signedIn, results, clearThrottle } = require('./lib.cjs');
 const { PrismaClient } = require('/home/user/AAICBI/node_modules/@prisma/client');
 const JSZip = require('/home/user/AAICBI/node_modules/jszip');
 const fs = require('fs');
@@ -43,10 +43,10 @@ const pptx = async () => { const z = new JSZip(); z.file('ppt/slides/slide1.xml'
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 
 (async () => {
-  fs.writeFileSync('/tmp/fakeclaude-stream.log', '');
+  fs.writeFileSync('/tmp/fakeclaude-stream.log', ''); clearThrottle();
   const sa = jar(await cookiesFor('/api/auth/login', 'super@dev.test'));
   const staff = jar(await cookiesFor('/api/auth/login', 'staff@dev.test'));
-  const staffUser = await prisma.user.findFirst({ where: { role: 'SUPER_ADMIN' } });
+  const staffUser = await prisma.user.findUnique({ where: { email: 'super@dev.test' } });
   await prisma.loopConversation.deleteMany({ where: { userId: staffUser.id } });
 
   // seed two modules to work on
@@ -129,7 +129,7 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
   log(before === (await prisma.loopBroadcast.count()), 'level 2: no message went out');
   r = await api(sa, 'POST', `/api/admin/loop/actions/${r.cards[0].id}`, { decision: 'approve' });
   log(r.json.status === 'EXECUTED' && (await prisma.loopBroadcast.count()) === before + 1, 'approving the message sends it, recorded with who authorised it');
-  const bc = await prisma.loopBroadcast.findFirst({ orderBy: { createdAt: 'desc' } });
+  const bc = await prisma.loopBroadcast.findFirst({ orderBy: { sentAt: 'desc' } });
   log(bc.authorizedById === staffUser.id && bc.recipientDescription === 'Super admins', 'the broadcast record names the authoriser and the real recipients');
   // level 3: even the message runs at once (small audience)
   r = await chat(sa, { message: 'MSG: tell them again', level: 3 });
@@ -157,6 +157,9 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
 
   // ---------- screens ----------
   await prisma.loopConversation.deleteMany({ where: { userId: staffUser.id } });
+  // the test messages above notified this account; clear them so toasts do not cover the screen
+  await prisma.userNotification.deleteMany({ where: { recipientId: staffUser.id } }).catch(() => prisma.userNotification.deleteMany({}));
+  clearThrottle(); // the API checks above used up the chat's own message limit
   const br = await launch();
   const ctx = await signedIn(br, device('Desktop Chrome', { viewport: { width: 1280, height: 860 } }), '/api/auth/login', 'super@dev.test');
   const p = await ctx.newPage(); p.setDefaultTimeout(20000);
@@ -172,6 +175,7 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
   await p.locator('[data-testid=assistant-message] strong').first().waitFor();
   log(true, 'Enter sends, and the reply appears');
   await p.locator('[data-testid=assistant-message] table').waitFor();
+  await p.locator('[data-testid=assistant-message] a[href="/admin/dashboard"]').waitFor();
   const html = await p.getByTestId('assistant-message').first().innerHTML();
   log(/<strong/.test(html) && /<li/.test(html) && /<table/.test(html) && /<h3/.test(html) && /<code/.test(html), 'the reply is formatted: bold, list, table, heading and code');
   log(/href="\/admin\/dashboard"/.test(html), 'links in a reply work');
@@ -228,7 +232,7 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
   await pp.getByRole('dialog', { name: 'Your chats' }).waitFor();
   log(true, 'on a phone the chat list opens as a drawer');
   await pp.screenshot({ path: '/tmp/dev/cc-phone-drawer.png' });
-  await pp.getByRole('button', { name: 'Close' }).click();
+  await pp.getByRole('button', { name: 'Close chats' }).click();
   await pp.locator('#loop-input').fill('hello');
   await pp.getByTestId('send').click();
   await pp.locator('[data-testid=assistant-message] table').waitFor();

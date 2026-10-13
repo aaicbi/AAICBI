@@ -380,7 +380,15 @@ export default function CommandCenter() {
       {drawer && (
         <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true" aria-label="Your chats">
           <button type="button" aria-label="Close" className="absolute inset-0 bg-black/40" onClick={() => setDrawer(false)} />
-          <div className="absolute inset-y-0 left-0 w-[85%] max-w-xs bg-brand-surface shadow-xl">{sidebar}</div>
+          <div className="absolute inset-y-0 left-0 flex w-[85%] max-w-xs flex-col bg-brand-surface shadow-xl">
+            <div className="flex items-center justify-between px-3 pt-3">
+              <p className="px-1 text-sm font-semibold text-brand-ink">Your chats</p>
+              <button type="button" aria-label="Close chats" onClick={() => setDrawer(false)} className="rounded-full p-2 text-brand-ink hover:bg-brand-gray/40">
+                <Icon icon={X} size="md" />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1">{sidebar}</div>
+          </div>
         </div>
       )}
 
