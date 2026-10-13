@@ -59,7 +59,7 @@ function renderBlock(b: Block, i: number): React.ReactNode {
     case "table":
       return (
         <div key={i} className="my-3 overflow-x-auto rounded-xl border border-brand-gray">
-          <table className="min-w-full border-collapse text-sm">
+          <table data-table="scroll" className="min-w-full border-collapse text-sm">
             <thead className="bg-brand-gray/30 text-left">
               <tr>{b.header.map((h, j) => <th key={j} className="px-3 py-2 font-semibold">{renderInline(h)}</th>)}</tr>
             </thead>
