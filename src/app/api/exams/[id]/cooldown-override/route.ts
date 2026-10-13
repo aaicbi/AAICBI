@@ -23,7 +23,7 @@ const BodySchema = z.object({ traineeId: z.string().min(1) });
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedExam(params.id, session.userId);
+    await requireOwnedExam(params.id, session.userId, session.role);
 
     const body = await req.json().catch(() => null);
     const parsed = BodySchema.safeParse(body);

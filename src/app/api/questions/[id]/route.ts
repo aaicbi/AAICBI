@@ -89,7 +89,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedQuestion(params.id, session.userId); // M11 audit finding — see courseOwnership.ts
+    await requireOwnedQuestion(params.id, session.userId, session.role); // M11 audit finding — see courseOwnership.ts
     await guardQuestionDeletable(params.id); // M11 audit finding — see deletionGuards.ts
     await prisma.question.delete({ where: { id: params.id } });
     return NextResponse.json({ ok: true });
