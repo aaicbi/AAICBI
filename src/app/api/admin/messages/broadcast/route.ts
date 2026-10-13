@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
-import { resolveRecipients, type RecipientFilter } from "@/lib/messaging/recipients";
-import { sendBroadcast } from "@/lib/messaging/broadcast";
-import { describeBroadcastStatus } from "@/lib/messaging/broadcastCore";
+import type { RecipientFilter } from "@/lib/messaging/recipients";
+import { sendLoopBroadcast } from "@/lib/messaging/loopBroadcast";
 
 /**
  * POST /api/admin/messages/broadcast — the ONE place a Loop broadcast
@@ -40,8 +38,6 @@ import { describeBroadcastStatus } from "@/lib/messaging/broadcastCore";
  *     even it isn't, here).
  */
 export const maxDuration = 60;
-
-const SENDER_LABEL = "Loop — Systems Manager";
 
 const RecipientFilterSchema: z.ZodType<RecipientFilter> = z.union([
   z.object({
@@ -85,44 +81,18 @@ export async function POST(req: NextRequest) {
     }
     const { recipientFilter, recipientDescription, recipientCountExpected, subject, body: messageBody, category } = parsed.data;
 
-    // Never trust a stored/passed id list — resolve fresh, right now,
-    // against the live database.
-    const resolved = await resolveRecipients(recipientFilter);
-    const recipientCountActual = resolved.recipients.length;
-    const countChanged = recipientCountActual !== recipientCountExpected;
-
-    const broadcast = await prisma.loopBroadcast.create({
-      data: {
-        authorizedById: session.userId,
-        senderLabel: SENDER_LABEL,
-        recipientDescription,
-        recipientFilter: recipientFilter as object,
-        recipientCountExpected,
-        recipientCountActual,
-        category,
-        subject,
-        body: messageBody,
-        status: "FAILED", // placeholder until the fan-out below reports in
-      },
-    });
-
-    const { sentCount, failedCount } = await sendBroadcast({
-      recipients: resolved.recipients,
-      senderLabel: SENDER_LABEL,
+    // Never trust a stored/passed id list: the helper resolves fresh, right
+    // now, against the live database. `authorizedById` is the session user.
+    const result = await sendLoopBroadcast({
+      authorizedById: session.userId,
+      recipientFilter,
+      recipientDescription,
+      recipientCountExpected,
       subject,
       body: messageBody,
-      broadcastId: broadcast.id,
+      category,
     });
 
-    const status = describeBroadcastStatus(sentCount, failedCount);
-    await prisma.loopBroadcast.update({ where: { id: broadcast.id }, data: { status } });
-
-    return NextResponse.json({
-      broadcastId: broadcast.id,
-      sentCount,
-      failedCount,
-      recipientCountActual,
-      countChanged,
-    });
+    return NextResponse.json(result);
   });
 }
