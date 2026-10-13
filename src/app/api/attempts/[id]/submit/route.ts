@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiErrors } from "@/lib/apiError";
 import { submitAttempt } from "@/lib/examEngine";
+import { failedGateObjectives } from "@/lib/quest/server";
 
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
@@ -90,8 +91,15 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
         .filter((q: unknown): q is NonNullable<typeof q> => q !== null);
     }
 
+    // Knowledge Quest: name the critical objectives that held back an otherwise
+    // sufficient score, so the trainee knows exactly what to revise.
+    const passMark = attempt.passMarkPercent ?? exam.passMarkPercent;
+    const gateFailures =
+      attempt.passed === false && (attempt.percentage ?? 0) >= passMark ? await failedGateObjectives(attempt.id, passMark) : [];
+
     return NextResponse.json({
       released: true,
+      gateFailures,
       score: attempt.score,
       totalQuestions: attempt.totalQuestions,
       percentage: attempt.percentage,

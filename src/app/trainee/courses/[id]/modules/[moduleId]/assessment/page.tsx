@@ -19,6 +19,8 @@ interface AssessmentMeta {
   passMarkPercent: number;
   maxAttempts: number | null;
   totalQuestions: number;
+  practiceAvailable?: boolean;
+  practiceRequired?: { requiredPercent: number; masteredObjectives: number; totalObjectives: number } | null;
 }
 interface AttemptHistory {
   maxAttempts: number | null;
@@ -134,17 +136,40 @@ Once the time expires, the assessment will be submitted automatically.
 Do not refresh or close the browser during the assessment.`}
         </Card>
 
+        {meta.practiceRequired && (
+          <Card variant="highlighted" className="mt-4 text-sm text-brand-ink" data-testid="practice-required">
+            <p className="font-semibold">Practise first</p>
+            <p className="mt-1">
+              Your instructor asks you to master at least {meta.practiceRequired.requiredPercent}% of this module&apos;s objectives in
+              practice before the assessment opens ({meta.practiceRequired.masteredObjectives} of {meta.practiceRequired.totalObjectives}{" "}
+              so far).
+            </p>
+            <Button href={`/trainee/courses/${params.id}/modules/${params.moduleId}/practice`} size="sm" className="mt-3">
+              Go to practice
+            </Button>
+          </Card>
+        )}
+
         {attemptsExhausted ? (
           <div className="mt-5 rounded-lg border border-brand-roseLight bg-brand-roseLight/40 p-4 text-sm text-brand-rose">
             You have used all {meta.maxAttempts} of your allowed attempts for this assessment.
           </div>
         ) : (
           <>
+            {meta.practiceAvailable && !meta.practiceRequired && (
+              <p className="mt-4 text-sm text-gray-700">
+                Want to prepare first?{" "}
+                <a className="font-semibold text-brand-teal underline" href={`/trainee/courses/${params.id}/modules/${params.moduleId}/practice`}>
+                  Practise this module
+                </a>
+                . Practice never counts toward your result.
+              </p>
+            )}
             <Checkbox label="I have read the instructions" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
 
             {error && <p className="mt-3 text-sm text-brand-rose">{error}</p>}
 
-            <Button onClick={handleStart} disabled={!confirmed} loading={starting} size="lg" className="mt-5 w-full">
+            <Button onClick={handleStart} disabled={!confirmed || !!meta.practiceRequired} loading={starting} size="lg" className="mt-5 w-full">
               {starting ? "Starting..." : "Start Assessment"}
             </Button>
           </>

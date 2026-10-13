@@ -19,6 +19,8 @@
 import { prisma } from "@/lib/prisma";
 import type { Attempt, Exam, Question, Option } from "@prisma/client";
 import { reconstructOrderedItems } from "@/lib/examEngineCore";
+import { drawFormal, evaluateGates, isFormalEligible } from "@/lib/quest/core";
+import { criticalObjectiveIds } from "@/lib/quest/server";
 import { computeTopicStats } from "@/lib/performanceCore";
 import { generatePerformanceSummary } from "@/lib/ai/analyzePerformance";
 import { rateLimit } from "@/lib/rateLimit";
@@ -127,13 +129,22 @@ export async function startAttempt(
   // it. Filtered at the one shared point both exam types actually
   // start an attempt through, so every caller is protected the same
   // way, not just the one this was found while building.
-  const reviewedQuestions = exam.questions.filter((q) => !q.needsReview);
+  //
+  // Knowledge Quest: practice-pool questions are never part of a formal
+  // assessment (untagged legacy questions stay formal), and a module's
+  // critical objectives are guaranteed questions in the draw so the mastery
+  // gate can actually be tested — see drawFormal in quest/core.ts. With no
+  // practice tags and no critical objectives this is exactly the old
+  // shuffle-then-slice behaviour.
+  const reviewedQuestions = exam.questions.filter((q) => !q.needsReview && isFormalEligible(q.bankPool));
 
-  let pool = [...reviewedQuestions];
-  if (exam.randomizeQuestions) pool = shuffle(pool);
-  if (exam.numQuestions && exam.numQuestions < pool.length) {
-    pool = pool.slice(0, exam.numQuestions);
-  }
+  const pool = drawFormal(reviewedQuestions, {
+    numQuestions: exam.numQuestions,
+    criticalObjectiveIds: exam.moduleId ? await criticalObjectiveIds(exam.moduleId) : [],
+    shuffle,
+    randomize: exam.randomizeQuestions,
+    objectiveOf: (q) => q.bankObjectiveId,
+  });
   if (pool.length === 0) {
     throw httpError(400, "This examination has no published questions yet.");
   }
@@ -265,7 +276,25 @@ export async function submitAttempt(attemptId: string) {
   // Falls back to the exam's current value only for an attempt row
   // that predates this field (passMarkPercent is null on those).
   const passMarkPercent = attempt.passMarkPercent ?? exam.passMarkPercent;
-  const passed = percentage >= passMarkPercent;
+  let passed = percentage >= passMarkPercent;
+
+  // Knowledge Quest mastery gates: a module assessment is not passed unless
+  // every critical objective that was tested clears the pass mark, whatever
+  // the overall score. No critical objectives set = no change.
+  if (exam.moduleId) {
+    const critical = await criticalObjectiveIds(exam.moduleId);
+    if (critical.length > 0) {
+      const gate = evaluateGates(
+        passMarkPercent,
+        critical,
+        attempt.answers.map((a) => ({
+          objectiveId: questions.find((q) => q.id === a.questionId)?.bankObjectiveId ?? null,
+          correct: !!questions.find((q) => q.id === a.questionId)?.options.find((o) => o.isCorrect && o.key === a.selectedOptionKey),
+        }))
+      );
+      if (!gate.passed) passed = false;
+    }
+  }
 
   // M13 audit finding: this used to be a plain `attempt.update`, with
   // no protection against two near-simultaneous calls to
