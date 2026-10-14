@@ -28,3 +28,15 @@ export function applyGate2Transition(current: QuestionBankStatus | null, action:
   }
   return action === "approve" ? "APPROVED" : "REJECTED";
 }
+
+/**
+ * The single approval a person gives after the AI review (studio route). Legal from any reviewed status, a clean pass
+ * included: that is the whole point of this route, since the review ran before a person looked and a clean pass waits for them.
+ * (Gate 2 above stays as it was for the older route, where a clean pass goes live by itself.)
+ */
+export function applyReviewedTransition(current: QuestionBankStatus | null, action: GateAction): QuestionBankStatus | null {
+  if (current !== "VALIDATED_PASS" && current !== "VALIDATED_WARNING" && current !== "VALIDATED_FLAGGED" && current !== "VALIDATED_REJECTED") {
+    return null;
+  }
+  return action === "approve" ? "APPROVED" : "REJECTED";
+}

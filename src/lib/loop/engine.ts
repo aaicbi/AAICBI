@@ -7,6 +7,7 @@
  * Claude's own capacity is not narrowed here: it can discuss, analyse, draft
  * and plan anything. What it can DO is exactly the tools and actions below.
  */
+import { bankOverview } from "@/lib/quest/bank";
 import { DEFAULT_STUDIO_PERMISSIONS, STUDIO_PERMISSIONS, mayUseTool } from "@/lib/quest/permissions";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
@@ -55,6 +56,7 @@ export async function studioNote(ctx: StudioContext | undefined, scope?: LoopSco
     "You are working inside the Game Studio: a page where the admin builds games, assigns them to modules and previews them beside this chat. The studio shows your changes as soon as an action runs, so keep replies short and say what you did or what is waiting for approval.",
     "Games are built once and assigned to many modules. Formats: QUIZ (practice from the approved question bank), MATCHING, ORDERING, SCENARIO. You write items for the non-quiz formats with add_game_items (always saved as drafts); a person approves them, and approve_game_items always asks first, so suggest the admin try the preview before approving. Trainees only ever see approved items in live games.",
     "Base every item on the module's real materials and one confirmed learning objective. If the module has no confirmed objectives, write and save them first.",
+    "Practice quiz questions come from the module's question bank. The studio has a Question bank panel beside this chat where the admin sees what passed review and approves; get_bank_questions shows you the same picture.",
   ];
   if (ctx.moduleId) {
     const m = await prisma.module.findUnique({ where: { id: ctx.moduleId }, select: { title: true, course: { select: { id: true, title: true, createdById: true } } } });
@@ -85,6 +87,7 @@ How you work:
 - Ground items in the module's real materials and one confirmed learning objective. If the module has none and you may save objectives, write good objectives from its materials and save them first with save_learning_objectives.
 - Everything that changes something is an action. This chat's autonomy level is ${level} (${lv.name}): ${lv.description} After calling an action, read its result: if it says it is awaiting approval, tell the person it is waiting for them; never say it is done until it is. Never claim a change you did not make.
 - Items you write are always drafts. A person approves them, and approve_game_items always asks first. Suggest they try the preview before approving.
+- If you were allowed the question bank: generate_bank_questions (one objective at a time), then review_bank_questions (a different Claude model checks them), then get_bank_questions to show what passed and what was flagged, then approve_bank_questions, which always asks first and approves only what passed. Flagged ones are decided in the studio's Question bank panel.
 - Write in clear Markdown, short and friendly.`;
 }
 
@@ -102,7 +105,8 @@ How you work:
 - To message people: search_people if a person is named, call resolve_recipients to find who and how many, then send_message. You cannot choose recipients in send_message; they are exactly who resolve_recipients returned. If the match is ambiguous or empty, ask a clarifying question instead.
 - To set up learning objectives for a module: find_module, then read_module_materials, then write good objectives yourself from what you read and call save_learning_objectives. Then, if asked, generate_bank_questions for one objective at a time.
 - To review a trainee's messages for abuse, call get_conversation_messages. Only if what you read genuinely warrants it, call suspend_messaging. If nothing warrants it, say so.
-- The question bank has a fixed route: a generated question waits at "pending review" until a person presses Approve for validation on the module's Question bank page; then run_bank_validation checks it, a clean pass goes live as approved, and anything flagged waits for a second look on that same page. You cannot approve questions yourself. Approving a question on the Assessment page also sends a generated question to validation, it does not make it live. When asked why questions are not approved, say which step they are waiting at and where to do it.\n- When the admin wants something changed in the platform itself (a page, a button, wording, behaviour), save it with log_change_request in their own words. It only saves a proposal: they approve it on the Change requests page, and only approved requests go to Claude Code. Never tell them the change has been made.
+- Question bank, quick route (this is how practice and quiz questions get ready): find_module, then generate_bank_questions for one objective at a time (up to 10 per call; a writer model writes them), then review_bank_questions (a DIFFERENT reviewer model checks each one blind against the lesson material), then get_bank_questions to show the admin what passed and what was flagged and why, then approve_bank_questions, which ALWAYS asks the admin first and approves only the questions that passed. Approved questions are split into the practice and formal pools automatically. Flagged questions are never approved by you: the admin decides on them (approve anyway, edit or reject) in the studio's Question bank panel. Say which models wrote and reviewed when asked (get_bank_questions returns them). The older route (a person presses Approve for validation on the Question bank page, then run_bank_validation) still exists. Approving a question on the Assessment page also sends a generated question to validation; it does not make it live. When asked why questions are not approved, say which step they are waiting at.
+- When the admin wants something changed in the platform itself (a page, a button, wording, behaviour), save it with log_change_request in their own words. It only saves a proposal: they approve it on the Change requests page, and only approved requests go to Claude Code. Never tell them the change has been made.
 - When describing a change in analytics, say what changed, not why. A behavioural association is not proof of cause.
 - You can only do what your tools allow. If the admin asks for something no tool covers, say so plainly and suggest how they can do it themselves.
 - Write in clear Markdown: short paragraphs, lists, tables and code blocks where they help. Be concise; do not pad.`;
@@ -143,7 +147,39 @@ const GET_GAME_ITEMS_TOOL = {
 };
 
 /** Tools handled by the engine itself. */
-const ENGINE_TOOLS = [FIND_MODULE_TOOL, GET_MODULE_DETAILS_TOOL, READ_MODULE_MATERIALS_TOOL, LIST_GAMES_TOOL, GET_GAME_ITEMS_TOOL];
+const GET_BANK_QUESTIONS_TOOL = {
+  name: "get_bank_questions",
+  description: "Read a module's question bank: for each learning objective how many questions are approved, waiting for review, passed or flagged, how many more it needs, and which Claude models write and review. Also lists the questions waiting for a decision, with the reviewer's reasons for any it flagged.",
+  input_schema: { type: "object" as const, properties: { moduleQuery: { type: "string" } }, required: ["moduleQuery"] },
+};
+async function bankQuestions(query: string, scope: LoopScope) {
+  const lookup = await resolveModuleForScope(query, scope);
+  if (!lookup.module) return { found: false, ambiguousMatches: lookup.ambiguousMatches };
+  const o = await bankOverview(lookup.module.id);
+  const letter = (i: number) => String.fromCharCode(65 + i);
+  return {
+    found: true,
+    module: `${lookup.module.courseTitle} — ${lookup.module.title}`,
+    writtenBy: o.models.generator,
+    reviewedBy: o.models.reviewer,
+    reviewerIsADifferentModel: o.models.independent,
+    needsPerObjective: `${o.minimums.practice} practice + ${o.minimums.formal} formal approved questions`,
+    totals: o.totals,
+    olderQuestionsNotInTheBank: o.legacyCount,
+    objectives: o.objectives.map((x) => ({ objective: x.text, approved: x.approved, practicePool: x.practice, formalPool: x.formal, awaitingReview: x.awaiting, passedReview: x.ready, flagged: x.flagged, stillNeeds: x.need })),
+    questions: o.questions.slice(0, 30).map((q, i) => ({
+      n: i + 1,
+      objective: o.objectives.find((x) => x.id === q.objectiveId)?.text ?? null,
+      state: q.bucket === "READY" ? "passed review, waiting for approval" : q.bucket === "FLAGGED" ? "flagged, needs a decision" : "not reviewed yet",
+      question: q.text,
+      options: q.options.map((x, j) => `${letter(j)}) ${x.text}${x.isCorrect ? " (marked correct)" : ""}`),
+      reviewerConcerns: q.reasons,
+    })),
+    moreNotShown: Math.max(0, o.questions.length - 30),
+  };
+}
+
+const ENGINE_TOOLS = [FIND_MODULE_TOOL, GET_MODULE_DETAILS_TOOL, READ_MODULE_MATERIALS_TOOL, LIST_GAMES_TOOL, GET_GAME_ITEMS_TOOL, GET_BANK_QUESTIONS_TOOL];
 /** Old tools replaced by actions or by the engine's own reading tools. */
 const REPLACED = new Set(["analyze_module_materials", "generate_bank_questions", "run_bank_validation"]);
 
@@ -181,6 +217,7 @@ const TOOL_LABELS: Record<string, string> = {
   read_module_materials: "Reading the module's materials",
   list_games: "Looking at the game library",
   get_game_items: "Reading the module's game items",
+  get_bank_questions: "Reading the module's question bank",
 };
 export const toolLabel = (name: string) => TOOL_LABELS[name] ?? LOOP_ACTION_BY_NAME.get(name)?.name.replace(/_/g, " ") ?? name.replace(/_/g, " ");
 
@@ -429,6 +466,8 @@ export async function* runLoopTurn(opts: {
           content = await readMaterials(String(input.moduleQuery ?? ""), scope);
         } else if (block.name === "list_games") {
           content = await listGames(scope);
+        } else if (block.name === "get_bank_questions") {
+          content = await bankQuestions(String(input.moduleQuery ?? ""), scope);
         } else if (block.name === "get_game_items") {
           content = await gameItems(String(input.moduleQuery ?? ""), input.format, scope);
         } else if (block.name === "resolve_recipients") {

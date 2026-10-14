@@ -36,6 +36,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getModuleMaterialsText, type UsableMaterialText } from "@/lib/parsing/moduleMaterialsText";
 import { withGuidance } from "@/lib/guide/aiGuidance";
+import { asBankModelError, BankModelError, generatorModel, reviewerModel } from "@/lib/ai/bankModels";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -115,12 +116,17 @@ function stripFences(text: string): string {
 async function generateSubBatch(materialsBlock: string, objectiveText: string, count: number): Promise<GeneratedResult[]> {
   const genUserPrompt = `Learning objective:\n${objectiveText}\n\nLesson material:\n${materialsBlock}\n\nWrite ${count} distinct, non-overlapping questions testing this objective.`;
 
-  const genResponse = await client.messages.create({
-    model: "claude-sonnet-4-5",
-    max_tokens: 4000,
-    system: await withGuidance(GENERATION_SYSTEM_PROMPT, "question-writing"),
-    messages: [{ role: "user", content: genUserPrompt }],
-  });
+  let genResponse;
+  try {
+    genResponse = await client.messages.create({
+      model: generatorModel(),
+      max_tokens: 4000,
+      system: await withGuidance(GENERATION_SYSTEM_PROMPT, "question-writing"),
+      messages: [{ role: "user", content: genUserPrompt }],
+    });
+  } catch (e) {
+    throw asBankModelError(e, "generator") ?? e;
+  }
   const genText = genResponse.content.find((b) => b.type === "text");
   if (!genText || genText.type !== "text") return [];
 
@@ -145,8 +151,9 @@ async function generateSubBatch(materialsBlock: string, objectiveText: string, c
 
   let verifications: Map<number, number> | null = null;
   try {
+    // The reviewer model, never the one that wrote the questions.
     const verifyResponse = await client.messages.create({
-      model: "claude-sonnet-4-5",
+      model: reviewerModel(),
       max_tokens: 1000,
       system: VERIFICATION_SYSTEM_PROMPT,
       messages: [{ role: "user", content: verifyUserPrompt }],
@@ -159,11 +166,13 @@ async function generateSubBatch(materialsBlock: string, objectiveText: string, c
         verifications = new Map(verified.data.verifications.map((v) => [v.index, v.correct_option_index]));
       }
     }
-  } catch {
-    // A failed verification call is treated as a disagreement for
-    // every question in this sub-batch, not a pass — same fail-safe
-    // discipline as generateCourseExam.ts. `verifications` stays null,
-    // which the map below reads as "no verified index" for every item.
+  } catch (e) {
+    // Claude could not be reached (wrong model, bad key, outage): stop with a clear message rather than flagging every question
+    // as if the review had found problems. A reply that simply could not be read is different: it is treated as a
+    // disagreement for every question in this sub-batch, not a pass (same fail-safe as generateCourseExam.ts), and
+    // `verifications` stays null, which the map below reads as "no verified index" for every item.
+    const apiProblem = asBankModelError(e, "reviewer");
+    if (apiProblem) throw apiProblem;
   }
 
   return generated.data.questions.map((q, i) => {
@@ -246,6 +255,7 @@ export async function generateBankQuestionBatch(
     try {
       results = await generateSubBatch(materialsBlock, objective.text, thisSubBatchSize);
     } catch (e) {
+      if (e instanceof BankModelError) throw e;
       console.error("Loop bank question sub-batch failed:", e);
       results = [];
     }

@@ -30,6 +30,7 @@ import type { QuestionBankStatus } from "@prisma/client";
 import { getModuleMaterialsText } from "@/lib/parsing/moduleMaterialsText";
 import { findDuplicatesForBatch, saveQuestionEmbedding, embeddingsEnabled } from "@/lib/embeddings";
 import { isDuplicateMatch } from "@/lib/embeddingsCore";
+import { asBankModelError, reviewerModel } from "@/lib/ai/bankModels";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -101,7 +102,7 @@ async function runCorrectnessCheck(materialsBlock: string, questions: PendingQue
     .join("\n\n")}`;
   try {
     const response = await client.messages.create({
-      model: "claude-sonnet-4-5",
+      model: reviewerModel(),
       max_tokens: 1000,
       system: CORRECTNESS_SYSTEM_PROMPT,
       messages: [{ role: "user", content: userPrompt }],
@@ -111,10 +112,12 @@ async function runCorrectnessCheck(materialsBlock: string, questions: PendingQue
     const parsed = CorrectnessSchema.safeParse(JSON.parse(stripFences(textBlock.text)));
     if (!parsed.success) return new Map();
     return new Map(parsed.data.verifications.map((v) => [v.index, v.correct_option_index]));
-  } catch {
-    // Empty map reads as "no verified index" below — treated as a
-    // disagreement, the same fail-safe discipline as generation's own
-    // self-check.
+  } catch (e) {
+    // Claude could not be reached: stop with a clear message, change nothing. (Reading a reply that came back malformed is
+    // different: an empty map reads as "no verified index" below, treated as a disagreement, the same fail-safe as
+    // generation's own self-check.)
+    const apiProblem = asBankModelError(e, "reviewer");
+    if (apiProblem) throw apiProblem;
     return new Map();
   }
 }
@@ -135,7 +138,7 @@ async function runAlignmentCheck(questions: PendingQuestion[]): Promise<Map<numb
     .join("\n\n");
   try {
     const response = await client.messages.create({
-      model: "claude-haiku-4-5",
+      model: reviewerModel(),
       max_tokens: 1500,
       system: ALIGNMENT_SYSTEM_PROMPT,
       messages: [{ role: "user", content: userPrompt }],
@@ -145,9 +148,10 @@ async function runAlignmentCheck(questions: PendingQuestion[]): Promise<Map<numb
     const parsed = AlignmentAmbiguitySchema.safeParse(JSON.parse(stripFences(textBlock.text)));
     if (!parsed.success) return new Map();
     return new Map(parsed.data.results.map((r) => [r.index, r]));
-  } catch {
-    // Empty map below fails safe toward "needs a human look" — see the
-    // orchestrator's own fallback reasoning.
+  } catch (e) {
+    const apiProblem = asBankModelError(e, "reviewer");
+    if (apiProblem) throw apiProblem;
+    // An unreadable reply: the empty map below fails safe toward "needs a human look".
     return new Map();
   }
 }
@@ -164,6 +168,36 @@ const REVIEW_REASON_BY_STATUS: Record<string, string> = {
   VALIDATED_WARNING: "Independent validation found a likely near-duplicate — needs a second review.",
 };
 
+export interface ReviewOptions {
+  /**
+   * Which questions to check. "PENDING_VALIDATION" (the original route): a person already approved them for validation, so a
+   * clean pass goes straight to APPROVED. "PENDING_REVIEW" (the studio route): freshly generated questions are checked
+   * straight away, before a person looks, and a clean pass WAITS for the person's approval instead of going live.
+   */
+  from?: "PENDING_VALIDATION" | "PENDING_REVIEW";
+  /** Only this learning objective's questions. */
+  objectiveId?: string;
+  /** Only these questions (for example one that was just edited). */
+  questionIds?: string[];
+}
+
+/** Questions checked per call on the studio route: one reviewer batch, so a request stays well inside the function time limit. */
+export const REVIEW_BATCH_SIZE = 10;
+
+const PASS_WAITING_REASON = "Passed the independent AI review. Waiting for your approval.";
+
+export interface ReviewResult {
+  validated: number;
+  passed: number;
+  needsReview: number;
+  remaining: number;
+}
+
+/** Checks freshly generated questions with the reviewer model and leaves every verdict for a person to approve. */
+export function reviewGeneratedQuestions(moduleId: string, requestedCount: number, scope: { objectiveId?: string; questionIds?: string[] } = {}): Promise<ReviewResult> {
+  return validateBankQuestionBatch(moduleId, Math.min(requestedCount, REVIEW_BATCH_SIZE), { from: "PENDING_REVIEW", ...scope });
+}
+
 /**
  * The full Loop-triggered (or plain-button-triggered) action. Pulls up
  * to `requestedCount` (capped at VALIDATION_BATCH_SIZE per call — same
@@ -171,17 +205,15 @@ const REVIEW_REASON_BY_STATUS: Record<string, string> = {
  * questions for a module, runs all three checks, and writes the
  * resulting status — auto-promoting a clean pass straight to APPROVED.
  */
-export async function validateBankQuestionBatch(
-  moduleId: string,
-  requestedCount: number
-): Promise<{ validated: number; passed: number; needsReview: number; remaining: number }> {
+export async function validateBankQuestionBatch(moduleId: string, requestedCount: number, opts: ReviewOptions = {}): Promise<ReviewResult> {
+  const from = opts.from ?? "PENDING_VALIDATION";
   const exam = await prisma.exam.findUnique({ where: { moduleId }, select: { id: true } });
   if (!exam) {
     return { validated: 0, passed: 0, needsReview: 0, remaining: 0 };
   }
 
   const pending = await prisma.question.findMany({
-    where: { examId: exam.id, bankStatus: "PENDING_VALIDATION" },
+    where: { examId: exam.id, bankStatus: from, ...(opts.objectiveId ? { bankObjectiveId: opts.objectiveId } : {}), ...(opts.questionIds ? { id: { in: opts.questionIds } } : {}) },
     select: {
       id: true,
       text: true,
@@ -258,9 +290,10 @@ export async function validateBankQuestionBatch(
         // Honest, not silently treated as "confirmed unique" — see
         // this file's own top comment.
         duplicateCheckSkipped: !embeddingsEnabled(),
+        reviewedBy: reviewerModel(),
       };
 
-      if (status === "VALIDATED_PASS") {
+      if (status === "VALIDATED_PASS" && from === "PENDING_VALIDATION") {
         await prisma.question.update({
           where: { id: q.id },
           data: { bankStatus: "APPROVED", needsReview: false, reviewReason: null },
@@ -279,6 +312,13 @@ export async function validateBankQuestionBatch(
           ],
         });
         passedCount++;
+      } else if (status === "VALIDATED_PASS") {
+        // Studio route: the review passed, and now it is the person's turn. It stays out of exams and practice until approved.
+        await prisma.question.update({ where: { id: q.id }, data: { bankStatus: "VALIDATED_PASS", reviewReason: PASS_WAITING_REASON } });
+        await prisma.questionBankEvent.create({
+          data: { questionId: q.id, fromStatus: from, toStatus: "VALIDATED_PASS", kind: "INDEPENDENT_REVIEW_PASS", detail, actedById: null },
+        });
+        passedCount++;
       } else {
         await prisma.question.update({
           where: { id: q.id },
@@ -287,7 +327,7 @@ export async function validateBankQuestionBatch(
         await prisma.questionBankEvent.create({
           data: {
             questionId: q.id,
-            fromStatus: "PENDING_VALIDATION",
+            fromStatus: from,
             toStatus: status,
             kind: EVENT_KIND_BY_STATUS[status] ?? "INDEPENDENT_VALIDATION_FLAGGED",
             detail,
@@ -299,10 +339,8 @@ export async function validateBankQuestionBatch(
     }
   }
 
-  return {
-    validated: passedCount + flaggedCount,
-    passed: passedCount,
-    needsReview: flaggedCount,
-    remaining: Math.max(0, requestedCount - (passedCount + flaggedCount)),
-  };
+  const remaining = await prisma.question.count({
+    where: { examId: exam.id, bankStatus: from, ...(opts.objectiveId ? { bankObjectiveId: opts.objectiveId } : {}), ...(opts.questionIds ? { id: { in: opts.questionIds } } : {}) },
+  });
+  return { validated: passedCount + flaggedCount, passed: passedCount, needsReview: flaggedCount, remaining };
 }
