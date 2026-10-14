@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { requireOwnedQuestion } from "@/lib/courseOwnership";
 import { guardQuestionDeletable } from "@/lib/deletionGuards";
+import { applyGate1Transition, applyGate2Transition } from "@/lib/questionBank/transitions";
 import { embedTexts, embeddingSourceText, saveQuestionEmbedding } from "@/lib/embeddings";
 
 const OptionUpdateSchema = z.object({
@@ -21,6 +22,10 @@ const UpdateQuestionSchema = z.object({
   approve: z.boolean().optional(), // shorthand for clearing needsReview after admin fixes it
 });
 
+async function currentBankStatus(id: string) {
+  return (await prisma.question.findUnique({ where: { id }, select: { bankStatus: true } }))?.bankStatus ?? null;
+}
+
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
@@ -31,6 +36,25 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
     const { options, approve, ...questionFields } = parsed.data;
+
+    // An AI-generated bank question is approved by walking it through the bank's two gates, never by clearing its review
+    // flag directly: that would put it in exams without the independent validation, while the bank, the studio and the
+    // practice pools (which count only fully approved questions) would still see it as unapproved.
+    let bankMove: { from: NonNullable<Awaited<ReturnType<typeof currentBankStatus>>>; to: "PENDING_VALIDATION" | "APPROVED" } | null = null;
+    if (approve) {
+      const current = await currentBankStatus(params.id);
+      if (current && current !== "APPROVED") {
+        if (session.role !== "SUPER_ADMIN") {
+          return NextResponse.json({ error: "AI-generated bank questions are reviewed by a Super Admin on the Question bank page." }, { status: 403 });
+        }
+        const next = current === "PENDING_REVIEW" ? applyGate1Transition(current, "approve") : applyGate2Transition(current, "approve");
+        if (!next) {
+          const why = current === "PENDING_VALIDATION" || current === "VALIDATED_PASS" ? "It is waiting for validation. Run validation from the Question bank page, or ask Loop to." : "It was rejected, so it can't be approved.";
+          return NextResponse.json({ error: why }, { status: 409 });
+        }
+        bankMove = { from: current, to: next as "PENDING_VALIDATION" | "APPROVED" };
+      }
+    }
 
     if (options) {
       if (!options.some((o) => o.isCorrect)) {
@@ -55,10 +79,23 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       where: { id: params.id },
       data: {
         ...questionFields,
-        ...(approve ? { needsReview: false, reviewReason: null } : {}),
+        ...(bankMove ? { bankStatus: bankMove.to } : {}),
+        // A bank question keeps its review flag until it reaches APPROVED; any other question is approved by clearing it.
+        ...(approve && (!bankMove || bankMove.to === "APPROVED") ? { needsReview: false, reviewReason: null } : {}),
       },
       include: { options: true },
     });
+    if (bankMove) {
+      await prisma.questionBankEvent.create({
+        data: {
+          questionId: params.id,
+          fromStatus: bankMove.from,
+          toStatus: bankMove.to,
+          kind: bankMove.to === "APPROVED" ? "GATE2_APPROVED" : "GATE1_APPROVED",
+          actedById: session.userId,
+        },
+      });
+    }
 
     // M11 audit finding: editing a question's text or options never
     // recomputed its stored embedding, which meant a question's
