@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireStudioUser, requireStudioGame, requireStudioModule } from "@/lib/quest/studioAccess";
+import { requireStudioUser, requireStudioGame, requireStudioModule, requireStudioPermission } from "@/lib/quest/studioAccess";
 import { withApiErrors } from "@/lib/apiError";
 import { assignGame } from "@/lib/quest/studio";
 
@@ -10,6 +10,7 @@ const Body = z.object({ moduleId: z.string().min(1), assigned: z.boolean(), live
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireStudioUser();
+    requireStudioPermission(session, "ASSIGN");
     await requireStudioGame(params.id, session);
     const parsed = Body.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Choose a module." }, { status: 400 });

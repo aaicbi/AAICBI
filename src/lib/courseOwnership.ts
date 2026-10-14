@@ -92,18 +92,21 @@ export async function requireOwnedMaterial(materialId: string, userId: string, r
 // already worked before this fix (requireOwnedCourse has never granted
 // one either) — introducing a bypass only for exams would be a new,
 // asymmetric behavior, not a restoration of an old one.
-export async function requireOwnedExam(examId: string, userId: string) {
+export async function requireOwnedExam(examId: string, userId: string, role?: string) {
   const exam = await prisma.exam.findUnique({ where: { id: examId } });
-  if (!exam || !(await examAccess(exam, userId))) throw notFound("Examination not found.");
+  if (!exam) throw notFound("Examination not found.");
+  if (role !== "SUPER_ADMIN" && !(await examAccess(exam, userId))) throw notFound("Examination not found.");
   return exam;
 }
 
-export async function requireOwnedQuestion(questionId: string, userId: string) {
+// A Super Admin may review (edit or approve) any question; pass `role` where that applies.
+export async function requireOwnedQuestion(questionId: string, userId: string, role?: string) {
   const question = await prisma.question.findUnique({
     where: { id: questionId },
     include: { exam: true },
   });
-  if (!question || !(await examAccess(question.exam, userId))) throw notFound("Question not found.");
+  if (!question) throw notFound("Question not found.");
+  if (role !== "SUPER_ADMIN" && !(await examAccess(question.exam, userId))) throw notFound("Question not found.");
   return question;
 }
 

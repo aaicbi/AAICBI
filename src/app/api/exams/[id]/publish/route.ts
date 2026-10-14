@@ -13,7 +13,7 @@ import { requireOwnedExam } from "@/lib/courseOwnership";
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    const owned = await requireOwnedExam(params.id, session.userId); // M11 audit finding — see courseOwnership.ts
+    const owned = await requireOwnedExam(params.id, session.userId, session.role); // M11 audit finding — see courseOwnership.ts
     if (owned.createdById !== session.userId) return NextResponse.json({ error: "Only the owner of this examination can publish it." }, { status: 403 });
 
     const exam = await prisma.exam.findUniqueOrThrow({

@@ -22,7 +22,7 @@ const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_BYTES ?? 10 * 1024 * 1024
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    const exam = await requireOwnedExam(params.id, session.userId); // M11 audit finding — see courseOwnership.ts
+    const exam = await requireOwnedExam(params.id, session.userId, session.role); // M11 audit finding — see courseOwnership.ts
 
     const formData = await req.formData();
     const file = formData.get("file");

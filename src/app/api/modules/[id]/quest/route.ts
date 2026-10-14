@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth/session";
+import { requireStudioUser, requireStudioPermission } from "@/lib/quest/studioAccess";
 import { withApiErrors } from "@/lib/apiError";
 import { requireOwnedModule } from "@/lib/courseOwnership";
 import { QuestAdminError, applyQuestSettings, autoSplitPools, questSnapshot, setQuestionPool } from "@/lib/quest/admin";
@@ -31,7 +32,8 @@ const SettingsBody = z.object({
 /** PUT — settings, rewards and critical objectives. Practice can't go live until both pools are big enough. */
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
-    const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
+    const session = await requireStudioUser();
+    requireStudioPermission(session, "QUESTIONS");
     await requireOwnedModule(params.id, session.userId, session.role);
     const parsed = SettingsBody.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) return NextResponse.json({ error: "Invalid settings." }, { status: 400 });
@@ -53,7 +55,8 @@ const PostBody = z.discriminatedUnion("action", [
 /** POST — tag questions into a pool, or split every untagged approved question automatically. */
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
-    const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
+    const session = await requireStudioUser();
+    requireStudioPermission(session, "QUESTIONS");
     await requireOwnedModule(params.id, session.userId, session.role);
     const parsed = PostBody.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) return NextResponse.json({ error: "Invalid request." }, { status: 400 });

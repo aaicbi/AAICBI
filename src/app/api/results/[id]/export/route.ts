@@ -26,7 +26,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       const exam = await prisma.exam.findUnique({ where: { id: params.id }, select: { id: true } });
       if (!exam) return NextResponse.json({ error: "Examination not found." }, { status: 404 });
     } else {
-      await requireOwnedExam(params.id, session.userId);
+      await requireOwnedExam(params.id, session.userId, session.role);
     }
 
     const attempts = await prisma.attempt.findMany({

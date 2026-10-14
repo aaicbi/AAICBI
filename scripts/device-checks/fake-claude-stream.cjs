@@ -54,6 +54,14 @@ http.createServer((req, res) => {
         { prompt: 'Too few pairs', pairs: [{ left: 'Only', right: 'One' }] } ] }, j.model, 'tu_add');
       return textReply(res, /awaitingApproval/.test(lastResult) ? 'I wrote the items and they are waiting for your approval.' : 'I added the draft items. Try them in the preview, then approve.', j.model);
     }
+    if ((m = text.match(/REQ:([A-Za-z0-9 ]+?)(?:\.|$|\n)/))) {
+      if (stage === 0) return toolReply(res, 'log_change_request', { title: m[1].trim(), details: 'Please change this page so the list shows module numbers.', page: '/admin/studio' }, j.model, 'tu_req');
+      return textReply(res, /awaitingApproval/.test(lastResult) ? 'The request is waiting for your approval.' : 'Saved as a change request. Approve it on the Change requests page.', j.model);
+    }
+    if ((m = text.match(/PEOPLE:([A-Za-z0-9 ]+?)(?:\.|$|\n)/))) {
+      if (stage === 0) return toolReply(res, 'search_people', { query: m[1].trim() }, j.model, 'tu_sp');
+      return textReply(res, /permission/.test(lastResult) ? 'I am not allowed to look people up for you.' : 'Here are the people I found.', j.model);
+    }
     if ((m = text.match(/APPROVE:([A-Za-z0-9 ]+?)(?:\.|$|\n)/))) {
       if (stage === 0) return toolReply(res, 'approve_game_items', { moduleQuery: m[1].trim(), format: 'MATCHING' }, j.model, 'tu_ap');
       return textReply(res, /awaitingApproval/.test(lastResult) ? 'The approval is waiting for you.' : 'Approved.', j.model);

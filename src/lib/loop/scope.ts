@@ -3,6 +3,7 @@
  * instructors see only modules of courses they own or were invited to edit, and games they made.
  * Every module and game lookup Loop does goes through here so the limit cannot be skipped by one tool.
  */
+import type { StudioPermission } from "@/lib/quest/permissions";
 import { prisma } from "@/lib/prisma";
 import { courseAccess } from "@/lib/collab/access";
 import { resolveModuleByQuery, type ResolveModuleResult } from "@/lib/loop/moduleLookup";
@@ -11,6 +12,8 @@ export interface LoopScope {
   userId: string;
   role: string;
   isSuper: boolean;
+  /** What this person may do in the studio. Left out for a Super Admin, who may do everything. */
+  permissions?: StudioPermission[];
 }
 
 /** Like resolveModuleByQuery, but for a limited person only the modules they may work on can match. */

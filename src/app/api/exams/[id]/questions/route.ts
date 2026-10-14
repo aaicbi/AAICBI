@@ -24,7 +24,7 @@ const BulkDeleteSchema = z.object({ questionIds: z.array(z.string()).min(1).max(
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedExam(params.id, session.userId); // M11 audit finding — see courseOwnership.ts
+    await requireOwnedExam(params.id, session.userId, session.role); // M11 audit finding — see courseOwnership.ts
     const body = await req.json();
     const parsed = CreateQuestionSchema.safeParse(body);
     if (!parsed.success) {
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedExam(params.id, session.userId); // M11 audit finding — see courseOwnership.ts
+    await requireOwnedExam(params.id, session.userId, session.role); // M11 audit finding — see courseOwnership.ts
 
     const body = await req.json().catch(() => null);
     const parsed = BulkDeleteSchema.safeParse(body);

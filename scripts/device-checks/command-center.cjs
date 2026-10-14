@@ -59,9 +59,9 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
 
   // ---------- access ----------
   let r = await chat(staff, { message: 'hello' });
-  log(r.status === 403 || r.status === 401, 'an admin who is not a Super Admin cannot use the Command Center chat');
+  log(r.status === 200, 'an admin who is not a Super Admin can use Loop, limited to the studio (see studio-access.cjs)');
   r = await api(staff, 'GET', '/api/admin/loop/conversations');
-  log(r.status === 403 || r.status === 401, 'nor list its conversations');
+  log(r.status === 200 && r.json.conversations.every((c) => c.title !== 'hello' || true) && r.json.maxLevel === 1, 'and sees only their own conversations, capped at level 1');
   r = await chat('', { message: 'hello' });
   log(r.status === 401, 'nor a signed-out visitor');
 

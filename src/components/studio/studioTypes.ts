@@ -24,6 +24,8 @@ export interface StudioCourse {
 }
 
 export interface StudioOverview {
+  /** What the signed-in person may do (all of it for a Super Admin). */
+  permissions: string[];
   games: StudioGame[];
   courses: StudioCourse[];
   formats: { format: GameFormat; label: string; blurb: string; itemNoun: string }[];

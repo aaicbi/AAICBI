@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireStudioUser, requireStudioGame, requireStudioModule } from "@/lib/quest/studioAccess";
+import { requireStudioUser, requireStudioGame, requireStudioModule, requireStudioPermission } from "@/lib/quest/studioAccess";
 import { withApiErrors } from "@/lib/apiError";
 import { createItem } from "@/lib/quest/studio";
 
@@ -10,6 +10,7 @@ const Body = z.object({ objectiveId: z.string().min(1), format: z.string(), cont
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireStudioUser();
+    requireStudioPermission(session, "ITEMS");
     await requireStudioModule(params.id, session);
     const parsed = Body.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Choose an objective and a format." }, { status: 400 });

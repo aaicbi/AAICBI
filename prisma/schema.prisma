@@ -365,6 +365,10 @@ model User {
   // The highest autonomy level (1 ask first, 2 balanced, 3 autonomous) this person may use in Loop.
   // A Super Admin is always allowed 3; everyone else starts at 1 until a Super Admin raises it.
   loopMaxLevel      Int                 @default(1)
+  // What this person may do in the Game Studio (a list of permission keys, see src/lib/quest/permissions.ts).
+  // Null = the default set (everything the studio offers staff); a Super Admin can narrow it per person.
+  studioPermissions Json?
+  changeRequests    ChangeRequest[]     @relation("ChangeRequestAuthor")
   loopConversations LoopConversation[]
   loopActions       LoopPendingAction[]
   games             Game[]
@@ -5533,4 +5537,39 @@ model OrgActivity {
   createdAt   DateTime @default(now())
 
   @@index([orgUserId, createdAt])
+}
+
+
+// A change someone asks Claude Code to make to the platform. Anyone on staff may propose one; only a Super Admin
+// approves it. An approved request is the only thing Claude Code is meant to act on, and it is acted on through a
+// pull request that a person reviews and merges.
+enum ChangeRequestStatus {
+  PROPOSED
+  APPROVED
+  DONE
+  DECLINED
+}
+
+model ChangeRequest {
+  id           String              @id @default(cuid())
+  title        String
+  details      String
+  // Where in the platform it applies, in the person's words or as a path, e.g. "/admin/studio".
+  page         String?
+  status       ChangeRequestStatus @default(PROPOSED)
+  authorId     String
+  author       User                @relation("ChangeRequestAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  decidedById  String?
+  decidedAt    DateTime?
+  // The Super Admin's note when approving, declining or finishing (what was agreed, or why not).
+  decisionNote String?
+  // Set when a GitHub issue was opened for it (only if the platform is configured to do that).
+  issueUrl     String?
+  // The pull request that carried it out.
+  prUrl        String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([status, createdAt])
+  @@index([authorId])
 }
