@@ -71,3 +71,13 @@ export function reasonsFromDetail(detail: unknown): string[] {
 export function questionsNeeded(inPipeline: number, minimums: { practice: number; formal: number } = QUEST_DEFAULTS.poolMinimum): number {
   return Math.max(0, minimums.practice + minimums.formal - inPipeline);
 }
+
+export type BankPool = "PRACTICE" | "FORMAL";
+
+/** What each side of the bank is for, in the words people see. */
+export const POOL_LABEL: Record<BankPool, string> = { PRACTICE: "Games and practice", FORMAL: "Assessment" };
+
+/** How many more questions one side of the bank needs for one objective, counting everything already written for that side. */
+export function poolNeed(pool: BankPool, inPipeline: number, minimums: { practice: number; formal: number } = QUEST_DEFAULTS.poolMinimum): number {
+  return Math.max(0, (pool === "PRACTICE" ? minimums.practice : minimums.formal) - inPipeline);
+}

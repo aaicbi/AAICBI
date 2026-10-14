@@ -13,7 +13,7 @@ import { reviewGeneratedQuestions } from "@/lib/ai/validateBankQuestions";
 import { applyReviewedTransition } from "@/lib/questionBank/transitions";
 import { autoSplitPools } from "@/lib/quest/admin";
 import { QUEST_DEFAULTS } from "@/lib/quest/core";
-import { bucketOf, questionsNeeded, reasonsFromDetail, type BankBucket } from "@/lib/quest/bankCore";
+import { bucketOf, poolNeed, reasonsFromDetail, type BankBucket, type BankPool } from "@/lib/quest/bankCore";
 
 export class BankError extends Error {
   constructor(message: string, public status = 400) {
@@ -32,6 +32,8 @@ export interface BankQuestionView {
   id: string;
   objectiveId: string | null;
   bucket: BankBucket;
+  /** What it is for: games and practice, the assessment, or not chosen yet (older questions). */
+  pool: BankPool | null;
   text: string;
   options: { text: string; isCorrect: boolean }[];
   explanation: string | null;
@@ -83,6 +85,7 @@ export async function bankOverview(moduleId: string) {
       id: r.id,
       objectiveId: r.bankObjectiveId,
       bucket: bucketOf(r.bankStatus) as BankBucket,
+      pool: r.bankPool,
       text: r.text,
       options: r.options,
       explanation: r.explanation,
@@ -91,24 +94,39 @@ export async function bankOverview(moduleId: string) {
     };
   });
 
-  const count = (id: string, b: BankBucket) => generated.filter((r) => r.bankObjectiveId === id && bucketOf(r.bankStatus) === b).length;
+  const inBucket = (id: string, b: BankBucket, pool?: BankPool | null) =>
+    generated.filter((r) => r.bankObjectiveId === id && bucketOf(r.bankStatus) === b && (pool === undefined || r.bankPool === pool)).length;
+  const inPipeline = (id: string, pool: BankPool) => generated.filter((r) => r.bankObjectiveId === id && r.bankPool === pool && ["APPROVED", "AWAITING_REVIEW", "READY", "FLAGGED"].includes(bucketOf(r.bankStatus) as string)).length;
   const perObjective = objectives.map((o) => {
-    const approved = count(o.id, "APPROVED");
-    const awaiting = count(o.id, "AWAITING_REVIEW");
-    const ready = count(o.id, "READY");
-    const flagged = count(o.id, "FLAGGED");
+    const side = (pool: BankPool) => ({
+      approved: inBucket(o.id, "APPROVED", pool),
+      awaiting: inBucket(o.id, "AWAITING_REVIEW", pool),
+      ready: inBucket(o.id, "READY", pool),
+      flagged: inBucket(o.id, "FLAGGED", pool),
+      need: poolNeed(pool, inPipeline(o.id, pool)),
+    });
+    const practice = side("PRACTICE");
+    const formal = side("FORMAL");
     return {
       id: o.id,
       text: o.text,
-      approved,
-      practice: generated.filter((r) => r.bankObjectiveId === o.id && bucketOf(r.bankStatus) === "APPROVED" && r.bankPool === "PRACTICE").length,
-      formal: generated.filter((r) => r.bankObjectiveId === o.id && bucketOf(r.bankStatus) === "APPROVED" && r.bankPool === "FORMAL").length,
-      awaiting,
-      ready,
-      flagged,
-      need: questionsNeeded(approved + awaiting + ready + flagged),
+      approved: inBucket(o.id, "APPROVED"),
+      // Kept for Loop and older screens: approved per side.
+      practice: practice.approved,
+      formal: formal.approved,
+      awaiting: inBucket(o.id, "AWAITING_REVIEW"),
+      ready: inBucket(o.id, "READY"),
+      flagged: inBucket(o.id, "FLAGGED"),
+      need: practice.need + formal.need,
+      sides: { PRACTICE: practice, FORMAL: formal },
+      unassigned: generated.filter((r) => r.bankObjectiveId === o.id && r.bankPool === null && ["APPROVED", "AWAITING_REVIEW", "READY", "FLAGGED"].includes(bucketOf(r.bankStatus) as string)).length,
     };
   });
+
+  // Approved questions, so the other side can borrow one on purpose.
+  const approvedQuestions = generated
+    .filter((r) => r.bankStatus === "APPROVED")
+    .map((r) => ({ id: r.id, objectiveId: r.bankObjectiveId, pool: r.bankPool, text: r.text, options: r.options }));
 
   const total = (b: BankBucket) => questions.filter((q) => q.bucket === b).length;
   return {
@@ -116,16 +134,17 @@ export async function bankOverview(moduleId: string) {
     minimums: QUEST_DEFAULTS.poolMinimum,
     objectives: perObjective,
     questions,
+    approvedQuestions,
     legacyCount,
     totals: { awaiting: total("AWAITING_REVIEW"), ready: total("READY"), flagged: total("FLAGGED"), approved: generated.filter((r) => r.bankStatus === "APPROVED").length },
   };
 }
 
 /** Writes up to GENERATE_PER_REQUEST questions for one learning objective. */
-export async function generateQuestions(moduleId: string, userId: string, input: { objectiveId: string; count: number }) {
+export async function generateQuestions(moduleId: string, userId: string, input: { objectiveId: string; count: number; pool?: BankPool | null }) {
   const count = Math.max(1, Math.min(Math.floor(input.count) || 1, GENERATE_PER_REQUEST));
   try {
-    const r = await generateBankQuestionBatch(moduleId, input.objectiveId, userId, count);
+    const r = await generateBankQuestionBatch(moduleId, input.objectiveId, userId, count, input.pool ?? null);
     // Nothing saved is a failure to report, never a quiet "failed: 10".
     if (r.generated === 0) throw new BankError(r.problem ?? "No questions came back. Try again.", 502);
     return r;
@@ -137,7 +156,7 @@ export async function generateQuestions(moduleId: string, userId: string, input:
 }
 
 /** Has the reviewer model check the next batch of freshly written questions. Call again while `remaining` is above zero. */
-export async function reviewQuestions(moduleId: string, scope: { objectiveId?: string } = {}) {
+export async function reviewQuestions(moduleId: string, scope: { objectiveId?: string; questionIds?: string[] } = {}) {
   try {
     return await reviewGeneratedQuestions(moduleId, 10, scope);
   } catch (e) {
@@ -146,12 +165,12 @@ export async function reviewQuestions(moduleId: string, scope: { objectiveId?: s
   }
 }
 
-async function reviewedQuestionsIn(moduleId: string, filter: { ids?: string[]; passedOnly?: boolean }) {
+async function reviewedQuestionsIn(moduleId: string, filter: { ids?: string[]; passedOnly?: boolean; pool?: BankPool }) {
   const examId = await examIdFor(moduleId);
   if (!examId) return [];
   const statuses = filter.passedOnly ? (["VALIDATED_PASS"] as const) : (["VALIDATED_PASS", "VALIDATED_WARNING", "VALIDATED_FLAGGED", "VALIDATED_REJECTED"] as const);
   return prisma.question.findMany({
-    where: { examId, bankStatus: { in: [...statuses] }, ...(filter.ids ? { id: { in: filter.ids } } : {}) },
+    where: { examId, bankStatus: { in: [...statuses] }, ...(filter.ids ? { id: { in: filter.ids } } : {}), ...(filter.pool ? { bankPool: filter.pool } : {}) },
     select: { id: true, bankStatus: true },
   });
 }
@@ -161,9 +180,9 @@ async function reviewedQuestionsIn(moduleId: string, filter: { ids?: string[]; p
  * those questions, flagged ones included (a deliberate choice for each). Approved questions are split into the practice and
  * formal pools straight away.
  */
-export async function approveQuestions(moduleId: string, userId: string, input: { ids?: string[]; allPassed?: boolean }) {
+export async function approveQuestions(moduleId: string, userId: string, input: { ids?: string[]; allPassed?: boolean; pool?: BankPool }) {
   if (!input.allPassed && !(input.ids && input.ids.length)) throw new BankError("Choose which questions to approve.");
-  const rows = await reviewedQuestionsIn(moduleId, { ids: input.allPassed ? undefined : input.ids, passedOnly: !!input.allPassed });
+  const rows = await reviewedQuestionsIn(moduleId, { ids: input.allPassed ? undefined : input.ids, passedOnly: !!input.allPassed, pool: input.allPassed ? input.pool : undefined });
   let approved = 0;
   for (const r of rows) {
     const next = applyReviewedTransition(r.bankStatus, "approve");
@@ -209,4 +228,60 @@ export async function editQuestion(moduleId: string, userId: string, id: string,
     throw e;
   }
   return { ok: true as const };
+}
+
+const LIVE_STATES = ["PENDING_REVIEW", "VALIDATED_PASS", "VALIDATED_WARNING", "VALIDATED_FLAGGED", "VALIDATED_REJECTED", "APPROVED"] as const;
+
+/** Chooses what questions are for: games and practice, or the assessment. For questions that have no purpose yet, or to move one. */
+export async function assignQuestions(moduleId: string, userId: string, input: { ids?: string[]; allUnassigned?: boolean; pool: BankPool }) {
+  const examId = await examIdFor(moduleId);
+  if (!examId) return { assigned: 0 };
+  if (!input.allUnassigned && !(input.ids && input.ids.length)) throw new BankError("Choose which questions to move.");
+  const where = { examId, bankStatus: { in: [...LIVE_STATES] }, ...(input.allUnassigned ? { bankPool: null } : { id: { in: input.ids } }) };
+  const rows = await prisma.question.findMany({ where, select: { id: true, bankStatus: true } });
+  if (rows.length === 0) return { assigned: 0 };
+  await prisma.question.updateMany({ where: { id: { in: rows.map((r) => r.id) } }, data: { bankPool: input.pool } });
+  for (const r of rows) await prisma.questionBankEvent.create({ data: { questionId: r.id, fromStatus: r.bankStatus, toStatus: r.bankStatus ?? "APPROVED", kind: "POOL_ASSIGNED", note: input.pool === "PRACTICE" ? "Set for games and practice" : "Set for the assessment", actedById: userId } });
+  return { assigned: rows.length };
+}
+
+/**
+ * Lends an approved question to the other side on purpose: it becomes a separate, already-approved copy there, so editing or
+ * retiring one never changes the other. A copy is skipped if that side already has a question with the same wording.
+ */
+export async function copyQuestions(moduleId: string, userId: string, input: { ids: string[]; to: BankPool }) {
+  const examId = await examIdFor(moduleId);
+  if (!examId) return { copied: 0, skipped: 0 };
+  if (!input.ids.length) throw new BankError("Choose which questions to copy.");
+  const rows = await prisma.question.findMany({
+    where: { examId, id: { in: input.ids.slice(0, 50) }, bankStatus: "APPROVED", NOT: { bankPool: input.to } },
+    select: { id: true, text: true, topic: true, explanation: true, bankObjectiveId: true, options: { select: { text: true, isCorrect: true, key: true, order: true } }, sourceMaterials: { select: { materialId: true } } },
+  });
+  const existing = new Set((await prisma.question.findMany({ where: { examId, bankPool: input.to, bankStatus: "APPROVED" }, select: { text: true } })).map((q) => q.text.trim().toLowerCase()));
+  let copied = 0;
+  let skipped = 0;
+  for (const r of rows) {
+    if (existing.has(r.text.trim().toLowerCase())) {
+      skipped++;
+      continue;
+    }
+    const made = await prisma.question.create({
+      data: {
+        examId,
+        text: r.text,
+        topic: r.topic,
+        explanation: r.explanation,
+        needsReview: false,
+        bankStatus: "APPROVED",
+        bankObjectiveId: r.bankObjectiveId,
+        bankPool: input.to,
+        options: { create: r.options.map((o) => ({ text: o.text, isCorrect: o.isCorrect, key: o.key, order: o.order })) },
+        sourceMaterials: { create: r.sourceMaterials.map((m) => ({ materialId: m.materialId })) },
+      },
+    });
+    await prisma.questionBankEvent.create({ data: { questionId: made.id, fromStatus: null, toStatus: "APPROVED", kind: "COPIED_TO_OTHER_SIDE", note: `Copied from question ${r.id}`, actedById: userId } });
+    copied++;
+  }
+  skipped += Math.max(0, input.ids.length - rows.length);
+  return { copied, skipped };
 }
