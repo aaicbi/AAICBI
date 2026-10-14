@@ -225,7 +225,9 @@ export async function generateBankQuestionBatch(
   moduleId: string,
   objectiveId: string,
   staffUserId: string,
-  requestedCount: number
+  requestedCount: number,
+  /** What the questions are for. Set on creation so games and the assessment never share a question by accident. */
+  pool: "PRACTICE" | "FORMAL" | null = null
 ): Promise<{ generated: number; failed: number; remaining: number; problem: string | null }> {
   const objective = await prisma.moduleLearningObjective.findFirst({
     where: { id: objectiveId, moduleId },
@@ -301,6 +303,7 @@ export async function generateBankQuestionBatch(
           reviewReason: result.reviewReason,
           bankStatus: "PENDING_REVIEW",
           bankObjectiveId: objective.id,
+          bankPool: pool,
           options: {
             create: result.options.map((o, i) => ({ text: o.text, isCorrect: o.isCorrect, key: String.fromCharCode(65 + i) })),
           },

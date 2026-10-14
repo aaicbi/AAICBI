@@ -64,7 +64,7 @@ const DETAIL = (extra = {}) => ({ correctness: { agrees: false, verifiedOptionIn
   const o1 = r.json.objectives.find((o) => o.id === W.o1.id); const o2 = r.json.objectives.find((o) => o.id === W.o2.id);
   log(r.status === 200 && r.json.models.independent === true && r.json.models.generator !== r.json.models.reviewer, 'one model writes and a different model reviews');
   log(r.json.totals.ready === 4 && r.json.totals.flagged === 1 && r.json.totals.awaiting === 1 && r.json.legacyCount === 1, 'the bank counts what passed, what was flagged, what waits, and older questions');
-  log(o1.need === 10 && o2.need === 0, 'it works out how many more questions each objective needs');
+  log(o1.need === 16 && o1.unassigned === 6 && o2.need === 0 && o2.sides.PRACTICE.approved === 10 && o2.sides.FORMAL.approved === 6, 'it works out what each side of each objective still needs, and which questions have no purpose yet');
   const fq = r.json.questions.find((q) => q.id === flagged.id);
   log(fq.bucket === 'FLAGGED' && /option B/.test(fq.reasons[0]) && fq.reviewedBy === 'claude-opus-5-5', 'a flagged question says why, in plain words, and which model reviewed it');
 
@@ -123,7 +123,7 @@ const DETAIL = (extra = {}) => ({ correctness: { agrees: false, verifiedOptionIn
 
   // ---------- staff: permission and scope ----------
   const SW = await world('Bank staff course', 'Bank staff module', staffUser);
-  const sq = await SW.mk(SW.o1, 'Staff passed question about triggers?', 'VALIDATED_PASS');
+  const sq = await SW.mk(SW.o1, 'Staff passed question about triggers?', 'VALIDATED_PASS', { bankPool: 'PRACTICE' });
   r = await api(staff, 'POST', `/api/admin/studio/modules/${SW.mod.id}/bank`, { action: 'approve', allPassed: true });
   log(r.status === 403, 'staff need the question-bank permission to approve, even on their own module');
   r = await chat(staff, { message: 'BANK:Bank staff module', level: 1, studio: { moduleId: SW.mod.id, gameId: null } });
@@ -141,8 +141,10 @@ const DETAIL = (extra = {}) => ({ correctness: { agrees: false, verifiedOptionIn
   log(r.status === 404, 'but never another person’s');
 
   // ---------- the studio panel ----------
-  for (let i = 1; i <= 3; i++) await W.mk(W.o1, `UI passed question ${i} about triggers?`, 'VALIDATED_PASS');
-  const uiFlag = await W.mk(W.o1, 'FLAGME-WRONG ui flagged question?', 'VALIDATED_FLAGGED');
+  for (let i = 1; i <= 3; i++) await W.mk(W.o1, `UI passed question ${i} about triggers?`, 'VALIDATED_PASS', { bankPool: 'PRACTICE' });
+  await W.mk(W.o1, 'Old untagged question about triggers?', 'VALIDATED_PASS');
+  await W.mk(W.o1, 'UI assessment-only passed question about triggers?', 'VALIDATED_PASS', { bankPool: 'FORMAL' });
+  const uiFlag = await W.mk(W.o1, 'FLAGME-WRONG ui flagged question?', 'VALIDATED_FLAGGED', { bankPool: 'PRACTICE' });
   await prisma.questionBankEvent.create({ data: { questionId: uiFlag.id, fromStatus: 'PENDING_REVIEW', toStatus: 'VALIDATED_FLAGGED', kind: 'INDEPENDENT_VALIDATION_REJECTED', detail: DETAIL(), actedById: null } });
   const browser = await launch(); const dv = device('desktop');
   const errors = [];
@@ -156,14 +158,40 @@ const DETAIL = (extra = {}) => ({ correctness: { agrees: false, verifiedOptionIn
   const models = await pg.getByTestId('bank-models').innerText();
   log(/claude-sonnet-5-5/.test(models) && /claude-opus-5-5/.test(models) && /different model/.test(models), 'the panel says which model writes and which reviews');
   log((await pg.getByTestId('bank-flagged').getByTestId('bank-reasons').first().innerText()).match(/option B/) !== null, 'a flagged question shows why next to it');
-  log((await pg.getByTestId('bank-prepare').count()) === 1, 'there is one button to get the practice questions ready');
+  log((await pg.getByTestId('bank-unassigned').count()) === 1, 'older questions with no purpose are called out, with a choice of where they belong');
+  await pg.getByTestId('bank-assign-PRACTICE').click();
+  await pg.getByText(/set for games and practice/).first().waitFor({ timeout: 10000 });
+  log((await prisma.question.count({ where: { examId: W.exam.id, bankPool: null, AND: [{ bankStatus: { not: null } }, { bankStatus: { not: 'REJECTED' } }] } })) === 0, 'choosing a side gives every older question a purpose');
+  log((await pg.getByTestId('bank-prepare').count()) === 1, 'there is one button to get the games and practice questions ready');
   await pg.getByTestId('bank-card').screenshot({ path: '/tmp/dev/bank-panel.png' });
   await pg.getByTestId('bank-prepare').click();
   await pg.getByTestId('bank-error').waitFor({ timeout: 15000 });
   log(/No usable materials/.test(await pg.getByTestId('bank-error').innerText()), 'if the module has nothing to read, the panel says so instead of failing quietly');
   await pg.getByTestId('bank-approve-passed').click();
-  await pg.getByText(/approved and split/).first().waitFor({ timeout: 10000 });
-  log((await prisma.question.count({ where: { examId: W.exam.id, bankStatus: 'VALIDATED_PASS' } })) === 0, 'Approve all that passed approves them');
+  await pg.getByText(/Approved \d+ questions?/).first().waitFor({ timeout: 10000 });
+  log((await prisma.question.count({ where: { examId: W.exam.id, bankStatus: 'VALIDATED_PASS', bankPool: 'PRACTICE' } })) === 0, 'Approve all that passed approves them');
+  log((await prisma.question.count({ where: { examId: W.exam.id, bankStatus: 'VALIDATED_PASS', bankPool: 'FORMAL' } })) === 1, 'approving on the games and practice side leaves the assessment side alone');
+  log(!(await pg.getByTestId('bank-card').innerText()).includes('assessment-only passed question'), 'the games and practice tab does not show assessment questions');
+  // the assessment side, kept apart
+  await pg.getByTestId('bank-tab-FORMAL').click();
+  await pg.getByTestId('bank-passed').waitFor();
+  const formalText = await pg.getByTestId('bank-card').innerText();
+  log(/1 passed the review/.test(formalText), 'the assessment tab has its own review queue');
+  await pg.getByRole('button', { name: 'Read them first' }).click();
+  log((await pg.getByTestId('bank-card').innerText()).includes('assessment-only passed question') && !(await pg.getByTestId('bank-card').innerText()).includes('UI passed question'), 'and shows only assessment questions');
+  await pg.getByTestId('bank-approve-passed').click();
+  await pg.getByText(/Approved 1 question/).first().waitFor({ timeout: 10000 });
+  log((await prisma.question.count({ where: { examId: W.exam.id, text: { startsWith: 'UI assessment-only' }, bankStatus: 'APPROVED', bankPool: 'FORMAL' } })) === 1, 'approving on the assessment tab approves it for the assessment only');
+  // lending a question to the other side is deliberate and makes a separate copy
+  await pg.getByTestId('bank-approved-toggle').click();
+  await pg.getByTestId('bank-approved-question').filter({ hasText: 'UI assessment-only' }).getByTestId('bank-copy').click();
+  await pg.getByText(/Copied to games and practice/).first().waitFor({ timeout: 10000 });
+  const copies = await prisma.question.findMany({ where: { examId: W.exam.id, text: { startsWith: 'UI assessment-only' } }, select: { id: true, bankPool: true, bankStatus: true } });
+  log(copies.length === 2 && copies.some((c) => c.bankPool === 'PRACTICE' && c.bankStatus === 'APPROVED') && copies.some((c) => c.bankPool === 'FORMAL'), 'copying to the other side makes a separate approved question there');
+  await pg.getByTestId('bank-approved-question').filter({ hasText: 'UI assessment-only' }).getByTestId('bank-copy').click();
+  await pg.getByText(/already has this question/).first().waitFor({ timeout: 10000 });
+  log((await prisma.question.count({ where: { examId: W.exam.id, text: { startsWith: 'UI assessment-only' } } })) === 2, 'copying the same question again does not make a duplicate');
+  await pg.getByTestId('bank-tab-PRACTICE').click();
   await pg.getByTestId('bank-edit').first().click();
   log((await pg.getByTestId('bank-save-edit').count()) === 1, 'a flagged question can be edited in place');
   log(errors.length === 0, 'no page errors');

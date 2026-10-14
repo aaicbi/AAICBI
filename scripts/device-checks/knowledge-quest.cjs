@@ -25,6 +25,8 @@ async function seed(traineeEmail) {
     await prisma.course.delete({ where: { id: c.id } });
   }
   const trainee = await prisma.trainee.findUnique({ where: { email: traineeEmail } });
+  // other checks leave plays and XP behind for the same trainee; start this one clean
+  await prisma.gamePlay.deleteMany({ where: { traineeId: trainee.id } }); await prisma.xpEntry.deleteMany({ where: { traineeId: trainee.id } }); await prisma.practiceAnswer.deleteMany({ where: { traineeId: trainee.id } });
   const course = await prisma.course.create({
     data: { title: MARK, description: 'Seeded for the Knowledge Quest check.', status: 'PUBLISHED', published: true, isFree: true, createdById: staff.id },
   });

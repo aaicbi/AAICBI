@@ -44,3 +44,16 @@ describe("questionsNeeded", () => {
     expect(questionsNeeded(40)).toBe(0);
   });
 });
+
+describe("poolNeed", () => {
+  it("counts each side of the bank on its own", async () => {
+    const { poolNeed, POOL_LABEL } = await import("@/lib/quest/bankCore");
+    expect(poolNeed("PRACTICE", 0)).toBe(10);
+    expect(poolNeed("FORMAL", 0)).toBe(6);
+    expect(poolNeed("PRACTICE", 4)).toBe(6);
+    expect(poolNeed("FORMAL", 6)).toBe(0);
+    expect(poolNeed("PRACTICE", 40)).toBe(0);
+    expect(POOL_LABEL.PRACTICE).toBe("Games and practice");
+    expect(POOL_LABEL.FORMAL).toBe("Assessment");
+  });
+});

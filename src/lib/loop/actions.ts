@@ -130,29 +130,32 @@ async function objectiveFrom(moduleId: string, query: string) {
 const generateQuestions: ActionDef = {
   name: "generate_bank_questions",
   description:
-    "Write exam and practice questions for one CONFIRMED learning objective of a module, grounded in its materials. One Claude model writes them and a different one reviews them afterwards (call review_bank_questions next). They stay hidden from trainees until a person approves them.",
+    "Write questions for one CONFIRMED learning objective of a module, grounded in its materials. Questions are for ONE side of the bank: games and practice, or the assessment, so say which in `purpose` (ask the person if it is not clear). One Claude model writes them and a different one reviews them afterwards (call review_bank_questions next). They stay hidden from trainees until a person approves them.",
   inputSchema: {
     type: "object",
     properties: {
       moduleQuery: MODULE_PROP,
       objectiveQuery: { type: "string", description: "The confirmed objective's text or a fragment of it." },
       count: { type: "number", description: "How many questions (at most 6 at a time)." },
+      purpose: { type: "string", enum: ["games", "assessment"], description: "What the questions are for: 'games' (games and practice) or 'assessment' (the formal assessment). They are never shared between the two unless a person copies one." },
     },
-    required: ["moduleQuery", "objectiveQuery", "count"],
+    required: ["moduleQuery", "objectiveQuery", "count", "purpose"],
   },
   async prepare(raw, state) {
     const { module, label } = await moduleFrom(raw, state);
     const objective = await objectiveFrom(module.id, typeof raw.objectiveQuery === "string" ? raw.objectiveQuery : "");
     const count = Math.min(typeof raw.count === "number" && raw.count > 0 ? Math.floor(raw.count) : 10, GENERATE_PER_REQUEST);
     const models = bankModelInfo();
+    const purpose = raw.purpose === "assessment" ? "assessment" : raw.purpose === "games" ? "games" : null;
+    if (!purpose) throw new ActionInputError("Say whether the questions are for games and practice or for the assessment, then try again.");
     return {
-      input: { moduleId: module.id, objectiveId: objective.id, count },
-      summary: `Have ${models.generator} write up to ${count} questions for ${label}, testing “${objective.text}”. ${models.independent ? `${models.reviewer} reviews them next.` : "(The reviewer is set to the same model as the writer.)"} They stay hidden from trainees until you approve them.`,
+      input: { moduleId: module.id, objectiveId: objective.id, count, pool: purpose === "assessment" ? "FORMAL" : "PRACTICE" },
+      summary: `Have ${models.generator} write up to ${count} ${purpose === "assessment" ? "assessment" : "games and practice"} questions for ${label}, testing “${objective.text}”. ${models.independent ? `${models.reviewer} reviews them next.` : "(The reviewer is set to the same model as the writer.)"} They stay hidden from trainees until you approve them.`,
       risk: "low",
     };
   },
   async execute(input, ctx) {
-    return generateQuestionsFor(String(input.moduleId), ctx.userId, { objectiveId: String(input.objectiveId), count: Number(input.count) });
+    return generateQuestionsFor(String(input.moduleId), ctx.userId, { objectiveId: String(input.objectiveId), count: Number(input.count), pool: input.pool === "FORMAL" ? "FORMAL" : input.pool === "PRACTICE" ? "PRACTICE" : null });
   },
 };
 
