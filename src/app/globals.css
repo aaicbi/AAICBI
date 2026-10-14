@@ -598,3 +598,83 @@ h1, h2, h3, h4, h5, h6, p, li, dd, dt, label, blockquote { overflow-wrap: anywhe
 img.rounded-full:not(.no-ring) {
   box-shadow: 0 0 0 2px rgb(var(--brand-surface)), 0 0 0 4px rgb(var(--brand-teal) / 0.85);
 }
+
+/* ---------------------------------------------------------------------------
+   Game experience (src/components/games/experience). Transform and opacity only,
+   short, and each one tied to a moment: a question arriving, an answer landing,
+   a streak growing, a badge earned. The global reduced-motion rule above switches
+   all of it off for anyone who asks the browser for less motion.
+   ------------------------------------------------------------------------- */
+@keyframes gx-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes gx-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+@keyframes gx-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-5px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+@keyframes gx-ring {
+  0% { box-shadow: 0 0 0 0 rgb(1 107 97 / 0.4); }
+  100% { box-shadow: 0 0 0 12px rgb(1 107 97 / 0); }
+}
+@keyframes gx-bubble {
+  from { opacity: 0; transform: translateY(4px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes gx-badge {
+  0% { opacity: 0; transform: translateY(-10px) scale(0.92); }
+  60% { opacity: 1; transform: translateY(1px) scale(1.02); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes gx-streak {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.22); }
+  100% { transform: scale(1); }
+}
+@keyframes gx-count {
+  from { transform: scale(1.18); }
+  to { transform: scale(1); }
+}
+@keyframes gx-go {
+  0% { opacity: 0; transform: scale(0.6); }
+  35% { opacity: 1; transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes gx-draw {
+  to { stroke-dashoffset: var(--gx-to); }
+}
+@keyframes gx-confetti {
+  0% { opacity: 1; transform: translate3d(0, 0, 0) rotate(0deg); }
+  100% { opacity: 0; transform: translate3d(var(--dx), var(--dy), 0) rotate(var(--rot)); }
+}
+.gx-rise { animation: gx-rise 0.28s ease-out both; }
+.gx-stagger { animation: gx-rise 0.3s ease-out both; animation-delay: calc(var(--i, 0) * 45ms); }
+.gx-pop { animation: gx-pop 0.35s ease-out; }
+.gx-shake { animation: gx-shake 0.4s ease-in-out; }
+.gx-ring { animation: gx-ring 0.7s ease-out; }
+.gx-pop.gx-ring { animation: gx-pop 0.35s ease-out, gx-ring 0.7s ease-out; }
+.gx-bubble { animation: gx-bubble 0.25s ease-out both; }
+.gx-badge { animation: gx-badge 0.5s ease-out both; }
+.gx-streak { animation: gx-streak 0.45s ease-out; }
+.gx-count { animation: gx-count 0.3s ease-out; }
+.gx-go { animation: gx-go 0.55s ease-out both; }
+.gx-draw { animation: gx-draw 1s ease-out 0.15s forwards; }
+.gx-confetti-piece {
+  position: absolute;
+  left: 50%;
+  top: 28%;
+  width: 8px;
+  height: 12px;
+  border-radius: 2px;
+  animation: gx-confetti 1.3s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  animation-delay: var(--delay, 0s);
+  will-change: transform, opacity;
+}

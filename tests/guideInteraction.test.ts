@@ -101,7 +101,7 @@ describe("moving through a guide", () => {
 
 describe("motion and accessibility", () => {
   const css = readFileSync("src/app/globals.css", "utf8");
-  const beam = css.slice(css.indexOf(".guide-beam {"));
+  const beam = css.slice(css.indexOf(".guide-beam {"), css.indexOf("Game experience (src/components/games/experience)"));
   it("has a reduced-motion version with no animation", () => {
     const reduced = beam.slice(beam.indexOf("@media (prefers-reduced-motion: reduce)"));
     expect(reduced).toMatch(/animation: none/);

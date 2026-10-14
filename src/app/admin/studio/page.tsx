@@ -46,6 +46,9 @@ export default function StudioPage() {
       <main className="mx-auto w-full max-w-[1600px] px-3 py-3 sm:px-4">
         <DesktopRecommended what="The Game Studio" />
         <h1 className="sr-only">Game Studio</h1>
+        <p className="px-3 pb-2 text-xs text-gray-600">
+          Want to see how a game feels for trainees? <a className="font-semibold text-brand-teal underline" href="/admin/studio/demo">Play the sample games</a>.
+        </p>
         {allowed ? <Studio isSuper={role === "SUPER_ADMIN"} /> : <p className="px-3 py-10 text-sm text-gray-500">Loading…</p>}
       </main>
     </>

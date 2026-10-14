@@ -102,7 +102,7 @@ function Matching({ served, disabled, result, onChange }: { served: Extract<Play
             const paired = pairs[i] !== undefined;
             const res = feedback?.pairs?.[i];
             return (
-              <li key={l}>
+              <li key={l} className="gx-stagger" style={{ "--i": i } as React.CSSProperties}>
                 <button
                   type="button"
                   disabled={disabled}
@@ -120,11 +120,11 @@ function Matching({ served, disabled, result, onChange }: { served: Extract<Play
           })}
         </ul>
         <ul className="space-y-2" aria-label="Meanings">
-          {served.rights.map((r) => {
+          {served.rights.map((r, ri) => {
             const owner = rightOwner(r);
             const res = feedback?.pairs?.find((p) => p.chosen === r);
             return (
-              <li key={r}>
+              <li key={r} className="gx-stagger" style={{ "--i": ri } as React.CSSProperties}>
                 <button
                   type="button"
                   disabled={disabled}
@@ -182,7 +182,8 @@ function Ordering({ served, disabled, result, onChange }: { served: Extract<Play
           return (
             <li
               key={step}
-              className={`flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm ${ok === undefined ? "border-brand-gray bg-brand-surface" : ok ? "border-brand-teal bg-brand-mint" : "border-brand-rose bg-brand-roseLight/60"}`}
+              style={{ "--i": i } as React.CSSProperties}
+              className={`gx-stagger flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm ${ok === undefined ? "border-brand-gray bg-brand-surface" : ok ? "border-brand-teal bg-brand-mint" : "border-brand-rose bg-brand-roseLight/60"}`}
             >
               <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-gray/60 text-xs font-bold text-brand-ink">{i + 1}</span>
               <span className="flex-1">{step}</span>
@@ -228,7 +229,8 @@ function Choices({ options, selected, onSelect, disabled, result, correctKey }: 
             type="button"
             aria-pressed={isSelected}
             onClick={() => onSelect(o.key)}
-            className={`flex min-h-[48px] w-full items-start gap-3 rounded-2xl border px-4 py-3 text-left text-sm ${
+            style={{ "--i": i } as React.CSSProperties}
+            className={`gx-stagger flex min-h-[48px] w-full items-start gap-3 rounded-2xl border px-4 py-3 text-left text-sm transition-[transform,border-color,background-color] duration-150 active:scale-[0.99] ${isCorrect ? "gx-pop gx-ring " : ""}${isWrong ? "gx-shake " : ""}${
               isCorrect ? "border-brand-teal bg-brand-mint" : isWrong ? "border-brand-rose bg-brand-roseLight/60" : isSelected ? "border-brand-action bg-brand-mint/50" : "border-brand-gray bg-brand-surface hover:border-brand-teal"
             }`}
           >
@@ -243,7 +245,22 @@ function Choices({ options, selected, onSelect, disabled, result, correctKey }: 
   );
 }
 
-export default function GamePlayer({ api, mode, onEmpty }: { api: PlayerApi; mode: "play" | "preview"; onEmpty?: React.ReactNode }) {
+/** Optional hooks a 10-question round uses to follow the player. Without them the player behaves exactly as before. */
+export interface RoundHooks {
+  /** Called once with the server's graded result. */
+  onResult: (item: PlayItem, result: PlayResult) => void;
+  /** Called when the learner moves on. Returns true when the round is over, which stops another question loading. */
+  onAdvance: () => boolean;
+  /** Called when the server has nothing more to serve. Returns true when the round took over (a summary is showing). */
+  onDone: () => boolean;
+  /** Called when the learner picks something, for the tap sound. */
+  onInteract?: () => void;
+  nextLabel: string;
+}
+
+export default function GamePlayer({ api, mode, onEmpty, hooks }: { api: PlayerApi; mode: "play" | "preview"; onEmpty?: React.ReactNode; hooks?: RoundHooks }) {
+  const hooksRef = useRef(hooks);
+  hooksRef.current = hooks;
   const [item, setItem] = useState<PlayItem | null>(null);
   const [empty, setEmpty] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -267,6 +284,7 @@ export default function GamePlayer({ api, mode, onEmpty }: { api: PlayerApi; mod
     if (r.error) return setError(r.error);
     if (r.done || !r.item) {
       setItem(null);
+      if (hooksRef.current?.onDone()) return;
       return setEmpty(true);
     }
     setEmpty(false);
@@ -290,7 +308,18 @@ export default function GamePlayer({ api, mode, onEmpty }: { api: PlayerApi; mod
     setBusy(false);
     if (r.error) return setError(r.error);
     setResult(r.result ?? null);
+    if (r.result) hooksRef.current?.onResult(item, r.result);
   }
+
+  function next() {
+    if (hooksRef.current?.onAdvance()) return;
+    void load();
+  }
+
+  const select = (k: string) => {
+    hooksRef.current?.onInteract?.();
+    setChoice(k);
+  };
 
   if (loading && !item) return <p className="text-sm text-gray-500">Loading…</p>;
   if (empty || !item) {
@@ -315,18 +344,18 @@ export default function GamePlayer({ api, mode, onEmpty }: { api: PlayerApi; mod
         {mode === "preview" && item.total ? <span className="ml-auto">{(item.index ?? 0) + 1} of {item.total}</span> : null}
       </div>
 
-      <div className="mt-3">
+      <div key={`${item.playId}-${round}`} className="gx-rise mt-3">
         {served.format === "QUIZ" && (
           <>
             <h3 className="text-base font-semibold text-brand-ink">{served.question}</h3>
-            <Choices options={served.options} selected={choice} onSelect={setChoice} disabled={answered} result={result} correctKey={quizKey} />
+            <Choices options={served.options} selected={choice} onSelect={select} disabled={answered} result={result} correctKey={quizKey} />
           </>
         )}
         {served.format === "SCENARIO" && (
           <>
             <h3 className="text-base font-semibold text-brand-ink">{served.situation}</h3>
             <p className="mt-1 text-sm text-gray-700">What would you do?</p>
-            <Choices options={served.options.map((t) => ({ key: t, text: t }))} selected={choice} onSelect={setChoice} disabled={answered} result={result} correctKey={(result?.feedback as { best?: string } | undefined)?.best ?? null} />
+            <Choices options={served.options.map((t) => ({ key: t, text: t }))} selected={choice} onSelect={select} disabled={answered} result={result} correctKey={(result?.feedback as { best?: string } | undefined)?.best ?? null} />
           </>
         )}
         {served.format === "MATCHING" && (
@@ -364,7 +393,7 @@ export default function GamePlayer({ api, mode, onEmpty }: { api: PlayerApi; mod
       )}
 
       {answered && result && (
-        <div aria-live="polite" className="mt-4 space-y-3">
+        <div aria-live="polite" className="gx-rise mt-4 space-y-3">
           <div className={`rounded-2xl px-4 py-3 ${result.correct ? "bg-brand-mint" : result.score > 0 ? "bg-brand-goldLight/60" : "bg-brand-roseLight/60"}`}>
             <p className="flex items-center gap-2 font-semibold text-brand-ink">
               <Icon icon={result.correct ? CheckCircle2 : result.score > 0 ? Check : XCircle} size="md" />
@@ -419,7 +448,7 @@ export default function GamePlayer({ api, mode, onEmpty }: { api: PlayerApi; mod
           )}
           {mode === "preview" && <p className="text-xs text-gray-600">Preview only: nothing is recorded and no XP is paid.</p>}
           <div className="flex flex-wrap gap-3">
-            <Button onClick={() => void load()}>{mode === "preview" ? "Next item" : "Next one"}</Button>
+            <Button onClick={next}>{hooks?.nextLabel ?? (mode === "preview" ? "Next item" : "Next one")}</Button>
           </div>
         </div>
       )}

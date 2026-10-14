@@ -9,6 +9,12 @@ import BackLink from "@/components/ui/BackLink";
 import Icon from "@/components/ui/Icon";
 import { CheckCircle2, Flame, Lightbulb, Sparkles, Trophy, XCircle } from "lucide-react";
 import { TRAINEE_NAV } from "@/lib/trainee/nav";
+import Companion from "@/components/games/experience/Companion";
+import Confetti from "@/components/games/experience/Confetti";
+import RoundHud from "@/components/games/experience/RoundHud";
+import RoundIntro from "@/components/games/experience/RoundIntro";
+import RoundSummary from "@/components/games/experience/RoundSummary";
+import { useRound } from "@/components/games/experience/useRound";
 
 type MasteryState = "NOT_STARTED" | "LEARNING" | "NEARLY_THERE" | "MASTERED" | "NEEDS_REFRESH";
 
@@ -120,6 +126,9 @@ export default function PracticePage({ params }: { params: { id: string; moduleI
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [emptyMessage, setEmptyMessage] = useState<string | null>(null);
+  // A 10-question round wraps the practice flow. `session` is set from the moment a learner starts practising until they go back.
+  const [session, setSession] = useState<{ objectiveId: string | null; title: string } | null>(null);
+  const round = useRound();
   const base = `/api/modules/${params.moduleId}/practice`;
 
   const loadOverview = useCallback(async () => {
@@ -156,6 +165,7 @@ export default function PracticePage({ params }: { params: { id: string; moduleI
     }
     if (data.done) {
       setCurrent(null);
+      if (round.finishEarly()) return;
       setEmptyMessage(data.message ?? "There are no practice questions to serve right now.");
       return;
     }
@@ -191,11 +201,33 @@ export default function PracticePage({ params }: { params: { id: string; moduleI
       setError(data.error ?? "Could not record your answer. Please try again.");
       return;
     }
-    setResult(data as Result);
+    const graded = data as Result;
+    setResult(graded);
+    round.report({
+      key: current.practiceAnswerId,
+      item: { format: "QUIZ", served: { question: current.question.text, options: current.question.options } },
+      result: { correct: graded.correct, score: graded.correct ? 1 : 0, feedback: { correctOptionKey: graded.correctOptionKey }, xp: graded.xp },
+    });
     void loadOverview();
   }
 
+  /** Opens a round: the welcome (and, the first time in a visit, the countdown) comes first, and no question is fetched until it ends. */
+  function beginRound(objectiveId: string | null, title: string) {
+    round.reset();
+    setSession({ objectiveId, title });
+    setError(null);
+    setEmptyMessage(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function nextQuestion() {
+    if (round.advance()) return;
+    void start(current?.objective.id ?? session?.objectiveId ?? null);
+  }
+
   function backToObjectives() {
+    setSession(null);
+    round.reset();
     setCurrent(null);
     setResult(null);
     setHint(null);
@@ -265,17 +297,85 @@ export default function PracticePage({ params }: { params: { id: string; moduleI
           </p>
         )}
 
-        {current ? (
+        {session && round.phase === "intro" ? (
+          <section aria-label="Start of the round" className="mt-6">
+            <Card>
+              <RoundIntro
+                title={session.title}
+                size={round.round.size}
+                roundNo={round.roundNo}
+                welcome={round.message}
+                countdown={round.countdown}
+                onStart={round.start}
+                onReady={() => {
+                  round.ready();
+                  void start(session.objectiveId);
+                }}
+              />
+              <div className="mt-2 text-center">
+                <Button variant="ghost" size="sm" onClick={backToObjectives}>
+                  Back to objectives
+                </Button>
+              </div>
+            </Card>
+          </section>
+        ) : session && round.phase === "summary" ? (
+          <section aria-label="Round summary" className="mt-6">
+            <Card>
+              <RoundSummary
+                round={round.round}
+                xp={round.xp}
+                onAgain={() => {
+                  round.again();
+                  void start(session.objectiveId);
+                }}
+                onExit={backToObjectives}
+                exitLabel="Back to objectives"
+              />
+            </Card>
+          </section>
+        ) : session && !current ? (
           <section aria-label="Practice question" className="mt-6">
+            <Card>
+              {emptyMessage ? (
+                <div className="space-y-3 text-sm text-gray-700">
+                  <p>{emptyMessage}</p>
+                  <Button variant="secondary" onClick={backToObjectives}>
+                    Back to objectives
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">Getting your first question…</p>
+              )}
+            </Card>
+          </section>
+        ) : current ? (
+          <section aria-label="Practice question" className="mt-6 space-y-4">
+            <Confetti burst={round.confetti.burst} strength={round.confetti.strength} />
+            {session && (
+              <>
+                <RoundHud
+                  current={round.current}
+                  size={round.round.size}
+                  outcomes={round.round.answers.map((a) => a.outcome)}
+                  correct={round.round.answers.filter((a) => a.outcome === "FULL").length}
+                  xp={round.xp}
+                  streak={round.round.streak}
+                  soundOn={round.sound.enabled}
+                  onToggleSound={round.sound.toggle}
+                />
+                <Companion mood={round.mood} message={round.message} messageKey={round.messageKey} achievement={round.achievement} />
+              </>
+            )}
             <Card>
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Objective</p>
               <p className="mt-0.5 text-sm text-brand-ink">{current.objective.text}</p>
 
-              <h2 className="mt-4 text-lg font-semibold text-brand-ink">{current.question.text}</h2>
+              <h2 key={current.practiceAnswerId} className="gx-rise mt-4 text-lg font-semibold text-brand-ink">{current.question.text}</h2>
 
               <fieldset className="mt-4 space-y-2" disabled={!!result}>
                 <legend className="sr-only">Choose one answer</legend>
-                {current.question.options.map((o) => {
+                {current.question.options.map((o, oi) => {
                   const isSelected = selected === o.key;
                   const showCorrect = result && result.correctOptionKey === o.key;
                   const showWrong = result && isSelected && !result.correct;
@@ -284,8 +384,12 @@ export default function PracticePage({ params }: { params: { id: string; moduleI
                       key={o.key}
                       type="button"
                       aria-pressed={isSelected}
-                      onClick={() => setSelected(o.key)}
-                      className={`flex min-h-[48px] w-full items-start gap-3 rounded-2xl border px-4 py-3 text-left text-sm transition-colors ${
+                      onClick={() => {
+                        round.sound.play("select");
+                        setSelected(o.key);
+                      }}
+                      style={{ "--i": oi } as React.CSSProperties}
+                      className={`gx-stagger flex min-h-[48px] w-full items-start gap-3 rounded-2xl border px-4 py-3 text-left text-sm transition-[transform,border-color,background-color] duration-150 active:scale-[0.99] ${showCorrect ? "gx-pop gx-ring " : ""}${showWrong ? "gx-shake " : ""}${
                         showCorrect
                           ? "border-brand-teal bg-brand-mint text-brand-ink"
                           : showWrong
@@ -346,7 +450,7 @@ export default function PracticePage({ params }: { params: { id: string; moduleI
               )}
 
               {result && (
-                <div aria-live="polite" className="mt-5 space-y-3">
+                <div aria-live="polite" className="gx-rise mt-5 space-y-3">
                   <div className={`rounded-2xl px-4 py-3 ${result.correct ? "bg-brand-mint" : "bg-brand-roseLight/60"}`}>
                     <p className="flex items-center gap-2 font-semibold text-brand-ink">
                       <Icon icon={result.correct ? CheckCircle2 : XCircle} size="md" />
@@ -409,8 +513,8 @@ export default function PracticePage({ params }: { params: { id: string; moduleI
                   )}
 
                   <div className="flex flex-wrap gap-3">
-                    <Button onClick={() => start(current.objective.id)} disabled={busy}>
-                      Next question
+                    <Button onClick={nextQuestion} disabled={busy}>
+                      {round.round.answers.length >= round.round.size ? "See my results" : "Next question"}
                     </Button>
                     <Button variant="secondary" onClick={backToObjectives}>
                       Back to objectives
@@ -424,7 +528,7 @@ export default function PracticePage({ params }: { params: { id: string; moduleI
           <section aria-label="Objectives" className="mt-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-lg font-semibold text-brand-ink">Objectives</h2>
-              <Button onClick={() => start(null)} disabled={busy} loading={busy}>
+              <Button onClick={() => beginRound(null, "Practise what needs work")} disabled={busy} loading={busy}>
                 Practise what needs work
               </Button>
             </div>
@@ -452,7 +556,7 @@ export default function PracticePage({ params }: { params: { id: string; moduleI
                       <p className="mt-1 text-xs text-gray-600">To master it: {o.mastery.needs.join("; ")}.</p>
                     )}
                     <div className="mt-3">
-                      <Button size="sm" variant="secondary" onClick={() => start(o.id)} disabled={busy || o.questions === 0}>
+                      <Button size="sm" variant="secondary" onClick={() => beginRound(o.id, o.text)} disabled={busy || o.questions === 0}>
                         {o.mastery.state === "NOT_STARTED" ? "Start practising" : o.mastery.state === "MASTERED" ? "Practise again" : "Keep practising"}
                       </Button>
                     </div>

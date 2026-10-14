@@ -29,7 +29,7 @@ http.createServer((req, res) => {
       // The question bank's calls (writer and reviewer) are not streamed. Behave like a reviewer: find the answer unless the
       // question says TRAP, and call a question ambiguous when it says AMBIG.
       const sys = typeof j.system === 'string' ? j.system : JSON.stringify(j.system || '');
-      const user = blocksOf((j.messages || [])[0].content).map((b) => b.text || '').join('\n');
+      const user = blocksOf(((j.messages || [])[0] || {}).content || '').map((b) => b.text || '').join('\n');
       const items = [...user.matchAll(/^(\d+)\) (?:Objective: .*\n)?(?:Question: )?(.*)$/gm)].map((m) => ({ i: Number(m[1]), text: m[2] }));
       let out;
       if (/You write scenario-based/.test(sys)) out = { questions: [{ question: 'What starts a workflow?', options: ['A trigger', 'A filter'], correct_option_index: 0, explanation: 'A trigger starts it.', topic: 'Triggers' }] };

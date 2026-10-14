@@ -4,7 +4,8 @@ import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/trainee/LogoutButton";
 import Card from "@/components/ui/Card";
 import BackLink from "@/components/ui/BackLink";
-import GamePlayer, { type PlayerApi, type PlayItem, type PlayResult } from "@/components/games/GamePlayer";
+import GameRound from "@/components/games/experience/GameRound";
+import { type PlayerApi, type PlayItem, type PlayResult } from "@/components/games/GamePlayer";
 import { TRAINEE_NAV } from "@/lib/trainee/nav";
 
 interface LiveGame {
@@ -70,7 +71,7 @@ export default function GamePage({ params }: { params: { id: string; moduleId: s
             {game.description && <p className="mt-1 text-sm text-gray-700">{game.description}</p>}
             <p className="mt-1 text-xs text-gray-600">Playing for practice: the XP you earn here never counts toward your certificate.</p>
             <Card className="mt-5">
-              <GamePlayer api={api} mode="play" onEmpty="You've played everything here for now. Come back later." />
+              <GameRound title={game.title} api={api} onExit={() => window.location.assign(back)} exitLabel="Back to the course" onEmpty="You've played everything here for now. Come back later." />
             </Card>
           </>
         )}

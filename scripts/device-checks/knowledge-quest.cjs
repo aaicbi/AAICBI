@@ -211,11 +211,13 @@ async function seed(traineeEmail) {
   log(/explorer|problem solver/i.test(txt) && /streak/i.test(txt) && /xp today/i.test(txt), 'level, streak and XP today are shown');
   await p.screenshot({ path: '/tmp/dev/quest-overview-phone.png', fullPage: true });
   await p.getByRole('button', { name: 'Practise what needs work' }).click();
+  await p.getByTestId('round-start').click();   // the round's welcome comes first; the question follows the countdown
+  await p.getByRole('button', { name: 'Skip' }).click();
   await p.getByRole('button', { name: 'Check answer' }).waitFor();
   await p.getByRole('button', { name: 'Show a hint' }).click();
   await p.getByRole('note').waitFor();
   log(true, 'the hint button points to where the answer is taught');
-  await p.locator('button[aria-pressed]').first().click();
+  await p.locator('fieldset button[aria-pressed]').first().click();
   await sleep(4500);
   await p.getByRole('button', { name: 'Check answer' }).click();
   await p.getByText(/Correct|Not quite/).first().waitFor();
