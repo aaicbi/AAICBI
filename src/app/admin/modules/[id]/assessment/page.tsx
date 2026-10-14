@@ -159,7 +159,8 @@ export default function ModuleAssessmentPage({ params }: { params: { id: string 
       showToast(typeof data.error === "string" ? data.error : "Could not approve the question. Try again.", "error");
       return;
     }
-    showToast("Question approved.", "success");
+    const approved = await res.json().catch(() => ({}));
+    showToast(approved.bankStatus === "PENDING_VALIDATION" ? "Approved for validation. Run the validation next, from the Question bank page or by asking Loop." : "Question approved.", "success");
     await loadAssessment();
   }
 
