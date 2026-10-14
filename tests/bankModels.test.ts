@@ -131,6 +131,16 @@ describe("review of freshly written questions (studio route)", () => {
     expect(h.questionUpdate).not.toHaveBeenCalled();
   });
 
+  it("reads the reviewer's verdict even when it is wrapped in a sentence or a code fence", async () => {
+    h.pending = [q("a", "A fine question")];
+    h.create.mockImplementation(async (args) => {
+      const plain = reviewerBehaviour(args) as { content: { text: string }[] };
+      return { content: [{ type: "text", text: "Here is my verdict:\n```json\n" + plain.content[0].text + "\n```" }] };
+    });
+    const r = await reviewGeneratedQuestions("mod1", 10);
+    expect(r).toMatchObject({ passed: 1, needsReview: 0 });
+  });
+
   it("still flags a question when the reply simply can't be read (a person looks at it)", async () => {
     h.pending = [q("a", "A fine question")];
     h.create.mockResolvedValue({ content: [{ type: "text", text: "not json" }] });
@@ -176,4 +186,51 @@ describe("writing questions", () => {
     await expect(generateBankQuestionBatch("mod1", "obj1", "user1", 1)).rejects.toThrow(/no-such-model.*isn't available/);
     expect(h.questionCreate).not.toHaveBeenCalled();
   });
+
+  describe("a reply that is not perfectly formed (this used to save nothing and say only \"failed\")", () => {
+    const writer = (text: string, stop = "end_turn") =>
+      h.create.mockImplementation(async (args: { system: string }) =>
+        args.system.includes("You write scenario-based")
+          ? { content: [{ type: "text", text }], stop_reason: stop }
+          : reply({ verifications: [{ index: 0, correct_option_index: 0 }, { index: 1, correct_option_index: 0 }] })
+      );
+    const q = (n: number, extra: Record<string, unknown> = {}) => ({ question: `What starts workflow ${n}?`, options: ["A trigger", "A filter"], correct_option_index: 0, ...extra });
+
+    it("keeps questions that leave out the optional explanation and topic", async () => {
+      writer(JSON.stringify({ questions: [q(1), q(2)] }));
+      const r = await generateBankQuestionBatch("mod1", "obj1", "user1", 2);
+      expect(r.generated).toBe(2);
+      expect(h.questionCreate).toHaveBeenCalledTimes(2);
+    });
+
+    it("reads questions when the model adds a sentence or a code fence around them", async () => {
+      writer("Here are your questions:\n```json\n" + JSON.stringify({ questions: [q(1), q(2)] }) + "\n```\nHope that helps!");
+      expect((await generateBankQuestionBatch("mod1", "obj1", "user1", 2)).generated).toBe(2);
+    });
+
+    it("drops one bad question and keeps the rest", async () => {
+      writer(JSON.stringify({ questions: [q(1), { question: "No options at all" }, q(3, { correct_option_index: "0" })] }));
+      const r = await generateBankQuestionBatch("mod1", "obj1", "user1", 3);
+      expect(r.generated).toBe(2);
+      expect(r.problem).toBeTruthy();
+    });
+
+    it("keeps what arrived when the answer was cut off, and says so", async () => {
+      const full = JSON.stringify({ questions: [q(1), q(2), q(3)] });
+      writer(full.slice(0, full.indexOf("What starts workflow 3") + 8), "max_tokens");
+      const r = await generateBankQuestionBatch("mod1", "obj1", "user1", 3);
+      expect(r.generated).toBe(2);
+      expect(r.problem).toMatch(/cut short/);
+    });
+
+    it("says why when nothing can be used, instead of only counting failures", async () => {
+      writer("I'm sorry, I can't write those.");
+      const r = await generateBankQuestionBatch("mod1", "obj1", "user1", 3);
+      expect(r.generated).toBe(0);
+      expect(r.problem).toMatch(/expected format/);
+      writer("", "max_tokens");
+      expect((await generateBankQuestionBatch("mod1", "obj1", "user1", 3)).problem).toMatch(/cut off/);
+    });
+  });
 });
+

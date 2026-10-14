@@ -106,7 +106,7 @@ export default function BankPanel({ moduleId, moduleTitle, canUse, onChanged, re
         let rounds = 0;
         while (need > 0 && rounds++ < 6) {
           setStage(`Writing questions for “${short(targets[i].text, 50)}” (objective ${i + 1} of ${targets.length})…`);
-          const r = await post(moduleId, { action: "generate", objectiveId: targets[i].id, count: Math.min(need, 10) });
+          const r = await post(moduleId, { action: "generate", objectiveId: targets[i].id, count: Math.min(need, 6) });
           if (!r.ok) throw new Error(String(r.json.error ?? "Writing the questions failed."));
           const made = Number(r.json.generated ?? 0);
           if (made === 0) throw new Error("No questions came back. Check that the module has lesson materials Loop can read (Word, PDF or PowerPoint).");

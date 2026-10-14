@@ -63,7 +63,7 @@ missed-before bonus, the game's reward switches). XP never counts toward certifi
 
 The **Question bank** panel (Build column, beside the Loop chat) gets a module's practice questions ready without leaving the page.
 
-1. **Write.** One Claude model writes the questions (`BANK_GENERATOR_MODEL`, default `claude-sonnet-5-5`), grounded in the module's lesson materials and one confirmed learning objective at a time. The panel works out how many each objective still needs (10 practice plus 6 formal) and asks for exactly that, in batches of up to 10.
+1. **Write.** One Claude model writes the questions (`BANK_GENERATOR_MODEL`, default `claude-sonnet-5-5`), grounded in the module's lesson materials and one confirmed learning objective at a time. The panel works out how many each objective still needs (10 practice plus 6 formal) and asks for exactly that, in batches of up to 6 so each request stays well inside the one-minute limit.
 2. **Review.** A **different** Claude model checks every question straight away (`BANK_REVIEWER_MODEL`, default `claude-opus-5-5`): it works out the right answer from the lesson material without being told which option was marked, judges whether the question tests its objective, and flags ambiguous or near-duplicate ones. A question is never checked by the model that wrote it. The studio shows both model names, and says so if they are set to the same model.
 3. **Approve.** Questions that passed wait for you: **Approve all that passed** makes them live and splits them between the practice and formal pools. Flagged questions show the reviewer's reasons in plain words, and each can be approved anyway, edited (the reviewer checks the edit again) or rejected. A flagged question is never approved in bulk.
 

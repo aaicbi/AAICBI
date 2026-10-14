@@ -22,7 +22,7 @@ export class BankError extends Error {
 }
 
 /** Largest number of questions written in one request: one writer batch, so it stays inside the function time limit. */
-export const GENERATE_PER_REQUEST = 10;
+export const GENERATE_PER_REQUEST = 6;
 
 async function examIdFor(moduleId: string): Promise<string | null> {
   return (await prisma.exam.findUnique({ where: { moduleId }, select: { id: true } }))?.id ?? null;
@@ -125,8 +125,12 @@ export async function bankOverview(moduleId: string) {
 export async function generateQuestions(moduleId: string, userId: string, input: { objectiveId: string; count: number }) {
   const count = Math.max(1, Math.min(Math.floor(input.count) || 1, GENERATE_PER_REQUEST));
   try {
-    return await generateBankQuestionBatch(moduleId, input.objectiveId, userId, count);
+    const r = await generateBankQuestionBatch(moduleId, input.objectiveId, userId, count);
+    // Nothing saved is a failure to report, never a quiet "failed: 10".
+    if (r.generated === 0) throw new BankError(r.problem ?? "No questions came back. Try again.", 502);
+    return r;
   } catch (e) {
+    if (e instanceof BankError) throw e;
     if (e instanceof BankModelError) throw new BankError(e.message, 503);
     throw new BankError(e instanceof Error ? e.message : "Writing the questions failed.", 409);
   }

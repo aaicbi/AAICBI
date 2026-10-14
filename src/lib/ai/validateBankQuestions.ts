@@ -31,16 +31,13 @@ import { getModuleMaterialsText } from "@/lib/parsing/moduleMaterialsText";
 import { findDuplicatesForBatch, saveQuestionEmbedding, embeddingsEnabled } from "@/lib/embeddings";
 import { isDuplicateMatch } from "@/lib/embeddingsCore";
 import { asBankModelError, reviewerModel } from "@/lib/ai/bankModels";
+import { readJsonReply } from "@/lib/ai/jsonReply";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const VALIDATION_SUB_BATCH_SIZE = 10;
 const VALIDATION_BATCH_SIZE = 20;
 const MAX_MATERIAL_CHARS_TOTAL = 40_000;
-
-function stripFences(text: string): string {
-  return text.replace(/```json|```/g, "").trim();
-}
 
 const CorrectnessSchema = z.object({
   verifications: z.array(z.object({ index: z.number().int(), correct_option_index: z.number().int() })),
@@ -109,7 +106,7 @@ async function runCorrectnessCheck(materialsBlock: string, questions: PendingQue
     });
     const textBlock = response.content.find((b) => b.type === "text");
     if (!textBlock || textBlock.type !== "text") return new Map();
-    const parsed = CorrectnessSchema.safeParse(JSON.parse(stripFences(textBlock.text)));
+    const parsed = CorrectnessSchema.safeParse(readJsonReply(textBlock.text).value);
     if (!parsed.success) return new Map();
     return new Map(parsed.data.verifications.map((v) => [v.index, v.correct_option_index]));
   } catch (e) {
@@ -145,7 +142,7 @@ async function runAlignmentCheck(questions: PendingQuestion[]): Promise<Map<numb
     });
     const textBlock = response.content.find((b) => b.type === "text");
     if (!textBlock || textBlock.type !== "text") return new Map();
-    const parsed = AlignmentAmbiguitySchema.safeParse(JSON.parse(stripFences(textBlock.text)));
+    const parsed = AlignmentAmbiguitySchema.safeParse(readJsonReply(textBlock.text).value);
     if (!parsed.success) return new Map();
     return new Map(parsed.data.results.map((r) => [r.index, r]));
   } catch (e) {

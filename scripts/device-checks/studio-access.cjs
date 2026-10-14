@@ -207,6 +207,7 @@ async function seed() {
   await sp.getByTestId('new-game').waitFor();
   log(await sp.locator('a[href="/admin/studio"]').first().isVisible(), 'Game Studio is in the sidebar for staff');
   log((await sp.getByTestId('people-panel').count()) === 0, 'staff do not see the control for other people’s Loop levels');
+  await sp.getByRole('button', { name: 'Access check org course' }).waitFor({ timeout: 10000 }).catch(() => {});
   const text = await sp.locator('main').innerText();
   log(!/Access check super course/.test(text) && /Access check org course/.test(text.replace(/\n/g, ' ')) || (await sp.getByRole('button', { name: 'Access check org course' }).count()) === 1, 'staff see only their own course in the library');
   await sp.getByRole('button', { name: 'Access check org course' }).click();
