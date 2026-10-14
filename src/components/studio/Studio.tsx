@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
 import CommandCenter from "@/components/command/CommandCenter";
 import GamePlayer, { type PlayerApi, type PlayItem, type PlayResult } from "@/components/games/GamePlayer";
+import BankPanel from "@/components/studio/BankPanel";
 import ItemForm, { ItemSummary, StatusBadge } from "@/components/studio/ItemParts";
 import type { StudioGame, StudioOverview, Workspace } from "@/components/studio/studioTypes";
 import { FORMAT_INFO, isItemFormat, type GameFormat } from "@/lib/quest/games";
@@ -495,6 +496,8 @@ export default function Studio({ isSuper = false }: { isSuper?: boolean } = {}) 
               )}
             </Card>
           )}
+
+          <BankPanel moduleId={workspace.module.id} moduleTitle={workspace.module.title} canUse={!!overview?.permissions.includes("BANK_AI")} onChanged={() => void loadWorkspace(workspace.module.id)} refreshKey={workspace} />
 
           <Card data-testid="pools-card">
             <h3 className="text-sm font-semibold text-brand-ink">Quiz questions for {workspace.module.title}</h3>

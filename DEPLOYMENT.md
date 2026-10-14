@@ -203,6 +203,7 @@ environment, **before the first deploy**:
 | `GOOGLE_TRANSLATE_API_KEY` | Optional |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Optional. Register `{APP_URL}/api/auth/google/callback` as an Authorized redirect URI for the production address |
 | `LOOP_MODEL`, `GUIDE_CONSULTANT_MODEL` | Optional. Which Claude model Loop and the consultant use. Both default to `claude-sonnet-4-5` |
+| `BANK_GENERATOR_MODEL`, `BANK_REVIEWER_MODEL` | Optional. The question bank uses one Claude model to **write** questions and a **different** one to **review** them. Defaults: `claude-sonnet-5-5` writes, `claude-opus-5-5` reviews. Set either to a model your Anthropic account can use. If a model isn't available to your key, writing or reviewing stops with a message naming the setting |
 | `CHANGE_REQUEST_GITHUB_REPO`, `CHANGE_REQUEST_GITHUB_TOKEN` | Optional. When both are set, approving a change request also opens a GitHub issue (`owner/repo`, and a token allowed to create issues there). See `docs/change-requests.md` |
 | `WHATSAPP_ENABLED` | Leave `false`. WhatsApp isn't implemented |
 | `MAX_UPLOAD_BYTES` | Optional. Word-file upload limit; defaults to 10 MB |
@@ -301,8 +302,8 @@ Nothing here is visible to trainees until you switch it on per module. For your
 pilot module, in this order:
 
 1. **Learning objectives.** Confirm them (Loop can draft them from the module's materials).
-2. **Question bank.** Generated questions move through two gates: a Super Admin presses **Approve for validation** on the module's **Question bank** page, then asks Loop to **run validation**. A clean pass goes live; anything flagged waits for a second look on the same page. Approving a question on the Assessment page also sends a generated question to validation; it does not make it live by itself.
-3. **Pools.** Each objective needs enough approved questions in both the practice and formal pools before practice can go live. The studio shows what is short, and can split them for you.
+2. **Question bank.** Open the module in the **Game Studio**; the **Question bank** panel is beside the Loop chat. Press **Get the practice questions ready**. One Claude model writes the questions and a different one reviews each of them against the lesson material, automatically, before you see them. Then you only approve: **Approve all that passed**, and decide on any it flagged (approve anyway, edit, or reject). Approving puts the questions live and splits them into the practice and formal pools for you. You can do the same by chatting with Loop. The module needs lesson materials Loop can read (Word, PDF or PowerPoint).
+3. **Pools.** Each objective needs 10 approved practice and 6 approved formal questions before practice can go live. The panel works out how many more each objective needs and splits approved questions between the pools when you approve.
 4. **Practice and games.** In the **Game Studio**, switch practice on and assign games live. Play it yourself as a trainee before anyone else does.
 5. **Staff.** In the studio's team panel, choose each person's Loop level and which tools they may use. Platform-wide tools are off by default. See `docs/game-studio.md`.
 6. Start with a **small group**, then widen.
@@ -339,6 +340,7 @@ is a quick summary.
 | `STAFF_SIGN_IN_PATH` | No | Address of the staff sign-in page |
 | `STAFF_LEGACY_LOGIN` | No | `off` disables the older `/admin/login` |
 | `LOOP_MODEL`, `GUIDE_CONSULTANT_MODEL` | No | Claude model for Loop and the consultant |
+| `BANK_GENERATOR_MODEL`, `BANK_REVIEWER_MODEL` | No | Claude model that writes bank questions, and a different one that reviews them |
 | `CHANGE_REQUEST_GITHUB_REPO`, `CHANGE_REQUEST_GITHUB_TOKEN` | No | Open a GitHub issue when a change request is approved |
 | `VOYAGE_API_KEY` | No | Duplicate-question detection |
 | `GOOGLE_TRANSLATE_API_KEY` | No | Translation drafts |

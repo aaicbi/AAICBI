@@ -29,6 +29,9 @@ import { gamesWhere } from "@/lib/quest/studioAccess";
 import { resolveModuleForScope, type LoopScope } from "@/lib/loop/scope";
 import { cleanRequestInput } from "@/lib/changeRequests/core";
 import { ChangeRequestError, createRequest } from "@/lib/changeRequests/server";
+import { bankModelInfo, BankModelError } from "@/lib/ai/bankModels";
+import { validateBankQuestionBatch } from "@/lib/ai/validateBankQuestions";
+import { approveQuestions as approveQuestionsFor, generateQuestions as generateQuestionsFor, GENERATE_PER_REQUEST, reviewQuestions as reviewQuestionsFor } from "@/lib/quest/bank";
 import { StudioError, approveDrafts, assignGame, createGame, createItem, isGameFormat, updateGame } from "@/lib/quest/studio";
 
 export class ActionInputError extends Error {}
@@ -112,39 +115,93 @@ const saveObjectives: ActionDef = {
   },
 };
 
+/** Finds one confirmed objective of the module by text; quotes, dashes and extra spaces are ignored when comparing. */
+async function objectiveFrom(moduleId: string, query: string) {
+  const flat = (t: string) => t.toLowerCase().replace(/[\u2018\u2019\u201C\u201D"'`]/g, "").replace(/[\u2013\u2014-]/g, " ").replace(/\s+/g, " ").trim();
+  const wanted = flat(query);
+  if (!wanted) throw new ActionInputError("objectiveQuery is required.");
+  const all = await prisma.moduleLearningObjective.findMany({ where: { moduleId }, select: { id: true, text: true } });
+  const hits = all.filter((o) => flat(o.text).includes(wanted) || wanted.includes(flat(o.text)));
+  if (hits.length === 0) throw new ActionInputError("No confirmed learning objective of that module matched. Save the objectives first (save_learning_objectives).");
+  if (hits.length > 1) throw new ActionInputError(`More than one objective matched. Ask which one was meant: ${hits.map((o) => o.text).join("; ")}`);
+  return hits[0];
+}
+
 const generateQuestions: ActionDef = {
   name: "generate_bank_questions",
   description:
-    "Generate draft exam questions for one CONFIRMED learning objective of a module, grounded in its materials. They stay hidden from trainees until reviewed.",
+    "Write exam and practice questions for one CONFIRMED learning objective of a module, grounded in its materials. One Claude model writes them and a different one reviews them afterwards (call review_bank_questions next). They stay hidden from trainees until a person approves them.",
   inputSchema: {
     type: "object",
     properties: {
       moduleQuery: MODULE_PROP,
       objectiveQuery: { type: "string", description: "The confirmed objective's text or a fragment of it." },
-      count: { type: "number", description: "How many questions (capped by the system)." },
+      count: { type: "number", description: "How many questions (at most 10 at a time)." },
     },
     required: ["moduleQuery", "objectiveQuery", "count"],
   },
   async prepare(raw, state) {
     const { module, label } = await moduleFrom(raw, state);
-    const objectiveQuery = typeof raw.objectiveQuery === "string" ? raw.objectiveQuery.trim() : "";
-    if (!objectiveQuery) throw new ActionInputError("objectiveQuery is required.");
-    const count = typeof raw.count === "number" && raw.count > 0 ? Math.floor(raw.count) : 10;
+    const objective = await objectiveFrom(module.id, typeof raw.objectiveQuery === "string" ? raw.objectiveQuery : "");
+    const count = Math.min(typeof raw.count === "number" && raw.count > 0 ? Math.floor(raw.count) : 10, GENERATE_PER_REQUEST);
+    const models = bankModelInfo();
     return {
-      input: { moduleQuery: module.title, objectiveQuery, count },
-      summary: `Draft up to ${count} exam questions for ${label}, testing the objective matching “${objectiveQuery}”. They stay hidden from trainees until reviewed.`,
+      input: { moduleId: module.id, objectiveId: objective.id, count },
+      summary: `Have ${models.generator} write up to ${count} questions for ${label}, testing “${objective.text}”. ${models.independent ? `${models.reviewer} reviews them next.` : "(The reviewer is set to the same model as the writer.)"} They stay hidden from trainees until you approve them.`,
       risk: "low",
     };
   },
   async execute(input, ctx) {
-    return runLoopTool("generate_bank_questions", input, ctx.userId);
+    return generateQuestionsFor(String(input.moduleId), ctx.userId, { objectiveId: String(input.objectiveId), count: Number(input.count) });
+  },
+};
+
+const reviewQuestionsAction: ActionDef = {
+  name: "review_bank_questions",
+  description:
+    "Have the REVIEWER model (a different Claude model from the one that wrote them) check a module's newly written questions: it works out each answer from the lesson material blind, checks the question tests its objective, and flags ambiguous or duplicate ones. Passed questions wait for a person's approval; flagged ones wait for a decision. Nothing goes live.",
+  inputSchema: { type: "object", properties: { moduleQuery: MODULE_PROP }, required: ["moduleQuery"] },
+  async prepare(raw, state) {
+    const { module, label } = await moduleFrom(raw, state);
+    const waiting = await prisma.question.count({ where: { exam: { moduleId: module.id }, bankStatus: "PENDING_REVIEW" } });
+    if (waiting === 0) throw new ActionInputError("No newly written questions are waiting for review in this module.");
+    const models = bankModelInfo();
+    return {
+      input: { moduleId: module.id },
+      summary: `Have ${models.reviewer} review ${Math.min(waiting, 10)} of the ${waiting} newly written question${waiting === 1 ? "" : "s"} in ${label}. Nothing goes live; you approve afterwards.`,
+      risk: "low",
+    };
+  },
+  async execute(input) {
+    return reviewQuestionsFor(String(input.moduleId));
+  },
+};
+
+const approveQuestionsAction: ActionDef = {
+  name: "approve_bank_questions",
+  description:
+    "Approve every question the reviewer PASSED in a module, so they go live in the bank and are split between the practice and formal pools. Flagged questions are never included: those need a decision in the studio's Question bank panel. This is the human approval: it is ALWAYS shown to the admin, whatever the chat's level.",
+  inputSchema: { type: "object", properties: { moduleQuery: MODULE_PROP }, required: ["moduleQuery"] },
+  async prepare(raw, state) {
+    const { module, label } = await moduleFrom(raw, state);
+    const passed = await prisma.question.count({ where: { exam: { moduleId: module.id }, bankStatus: "VALIDATED_PASS" } });
+    if (passed === 0) throw new ActionInputError("No question has passed the review yet. Write some and have them reviewed first.");
+    return {
+      input: { moduleId: module.id },
+      summary: `Approve the ${passed} question${passed === 1 ? "" : "s"} the reviewer passed in ${label}, and split them between the practice and formal pools. Flagged questions are not included.`,
+      risk: "high",
+      alwaysConfirm: true,
+    };
+  },
+  async execute(input, ctx) {
+    return approveQuestionsFor(String(input.moduleId), ctx.userId, { allPassed: true });
   },
 };
 
 const validateQuestions: ActionDef = {
   name: "run_bank_validation",
   description:
-    "Run independent AI validation on a module's questions that passed the first human review. Clean passes go live; anything flagged waits for the second review.",
+    "Older route: run independent AI validation on a module's questions that a person already approved for validation on the Question bank page. Clean passes go live; anything flagged waits for the second review. For newly written questions use review_bank_questions instead.",
   inputSchema: {
     type: "object",
     properties: { moduleQuery: MODULE_PROP, count: { type: "number", description: "How many pending questions (capped by the system)." } },
@@ -154,13 +211,18 @@ const validateQuestions: ActionDef = {
     const { module, label } = await moduleFrom(raw, state);
     const count = typeof raw.count === "number" && raw.count > 0 ? Math.floor(raw.count) : 10;
     return {
-      input: { moduleQuery: module.title, count },
+      input: { moduleId: module.id, count },
       summary: `Validate up to ${count} pending questions for ${label}. A clean pass goes live in the question bank; anything flagged waits for your second review.`,
       risk: "low",
     };
   },
-  async execute(input, ctx) {
-    return runLoopTool("run_bank_validation", input, ctx.userId);
+  async execute(input) {
+    try {
+      return await validateBankQuestionBatch(String(input.moduleId), Number(input.count) || 10);
+    } catch (e) {
+      if (e instanceof BankModelError) throw new Error(e.message);
+      throw e;
+    }
   },
 };
 
@@ -495,6 +557,8 @@ const logChangeRequest: ActionDef = {
 export const LOOP_ACTIONS: ActionDef[] = [
   saveObjectives,
   generateQuestions,
+  reviewQuestionsAction,
+  approveQuestionsAction,
   validateQuestions,
   splitPools,
   practiceSettings,

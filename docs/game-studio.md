@@ -59,6 +59,20 @@ missed-before bonus, the game's reward switches). XP never counts toward certifi
   objective-mastered and module-completed XP (same ledger keys, so nothing is paid twice).
 - Per-question pool assignment for quizzes is in the studio (single question, or move all untagged ones).
 
+## Question bank in the studio
+
+The **Question bank** panel (Build column, beside the Loop chat) gets a module's practice questions ready without leaving the page.
+
+1. **Write.** One Claude model writes the questions (`BANK_GENERATOR_MODEL`, default `claude-sonnet-5-5`), grounded in the module's lesson materials and one confirmed learning objective at a time. The panel works out how many each objective still needs (10 practice plus 6 formal) and asks for exactly that, in batches of up to 10.
+2. **Review.** A **different** Claude model checks every question straight away (`BANK_REVIEWER_MODEL`, default `claude-opus-5-5`): it works out the right answer from the lesson material without being told which option was marked, judges whether the question tests its objective, and flags ambiguous or near-duplicate ones. A question is never checked by the model that wrote it. The studio shows both model names, and says so if they are set to the same model.
+3. **Approve.** Questions that passed wait for you: **Approve all that passed** makes them live and splits them between the practice and formal pools. Flagged questions show the reviewer's reasons in plain words, and each can be approved anyway, edited (the reviewer checks the edit again) or rejected. A flagged question is never approved in bulk.
+
+Loop does the same from the chat: `generate_bank_questions`, `review_bank_questions`, `get_bank_questions` (read-only), and `approve_bank_questions`, which always asks first and approves only what passed. If Claude can't be reached (wrong model name, bad key, outage), writing or reviewing stops with a message and changes nothing; it never marks every question as "flagged" because of an outage.
+
+Needs the **Question bank: write, review and approve** permission (off by default for staff; a Super Admin always has it). Staff work only on their own modules. The older route still exists: a person presses **Approve for validation** on the Question bank page, then `run_bank_validation` checks the questions and a clean pass goes live by itself. Under the new route a clean pass waits for a person's approval instead.
+
+Reviewing and writing each take up to a minute per batch, so the panel runs them one batch at a time and shows progress. Loop's chat has the same one-minute limit per message, so ask it for one objective at a time.
+
 ## Tool permissions
 
 A Super Admin chooses, per person, which tools they may use (studio page, "Your team: Loop level and permissions"). The same list limits what Loop will offer and run for that person, and the server refuses the matching actions even if a request is crafted by hand.
@@ -70,7 +84,7 @@ A Super Admin chooses, per person, which tools they may use (studio page, "Your 
 | Write and approve items | Add, edit, delete items; approve Loop's drafts |
 | Assign games to modules | Assign, switch live or off |
 | Question pools and practice settings | Pools, practice rules, objectives |
-| Generate and validate bank questions | Loop drafts exam questions for their own modules (uses AI credits) |
+| Question bank: write, review and approve | Write practice and exam questions for their own modules, have the reviewer model check them, and approve them (uses AI credits) |
 | Platform analytics and overview *(all organisations)* | Platform numbers and module statistics |
 | Cohort reports *(all organisations)* | List cohorts, read reports |
 | People and reports *(all organisations)* | Search people; trainee, employer and staff reports |

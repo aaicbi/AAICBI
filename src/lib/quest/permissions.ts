@@ -11,7 +11,7 @@ export const STUDIO_PERMISSIONS = [
   { key: "ITEMS", group: "STUDIO", label: "Write and approve items", blurb: "Add, edit and delete game items, and approve Loop's drafts.", wide: false },
   { key: "ASSIGN", group: "STUDIO", label: "Assign games to modules", blurb: "Attach a game to a module and switch it live or off.", wide: false },
   { key: "QUESTIONS", group: "STUDIO", label: "Question pools and practice settings", blurb: "Split question pools, set practice rules and confirm objectives.", wide: false },
-  { key: "BANK_AI", group: "PLATFORM", label: "Generate and validate bank questions", blurb: "Loop drafts exam questions for their own modules and runs the checks. Uses AI credits.", wide: false },
+  { key: "BANK_AI", group: "PLATFORM", label: "Question bank: write, review and approve", blurb: "Write practice and exam questions for their own modules, have the reviewer model check them, and approve them. Uses AI credits.", wide: false },
   { key: "ANALYTICS", group: "PLATFORM", label: "Platform analytics and overview", blurb: "Platform numbers, content performance, interests, search demand and module statistics.", wide: true },
   { key: "COHORTS", group: "PLATFORM", label: "Cohort reports", blurb: "List cohorts and read their reports.", wide: true },
   { key: "PEOPLE_DATA", group: "PLATFORM", label: "People and reports", blurb: "Search people and read trainee, employer and staff reports.", wide: true },
@@ -53,6 +53,8 @@ export const TOOL_PERMISSION: Record<string, StudioPermission> = {
   // question bank
   generate_bank_questions: "BANK_AI",
   run_bank_validation: "BANK_AI",
+  review_bank_questions: "BANK_AI",
+  approve_bank_questions: "BANK_AI",
   // platform reads
   get_platform_overview: "ANALYTICS",
   get_analytics_overview: "ANALYTICS",
@@ -76,7 +78,7 @@ export const TOOL_PERMISSION: Record<string, StudioPermission> = {
 };
 
 /** Tools the engine itself provides, limited to the person's own modules and games. Everyone who may use Loop has them. */
-export const OWN_SCOPE_TOOLS = new Set(["find_module", "get_module_details", "read_module_materials", "list_games", "get_game_items"]);
+export const OWN_SCOPE_TOOLS = new Set(["find_module", "get_module_details", "read_module_materials", "list_games", "get_game_items", "get_bank_questions"]);
 
 export function mayUseTool(name: string, permissions: readonly StudioPermission[]): boolean {
   if (OWN_SCOPE_TOOLS.has(name)) return true;

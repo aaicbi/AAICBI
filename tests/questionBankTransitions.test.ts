@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { applyGate1Transition, applyGate2Transition } from "@/lib/questionBank/transitions";
+import { applyGate1Transition, applyGate2Transition, applyReviewedTransition } from "@/lib/questionBank/transitions";
 
 describe("applyGate1Transition", () => {
   it("approves PENDING_REVIEW into PENDING_VALIDATION", () => {
@@ -37,5 +37,20 @@ describe("applyGate2Transition", () => {
   it("refuses a question not awaiting gate 2", () => {
     expect(applyGate2Transition("PENDING_REVIEW", "approve")).toBeNull();
     expect(applyGate2Transition("APPROVED", "approve")).toBeNull();
+  });
+});
+
+describe("applyReviewedTransition (the studio's single approval)", () => {
+  it("approves or rejects any reviewed status, a clean pass included", () => {
+    for (const s of ["VALIDATED_PASS", "VALIDATED_WARNING", "VALIDATED_FLAGGED", "VALIDATED_REJECTED"] as const) {
+      expect(applyReviewedTransition(s, "approve")).toBe("APPROVED");
+      expect(applyReviewedTransition(s, "reject")).toBe("REJECTED");
+    }
+  });
+
+  it("refuses anything the review has not looked at yet, or that is already decided", () => {
+    for (const s of [null, "PENDING_REVIEW", "PENDING_VALIDATION", "APPROVED", "REJECTED"] as const) {
+      expect(applyReviewedTransition(s, "approve")).toBeNull();
+    }
   });
 });
