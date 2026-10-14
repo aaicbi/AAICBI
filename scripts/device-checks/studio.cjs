@@ -279,6 +279,8 @@ async function seed() {
   await tp.getByTestId('games-strip').first().waitFor();
   log(/SC Ui game|SC Loop game/.test(await tp.getByTestId('games-strip').innerText()), 'the trainee’s course page shows the live games');
   await tp.getByTestId('games-strip').getByRole('link').first().click();
+  await tp.getByTestId('round-start').click();   // the round's welcome and countdown come first
+  await tp.getByRole('button', { name: 'Skip' }).click();
   await tp.getByTestId('game-player').waitFor();
   log(/never counts toward your certificate/.test((await tp.locator('main').innerText()).replace(/\n/g, ' ')), 'the game page says the XP never counts toward the certificate');
   await sleep(4000);
