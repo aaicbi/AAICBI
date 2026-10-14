@@ -24,7 +24,20 @@ const blocksOf = (c) => (typeof c === 'string' ? [{ type: 'text', text: c }] : c
 http.createServer((req, res) => {
   let body = ''; req.on('data', (c) => (body += c)); req.on('end', async () => {
     let j = {}; try { j = JSON.parse(body); } catch {}
-    fs.appendFileSync('/tmp/fakeclaude-stream.log', JSON.stringify({ url: req.url, stream: j.stream, system: typeof j.system === 'string' ? j.system : JSON.stringify(j.system || ''), tools: (j.tools || []).map((t) => t.name), messages: (j.messages || []).map((m) => ({ role: m.role, blocks: blocksOf(m.content).map((b) => ({ type: b.type, text: b.text ? String(b.text).slice(0, 300) : undefined, name: b.name })) })) }) + '\n');
+    fs.appendFileSync('/tmp/fakeclaude-stream.log', JSON.stringify({ url: req.url, model: j.model, stream: j.stream, system: typeof j.system === 'string' ? j.system : JSON.stringify(j.system || ''), tools: (j.tools || []).map((t) => t.name), messages: (j.messages || []).map((m) => ({ role: m.role, blocks: blocksOf(m.content).map((b) => ({ type: b.type, text: b.text ? String(b.text).slice(0, 300) : undefined, name: b.name })) })) }) + '\n');
+    if (!j.stream) {
+      // The question bank's calls (writer and reviewer) are not streamed. Behave like a reviewer: find the answer unless the
+      // question says TRAP, and call a question ambiguous when it says AMBIG.
+      const sys = typeof j.system === 'string' ? j.system : JSON.stringify(j.system || '');
+      const user = blocksOf((j.messages || [])[0].content).map((b) => b.text || '').join('\n');
+      const items = [...user.matchAll(/^(\d+)\) (?:Objective: .*\n)?(?:Question: )?(.*)$/gm)].map((m) => ({ i: Number(m[1]), text: m[2] }));
+      let out;
+      if (/You write scenario-based/.test(sys)) out = { questions: [{ question: 'What starts a workflow?', options: ['A trigger', 'A filter'], correct_option_index: 0, explanation: 'A trigger starts it.', topic: 'Triggers' }] };
+      else if (/independently determine|work out the correct answer yourself/.test(sys)) out = { verifications: items.map((t) => ({ index: t.i, correct_option_index: /TRAP|WRONG/.test(t.text) ? 1 : 0 })) };
+      else out = { results: items.map((t) => ({ index: t.i, aligned: true, alignmentReason: null, ambiguous: /AMBIG/.test(t.text), ambiguityReason: /AMBIG/.test(t.text) ? 'Two options fit.' : null })) };
+      res.writeHead(200, { 'content-type': 'application/json' });
+      return res.end(JSON.stringify({ id: 'msg_fake', type: 'message', role: 'assistant', model: j.model, content: [{ type: 'text', text: JSON.stringify(out) }], stop_reason: 'end_turn', stop_sequence: null, usage: { input_tokens: 10, output_tokens: 10 } }));
+    }
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' });
     const msgs = j.messages || [];
     // the human's message for this turn, and how many tool rounds have happened since
@@ -61,6 +74,14 @@ http.createServer((req, res) => {
     if ((m = text.match(/PEOPLE:([A-Za-z0-9 ]+?)(?:\.|$|\n)/))) {
       if (stage === 0) return toolReply(res, 'search_people', { query: m[1].trim() }, j.model, 'tu_sp');
       return textReply(res, /permission/.test(lastResult) ? 'I am not allowed to look people up for you.' : 'Here are the people I found.', j.model);
+    }
+    if ((m = text.match(/BANK:([A-Za-z0-9 ]+?)(?:\.|$|\n)/))) {
+      if (stage === 0) return toolReply(res, 'get_bank_questions', { moduleQuery: m[1].trim() }, j.model, 'tu_bank');
+      return textReply(res, /writtenBy/.test(lastResult) ? 'BANK-READ: ' + (lastResult.match(/reviewedBy[^,]*/) || [''])[0].replace(/\\/g, '') : 'I could not read the bank.', j.model);
+    }
+    if ((m = text.match(/BANKAPPROVE:([A-Za-z0-9 ]+?)(?:\.|$|\n)/))) {
+      if (stage === 0) return toolReply(res, 'approve_bank_questions', { moduleQuery: m[1].trim() }, j.model, 'tu_bapp');
+      return textReply(res, /awaitingApproval/.test(lastResult) ? 'The approval is waiting for you.' : 'Approved.', j.model);
     }
     if ((m = text.match(/APPROVE:([A-Za-z0-9 ]+?)(?:\.|$|\n)/))) {
       if (stage === 0) return toolReply(res, 'approve_game_items', { moduleQuery: m[1].trim(), format: 'MATCHING' }, j.model, 'tu_ap');
