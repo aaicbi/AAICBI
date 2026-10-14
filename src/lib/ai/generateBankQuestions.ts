@@ -37,13 +37,14 @@ import { prisma } from "@/lib/prisma";
 import { getModuleMaterialsText, type UsableMaterialText } from "@/lib/parsing/moduleMaterialsText";
 import { withGuidance } from "@/lib/guide/aiGuidance";
 import { asBankModelError, BankModelError, generatorModel, reviewerModel } from "@/lib/ai/bankModels";
+import { readJsonReply } from "@/lib/ai/jsonReply";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 // Questions per Claude call — the batching lever: amortizes the
 // repeated material-text input across this many questions instead of
 // paying it fresh per question.
-const GENERATION_SUB_BATCH_SIZE = 10;
+const GENERATION_SUB_BATCH_SIZE = 6;
 // Max questions generated per single function invocation (one HTTP
 // request) — same bounded-batch discipline as generateCourseExam.ts's
 // GENERATION_BATCH_SIZE, sized to stay well inside a serverless
@@ -68,17 +69,18 @@ function makeExamCode(title: string): string {
   return `${slug}-${suffix}`;
 }
 
+// Lenient on purpose: a model may leave out the optional parts (explanation, topic) or send the answer index as text. One badly
+// formed question is dropped; it must never take the whole batch down with it.
 const GeneratedQuestionSchema = z.object({
-  question: z.string(),
+  question: z.string().min(3),
   options: z.array(z.string()).min(2).max(6),
-  correct_option_index: z.number().int().min(0).max(5),
-  explanation: z.string().nullable(),
-  topic: z.string().nullable(),
+  correct_option_index: z.coerce.number().int().min(0).max(5),
+  explanation: z.string().nullish().transform((v) => v ?? null),
+  topic: z.string().nullish().transform((v) => v ?? null),
 });
-const GeneratedBatchSchema = z.object({ questions: z.array(GeneratedQuestionSchema).min(1) });
 
 const VerificationBatchSchema = z.object({
-  verifications: z.array(z.object({ index: z.number().int(), correct_option_index: z.number().int() })),
+  verifications: z.array(z.object({ index: z.coerce.number().int(), correct_option_index: z.coerce.number().int() })),
 });
 
 const GENERATION_SYSTEM_PROMPT = `You write scenario-based multiple-choice exam questions for a training module, grounded strictly in the lesson material provided.
@@ -109,18 +111,20 @@ function buildMaterialsBlock(materials: UsableMaterialText[]): string {
   return materials.map((m) => `--- ${m.title} ---\n${m.text}`).join("\n\n").slice(0, MAX_MATERIAL_CHARS_TOTAL);
 }
 
-function stripFences(text: string): string {
-  return text.replace(/```json|```/g, "").trim();
+interface SubBatchResult {
+  results: GeneratedResult[];
+  /** Why nothing (or fewer than asked) came back, in words a person can act on. Null when all is well. */
+  problem: string | null;
 }
 
-async function generateSubBatch(materialsBlock: string, objectiveText: string, count: number): Promise<GeneratedResult[]> {
+async function generateSubBatch(materialsBlock: string, objectiveText: string, count: number): Promise<SubBatchResult> {
   const genUserPrompt = `Learning objective:\n${objectiveText}\n\nLesson material:\n${materialsBlock}\n\nWrite ${count} distinct, non-overlapping questions testing this objective.`;
 
   let genResponse;
   try {
     genResponse = await client.messages.create({
       model: generatorModel(),
-      max_tokens: 4000,
+      max_tokens: 8000,
       system: await withGuidance(GENERATION_SYSTEM_PROMPT, "question-writing"),
       messages: [{ role: "user", content: genUserPrompt }],
     });
@@ -128,16 +132,34 @@ async function generateSubBatch(materialsBlock: string, objectiveText: string, c
     throw asBankModelError(e, "generator") ?? e;
   }
   const genText = genResponse.content.find((b) => b.type === "text");
-  if (!genText || genText.type !== "text") return [];
-
-  let genParsed: unknown;
-  try {
-    genParsed = JSON.parse(stripFences(genText.text));
-  } catch {
-    return [];
+  if (!genText || genText.type !== "text") {
+    console.error("Bank question writing: the model returned no text.", { model: generatorModel(), stop_reason: genResponse.stop_reason });
+    return { results: [], problem: "Claude returned no text. Try again." };
   }
-  const generated = GeneratedBatchSchema.safeParse(genParsed);
-  if (!generated.success) return [];
+
+  const read = readJsonReply(genText.text);
+  const rawQuestions = read.value && typeof read.value === "object" ? (read.value as { questions?: unknown }).questions : undefined;
+  if (!Array.isArray(rawQuestions)) {
+    console.error("Bank question writing: the reply was not readable.", { model: generatorModel(), stop_reason: genResponse.stop_reason, head: genText.text.slice(0, 300) });
+    return {
+      results: [],
+      problem:
+        genResponse.stop_reason === "max_tokens"
+          ? "Claude's answer was cut off before it finished. Ask for fewer questions at a time."
+          : "Claude's answer wasn't in the expected format, so nothing was saved. Try again.",
+    };
+  }
+  const kept: z.infer<typeof GeneratedQuestionSchema>[] = [];
+  for (const item of rawQuestions) {
+    const parsed = GeneratedQuestionSchema.safeParse(item);
+    if (parsed.success && parsed.data.correct_option_index < parsed.data.options.length) kept.push(parsed.data);
+  }
+  if (kept.length === 0) {
+    console.error("Bank question writing: no question in the reply was usable.", { model: generatorModel(), stop_reason: genResponse.stop_reason, head: genText.text.slice(0, 300) });
+    return { results: [], problem: "Claude's questions were missing required parts (each needs a question, 2 to 6 options and the correct option). Try again." };
+  }
+  const generated = { data: { questions: kept } };
+  const droppedOrCut = rawQuestions.length - kept.length > 0 || read.repaired || genResponse.stop_reason === "max_tokens";
 
   // The batch-wide blind verification call — same "independent, never
   // told the generator's own answer" discipline as
@@ -160,8 +182,7 @@ async function generateSubBatch(materialsBlock: string, objectiveText: string, c
     });
     const verifyText = verifyResponse.content.find((b) => b.type === "text");
     if (verifyText && verifyText.type === "text") {
-      const verifyParsed = JSON.parse(stripFences(verifyText.text));
-      const verified = VerificationBatchSchema.safeParse(verifyParsed);
+      const verified = VerificationBatchSchema.safeParse(readJsonReply(verifyText.text).value);
       if (verified.success) {
         verifications = new Map(verified.data.verifications.map((v) => [v.index, v.correct_option_index]));
       }
@@ -175,7 +196,7 @@ async function generateSubBatch(materialsBlock: string, objectiveText: string, c
     if (apiProblem) throw apiProblem;
   }
 
-  return generated.data.questions.map((q, i) => {
+  const results = generated.data.questions.map((q, i) => {
     const verifiedIndex = verifications?.get(i);
     const disagreement = verifiedIndex === undefined || verifiedIndex !== q.correct_option_index;
     return {
@@ -189,6 +210,7 @@ async function generateSubBatch(materialsBlock: string, objectiveText: string, c
         : "AI-generated for the question bank — pending staff review.",
     };
   });
+  return { results, problem: droppedOrCut ? "Claude's answer was cut short or had incomplete questions, so fewer were saved than asked." : null };
 }
 
 /**
@@ -204,7 +226,7 @@ export async function generateBankQuestionBatch(
   objectiveId: string,
   staffUserId: string,
   requestedCount: number
-): Promise<{ generated: number; failed: number; remaining: number }> {
+): Promise<{ generated: number; failed: number; remaining: number; problem: string | null }> {
   const objective = await prisma.moduleLearningObjective.findFirst({
     where: { id: objectiveId, moduleId },
     select: { id: true, text: true },
@@ -248,15 +270,19 @@ export async function generateBankQuestionBatch(
   const target = Math.min(requestedCount, BANK_GENERATION_BATCH_SIZE);
   let generatedCount = 0;
   let failedCount = 0;
+  let problem: string | null = null;
 
   while (generatedCount + failedCount < target) {
     const thisSubBatchSize = Math.min(GENERATION_SUB_BATCH_SIZE, target - generatedCount - failedCount);
     let results: GeneratedResult[];
     try {
-      results = await generateSubBatch(materialsBlock, objective.text, thisSubBatchSize);
+      const sub = await generateSubBatch(materialsBlock, objective.text, thisSubBatchSize);
+      results = sub.results;
+      if (sub.problem) problem = sub.problem;
     } catch (e) {
       if (e instanceof BankModelError) throw e;
       console.error("Loop bank question sub-batch failed:", e);
+      problem = "Writing the questions hit an unexpected error. Try again.";
       results = [];
     }
     if (results.length === 0) {
@@ -296,5 +322,5 @@ export async function generateBankQuestionBatch(
     failedCount += thisSubBatchSize - results.length;
   }
 
-  return { generated: generatedCount, failed: failedCount, remaining: Math.max(0, requestedCount - generatedCount) };
+  return { generated: generatedCount, failed: failedCount, remaining: Math.max(0, requestedCount - generatedCount), problem };
 }

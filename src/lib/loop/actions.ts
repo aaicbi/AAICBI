@@ -136,7 +136,7 @@ const generateQuestions: ActionDef = {
     properties: {
       moduleQuery: MODULE_PROP,
       objectiveQuery: { type: "string", description: "The confirmed objective's text or a fragment of it." },
-      count: { type: "number", description: "How many questions (at most 10 at a time)." },
+      count: { type: "number", description: "How many questions (at most 6 at a time)." },
     },
     required: ["moduleQuery", "objectiveQuery", "count"],
   },
