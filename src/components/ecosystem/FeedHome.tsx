@@ -12,7 +12,9 @@ import { ComposeBox, ComposeFab } from "@/components/posts/ComposeEntry";
 import DiscoveryPanelsView from "@/components/ecosystem/DiscoveryPanels";
 import { getDiscoveryPanels, hasPanels } from "@/lib/ecosystem/discovery";
 import DiscoverFeed from "@/app/feed/DiscoverFeed";
-import TryGames from "@/components/ecosystem/TryGames";
+import GameAdvert from "@/components/ecosystem/GameAdvert";
+import FeedEcosystem from "@/components/ecosystem/FeedEcosystem";
+import { visitorGames } from "@/lib/quest/visitorPlay";
 import { getSession } from "@/lib/auth/session";
 import { dashboardHrefFor } from "@/lib/auth/home";
 import { getEcosystemFlags } from "@/lib/ecosystem/flags";
@@ -34,7 +36,8 @@ export default async function FeedHome({ searchParams, base }: { searchParams: {
   const actor = await actorOf(session);
   const tab = parseTab(searchParams.tab);
   const visitorLatest = !actor && tab === "latest";
-  const [panels, tags, people] = await Promise.all([getDiscoveryPanels(), visitorLatest || !actor ? publicTrendingTags() : trendingTags(), actor ? suggestions(actor, 4) : publicSuggestions()]);
+  const [panels, tags, people, games] = await Promise.all([getDiscoveryPanels(), visitorLatest || !actor ? publicTrendingTags() : trendingTags(), actor ? suggestions(actor, 4) : publicSuggestions(), visitorGames(4).catch(() => [])]);
+  const ecoLinks = { jobs: flags.publicJobs, organizations: flags.orgPages, trainees: flags.publicTrainees };
   const page = visitorLatest ? await publicFeedFirstPage() : tab === "latest" || (tab === "following" && actor) ? await feedPage({ tab: tab === "following" ? "following" : "latest", actor }) : null;
   const [card, dashboard] = actor && session ? await Promise.all([cardsFor([actor.profile]).then((m) => m.get(actor.profile.id) ?? null), dashboardHrefFor(session)]) : [null, null];
   const initial = card?.name?.charAt(0).toUpperCase() || "A";
@@ -44,15 +47,18 @@ export default async function FeedHome({ searchParams, base }: { searchParams: {
   return (
     <SocialProvider signedIn={!!actor}>
       <HomeHeader initial={me} />
-      <main className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[220px_minmax(0,1fr)_280px]">
+      <main className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[260px_minmax(0,1fr)_300px]">
         <aside className="hidden lg:block">
-          <nav aria-label="Your space" className="sticky top-32 space-y-1 rounded-3xl border border-brand-gray bg-card-gradient p-3">
+          <div className="sticky top-32 space-y-3">
+          <GameAdvert games={games} signedIn={!!actor} />
+          <nav aria-label="Your space" className="hidden space-y-1 rounded-3xl border border-brand-gray bg-card-gradient p-3 [@media(min-height:860px)]:block">
             {dashboard && (
               <Link href={dashboard} className="mb-2 flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-brand-action px-4 text-sm font-semibold text-brand-action hover:bg-brand-mint"><Icon icon={LayoutDashboard} size="sm" />Go to my dashboard</Link>
             )}
             <Link href="/compose" className="mb-2 flex min-h-[44px] items-center justify-center rounded-full bg-brand-action px-4 text-sm font-semibold text-brand-onAccent hover:bg-brand-actionHover">Write a post</Link>
             {(actor ? [["/my-posts", "My posts"], ["/saved", "Saved posts"], ["/certificate", "Verify a certificate"]] : [["/organizations", "Training organizations"], ["/jobs", "Jobs and opportunities"], ["/startups", "Startups"], ["/certificate", "Verify a certificate"]]).map(([h, l]) => <Link key={h} href={h} className="flex min-h-[44px] items-center rounded-xl px-3 text-sm font-semibold text-brand-ink hover:bg-brand-mint">{l}</Link>)}
           </nav>
+          </div>
         </aside>
 
         <section aria-label="Feed" className="min-w-0">
@@ -70,13 +76,23 @@ export default async function FeedHome({ searchParams, base }: { searchParams: {
             </div>
           )}
           <ComposeBox initial={initial} />
-          {(hasPanels(panels) || !actor) && (
-            <details className="mt-4 rounded-3xl border border-brand-gray bg-card-gradient lg:hidden">
-              <summary className="flex min-h-[44px] cursor-pointer items-center px-4 text-sm font-semibold text-brand-ink">Explore AAICBI: organizations, jobs, startups, events</summary>
-              <div className="space-y-4 p-3"><DiscoveryPanelsView panels={panels} signedIn={!!actor} /></div>
+          <div className="mt-4 lg:hidden"><GameAdvert games={games} signedIn={!!actor} /></div>
+          <div className="mt-4 lg:hidden"><FeedEcosystem links={ecoLinks} signedIn={!!actor} /></div>
+          {(hasPanels(panels) || !actor || tags.length > 0) && (
+            <details className="mt-4 rounded-3xl border border-brand-gray bg-card-gradient">
+              <summary className="flex min-h-[44px] cursor-pointer items-center px-4 text-sm font-semibold text-brand-ink">Explore AAICBI: topics, organizations, jobs, startups, events</summary>
+              <div className="space-y-4 p-3">
+                {tags.length > 0 && (
+                  <Card>
+                    <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Topics this week</h2>
+                    <ul className="mt-3 flex flex-wrap gap-2">{tags.map((t) => <li key={t.tag}><Link href={`/tags/${encodeURIComponent(t.tag)}`} className="inline-flex min-h-[36px] items-center rounded-full border border-brand-gray px-3 text-xs font-semibold text-brand-ink hover:border-brand-teal">#{t.tag}<span className="ml-1.5 text-gray-600">{t.people}</span></Link></li>)}</ul>
+                    <p className="mt-2 text-xs text-gray-600">Counted by how many different people posted about it.</p>
+                  </Card>
+                )}
+                <DiscoveryPanelsView panels={panels} signedIn={!!actor} />
+              </div>
             </details>
           )}
-          <TryGames />
           <nav aria-label="Feed tabs" className="mt-4 flex gap-2 overflow-x-auto pb-2">
             {TABS.map(([t, l]) => <Link key={t} href={tabHref(t)} aria-current={tab === t ? "page" : undefined} className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold ${tab === t ? "bg-brand-action text-brand-onAccent" : "border border-brand-gray bg-brand-surface text-brand-ink hover:border-brand-teal"}`}>{l}</Link>)}
           </nav>
@@ -88,9 +104,11 @@ export default async function FeedHome({ searchParams, base }: { searchParams: {
           </div>
         </section>
 
-        <aside className="space-y-4" aria-label="Suggestions and discovery">
+        <aside className="hidden lg:block" aria-label="About AAICBI and who to follow">
+          <div className="sticky top-32 space-y-3">
+            <FeedEcosystem links={ecoLinks} signedIn={!!actor} />
           {people.length > 0 && (
-            <Card>
+            <Card className="hidden [@media(min-height:900px)]:block">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Who to follow</h2>
               <ul className="mt-3 space-y-3">
                 {people.map((p) => (
@@ -105,14 +123,7 @@ export default async function FeedHome({ searchParams, base }: { searchParams: {
               </ul>
             </Card>
           )}
-          {tags.length > 0 && (
-            <Card>
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Topics this week</h2>
-              <ul className="mt-3 flex flex-wrap gap-2">{tags.map((t) => <li key={t.tag}><Link href={`/tags/${encodeURIComponent(t.tag)}`} className="inline-flex min-h-[36px] items-center rounded-full border border-brand-gray px-3 text-xs font-semibold text-brand-ink hover:border-brand-teal">#{t.tag}<span className="ml-1.5 text-gray-600">{t.people}</span></Link></li>)}</ul>
-              <p className="mt-2 text-xs text-gray-600">Counted by how many different people posted about it.</p>
-            </Card>
-          )}
-          <div className="hidden space-y-4 lg:block"><DiscoveryPanelsView panels={panels} signedIn={!!actor} /></div>
+          </div>
         </aside>
       </main>
       <ComposeFab />
