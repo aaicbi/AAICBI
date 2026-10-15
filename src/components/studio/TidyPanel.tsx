@@ -44,7 +44,7 @@ export default function TidyPanel({ moduleId, objectives, minimums, canUse, onCh
     <Card data-testid="tidy-card">
       <h3 className="text-sm font-semibold text-brand-ink">Tidy this module&apos;s objectives</h3>
       <p className="mt-1 text-xs text-gray-600">
-        Merge an objective into another (its questions and items move across), remove an empty one, or fill the assessment side from spare practice questions. Nothing here asks Claude for anything. The quiz game can only go live when every objective has at least {minimums.practice} practice and {minimums.formal} assessment questions.
+        Merge an objective into another (its questions and items move across), rename one, remove an empty one, or fill the assessment side from spare practice questions. Nothing here asks Claude for anything. The quiz game can only go live when every objective has at least {minimums.practice} practice and {minimums.formal} assessment questions.
       </p>
       {error && (
         <p role="alert" className="mt-2 rounded-xl bg-brand-roseLight px-3 py-2 text-xs text-brand-rose" data-testid="tidy-error">
@@ -93,6 +93,18 @@ export default function TidyPanel({ moduleId, objectives, minimums, canUse, onCh
                       ))}
                     </select>
                   </label>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={busy}
+                    data-testid="tidy-rename"
+                    onClick={() => {
+                      const next = window.prompt("New wording for this objective:", o.text);
+                      if (next !== null && next.trim() && next.trim() !== o.text) void call({ action: "rename", id: o.id, text: next }, () => "Renamed.");
+                    }}
+                  >
+                    Rename
+                  </Button>
                   {empty && (
                     <Button
                       size="sm"
