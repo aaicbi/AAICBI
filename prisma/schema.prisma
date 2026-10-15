@@ -3058,6 +3058,8 @@ model PlatformSettings {
   ecosystemOrgPagesEnabled  Boolean  @default(true)
   ecosystemEducationEnabled Boolean  @default(true)
   ecosystemFeedEnabled      Boolean  @default(true)
+  // Game results table: off = only a Super Admin sees it; on = staff a Super Admin switched on (GAME_RESULTS) see their own courses' players too.
+  gameResultsShared         Boolean  @default(false)
   // Landing page: the ecosystem hero, activity and discovery sections
   // (off = the original landing page), whether labelled example
   // placeholders fill sections that have little real content yet, the
@@ -5574,4 +5576,26 @@ model ChangeRequest {
 
   @@index([status, createdAt])
   @@index([authorId])
+}
+
+// One answer given in a game opened from the feed (/play/<id>). The feed games pay no XP and have no trainee history, so this is the
+// only record of them: it feeds the Game results table. Name and email are copied at play time (the player may be any kind of account).
+model FeedGamePlay {
+  id           String   @id @default(cuid())
+  userId       String
+  kind         String
+  name         String
+  email        String
+  assignmentId String?
+  gameId       String
+  moduleId     String
+  format       String
+  itemId       String
+  correct      Boolean
+  score        Float
+  answeredAt   DateTime @default(now())
+
+  @@index([userId, answeredAt])
+  @@index([gameId, answeredAt])
+  @@index([moduleId, answeredAt])
 }

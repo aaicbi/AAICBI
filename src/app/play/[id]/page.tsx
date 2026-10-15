@@ -39,7 +39,7 @@ export default async function PlayPage({ params }: { params: { id: string } }) {
           <>
             <h1 className="mt-2 text-2xl font-bold text-brand-ink">{game.title}</h1>
             <p className="mt-1 text-sm text-gray-700">
-              {FORMAT_INFO[game.format as GameFormat].blurb} A taste of <strong>{game.courseTitle}</strong>. Nothing here is saved.
+              {FORMAT_INFO[game.format as GameFormat].blurb} A taste of <strong>{game.courseTitle}</strong>. No XP is paid, and your answers are recorded so the AAICBI team can see how the games are going.
             </p>
             {session ? (
               <div className="mt-4">

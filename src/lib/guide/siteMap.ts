@@ -129,6 +129,7 @@ export const PAGES: Array<SitePage & { group: Group }> = [
   { group: "Training organization", href: "/admin/profile", label: "My account profile", who: STAFF, what: "Your own name, photo and details as a team member.", aliases: ["my profile", "profile"] },
 
   // ---- AAICBI team
+  { group: "AAICBI team", href: "/admin/game-results", label: "Game results", who: STAFF, what: "Who plays the games and how they do: every player from course games, quiz practice and the feed, with answers, accuracy by game type and their latest answers, plus a CSV download. A Super Admin always sees it and chooses, with a share switch and a switch per person, which staff may also open it (they see only players in their own courses).", aliases: ["game results", "player results", "who played the games", "game performance", "leaderboard", "how are players doing"] },
   { group: "AAICBI team", href: "/admin/analytics", label: "Analytics", who: STAFF, what: "Platform-wide activity and trends.", aliases: ["statistics", "stats"] },
   { group: "AAICBI team", href: "/admin/trainees", label: "Trainees", who: STAFF, what: "Every member account; open one for details.", aliases: ["members", "users", "find a user"] },
   { group: "AAICBI team", href: "/admin/employers", label: "Employer accounts", who: STAFF, what: "Review and manage employer applications.", aliases: ["employers", "approve employer"] },
