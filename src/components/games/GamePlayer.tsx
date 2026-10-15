@@ -50,6 +50,13 @@ export interface PlayerApi {
   answer: (item: PlayItem, response: unknown) => Promise<{ result?: PlayResult; error?: string }>;
 }
 
+const OPTION_STYLE = [
+  { chip: "bg-brand-teal text-brand-onAccent", bar: "border-l-brand-teal" },
+  { chip: "bg-brand-gold text-brand-onGold", bar: "border-l-brand-gold" },
+  { chip: "bg-brand-rose text-brand-onAccent", bar: "border-l-brand-rose" },
+  { chip: "bg-brand-green text-brand-onAccent", bar: "border-l-brand-green" },
+];
+
 function pairColor(i: number): string {
   return ["bg-brand-teal text-brand-onAccent", "bg-brand-gold text-brand-onGold", "bg-brand-rose text-brand-onAccent", "bg-brand-green text-brand-onAccent", "bg-brand-tealDeep text-brand-onAccent", "bg-brand-ink text-brand-surface"][i % 6];
 }
@@ -108,7 +115,7 @@ function Matching({ served, disabled, result, onChange }: { served: Extract<Play
                   disabled={disabled}
                   aria-pressed={activeLeft === i}
                   onClick={() => pickLeft(i)}
-                  className={`flex min-h-[48px] w-full items-center gap-2 rounded-2xl border px-3 py-2 text-left text-sm ${
+                  className={`flex min-h-[52px] w-full items-center gap-2 rounded-2xl border border-l-[6px] border-l-brand-teal px-3 py-2 text-left text-sm font-medium shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] ${
                     res ? (res.ok ? "border-brand-teal bg-brand-mint" : "border-brand-rose bg-brand-roseLight/60") : activeLeft === i ? "border-brand-action bg-brand-mint/60 ring-2 ring-brand-action/30" : "border-brand-gray bg-brand-surface hover:border-brand-teal"
                   }`}
                 >
@@ -129,7 +136,7 @@ function Matching({ served, disabled, result, onChange }: { served: Extract<Play
                   type="button"
                   disabled={disabled}
                   onClick={() => pickRight(r)}
-                  className={`flex min-h-[48px] w-full items-center gap-2 rounded-2xl border px-3 py-2 text-left text-sm ${
+                  className={`flex min-h-[52px] w-full items-center gap-2 rounded-2xl border border-l-[6px] border-l-brand-gold px-3 py-2 text-left text-sm font-medium shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] ${
                     res ? (res.ok ? "border-brand-teal bg-brand-mint" : "border-brand-rose bg-brand-roseLight/60") : owner !== undefined ? "border-brand-action bg-brand-mint/40" : "border-brand-gray bg-brand-surface hover:border-brand-teal"
                   }`}
                 >
@@ -183,16 +190,16 @@ function Ordering({ served, disabled, result, onChange }: { served: Extract<Play
             <li
               key={step}
               style={{ "--i": i } as React.CSSProperties}
-              className={`gx-stagger flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm ${ok === undefined ? "border-brand-gray bg-brand-surface" : ok ? "border-brand-teal bg-brand-mint" : "border-brand-rose bg-brand-roseLight/60"}`}
+              className={`gx-stagger flex items-center gap-2 rounded-2xl border border-l-[6px] border-l-brand-teal px-3 py-2 text-sm font-medium shadow-sm ${ok === undefined ? "border-brand-gray bg-brand-surface" : ok ? "border-brand-teal bg-brand-mint" : "border-brand-rose bg-brand-roseLight/60"}`}
             >
-              <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-gray/60 text-xs font-bold text-brand-ink">{i + 1}</span>
+              <span className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-extrabold shadow ${pairColor(i)}`}>{i + 1}</span>
               <span className="flex-1">{step}</span>
               {!disabled && (
                 <span className="flex shrink-0 gap-1">
-                  <button type="button" aria-label={`Move “${step}” up`} onClick={() => move(i, -1)} disabled={i === 0} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-brand-gray hover:bg-brand-mint disabled:opacity-30">
+                  <button type="button" aria-label={`Move “${step}” up`} onClick={() => move(i, -1)} disabled={i === 0} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-gray bg-brand-surface transition-transform hover:scale-110 hover:bg-brand-mint active:scale-95 disabled:opacity-30">
                     <Icon icon={ArrowUp} size="sm" />
                   </button>
-                  <button type="button" aria-label={`Move “${step}” down`} onClick={() => move(i, 1)} disabled={i === order.length - 1} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-brand-gray hover:bg-brand-mint disabled:opacity-30">
+                  <button type="button" aria-label={`Move “${step}” down`} onClick={() => move(i, 1)} disabled={i === order.length - 1} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-gray bg-brand-surface transition-transform hover:scale-110 hover:bg-brand-mint active:scale-95 disabled:opacity-30">
                     <Icon icon={ArrowDown} size="sm" />
                   </button>
                 </span>
@@ -230,11 +237,11 @@ function Choices({ options, selected, onSelect, disabled, result, correctKey }: 
             aria-pressed={isSelected}
             onClick={() => onSelect(o.key)}
             style={{ "--i": i } as React.CSSProperties}
-            className={`gx-stagger flex min-h-[48px] w-full items-start gap-3 rounded-2xl border px-4 py-3 text-left text-sm transition-[transform,border-color,background-color] duration-150 active:scale-[0.99] ${isCorrect ? "gx-pop gx-ring " : ""}${isWrong ? "gx-shake " : ""}${
-              isCorrect ? "border-brand-teal bg-brand-mint" : isWrong ? "border-brand-rose bg-brand-roseLight/60" : isSelected ? "border-brand-action bg-brand-mint/50" : "border-brand-gray bg-brand-surface hover:border-brand-teal"
+            className={`gx-stagger flex min-h-[52px] w-full items-center gap-3 rounded-2xl border border-l-[6px] ${OPTION_STYLE[i % 4].bar} px-3 py-3 text-left text-sm font-medium shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] ${isCorrect ? "gx-pop gx-ring " : ""}${isWrong ? "gx-shake " : ""}${
+              isCorrect ? "border-brand-teal bg-brand-mint" : isWrong ? "border-brand-rose bg-brand-roseLight/60" : isSelected ? "scale-[1.01] border-brand-action bg-brand-mint/60 ring-2 ring-brand-action/40" : "border-brand-gray bg-brand-surface hover:border-brand-teal"
             }`}
           >
-            <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-current text-xs font-semibold">{String.fromCharCode(65 + i)}</span>
+            <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-extrabold shadow ${OPTION_STYLE[i % 4].chip}`}>{String.fromCharCode(65 + i)}</span>
             <span className="flex-1">{o.text}</span>
             {isCorrect && <Icon icon={CheckCircle2} size="sm" label="Best choice" />}
             {isWrong && <Icon icon={XCircle} size="sm" label="Your choice" />}
@@ -347,26 +354,26 @@ export default function GamePlayer({ api, mode, onEmpty, hooks }: { api: PlayerA
       <div key={`${item.playId}-${round}`} className="gx-rise mt-3">
         {served.format === "QUIZ" && (
           <>
-            <h3 className="text-base font-semibold text-brand-ink">{served.question}</h3>
+            <h3 className="font-display text-lg font-bold leading-snug text-brand-ink">{served.question}</h3>
             <Choices options={served.options} selected={choice} onSelect={select} disabled={answered} result={result} correctKey={quizKey} />
           </>
         )}
         {served.format === "SCENARIO" && (
           <>
-            <h3 className="text-base font-semibold text-brand-ink">{served.situation}</h3>
+            <h3 className="font-display text-lg font-bold leading-snug text-brand-ink">{served.situation}</h3>
             <p className="mt-1 text-sm text-gray-700">What would you do?</p>
             <Choices options={served.options.map((t) => ({ key: t, text: t }))} selected={choice} onSelect={select} disabled={answered} result={result} correctKey={(result?.feedback as { best?: string } | undefined)?.best ?? null} />
           </>
         )}
         {served.format === "MATCHING" && (
           <>
-            <h3 className="mb-2 text-base font-semibold text-brand-ink">{served.prompt}</h3>
+            <h3 className="mb-2 font-display text-lg font-bold leading-snug text-brand-ink">{served.prompt}</h3>
             <Matching key={`${item.playId}-${round}`} served={served} disabled={answered} result={result} onChange={onChange} />
           </>
         )}
         {served.format === "ORDERING" && (
           <>
-            <h3 className="mb-2 text-base font-semibold text-brand-ink">{served.prompt}</h3>
+            <h3 className="mb-2 font-display text-lg font-bold leading-snug text-brand-ink">{served.prompt}</h3>
             <Ordering key={`${item.playId}-${round}`} served={served} disabled={answered} result={result} onChange={onChange} />
           </>
         )}
@@ -380,7 +387,7 @@ export default function GamePlayer({ api, mode, onEmpty, hooks }: { api: PlayerA
 
       {!answered && (
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Button onClick={check} disabled={!canCheck || busy} loading={busy}>
+          <Button onClick={check} disabled={!canCheck || busy} loading={busy} className={`min-h-[48px] px-7 text-base font-extrabold ${canCheck && !busy ? "gx-pulse" : ""}`}>
             Check answer
           </Button>
           {mode === "preview" && (
@@ -448,7 +455,7 @@ export default function GamePlayer({ api, mode, onEmpty, hooks }: { api: PlayerA
           )}
           {mode === "preview" && <p className="text-xs text-gray-600">Preview only: nothing is recorded and no XP is paid.</p>}
           <div className="flex flex-wrap gap-3">
-            <Button onClick={next}>{hooks?.nextLabel ?? (mode === "preview" ? "Next item" : "Next one")}</Button>
+            <Button onClick={next} className="gx-pulse min-h-[48px] px-7 text-base font-extrabold">{hooks?.nextLabel ?? (mode === "preview" ? "Next item" : "Next one")}</Button>
           </div>
         </div>
       )}

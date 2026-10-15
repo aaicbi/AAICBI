@@ -75,9 +75,9 @@ export default function GameDemoPage() {
           ))}
         </div>
         <p className="mt-2 text-xs text-gray-600">{info.blurb}</p>
-        <Card className="mt-4">
+        <div className="mt-4">
           {allowed ? <GameRound key={`${format}-${run}`} title={`${info.label} demo`} api={api} onExit={() => setRun((n) => n + 1)} exitLabel="Start over" /> : <p className="text-sm text-gray-500">Loading…</p>}
-        </Card>
+        </div>
       </main>
     </>
   );

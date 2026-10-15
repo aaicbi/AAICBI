@@ -26,21 +26,21 @@ export default function RoundSummary({ round, xp, onAgain, onExit, exitLabel }: 
 
   return (
     <div className="gx-rise space-y-5" data-testid="round-summary" data-tier={tier}>
-      <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:text-left">
+      <div className="ad-banner flex flex-col items-center gap-3 rounded-2xl p-4 text-center text-white sm:flex-row sm:text-left">
         <div className="relative h-28 w-28 shrink-0">
           <svg viewBox="0 0 100 100" className="h-28 w-28 -rotate-90" aria-hidden="true">
-            <circle cx="50" cy="50" r={R} fill="none" strokeWidth="9" className="stroke-brand-gray/60" />
-            <circle cx="50" cy="50" r={R} fill="none" strokeWidth="9" strokeLinecap="round" className="gx-draw stroke-brand-teal" style={{ strokeDasharray: C, strokeDashoffset: C, ["--gx-to" as string]: C * (1 - totals.accuracy / 100) }} />
+            <circle cx="50" cy="50" r={R} fill="none" strokeWidth="9" className="stroke-white/30" />
+            <circle cx="50" cy="50" r={R} fill="none" strokeWidth="9" strokeLinecap="round" className="gx-draw stroke-[#F2B84B]" style={{ strokeDasharray: C, strokeDashoffset: C, ["--gx-to" as string]: C * (1 - totals.accuracy / 100) }} />
           </svg>
-          <p className="absolute inset-0 flex items-center justify-center text-2xl font-extrabold text-brand-ink" data-testid="summary-accuracy">
+          <p className="absolute inset-0 flex items-center justify-center text-2xl font-extrabold text-white" data-testid="summary-accuracy">
             {totals.accuracy}%
           </p>
         </div>
         <div className="min-w-0">
-          <h2 id="round-summary-heading" tabIndex={-1} className="text-xl font-bold text-brand-ink outline-none">
+          <h2 id="round-summary-heading" tabIndex={-1} className="font-display text-2xl font-extrabold text-white outline-none">
             Round complete
           </h2>
-          <p className="mt-0.5 text-sm text-brand-ink" data-testid="summary-count">
+          <p className="mt-0.5 text-sm font-medium text-white/95" data-testid="summary-count">
             {totals.full} of {totals.answered} fully correct
             {totals.partial > 0 ? `, ${totals.partial} partly right` : ""}
           </p>

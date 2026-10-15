@@ -10,16 +10,16 @@ const PIP_LABEL: Record<Outcome, string> = { FULL: "correct", PARTIAL: "partly r
 export default function RoundHud({ current, size, outcomes, correct, xp, streak, soundOn, onToggleSound }: { current: number; size: number; outcomes: Outcome[]; correct: number; xp: number | null; streak: number; soundOn: boolean; onToggleSound: () => void }) {
   const answered = outcomes.length;
   return (
-    <div className="space-y-2" data-testid="round-hud">
+    <div className="space-y-2 rounded-2xl bg-gradient-to-r from-brand-mint via-brand-goldLight to-brand-mint p-3" data-testid="round-hud">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-        <p className="text-sm font-semibold text-brand-ink" data-testid="hud-question">
+        <p className="rounded-full bg-brand-action px-3 py-1 text-sm font-extrabold text-brand-onAccent shadow" data-testid="hud-question">
           Question <span className="gx-rise inline-block" key={current}>{current}</span> of {size}
         </p>
-        <p className="text-sm text-gray-700" data-testid="hud-correct">
+        <p className="rounded-full bg-brand-surface px-3 py-1 text-sm font-semibold text-brand-ink shadow-sm" data-testid="hud-correct">
           Correct <AnimatedNumber value={correct} className="font-semibold text-brand-ink" />
         </p>
         {xp !== null && (
-          <p className="text-sm text-gray-700" data-testid="hud-xp">
+          <p className="rounded-full bg-brand-gold px-3 py-1 text-sm font-semibold text-brand-onGold shadow-sm" data-testid="hud-xp">
             XP this round <AnimatedNumber value={xp} className="font-semibold text-brand-ink" />
           </p>
         )}
@@ -36,8 +36,8 @@ export default function RoundHud({ current, size, outcomes, correct, xp, streak,
         </button>
       </div>
 
-      <div className="h-2 w-full overflow-hidden rounded-full bg-brand-gray/60" role="progressbar" aria-label="Round progress" aria-valuemin={0} aria-valuemax={size} aria-valuenow={answered} aria-valuetext={`${answered} of ${size} questions answered`}>
-        <div className="h-full origin-left rounded-full bg-brand-action transition-transform duration-500 ease-out motion-reduce:transition-none" style={{ transform: `scaleX(${size === 0 ? 0 : answered / size})`, width: "100%" }} />
+      <div className="h-3 w-full overflow-hidden rounded-full bg-brand-surface/80 shadow-inner" role="progressbar" aria-label="Round progress" aria-valuemin={0} aria-valuemax={size} aria-valuenow={answered} aria-valuetext={`${answered} of ${size} questions answered`}>
+        <div className="h-full origin-left rounded-full bg-gradient-to-r from-brand-gold via-brand-green to-brand-teal transition-transform duration-500 ease-out motion-reduce:transition-none" style={{ transform: `scaleX(${size === 0 ? 0 : answered / size})`, width: "100%" }} />
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -60,7 +60,7 @@ export default function RoundHud({ current, size, outcomes, correct, xp, streak,
           })}
         </ol>
         {streak >= 2 && (
-          <p key={streak} className="gx-streak inline-flex items-center gap-1 rounded-full bg-brand-goldLight px-2.5 py-1 text-xs font-semibold text-brand-goldText" data-testid="hud-streak">
+          <p key={streak} className="gx-streak inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-brand-gold to-brand-rose px-3 py-1 text-xs font-extrabold text-brand-onAccent shadow" data-testid="hud-streak">
             <Icon icon={Flame} size="sm" /> {streak} in a row
           </p>
         )}

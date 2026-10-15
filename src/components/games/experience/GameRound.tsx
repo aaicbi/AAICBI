@@ -8,6 +8,7 @@ import RoundIntro from "@/components/games/experience/RoundIntro";
 import RoundSummary from "@/components/games/experience/RoundSummary";
 import { useRound } from "@/components/games/experience/useRound";
 import { roundTotals } from "@/lib/games/experience";
+import { Gamepad2, Sparkles, Star, Trophy, Zap } from "lucide-react";
 
 /**
  * A 10-question round around the game player: welcome and countdown, a heads-up display, Loop beside the question, and a summary.
@@ -46,32 +47,44 @@ export default function GameRound({ title, api, onExit, exitLabel, onEmpty, afte
   );
 
   return (
-    <div>
-      <Confetti burst={r.confetti.burst} strength={r.confetti.strength} />
-      {showNudge && nudge.render(() => setClosedRound(r.roundNo))}
-      {r.phase === "intro" && <RoundIntro title={title} size={r.round.size} roundNo={r.roundNo} welcome={r.message} countdown={r.countdown} onStart={r.start} onReady={r.ready} />}
-      {r.phase === "playing" && (
-        <div className="space-y-4">
-          <RoundHud
-            current={r.current}
-            size={r.round.size}
-            outcomes={r.round.answers.map((a) => a.outcome)}
-            correct={r.round.answers.filter((a) => a.outcome === "FULL").length}
-            xp={r.xp}
-            streak={r.round.streak}
-            soundOn={r.sound.enabled}
-            onToggleSound={r.sound.toggle}
-          />
-          <Companion mood={r.mood} message={r.message} messageKey={r.messageKey} achievement={r.achievement} />
-          <GamePlayer key={r.roundNo} api={api} mode="play" onEmpty={onEmpty} hooks={hooks} />
-        </div>
-      )}
-      {r.phase === "summary" && (
-        <>
-          <RoundSummary round={r.round} xp={r.xp} onAgain={r.again} onExit={onExit} exitLabel={exitLabel} />
-          {after}
-        </>
-      )}
+    <div className="gx-stage ad-banner relative overflow-hidden rounded-3xl p-2 shadow-lg sm:p-3" data-testid="game-stage">
+      <span className="ad-shine" aria-hidden="true" />
+      <span className="ad-float pointer-events-none absolute right-4 top-2 text-[#F2B84B]" aria-hidden="true"><Trophy className="h-6 w-6" /></span>
+      <span className="ad-float pointer-events-none absolute right-16 top-3 text-white/80" style={{ animationDelay: "-1.4s" }} aria-hidden="true"><Star className="h-4 w-4" /></span>
+      <span className="ad-twinkle pointer-events-none absolute right-28 top-4 text-white" aria-hidden="true"><Sparkles className="h-4 w-4" /></span>
+      <span className="ad-float pointer-events-none absolute left-1/2 top-3 hidden text-[#F2B84B]/80 sm:block" style={{ animationDelay: "-2.2s" }} aria-hidden="true"><Zap className="h-4 w-4" /></span>
+      <div className="relative flex items-center gap-2 px-2 pb-2 pt-1 text-white">
+        <Gamepad2 className="h-5 w-5 shrink-0 text-[#F2B84B]" aria-hidden="true" />
+        <p className="min-w-0 max-w-[55%] truncate text-xs font-extrabold uppercase tracking-wider sm:text-sm">{title}</p>
+        <span className="rounded-full bg-[#F2B84B] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-[#2A1D00]">Round {r.roundNo}</span>
+      </div>
+      <div className="relative rounded-2xl bg-brand-surface p-4 text-brand-ink sm:p-5">
+        <Confetti burst={r.confetti.burst} strength={r.confetti.strength} />
+        {showNudge && nudge.render(() => setClosedRound(r.roundNo))}
+        {r.phase === "intro" && <RoundIntro title={title} size={r.round.size} roundNo={r.roundNo} welcome={r.message} countdown={r.countdown} onStart={r.start} onReady={r.ready} />}
+        {r.phase === "playing" && (
+          <div className="space-y-4">
+            <RoundHud
+              current={r.current}
+              size={r.round.size}
+              outcomes={r.round.answers.map((a) => a.outcome)}
+              correct={r.round.answers.filter((a) => a.outcome === "FULL").length}
+              xp={r.xp}
+              streak={r.round.streak}
+              soundOn={r.sound.enabled}
+              onToggleSound={r.sound.toggle}
+            />
+            <Companion mood={r.mood} message={r.message} messageKey={r.messageKey} achievement={r.achievement} />
+            <GamePlayer key={r.roundNo} api={api} mode="play" onEmpty={onEmpty} hooks={hooks} />
+          </div>
+        )}
+        {r.phase === "summary" && (
+          <>
+            <RoundSummary round={r.round} xp={r.xp} onAgain={r.again} onExit={onExit} exitLabel={exitLabel} />
+            {after}
+          </>
+        )}
+      </div>
     </div>
   );
 }
