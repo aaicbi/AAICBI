@@ -13,7 +13,7 @@ import CorrectnessMark from "@/components/ui/CorrectnessMark";
 import Icon from "@/components/ui/Icon";
 import AttentionPulse from "@/components/ui/AttentionPulse";
 import { AchievementIcon, AssessmentIcon } from "@/components/icons/brand";
-import { ChevronDown, ChevronRight, Lock, MessageSquare, MessageCircle, ArrowRight, Star } from "lucide-react";
+import { ChevronDown, ChevronRight, Lock, MessageSquare, MessageCircle, ArrowRight, Star, CircleHelp, Shuffle, ListOrdered, Split, Gamepad2, Trophy, Flame, Sparkles, type LucideIcon } from "lucide-react";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 import LockedDoodle from "@/components/doodles/LockedDoodle";
 import AchievementDoodle from "@/components/doodles/AchievementDoodle";
@@ -62,6 +62,13 @@ interface AttemptSummary {
   percentage: number | null;
 }
 
+const GAME_TILE: Record<string, { label: string; line: string; icon: LucideIcon; chip: string }> = {
+  QUIZ: { label: "Quiz", line: "Pick the right answer", icon: CircleHelp, chip: "bg-white text-[#0A3F3A]" },
+  MATCHING: { label: "Matching", line: "Pair them up fast", icon: Shuffle, chip: "bg-[#F2B84B] text-[#2A1D00]" },
+  ORDERING: { label: "Put in order", line: "First things first", icon: ListOrdered, chip: "bg-[#85C79A] text-[#0A3F3A]" },
+  SCENARIO: { label: "Scenario", line: "Make the call", icon: Split, chip: "bg-[#F4A3A8] text-[#4A0F14]" },
+};
+
 /**
  * Game Studio: the other games live for this module (matching cards, put in
  * order, scenario choices). Quiz practice has its own strip above. Renders
@@ -86,20 +93,38 @@ function ModuleGamesStrip({ courseId, moduleId }: { courseId: string; moduleId: 
 
   if (games.length === 0) return null;
   return (
-    <Card className="p-3" data-testid="games-strip">
-      <p className="text-xs text-gray-600">
-        <span className="font-semibold text-brand-ink">Games</span> to help you prepare. The XP never counts toward your certificate.
-      </p>
-      <ul className="mt-2 flex flex-wrap gap-2">
-        {games.map((g) => (
-          <li key={g.id}>
-            <Button href={`/trainee/courses/${courseId}/modules/${moduleId}/games/${g.id}`} size="sm" variant="secondary">
-              {g.title}
-            </Button>
-          </li>
-        ))}
+    <section aria-label="Games" data-testid="games-strip">
+      <div className="flex items-center gap-2">
+        <Gamepad2 className="h-5 w-5 text-brand-teal" aria-hidden="true" />
+        <h3 className="font-display text-base font-bold text-brand-ink">Play to prepare</h3>
+        <span className="rounded-full bg-[#F2B84B] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-[#2A1D00]">{games.length} game{games.length === 1 ? "" : "s"}</span>
+      </div>
+      <p className="mt-0.5 text-xs text-gray-600">Ten questions a round, with Loop cheering you on. The XP never counts toward your certificate.</p>
+      <ul className="mt-2 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+        {games.map((g, i) => {
+          const f = GAME_TILE[g.format] ?? GAME_TILE.QUIZ;
+          return (
+            <li key={g.id}>
+              <a
+                href={`/trainee/courses/${courseId}/modules/${moduleId}/games/${g.id}`}
+                className="ad-banner group relative flex min-h-[88px] items-center gap-3 overflow-hidden rounded-2xl p-3 text-white shadow-md transition-all hover:-translate-y-0.5 hover:shadow-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-[#F2B84B] active:scale-[0.98]"
+                data-testid="game-tile"
+              >
+                <span className="ad-float pointer-events-none absolute right-3 top-2 text-[#F2B84B]/80" style={{ animationDelay: `${-i * 0.9}s` }} aria-hidden="true"><Sparkles className="h-4 w-4" /></span>
+                <span className={`ad-glow flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl shadow ${f.chip}`}><f.icon className="h-7 w-7" aria-hidden="true" /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[11px] font-extrabold uppercase tracking-wider text-[#F2B84B]">{f.label} · {f.line}</span>
+                  <span className="block break-words text-sm font-bold leading-tight">{g.title}</span>
+                </span>
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-[#0A3F3A] shadow">
+                  Play <ArrowRight className="ad-arrow h-3.5 w-3.5" aria-hidden="true" />
+                </span>
+              </a>
+            </li>
+          );
+        })}
       </ul>
-    </Card>
+    </section>
   );
 }
 
@@ -128,16 +153,24 @@ function ModulePracticeStrip({ courseId, moduleId }: { courseId: string; moduleI
 
   if (!info) return null;
   return (
-    <Card className="flex flex-col items-start gap-2 p-3 sm:flex-row sm:items-center sm:justify-between" data-testid="practice-strip">
-      <div className="text-xs text-gray-600">
-        <span className="font-semibold text-brand-ink">Practice</span> — {info.mastered} of {info.total} objectives mastered
-        {info.streak >= 2 && <span className="ml-2 font-semibold text-brand-teal">· {info.streak}-day streak</span>}
-        <span className="block sm:inline sm:ml-2">Great for preparing. Practice XP never counts toward your certificate.</span>
+    <div className="ad-banner relative flex flex-col gap-3 overflow-hidden rounded-2xl p-4 text-white shadow-md sm:flex-row sm:items-center sm:justify-between" data-testid="practice-strip">
+      <span className="ad-shine" aria-hidden="true" />
+      <span className="ad-float pointer-events-none absolute right-4 top-2 text-[#F2B84B]" aria-hidden="true"><Trophy className="h-6 w-6" /></span>
+      <div className="relative min-w-0 flex-1">
+        <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#F2B84B]">Practice</p>
+        <p className="font-display text-lg font-extrabold leading-tight">{info.mastered} of {info.total} objectives mastered</p>
+        <div className="mt-2 h-2.5 w-full max-w-xs overflow-hidden rounded-full bg-white/25" role="progressbar" aria-label="Objectives mastered" aria-valuemin={0} aria-valuemax={info.total} aria-valuenow={info.mastered}>
+          <div className="h-full rounded-full bg-gradient-to-r from-[#F2B84B] to-[#85C79A] transition-[width] duration-700" style={{ width: `${info.total === 0 ? 0 : Math.round((info.mastered / info.total) * 100)}%` }} />
+        </div>
+        <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-xs text-white/90">
+          {info.streak >= 2 && <span className="inline-flex items-center gap-1 rounded-full bg-[#F2B84B] px-2 py-0.5 font-extrabold text-[#2A1D00]"><Flame className="h-3.5 w-3.5" aria-hidden="true" />{info.streak}-day streak</span>}
+          <span>Great for preparing. Practice XP never counts toward your certificate.</span>
+        </p>
       </div>
-      <Button href={`/trainee/courses/${courseId}/modules/${moduleId}/practice`} size="sm" variant="secondary">
-        {info.mastered === 0 ? "Start practising" : "Keep practising"}
-      </Button>
-    </Card>
+      <a href={`/trainee/courses/${courseId}/modules/${moduleId}/practice`} className="ad-cta relative inline-flex min-h-[48px] items-center justify-center gap-1.5 rounded-full bg-white px-6 text-sm font-extrabold text-[#0A3F3A] shadow-md transition-transform hover:scale-[1.04] active:scale-95 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#F2B84B]">
+        {info.mastered === 0 ? "Start practising" : "Keep practising"} <ArrowRight className="ad-arrow h-4 w-4" aria-hidden="true" />
+      </a>
+    </div>
   );
 }
 

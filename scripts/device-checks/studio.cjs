@@ -279,6 +279,9 @@ async function seed() {
   if (!(await tp.getByTestId('games-strip').count())) await tp.getByText('Studio Module One').first().click().catch(() => {});
   await tp.getByTestId('games-strip').first().waitFor();
   log(/SC Ui game|SC Loop game/.test(await tp.getByTestId('games-strip').innerText()), 'the trainee’s course page shows the live games');
+  log((await tp.getByTestId('game-tile').count()) >= 1, 'each live game is a colourful tile on the course page');
+  log((await tp.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 1, 'the course page has no sideways scrolling on a phone with the game tiles');
+  await tp.getByTestId('games-strip').screenshot({ path: '/tmp/dev/course-games-phone.png' });
   await tp.getByTestId('games-strip').getByRole('link').first().click();
   await tp.getByTestId('round-start').click();   // the round's welcome and countdown come first
   await tp.getByRole('button', { name: 'Skip' }).click();
