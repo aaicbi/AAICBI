@@ -9589,16 +9589,6 @@
      ]
     },
     {
-     "prompt": "Order how to break down 'replying to a WhatsApp message'.",
-     "steps": [
-      "Notice the message",
-      "Read it",
-      "Think of a reply",
-      "Type the reply",
-      "Send it"
-     ]
-    },
-    {
      "prompt": "Order the sample workflow for a student who completes registration.",
      "steps": [
       "Student completes registration",
@@ -9654,17 +9644,6 @@
       "Break it into small steps",
       "Ask for each step whether it needs a human or is just repetition",
       "Mark the repetitive steps as automation opportunities"
-     ]
-    },
-    {
-     "prompt": "Order the workflow shown for a student who registers.",
-     "steps": [
-      "Student registers",
-      "Send welcome email",
-      "Save to spreadsheet",
-      "Notify staff",
-      "Create student record",
-      "Done"
      ]
     },
     {

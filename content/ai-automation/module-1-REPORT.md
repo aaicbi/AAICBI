@@ -1,6 +1,6 @@
 # AI Automation Fundamentals, Module 1: content and quality report
 
-File: `module-1.json` (600 items across 8 learning objectives). Source texts: `module-1-source.md`
+File: `module-1.json` (598 items across 8 learning objectives). Source texts: `module-1-source.md`
 (the Module 1 PDF handout, the Module 1 half of the Student Lesson Notes, and the Module 1 slides of the Practical Steps deck).
 
 ## Counts per objective
@@ -14,12 +14,12 @@ File: `module-1.json` (600 items across 8 learning objectives). Source texts: `m
 | 5 | No-code tools and why they exist | 20 | 20 | 11 | 20 |
 | 6 | The six beginner mistakes | 20 | 19 | 16 | 20 |
 | 7 | Business value of automation | 20 | 20 | 18 | 20 |
-| 8 | Preparing a first workflow; manual vs automated chart | 20 | 18 | 13 | 20 |
-| | Total | 160 | 155 | 125 | 160 |
+| 8 | Preparing a first workflow; manual vs automated chart | 20 | 18 | 11 | 20 |
+| | Total | 160 | 155 | 123 | 160 |
 
 Quiz and scenario reach the target of 20 for every objective. Matching is 18 to 20. Ordering is 11 to 19: the source gives
 real sequences for only some ideas, and ordering items without a sequence the source fixes were removed rather than padded
-(objective 5 has one genuine build sequence; objectives 2 and 8 overlap on the chart steps). Every objective is still at or
+(objective 5 has one genuine build sequence; objectives 2 and 8 overlap on the chart steps, and two objective 8 orderings that repeated ones from other objectives were removed by the import check). Every objective is still at or
 above the platform minimum of 10 per format.
 
 ## How it was checked

@@ -8,7 +8,7 @@ description: Turn the lesson files attached to a message (PDF, Word, PowerPoint)
 This is the exact process used for AI Automation Fundamentals, Module 1 (result in `content/ai-automation/module-1*`). Follow it in order. Keep status lines to the user short. Never open a PR or merge unless asked.
 
 ## What the user gets
-`content/<course-slug>/<module-slug>.json` (items), `...-source.md` (the text they came from) and `...-REPORT.md` (counts + how it was checked), committed and pushed to the session branch. Nothing goes live: items are loaded into the platform later through the studio's approval step (the import step may or may not exist yet: say so).
+`content/<course-slug>/<module-slug>.json` (items; the filename must end in `.json`), `...-source.md` (the text they came from) and `...-REPORT.md` (counts + how it was checked), committed and pushed to the session branch. Nothing goes live: the file is loaded into the platform with the studio's **Import reviewed content** panel (Game Studio → pick the module), which shows what would be saved first; quiz questions arrive as "passed review" and the other items as drafts, so a person still approves.
 
 Targets per objective: quiz 20, scenario 20 (exact), matching 16-20, ordering 10-20 (drop weak items, never pad with reskinned duplicates; the platform minimum is 10 per format). Games play in rounds of 10 drawn at random from this pool.
 
@@ -43,7 +43,12 @@ Re-review only the items changed in the final round (diff the packets), blind, i
 - Apply every deletion to the `objN.json` files themselves, re-run `validate.py`, then `python3 scripts/assemble.py "Course" "Module" $WORK/module.json` (prints the counts table).
 
 ## Step 9: publish and report
-Copy `module.json` and `source.md` into `content/<course-slug>/` with a `-REPORT.md` (counts table, how checked, honest shortfalls and why, known limits, source inconsistencies the writers noted). Branch rules: if the session branch's PR was merged, restart it from `origin/main` first; push with `git push -u origin <branch>`; if it is rejected because the remote still holds old merged history, `git merge -s ours origin/<branch>` then push (do not force-push). Commit trailers as the session requires. Then tell the user: counts, shortfalls, limits, and ask whether to build/run the import or send the next module.
+Copy `module.json` and `source.md` into `content/<course-slug>/` with a `-REPORT.md` (counts table, how checked, honest shortfalls and why, known limits, source inconsistencies the writers noted). Branch rules: if the session branch's PR was merged, restart it from `origin/main` first; push with `git push -u origin <branch>`; if it is rejected because the remote still holds old merged history, `git merge -s ours origin/<branch>` then push (do not force-push). Commit trailers as the session requires. Then go to Step 10.
+
+## Step 10: tell the user how to load it
+The import is built (see `docs/game-studio.md`, "Importing reviewed content"). Tell the user, in order: (1) once the branch is merged and deployed, open the Game Studio, pick the module, and under **Import reviewed content** choose `content/<course-slug>/<module-slug>.json` (they can download it from the repo); (2) check the preview and click Import; (3) approve the quiz questions in the question bank (Games and practice tab, "Approve all that passed") and the drafts in the studio; (4) switch the games on. The module must already exist in the platform; objectives are matched by words and any missing ones are added. Then give the counts, shortfalls and limits, and ask whether to send the next module.
+
+If you change the file format (`schema`), update `src/lib/quest/contentImport.ts` and its tests (they read the Module 1 file as the fixture) and re-run `scripts/device-checks/content-import.cjs`.
 
 ## Lessons from Module 1 (apply them)
 - Reviewers sometimes answer wrongly in runs (mis-aligned ids). Never trust a lone disagreement: tie-break first.

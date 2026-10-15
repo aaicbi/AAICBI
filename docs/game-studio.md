@@ -108,3 +108,13 @@ Actions added to the registry (`src/lib/loop/actions.ts`): `create_game`, `set_g
 (risky only when it makes a game live), `add_game_items` (drafts), `approve_game_items` (always asks).
 Read tools: `list_games`, `get_game_items`. The studio sends which module and game are selected with each
 message, and the prompt tells Loop it is in the studio.
+
+## Importing reviewed content
+
+The module-content skill (`.claude/skills/module-content`) turns a module's lesson files into a reviewed content file (`content/<course>/<module>.json`): per learning objective, quiz questions, matching sets, ordering sequences and scenarios. In the studio, open the module and use **Import reviewed content**:
+
+1. Choose the `.json` file. The panel checks every item against the platform's own rules and shows what would be saved: how many of each format are new, how many the module already has, and which module objective each objective in the file lines up with (same words, similar words, or new).
+2. Click **Import**. Missing objectives are added (confirmed by you). Quiz questions are saved as "passed review" on the **Games and practice** side of the question bank, and matching, ordering and scenario items are saved as drafts marked "Imported, reviewed outside". Optionally the four games are created and attached to the module, switched off.
+3. Nothing is playable until a person approves: use **Approve all that passed** in the question bank and **Approve** on the drafts, then switch the games on.
+
+Importing the same file again adds nothing (items the module already has are skipped, and games are not created twice). Needs the question-bank and item permissions (and the games one to create games). Code: `src/lib/quest/contentImport.ts` (checking and planning, pure), `contentImportApply.ts` (database), `/api/admin/studio/modules/[id]/import`, `src/components/studio/ImportPanel.tsx`. Tests: `tests/contentImport.test.ts` and `scripts/device-checks/content-import.cjs`.
