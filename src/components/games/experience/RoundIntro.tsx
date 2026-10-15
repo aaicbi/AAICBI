@@ -28,7 +28,7 @@ export default function RoundIntro({ title, size, roundNo, welcome, countdown, o
   if (count !== null) {
     return (
       <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 text-center" data-testid="countdown">
-        <p key={count} className="gx-go text-7xl font-extrabold text-brand-teal" role="status" aria-live="assertive">
+        <p key={count} className="gx-go bg-gradient-to-br from-brand-gold via-brand-rose to-brand-teal bg-clip-text text-8xl font-extrabold text-transparent" role="status" aria-live="assertive">
           {count === 0 ? "GO!" : count}
         </p>
         <Button variant="ghost" size="sm" onClick={onReady}>
@@ -40,16 +40,16 @@ export default function RoundIntro({ title, size, roundNo, welcome, countdown, o
 
   return (
     <div className="gx-rise flex flex-col items-center gap-4 py-4 text-center" data-testid="round-intro">
-      <LoopFace state="attention" size={88} />
+      <span className="eco-hub relative inline-flex rounded-full"><LoopFace state="attention" size={96} /></span>
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">{roundNo > 1 ? `Round ${roundNo}` : "Ready?"}</p>
-        <h2 className="mt-0.5 text-xl font-bold text-brand-ink">{title}</h2>
+        <p className="inline-block rounded-full bg-[#F2B84B] px-3 py-0.5 text-xs font-extrabold uppercase tracking-wider text-[#2A1D00]">{roundNo > 1 ? `Round ${roundNo}` : "Ready?"}</p>
+        <h2 className="mt-2 bg-gradient-to-r from-brand-tealDeep via-brand-teal to-brand-gold bg-clip-text font-display text-2xl font-extrabold text-transparent">{title}</h2>
         <p className="mt-2 max-w-md text-sm text-gray-700" data-testid="welcome-message">
           {welcome}
         </p>
         <p className="mt-1 text-xs text-gray-600">{size} questions. Take your time: this is practice.</p>
       </div>
-      <Button onClick={start} data-testid="round-start" autoFocus>
+      <Button onClick={start} data-testid="round-start" autoFocus size="lg" className="gx-pulse min-h-[52px] px-10 text-base font-extrabold">
         {roundNo > 1 ? "Start round" : "Let's go"}
       </Button>
     </div>

@@ -2,7 +2,6 @@
 import { useEffect, useMemo, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/trainee/LogoutButton";
-import Card from "@/components/ui/Card";
 import BackLink from "@/components/ui/BackLink";
 import GameRound from "@/components/games/experience/GameRound";
 import { type PlayerApi, type PlayItem, type PlayResult } from "@/components/games/GamePlayer";
@@ -70,9 +69,9 @@ export default function GamePage({ params }: { params: { id: string; moduleId: s
             <h1 className="mt-2 text-2xl font-bold text-brand-ink">{game.title}</h1>
             {game.description && <p className="mt-1 text-sm text-gray-700">{game.description}</p>}
             <p className="mt-1 text-xs text-gray-600">Playing for practice: the XP you earn here never counts toward your certificate.</p>
-            <Card className="mt-5">
+            <div className="mt-5">
               <GameRound title={game.title} api={api} onExit={() => window.location.assign(back)} exitLabel="Back to the course" onEmpty="You've played everything here for now. Come back later." />
-            </Card>
+            </div>
           </>
         )}
       </main>

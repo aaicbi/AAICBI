@@ -42,9 +42,9 @@ export default async function PlayPage({ params }: { params: { id: string } }) {
               {FORMAT_INFO[game.format as GameFormat].blurb} A taste of <strong>{game.courseTitle}</strong>. Nothing here is saved.
             </p>
             {session ? (
-              <Card className="mt-4">
+              <div className="mt-4">
                 <PlayClient id={game.id} title={game.title} courseId={game.courseId} courseTitle={game.courseTitle} enrolled={enrolled} />
-              </Card>
+              </div>
             ) : (
               <Card className="gx-rise mt-4 bg-card-gradient" data-testid="play-gate">
                 <div className="flex items-start gap-3">
