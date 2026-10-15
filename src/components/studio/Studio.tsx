@@ -249,6 +249,11 @@ export default function Studio({ isSuper = false }: { isSuper?: boolean } = {}) 
 
   const libraryPanel = (
     <div className="space-y-4">
+      {overview?.canSeeResults && (
+        <a href="/admin/game-results" data-testid="results-link" className="flex min-h-[44px] items-center justify-between rounded-2xl border border-brand-teal/40 bg-brand-mint/50 px-4 text-sm font-semibold text-brand-teal hover:bg-brand-mint">
+          How are players doing? Game results <span aria-hidden="true">→</span>
+        </a>
+      )}
       <section aria-label="Game library">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-brand-ink">Games</h2>
@@ -420,7 +425,7 @@ export default function Studio({ isSuper = false }: { isSuper?: boolean } = {}) 
                 />
                 <Checkbox
                   label="Show on the feed: signed-in people can try it"
-                  hint={assignment?.feedBlocker ?? (assignment?.openToVisitors ? "On the feed now." : "A ten-question round on the feed for anyone with an account. Nothing is saved; after a round they do not pass, Loop invites people who have not registered to register for the course. Quiz games use practice questions only. Needs the game live, the course published and at least 10 things to play.")}
+                  hint={assignment?.feedBlocker ?? (assignment?.openToVisitors ? "On the feed now." : "A ten-question round on the feed for anyone with an account. Answers are recorded in the Game results table; after a round they do not pass, Loop invites people who have not registered to register for the course. Quiz games use practice questions only. Needs the game live, the course published and at least 10 things to play.")}
                   checked={!!assignment?.openToVisitors}
                   disabled={busy || !assignment?.live}
                   onChange={(e) => void act("PUT", `/api/admin/studio/games/${game.id}/assign`, { moduleId: workspace.module.id, assigned: true, live: true, openToVisitors: e.target.checked }, e.target.checked ? "Shown on the feed." : "Taken off the feed.")}

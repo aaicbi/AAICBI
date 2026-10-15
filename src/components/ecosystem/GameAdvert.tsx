@@ -109,7 +109,7 @@ export default function GameAdvert({ games, signedIn }: { games: VisitorGame[]; 
           </ul>
         </div>
       )}
-      <p className="relative mt-3 text-center text-[11px] text-white/85">{signedIn ? "Your result is never recorded." : "Sign in or create a free account to play."}</p>
+      <p className="relative mt-3 text-center text-[11px] text-white/85">{signedIn ? "Your answers help the team improve the games." : "Sign in or create a free account to play."}</p>
     </section>
   );
 }

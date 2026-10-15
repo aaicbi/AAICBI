@@ -15,6 +15,7 @@ export const STUDIO_PERMISSIONS = [
   { key: "ANALYTICS", group: "PLATFORM", label: "Platform analytics and overview", blurb: "Platform numbers, content performance, interests, search demand and module statistics.", wide: true },
   { key: "COHORTS", group: "PLATFORM", label: "Cohort reports", blurb: "List cohorts and read their reports.", wide: true },
   { key: "PEOPLE_DATA", group: "PLATFORM", label: "People and reports", blurb: "Search people and read trainee, employer and staff reports.", wide: true },
+  { key: "GAME_RESULTS", group: "PLATFORM", label: "Game results", blurb: "See who plays the games and how they do, for their own courses. Only works while a Super Admin has shared the Game results table.", wide: true },
   { key: "MESSAGING", group: "PLATFORM", label: "Messaging through Loop", blurb: "Find recipients, read a trainee's conversation, send messages and pause messaging.", wide: true },
 ] as const;
 

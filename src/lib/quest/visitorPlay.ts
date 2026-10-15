@@ -1,6 +1,6 @@
 /**
  * Try-a-game from the feed: anyone with an account (a trainee, founder, employer, organization, anyone signed in) can play a short round of a live game that staff have opened to visitors.
- * Nothing is recorded and no XP is paid; it exists to give a taste of a course. Only what trainees already see is used: APPROVED game
+ * No XP is paid. Each graded answer is recorded (FeedGamePlay) so the Game results table can show how people do; it exists to give a taste of a course. Only what trainees already see is used: APPROVED game
  * items, and for quiz games the approved PRACTICE questions (the assessment pool is never served here). The answer key never leaves
  * the server, and every request is checked again against the live, open assignment, so switching a game off closes it at once.
  */
@@ -8,6 +8,8 @@ import { prisma } from "@/lib/prisma";
 import { shuffle } from "@/lib/shuffle";
 import { gradeItem, serveItem, type ItemContent, type ItemFormat } from "@/lib/quest/games";
 import type { PlayServed } from "@/components/games/GamePlayer";
+import type { SessionPayload } from "@/lib/auth/session";
+import { recordFeedPlay } from "@/lib/quest/results";
 
 export const VISITOR_ROUND_SIZE = 10;
 /** A game needs at least this many things to play before it is shown to visitors. */
@@ -101,7 +103,7 @@ export async function visitorNext(assignmentId: string, seen: string[]) {
 }
 
 /** Grades one answer and returns the feedback (this is where the key is revealed). Nothing is stored. */
-export async function visitorAnswer(assignmentId: string, itemId: string, response: unknown) {
+export async function visitorAnswer(assignmentId: string, itemId: string, response: unknown, who: Pick<SessionPayload, "userId" | "role">) {
   const a = await openAssignment(assignmentId);
   if (a.game.format === "QUIZ") {
     const q = await prisma.question.findFirst({ where: { id: itemId, ...practiceWhere(a.moduleId) }, select: { explanation: true, options: { select: { key: true, isCorrect: true } } } });
@@ -110,6 +112,7 @@ export async function visitorAnswer(assignmentId: string, itemId: string, respon
     if (typeof choice !== "string" || !q.options.some((o) => o.key === choice)) throw new VisitorPlayError("Choose one of the options.", 400);
     const correctKey = q.options.find((o) => o.isCorrect)?.key ?? null;
     const ok = choice === correctKey;
+    await recordFeedPlay({ session: who, assignmentId, gameId: a.game.id, moduleId: a.moduleId, format: "QUIZ", itemId, correct: ok, score: ok ? 1 : 0 });
     return { score: ok ? 1 : 0, correct: ok, feedback: { correctOptionKey: correctKey, explanation: q.explanation } };
   }
   const format = a.game.format as ItemFormat;
@@ -117,6 +120,7 @@ export async function visitorAnswer(assignmentId: string, itemId: string, respon
   if (!item) throw new VisitorPlayError("That item isn't available.");
   const graded = gradeItem(format, item.content as unknown as ItemContent, response);
   if (!graded) throw new VisitorPlayError("Finish your answer first.", 400);
+  await recordFeedPlay({ session: who, assignmentId, gameId: a.game.id, moduleId: a.moduleId, format, itemId, correct: graded.correct, score: graded.score });
   return graded;
 }
 

@@ -26,6 +26,8 @@ export interface StudioCourse {
 export interface StudioOverview {
   /** What the signed-in person may do (all of it for a Super Admin). */
   permissions: string[];
+  /** Whether this person may open the Game results table (a Super Admin always; others when it is shared and they are switched on). */
+  canSeeResults?: boolean;
   games: StudioGame[];
   courses: StudioCourse[];
   formats: { format: GameFormat; label: string; blurb: string; itemNoun: string }[];
