@@ -32,21 +32,23 @@ describe("the web app manifest", () => {
 });
 
 describe("where the installed app opens", () => {
-  it("sends each kind of account to its own home, and signed-out visitors to the landing page", () => {
-    expect(launchDestination("trainee", null)).toBe("/trainee/dashboard");
-    expect(launchDestination("employer", null)).toBe("/employer/dashboard");
-    expect(launchDestination("organization", null)).toBe("/admin/organization");
+  it("opens the feed for every kind of account and for signed-out visitors", () => {
+    expect(launchDestination("trainee", null)).toBe("/");
+    expect(launchDestination("employer", null)).toBe("/");
+    expect(launchDestination("organization", null)).toBe("/");
+    expect(launchDestination("staff", null)).toBe("/");
+    expect(launchDestination("investor", null)).toBe("/");
     expect(launchDestination(null, null)).toBe("/");
     expect(launchDestination(null, "messages")).toBe("/");
   });
-  it("honours shortcuts, falling back to home where an account has no such page", () => {
+  it("honours shortcuts, falling back to the feed where an account has no such page", () => {
     expect(launchDestination("trainee", "messages")).toBe("/trainee/messages");
     expect(launchDestination("employer", "messages")).toBe("/employer/messages");
     expect(launchDestination("organization", "messages")).toBe("/admin/messages");
-    expect(launchDestination("investor", "messages")).toBe("/investor/dashboard");
+    expect(launchDestination("investor", "messages")).toBe("/");
     expect(launchDestination("organization", "events")).toBe("/admin/organization/events");
     expect(launchDestination("investor", "notifications")).toBe("/notifications");
-    expect(launchDestination("trainee", parseLaunchTarget("nonsense"))).toBe("/trainee/dashboard");
+    expect(launchDestination("trainee", parseLaunchTarget("nonsense"))).toBe("/");
   });
 });
 
