@@ -155,15 +155,18 @@ async function seed() {
   log((await prisma.game.count({ where: { title: 'SC Loop game' } })) === 0, 'nothing was created before approval');
   let log1 = fs.readFileSync('/tmp/fakeclaude-stream.log', 'utf8').trim().split('\n').map((l) => JSON.parse(l));
   log(log1.some((x) => /Game Studio/.test(x.system) && /Studio Module One/.test(x.system)), 'Loop is told it is in the Game Studio and which module is selected');
-  log(log1.some((x) => x.tools.includes('add_game_items') && x.tools.includes('approve_game_items') && x.tools.includes('assign_game')), 'Loop is offered the studio actions');
+  log(log1.some((x) => !x.tools.includes('add_game_items') && x.tools.includes('approve_game_items') && x.tools.includes('assign_game')), 'Loop is offered the studio actions, and no longer one that writes game items');
   r = await api(sa, 'POST', `/api/admin/loop/actions/${r.cards[0].id}`, { decision: 'approve' });
   log(r.json.status === 'EXECUTED' && (await prisma.game.count({ where: { title: 'SC Loop game' } })) === 1, 'approving creates the game');
 
   r = await chat(sa, { message: 'ITEMS:Studio Module One.', level: 2, studio: { moduleId: M, gameId: null } });
-  log(r.cards.length === 1 && r.cards[0].kind === 'add_game_items' && r.cards[0].status === 'EXECUTED' && r.cards[0].autoExecuted, 'level 2: Loop writes items at once');
+  log(r.cards.length === 1 && r.cards[0].kind === 'save_learning_objectives' && r.cards[0].status === 'EXECUTED' && r.cards[0].autoExecuted, 'level 2: a low-risk change happens at once');
+  // game items now arrive by import as drafts; two drafts stand in for that here
+  const draftA = { prompt: 'Match the automation terms', pairs: [{ left: 'Trigger', right: 'Starts a workflow' }, { left: 'Action', right: 'A step it performs' }, { left: 'Filter', right: 'Stops unwanted runs' }] };
+  const draftB = { prompt: 'Match the app terms', pairs: [{ left: 'Webhook', right: 'A message sent to a URL' }, { left: 'Connector', right: 'Links two apps' }, { left: 'Run', right: 'One execution of a workflow' }, { left: 'Task', right: 'One unit of work' }] };
+  await prisma.gameItem.createMany({ data: [draftA, draftB].map((content) => ({ moduleId: M, objectiveId: objectives[0].id, format: 'MATCHING', content, status: 'DRAFT', source: 'LOOP' })) });
   const drafts = await prisma.gameItem.findMany({ where: { moduleId: M, source: 'LOOP' } });
-  log(drafts.length === 2 && drafts.every((d) => d.status === 'DRAFT'), 'only the two valid items were saved, and as drafts (the one with too few pairs was left out)');
-  log(/left out/.test(r.cards[0].summary), 'the card says which item was left out and why');
+  log(drafts.length === 2 && drafts.every((d) => d.status === 'DRAFT'), 'imported items wait as drafts');
   r = await api(t0Ck, 'POST', `/api/modules/${M}/games/${gMatch}/next`);
   const served = [];
   for (let i = 0; i < 6; i++) { const x = await api(t0Ck, 'POST', `/api/modules/${M}/games/${gMatch}/next`); served.push(JSON.stringify(x.json.served ?? {})); }
@@ -214,6 +217,8 @@ async function seed() {
   await p.getByTestId('game-detail').waitFor();
   log(/SC Ui game/.test(await p.getByTestId('game-detail').innerText()), 'a new game is created from the studio and opens for editing');
   const url0 = p.url();
+  // two imported drafts for the workspace to show (game items now arrive by import)
+  await prisma.gameItem.createMany({ data: [{ prompt: 'Match the shown terms', pairs: [{ left: 'Trigger', right: MAP.Trigger }, { left: 'Action', right: MAP.Action }, { left: 'Filter', right: MAP.Filter }] }, { prompt: 'Match more terms', pairs: [{ left: 'Webhook', right: MAP.Webhook }, { left: 'Connector', right: MAP.Connector }, { left: 'Run', right: MAP.Run }] }].map((content) => ({ moduleId: M, objectiveId: objectives[0].id, format: 'MATCHING', content, status: 'DRAFT', source: 'IMPORT' })) });
   await p.getByRole('button', { name: 'Studio check course' }).click();
   await p.getByTestId('module-row').filter({ hasText: 'Studio Module One' }).click();
   await p.getByTestId('items-card').waitFor();
@@ -223,12 +228,8 @@ async function seed() {
   await p.waitForFunction(() => document.querySelector('[data-testid=game-detail] input[type=checkbox]:not([disabled])'));
   log((await prisma.gameAssignment.count({ where: { moduleId: M, game: { title: 'SC Ui game' } } })) === 1, 'the game is assigned to the module from the studio');
 
-  // Loop inside the studio, level 2, writes items that appear at once
-  await p.getByTestId('level-picker').click(); await p.getByTestId('level-2').click();
-  await p.locator('#loop-input').fill('ITEMS:Studio Module One.');
-  await p.getByTestId('send').click();
   await p.locator('[data-testid=item-row][data-status=DRAFT]').first().waitFor();
-  log((await p.locator('[data-testid=item-row][data-status=DRAFT]').count()) === 2 && p.url() === url0, 'Loop writes two draft items and they appear in the workspace, with no page change');
+  log((await p.locator('[data-testid=item-row][data-status=DRAFT]').count()) === 2, 'the imported drafts appear in the workspace');
   // preview shows the draft badge
   for (let i = 0; i < 4 && !(await p.getByText("Draft: trainees can't see this yet").count()); i++) {
     const next = p.getByTestId('preview-card').getByRole('button', { name: /Next item/ }).first();

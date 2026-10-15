@@ -167,15 +167,15 @@ async function seed() {
   r = await chat(staff, { message: 'GAME:AC Loop staff game', level: 3, studio: { moduleId: M, gameId: null } });
   log(r.status === 200 && r.cards.length === 1 && r.cards[0].status === 'PENDING', 'staff ask for level 3 but start at level 1: a change waits for their approval');
   const req = lastRequest();
-  log(req.tools.includes('add_game_items') && req.tools.includes('find_module') && !req.tools.some((t) => ['get_platform_overview', 'resolve_recipients', 'send_message', 'suspend_messaging', 'generate_bank_questions', 'run_bank_validation', 'get_trainee_report', 'search_people'].includes(t)), 'Loop offers staff the studio’s tools only, not platform data or messaging');
+  log(req.tools.includes('save_learning_objectives') && req.tools.includes('find_module') && !req.tools.some((t) => ['get_platform_overview', 'resolve_recipients', 'send_message', 'suspend_messaging', 'generate_bank_questions', 'run_bank_validation', 'get_trainee_report', 'search_people'].includes(t)), 'Loop offers staff the studio’s tools only, not platform data or messaging');
   log(!/Access Super Module/.test(req.system), 'Loop is not told about a module that is not theirs, even if the page sends its id');
   log(/training organization's staff/.test(req.system), 'Loop is given the limited instructions');
   r = await chat(staff, { message: 'ITEMS:Access Super Module.', level: 1, studio: { moduleId: O, gameId: null } });
-  log(r.cards.length === 0 && (await prisma.gameItem.count({ where: { moduleId: M, source: 'LOOP' } })) === 0, 'Loop cannot find, read or write into someone else’s module');
+  log(r.cards.length === 0 && (await prisma.moduleLearningObjective.count({ where: { moduleId: M, text: 'Explain what a webhook is' } })) === 0, 'Loop cannot find, read or write into someone else’s module');
   r = await chat(staff, { message: 'ITEMS:Org Module Alpha.', level: 1, studio: { moduleId: O, gameId: null } });
-  log(r.cards.length === 1 && r.cards[0].kind === 'add_game_items' && r.cards[0].status === 'PENDING', 'in their own module Loop proposes items and waits at level 1');
+  log(r.cards.length === 1 && r.cards[0].kind === 'save_learning_objectives' && r.cards[0].status === 'PENDING', 'in their own module Loop proposes a change and waits at level 1');
   r = await api(staff, 'POST', `/api/admin/loop/actions/${r.cards[0].id}`, { decision: 'approve' });
-  log(r.json.status === 'EXECUTED' && (await prisma.gameItem.count({ where: { moduleId: O, source: 'LOOP', status: 'DRAFT' } })) === 2, 'approving writes the two drafts');
+  log(r.json.status === 'EXECUTED' && (await prisma.moduleLearningObjective.count({ where: { moduleId: O, text: { in: ['Explain what a webhook is', 'Explain what a connector is'] } } })) === 2, 'approving saves the two objectives');
   r = await api(sa, 'POST', `/api/admin/loop/actions/${(await prisma.loopPendingAction.findFirst({ where: { userId: staffUser.id }, orderBy: { createdAt: 'desc' } })).id}`, { decision: 'approve' });
   log([404, 403].includes(r.status), 'a Super Admin cannot approve for someone else, and staff cannot approve each other’s either');
   r = await api(staff, 'GET', '/api/admin/loop/conversations');
@@ -188,6 +188,8 @@ async function seed() {
   log(r.status === 200, 'a Super Admin can raise how much Loop may do for one person');
   r = await chat(staff, { message: 'ITEMS:Org Module Alpha.', level: 3, studio: { moduleId: O, gameId: null } });
   log(r.cards.length === 1 && r.cards[0].status === 'EXECUTED' && r.cards[0].autoExecuted, 'at level 2 their low-risk changes now happen at once (level 3 was capped to 2)');
+  const obj0 = await prisma.moduleLearningObjective.findFirst({ where: { moduleId: O }, orderBy: { order: 'asc' } });
+  await prisma.gameItem.create({ data: { moduleId: O, objectiveId: obj0.id, format: 'MATCHING', content: { prompt: 'Match', pairs: [{ left: 'A', right: 'One' }, { left: 'B', right: 'Two' }, { left: 'C', right: 'Three' }] }, status: 'DRAFT', source: 'IMPORT' } });
   r = await chat(staff, { message: 'APPROVE:Org Module Alpha.', level: 3, studio: { moduleId: O, gameId: null } });
   log(r.cards.length === 1 && r.cards[0].status === 'PENDING', 'approving drafts still always asks, at any level');
   r = await api(staff, 'GET', '/api/admin/loop/conversations');

@@ -35,9 +35,8 @@ const SUGGESTIONS = [
 ];
 
 const STUDIO_SUGGESTIONS = [
-  { title: "Draft matching cards", prompt: "Read this module's materials and draft a matching-cards game for it: one set per learning objective." },
-  { title: "Draft a put-in-order game", prompt: "Draft a put-in-order game for this module from a real process in its materials." },
-  { title: "Draft a scenario game", prompt: "Draft scenario choices for this module: a short case, a few options, and what happens for each." },
+  { title: "Is this module ready?", prompt: "Check whether this module is ready for its games to go live: objectives, questions on each side, items waiting for approval, and what is still missing." },
+  { title: "What do I approve?", prompt: "Show me what is waiting for my approval in this module's question bank and game items." },
   { title: "Make my first game", prompt: "Help me create my first game. Ask me which format and which module, then set it up." },
 ];
 

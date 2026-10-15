@@ -61,11 +61,8 @@ http.createServer((req, res) => {
     if ((m = text.match(/ITEMS:([A-Za-z0-9 ]+?)(?:\.|$|\n)/))) {
       const mod = m[1].trim();
       if (stage === 0) return toolReply(res, 'get_game_items', { moduleQuery: mod, format: 'MATCHING' }, j.model, 'tu_gi');
-      if (stage === 1) return toolReply(res, 'add_game_items', { moduleQuery: mod, objectiveQuery: 'trigger', format: 'MATCHING', items: [
-        { prompt: 'Match the automation terms', pairs: [{ left: 'Trigger', right: 'Starts a workflow' }, { left: 'Action', right: 'A step it performs' }, { left: 'Filter', right: 'Stops unwanted runs' }] },
-        { prompt: 'Match the app terms', pairs: [{ left: 'Webhook', right: 'A message sent to a URL' }, { left: 'Connector', right: 'Links two apps' }, { left: 'Run', right: 'One execution of a workflow' }, { left: 'Task', right: 'One unit of work' }] },
-        { prompt: 'Too few pairs', pairs: [{ left: 'Only', right: 'One' }] } ] }, j.model, 'tu_add');
-      return textReply(res, /awaitingApproval/.test(lastResult) ? 'I wrote the items and they are waiting for your approval.' : 'I added the draft items. Try them in the preview, then approve.', j.model);
+      if (stage === 1) return toolReply(res, 'save_learning_objectives', { moduleQuery: mod, objectives: ['Explain what a webhook is', 'Explain what a connector is'] }, j.model, 'tu_add');
+      return textReply(res, /awaitingApproval/.test(lastResult) ? 'I drafted the objectives and they are waiting for your approval.' : 'I saved the objectives.', j.model);
     }
     if ((m = text.match(/REQ:([A-Za-z0-9 ]+?)(?:\.|$|\n)/))) {
       if (stage === 0) return toolReply(res, 'log_change_request', { title: m[1].trim(), details: 'Please change this page so the list shows module numbers.', page: '/admin/studio' }, j.model, 'tu_req');

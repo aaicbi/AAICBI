@@ -7,9 +7,7 @@
  * Approving never touches a question the reviewer hasn't looked at, and flagged questions are never approved in bulk.
  */
 import { prisma } from "@/lib/prisma";
-import { bankModelInfo, BankModelError } from "@/lib/ai/bankModels";
-import { generateBankQuestionBatch } from "@/lib/ai/generateBankQuestions";
-import { reviewGeneratedQuestions } from "@/lib/ai/validateBankQuestions";
+import { bankModelInfo } from "@/lib/ai/bankModels";
 import { applyReviewedTransition } from "@/lib/questionBank/transitions";
 import { autoSplitPools } from "@/lib/quest/admin";
 import { QUEST_DEFAULTS } from "@/lib/quest/core";
@@ -20,9 +18,6 @@ export class BankError extends Error {
     super(message);
   }
 }
-
-/** Largest number of questions written in one request: one writer batch, so it stays inside the function time limit. */
-export const GENERATE_PER_REQUEST = 6;
 
 async function examIdFor(moduleId: string): Promise<string | null> {
   return (await prisma.exam.findUnique({ where: { moduleId }, select: { id: true } }))?.id ?? null;
@@ -140,31 +135,6 @@ export async function bankOverview(moduleId: string) {
   };
 }
 
-/** Writes up to GENERATE_PER_REQUEST questions for one learning objective. */
-export async function generateQuestions(moduleId: string, userId: string, input: { objectiveId: string; count: number; pool?: BankPool | null }) {
-  const count = Math.max(1, Math.min(Math.floor(input.count) || 1, GENERATE_PER_REQUEST));
-  try {
-    const r = await generateBankQuestionBatch(moduleId, input.objectiveId, userId, count, input.pool ?? null);
-    // Nothing saved is a failure to report, never a quiet "failed: 10".
-    if (r.generated === 0) throw new BankError(r.problem ?? "No questions came back. Try again.", 502);
-    return r;
-  } catch (e) {
-    if (e instanceof BankError) throw e;
-    if (e instanceof BankModelError) throw new BankError(e.message, 503);
-    throw new BankError(e instanceof Error ? e.message : "Writing the questions failed.", 409);
-  }
-}
-
-/** Has the reviewer model check the next batch of freshly written questions. Call again while `remaining` is above zero. */
-export async function reviewQuestions(moduleId: string, scope: { objectiveId?: string; questionIds?: string[] } = {}) {
-  try {
-    return await reviewGeneratedQuestions(moduleId, 10, scope);
-  } catch (e) {
-    if (e instanceof BankModelError) throw new BankError(e.message, 503);
-    throw e;
-  }
-}
-
 async function reviewedQuestionsIn(moduleId: string, filter: { ids?: string[]; passedOnly?: boolean; pool?: BankPool }) {
   const examId = await examIdFor(moduleId);
   if (!examId) return [];
@@ -207,7 +177,7 @@ export async function rejectQuestions(moduleId: string, userId: string, ids: str
   return { rejected: rows.length };
 }
 
-/** Fixes a question's wording or options, then has the reviewer look at it again. */
+/** Fixes a question's wording or options. A person is the reviewer: the edited question stays "passed review", waiting for approval. */
 export async function editQuestion(moduleId: string, userId: string, id: string, input: { text: string; options: { text: string; isCorrect: boolean }[] }) {
   const text = input.text.trim();
   const options = input.options.map((o) => ({ text: o.text.trim(), isCorrect: o.isCorrect })).filter((o) => o.text);
@@ -219,14 +189,8 @@ export async function editQuestion(moduleId: string, userId: string, id: string,
   if (!q) throw new BankError("That question can't be edited right now.", 404);
   await prisma.option.deleteMany({ where: { questionId: id } });
   await prisma.option.createMany({ data: options.map((o, i) => ({ questionId: id, text: o.text, isCorrect: o.isCorrect, key: String.fromCharCode(65 + i), order: i })) });
-  await prisma.question.update({ where: { id }, data: { text, bankStatus: "PENDING_REVIEW", needsReview: true, reviewReason: "Edited. Being reviewed again." } });
-  await prisma.questionBankEvent.create({ data: { questionId: id, fromStatus: q.bankStatus, toStatus: "PENDING_REVIEW", kind: "EDITED_IN_STUDIO", actedById: userId } });
-  try {
-    await reviewGeneratedQuestions(moduleId, 1, { questionIds: [id] });
-  } catch (e) {
-    if (e instanceof BankModelError) throw new BankError(`Saved, but the review couldn't run: ${e.message}`, 503);
-    throw e;
-  }
+  await prisma.question.update({ where: { id }, data: { text, bankStatus: "VALIDATED_PASS", needsReview: true, reviewReason: "Edited by a person. Waiting for your approval." } });
+  await prisma.questionBankEvent.create({ data: { questionId: id, fromStatus: q.bankStatus, toStatus: "VALIDATED_PASS", kind: "EDITED_IN_STUDIO", actedById: userId } });
   return { ok: true as const };
 }
 

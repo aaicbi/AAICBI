@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from "react";
 import { Check, Pencil, X } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import Card from "@/components/ui/Card";
-import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Field";
 import { useToast } from "@/components/ui/Toast";
@@ -90,7 +89,6 @@ export default function BankPanel({ moduleId, moduleTitle, canUse, onChanged, re
   const { showToast } = useToast();
   const [data, setData] = useState<BankOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [stage, setStage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState<{ text: string; options: { text: string; isCorrect: boolean }[] }>({ text: "", options: [] });
@@ -117,64 +115,6 @@ export default function BankPanel({ moduleId, moduleTitle, canUse, onChanged, re
   useEffect(() => {
     void load();
   }, [load, refreshKey]);
-
-  async function prepare(pool: Pool) {
-    if (!data) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const targets = data.objectives.filter((o) => o.sides[pool].need > 0);
-      for (let i = 0; i < targets.length; i++) {
-        let need = targets[i].sides[pool].need;
-        let rounds = 0;
-        while (need > 0 && rounds++ < 6) {
-          setStage(`Writing questions for “${short(targets[i].text, 50)}” (objective ${i + 1} of ${targets.length})…`);
-          const r = await post(moduleId, { action: "generate", objectiveId: targets[i].id, count: Math.min(need, 6), pool });
-          if (!r.ok) throw new Error(String(r.json.error ?? "Writing the questions failed."));
-          const made = Number(r.json.generated ?? 0);
-          if (made === 0) throw new Error("No questions came back. Check that the module has lesson materials Loop can read (Word, PDF or PowerPoint).");
-          need -= made;
-        }
-      }
-      await reviewAll(waitingIds(pool, true));
-      showToast("Questions written and reviewed. Have a look and approve.", "success");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong.");
-    } finally {
-      setStage(null);
-      setBusy(false);
-      await load();
-      onChanged();
-    }
-  }
-
-  /** Questions of one side still waiting for the reviewer. After writing, ask the server (the list on screen is older than that). */
-  function waitingIds(pool: Pool, fresh: boolean): string[] | undefined {
-    return fresh ? undefined : data?.questions.filter((q) => q.bucket === "AWAITING_REVIEW" && q.pool === pool).map((q) => q.id);
-  }
-
-  async function reviewAll(ids?: string[]) {
-    for (let guard = 0; guard < 20; guard++) {
-      setStage(`${data?.models.reviewer ?? "The reviewer"} is checking the questions…`);
-      const r = await post(moduleId, ids ? { action: "review", ids } : { action: "review" });
-      if (!r.ok) throw new Error(String(r.json.error ?? "The review failed."));
-      if (Number(r.json.remaining ?? 0) <= 0 || Number(r.json.validated ?? 0) === 0) break;
-    }
-  }
-
-  async function reviewOnly(pool: Pool) {
-    setBusy(true);
-    setError(null);
-    try {
-      await reviewAll(waitingIds(pool, false));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "The review failed.");
-    } finally {
-      setStage(null);
-      setBusy(false);
-      await load();
-    }
-  }
 
   async function decide(body: Record<string, unknown>, okMessage: (j: Record<string, unknown>) => string) {
     setBusy(true);
@@ -215,7 +155,6 @@ export default function BankPanel({ moduleId, moduleTitle, canUse, onChanged, re
   const mine = data.questions.filter((q) => q.pool === tab);
   const passed = mine.filter((q) => q.bucket === "READY");
   const flagged = mine.filter((q) => q.bucket === "FLAGGED");
-  const awaiting = mine.filter((q) => q.bucket === "AWAITING_REVIEW");
   const approvedHere = data.approvedQuestions.filter((q) => q.pool === tab);
   const approvedElsewhere = data.approvedQuestions.filter((q) => q.pool === other(tab));
   const unassigned = data.questions.filter((q) => q.pool === null).length + data.approvedQuestions.filter((q) => q.pool === null).length;
@@ -246,8 +185,8 @@ export default function BankPanel({ moduleId, moduleTitle, canUse, onChanged, re
             </div>
           ))}
           <div className="flex gap-2">
-            <Button size="sm" disabled={busy} onClick={() => void decide({ action: "edit", id: q.id, text: draft.text, options: draft.options }, () => "Saved. The reviewer checked it again.")} data-testid="bank-save-edit">
-              Save and review again
+            <Button size="sm" disabled={busy} onClick={() => void decide({ action: "edit", id: q.id, text: draft.text, options: draft.options }, () => "Saved. Approve it when you are ready.")} data-testid="bank-save-edit">
+              Save
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>
               Cancel
@@ -287,9 +226,8 @@ export default function BankPanel({ moduleId, moduleTitle, canUse, onChanged, re
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="text-sm font-semibold text-brand-ink">Question bank for {moduleTitle}</h3>
       </div>
-      <p className="mt-1 text-xs text-gray-600" data-testid="bank-models">
-        Written by <span className="font-medium">{data.models.generator}</span>, reviewed by <span className="font-medium">{data.models.reviewer}</span>
-        {data.models.independent ? ", a different model, so a question is never checked by the model that wrote it." : ". Both are set to the same model, so the check is not independent."}
+      <p className="mt-1 text-xs text-gray-600" data-testid="bank-intro">
+        Questions arrive by importing a reviewed content file (below). Approve them here, one side at a time.
       </p>
 
       <div role="tablist" aria-label="Question bank" className="mt-3 flex gap-2">
@@ -322,11 +260,6 @@ export default function BankPanel({ moduleId, moduleTitle, canUse, onChanged, re
           {error}
         </p>
       )}
-      {stage && (
-        <p role="status" aria-live="polite" className="mt-2 text-xs font-medium text-brand-tealDeep" data-testid="bank-stage">
-          {stage}
-        </p>
-      )}
 
       {!canUse && <p className="mt-2 text-xs text-gray-600">You can see the bank here, but writing, reviewing and approving needs the question-bank permission. Ask a Super Admin.</p>}
 
@@ -345,23 +278,8 @@ export default function BankPanel({ moduleId, moduleTitle, canUse, onChanged, re
         </div>
       )}
 
-      {canUse && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {totalNeed > 0 && (
-            <Button size="sm" loading={busy} disabled={busy || data.objectives.length === 0} onClick={() => void prepare(tab)} data-testid="bank-prepare">
-              {tab === "PRACTICE" ? `Get the games and practice questions ready (${totalNeed} more)` : `Get the assessment questions ready (${totalNeed} more)`}
-            </Button>
-          )}
-          {awaiting.length > 0 && (
-            <Button size="sm" variant="secondary" disabled={busy} onClick={() => void reviewOnly(tab)} data-testid="bank-review">
-              Review {awaiting.length} waiting question{awaiting.length === 1 ? "" : "s"}
-            </Button>
-          )}
-          {totalNeed === 0 && awaiting.length === 0 && passed.length === 0 && flagged.length === 0 && <p className="text-xs text-gray-600">Every objective has enough questions for {side.short}. Nothing is waiting for you here.</p>}
-        </div>
-      )}
-      {data.objectives.length === 0 && <p className="mt-2 text-xs text-gray-600">No confirmed learning objectives yet. Ask Loop: “Draft learning objectives for this module.”</p>}
-      {totalNeed > 0 && data.objectives.length > 0 && <p className="mt-1 text-xs text-gray-500">Writing and reviewing takes a minute or two. These questions are written for {side.short} only.</p>}
+      {data.objectives.length === 0 && <p className="mt-2 text-xs text-gray-600">This module has no learning objectives yet. Import a content file below; it adds them.</p>}
+      {canUse && totalNeed > 0 && data.objectives.length > 0 && <p className="mt-2 text-xs text-gray-600">{totalNeed} more question{totalNeed === 1 ? " is" : "s are"} needed on this side across the objectives. Import more content, or use &ldquo;Tidy this module&rsquo;s objectives&rdquo; below.</p>}
 
       {passed.length > 0 && (
         <div className="mt-4" data-testid="bank-passed">

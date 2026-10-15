@@ -12,6 +12,7 @@ import CommandCenter from "@/components/command/CommandCenter";
 import GamePlayer, { type PlayerApi, type PlayItem, type PlayResult } from "@/components/games/GamePlayer";
 import BankPanel from "@/components/studio/BankPanel";
 import ImportPanel from "@/components/studio/ImportPanel";
+import TidyPanel from "@/components/studio/TidyPanel";
 import ItemForm, { ItemSummary, StatusBadge } from "@/components/studio/ItemParts";
 import type { StudioGame, StudioOverview, Workspace } from "@/components/studio/studioTypes";
 import { FORMAT_INFO, isItemFormat, type GameFormat } from "@/lib/quest/games";
@@ -362,7 +363,7 @@ export default function Studio({ isSuper = false }: { isSuper?: boolean } = {}) 
       {!game && !workspace && (
         <Card className="text-sm text-gray-700">
           <p className="font-semibold text-brand-ink">Welcome to the studio</p>
-          <p className="mt-1">Pick a game from the library (or make one), then pick a module to assign it to. Loop on the right can draft the content, and the preview shows exactly what trainees will play.</p>
+          <p className="mt-1">Pick a game from the library (or make one), then pick a module to assign it to. Import reviewed content on the module to fill its games, approve it, and the preview shows exactly what trainees will play.</p>
         </Card>
       )}
 
@@ -506,6 +507,14 @@ export default function Studio({ isSuper = false }: { isSuper?: boolean } = {}) 
             canUse={!!overview?.permissions.includes("BANK_AI") && !!overview?.permissions.includes("ITEMS")}
             canMakeGames={!!overview?.permissions.includes("GAMES")}
             onChanged={() => void loadWorkspace(workspace.module.id)}
+          />
+
+          <TidyPanel
+            moduleId={workspace.module.id}
+            minimums={workspace.quest.minimums}
+            canUse={!!overview?.permissions.includes("QUESTIONS")}
+            onChanged={() => void loadWorkspace(workspace.module.id)}
+            objectives={workspace.quest.objectives.map((o) => ({ id: o.id, text: o.text, practice: o.coverage?.practice ?? 0, formal: o.coverage?.formal ?? 0, questions: o.questions.length, items: workspace.items.filter((i) => i.objectiveId === o.id).length }))}
           />
 
           <Card data-testid="pools-card">
