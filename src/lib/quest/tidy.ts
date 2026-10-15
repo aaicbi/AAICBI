@@ -34,6 +34,17 @@ export async function mergeObjective(moduleId: string, fromId: string, toId: str
   return { ...moved, removed: from.text };
 }
 
+/** Changes an objective's wording. Its questions, items and trainee history stay attached. */
+export async function renameObjective(moduleId: string, id: string, text: string) {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (clean.length < 5 || clean.length > 600) throw new TidyError("Write the objective in 5 to 600 characters.");
+  await inModule(moduleId, [id]);
+  const clash = await prisma.moduleLearningObjective.findFirst({ where: { moduleId, text: clean, id: { not: id } }, select: { id: true } });
+  if (clash) throw new TidyError("Another objective in this module already has that wording. Merge them instead.", 409);
+  await prisma.moduleLearningObjective.update({ where: { id }, data: { text: clean } });
+  return { renamed: clean };
+}
+
 /** Removes an objective that has nothing attached. Refuses if it holds questions, items or any trainee's answers, so nothing is lost. */
 export async function deleteEmptyObjective(moduleId: string, id: string) {
   const [o] = await inModule(moduleId, [id]);

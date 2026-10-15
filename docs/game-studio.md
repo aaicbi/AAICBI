@@ -72,7 +72,7 @@ Loop can read the bank (`get_bank_questions`) and approve what passed (`approve_
 
 ### Tidy objectives
 
-The **Tidy up** panel (module page) repairs a module without any AI: **Merge into** moves one objective's questions, items, answers and plays into another and removes the emptied one; **Remove** deletes an objective only if it is completely empty; **Fill the assessment side** moves spare practice questions to the Assessment side until each objective has 6 (keeping at least 10 for practice). Needs the question-pools permission. Code: `src/lib/quest/tidy.ts`, `/api/admin/studio/modules/[id]/tidy`.
+The **Tidy up** panel (module page) repairs a module without any AI: **Merge into** moves one objective's questions, items, answers and plays into another and removes the emptied one; **Rename** changes an objective's wording (questions, items and history stay attached); **Remove** deletes an objective only if it is completely empty; **Fill the assessment side** moves spare practice questions to the Assessment side until each objective has 6 (keeping at least 10 for practice). Needs the question-pools permission. Code: `src/lib/quest/tidy.ts`, `/api/admin/studio/modules/[id]/tidy`.
 
 Needs the **Question bank: write, review and approve** permission, used to import and approve (off by default for staff; a Super Admin always has it). Staff work only on their own modules. The older route still exists: a person presses **Approve for validation** on the Question bank page, then `run_bank_validation` checks the questions and a clean pass goes live by itself. Under the new route a clean pass waits for a person's approval instead.
 
