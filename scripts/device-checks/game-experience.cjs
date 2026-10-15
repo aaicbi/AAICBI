@@ -12,6 +12,10 @@ async function answer(p, format) {
     await gp.locator('fieldset button').first().click();
   } else if (format === 'MATCHING') {
     const n = await gp.locator('ul[aria-label="Terms"] > li').count();
+    const t = await gp.locator('ul[aria-label="Terms"]').boundingBox(); const m = await gp.locator('ul[aria-label="Meanings"]').boundingBox(); const vp = p.viewportSize();
+    const key = `matching-side-${vp.width}`;
+    if (!answer.done) answer.done = new Set();
+    if (!answer.done.has(key)) { answer.done.add(key); log(Math.abs(t.y - m.y) < 6 && m.x >= t.x + t.width - 2 && m.x + m.width <= vp.width + 1 && t.x >= 0, `matching: terms and meanings sit side by side at ${vp.width}px wide`); }
     await gp.locator('ul[aria-label="Terms"] > li button').first().click();
     for (let i = 0; i < n; i++) await gp.locator('ul[aria-label="Meanings"] > li').nth(i).locator('button').click();
   }
@@ -80,6 +84,25 @@ async function playRound(p, format) {
     log((await p.getByTestId('review-list').locator('li').count()) === 10, `${name}: the review lists all ten answers`);
     log(errors.length === 0, `${name}: no page errors (${errors.join('; ')})`);
     await ctx.close();
+  }
+
+  // matching on small phones: the terms and meanings stay side by side, inside the screen, with no sideways scrolling
+  for (const [w, h] of [[360, 740], [390, 844]]) {
+    const mctx = await signedIn(br, device('iPhone 13', { viewport: { width: w, height: h } }), '/api/auth/login', 'super@dev.test');
+    const mp = await mctx.newPage(); mp.setDefaultTimeout(15000);
+    await mp.goto(B + '/admin/studio/demo');
+    await mp.getByTestId('demo-tab-MATCHING').click();
+    await mp.getByTestId('round-start').click();
+    const skip = mp.getByRole('button', { name: 'Skip' }); if (await skip.waitFor({ timeout: 2500 }).then(() => true, () => false)) await skip.click();
+    await mp.getByTestId('game-player').waitFor();
+    const t = await mp.locator('ul[aria-label="Terms"]').boundingBox(); const m = await mp.locator('ul[aria-label="Meanings"]').boundingBox();
+    log(Math.abs(t.y - m.y) < 6 && m.x >= t.x + t.width - 2 && m.x + m.width <= w + 1 && t.x >= 0, `matching: terms and meanings sit side by side on a ${w}px phone`);
+    log((await mp.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 1, `matching: no sideways scrolling on a ${w}px phone`);
+    const first = mp.locator('ul[aria-label="Terms"] > li button').first(); await first.click();
+    await mp.locator('ul[aria-label="Meanings"] > li button').first().click();
+    log((await mp.locator('ul[aria-label="Terms"] > li button').first().innerText()).trim().startsWith('1'), `matching: a matched pair shows its number on both sides (${w}px)`);
+    await mp.screenshot({ path: `/tmp/dev/matching-${w}.png` });
+    await mctx.close();
   }
 
   // every format, one full round each, on the desktop

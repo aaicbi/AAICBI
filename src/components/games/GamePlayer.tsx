@@ -57,6 +57,9 @@ const OPTION_STYLE = [
   { chip: "bg-brand-green text-brand-onAccent", bar: "border-l-brand-green" },
 ];
 
+/** The light fill both halves of a matched pair share, so pairs are easy to see at a glance. Same order as pairColor. */
+const PAIR_TINT = ["border-brand-teal bg-brand-teal/15", "border-brand-gold bg-brand-gold/20", "border-brand-rose bg-brand-rose/15", "border-brand-green bg-brand-green/15", "border-brand-tealDeep bg-brand-tealDeep/15", "border-brand-ink bg-brand-ink/10"];
+
 function pairColor(i: number): string {
   return ["bg-brand-teal text-brand-onAccent", "bg-brand-gold text-brand-onGold", "bg-brand-rose text-brand-onAccent", "bg-brand-green text-brand-onAccent", "bg-brand-tealDeep text-brand-onAccent", "bg-brand-ink text-brand-surface"][i % 6];
 }
@@ -102,8 +105,11 @@ function Matching({ served, disabled, result, onChange }: { served: Extract<Play
 
   return (
     <div>
-      <p className="text-sm text-gray-700">Tap a term, then tap its meaning. Tap a matched card to undo it.</p>
-      <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <p className="text-sm text-gray-700">Tap a term, then tap its meaning. Matched pairs share a colour. Tap a matched card to undo it.</p>
+      {/* Two columns side by side on every screen, so a term and its meanings are in view together, even on a phone. */}
+      <div className="mt-3 grid grid-cols-2 gap-x-2 sm:gap-x-5" data-testid="matching-board">
+        <p className="mb-1.5 text-center text-[11px] font-extrabold uppercase tracking-wider text-brand-teal" aria-hidden="true">Terms</p>
+        <p className="mb-1.5 text-center text-[11px] font-extrabold uppercase tracking-wider text-brand-goldText" aria-hidden="true">Meanings</p>
         <ul className="space-y-2" aria-label="Terms">
           {served.lefts.map((l, i) => {
             const paired = pairs[i] !== undefined;
@@ -115,12 +121,12 @@ function Matching({ served, disabled, result, onChange }: { served: Extract<Play
                   disabled={disabled}
                   aria-pressed={activeLeft === i}
                   onClick={() => pickLeft(i)}
-                  className={`flex min-h-[52px] w-full items-center gap-2 rounded-2xl border border-l-[6px] border-l-brand-teal px-3 py-2 text-left text-sm font-medium shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] ${
-                    res ? (res.ok ? "border-brand-teal bg-brand-mint" : "border-brand-rose bg-brand-roseLight/60") : activeLeft === i ? "border-brand-action bg-brand-mint/60 ring-2 ring-brand-action/30" : "border-brand-gray bg-brand-surface hover:border-brand-teal"
+                  className={`flex min-h-[60px] w-full items-center gap-1.5 rounded-2xl border-2 px-2 py-2 text-left text-[13px] font-semibold leading-snug shadow-sm transition-all active:scale-[0.97] sm:gap-2 sm:px-3 sm:text-sm ${
+                    res ? (res.ok ? "border-brand-teal bg-brand-mint" : "border-brand-rose bg-brand-roseLight/60") : activeLeft === i ? "scale-[1.02] border-brand-action bg-brand-mint/70 ring-2 ring-brand-action/40" : paired ? PAIR_TINT[i % 6] : "border-brand-teal/50 bg-brand-surface hover:border-brand-teal"
                   }`}
                 >
-                  {paired && <span className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${pairColor(i)}`}>{i + 1}</span>}
-                  <span className="flex-1">{l}</span>
+                  {paired && <span className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold sm:h-6 sm:w-6 sm:text-xs ${pairColor(i)}`}>{i + 1}</span>}
+                  <span className="min-w-0 flex-1 break-words">{l}</span>
                 </button>
               </li>
             );
@@ -136,12 +142,12 @@ function Matching({ served, disabled, result, onChange }: { served: Extract<Play
                   type="button"
                   disabled={disabled}
                   onClick={() => pickRight(r)}
-                  className={`flex min-h-[52px] w-full items-center gap-2 rounded-2xl border border-l-[6px] border-l-brand-gold px-3 py-2 text-left text-sm font-medium shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] ${
-                    res ? (res.ok ? "border-brand-teal bg-brand-mint" : "border-brand-rose bg-brand-roseLight/60") : owner !== undefined ? "border-brand-action bg-brand-mint/40" : "border-brand-gray bg-brand-surface hover:border-brand-teal"
+                  className={`flex min-h-[60px] w-full items-center gap-1.5 rounded-2xl border-2 px-2 py-2 text-left text-[13px] font-semibold leading-snug shadow-sm transition-all active:scale-[0.97] sm:gap-2 sm:px-3 sm:text-sm ${
+                    res ? (res.ok ? "border-brand-teal bg-brand-mint" : "border-brand-rose bg-brand-roseLight/60") : owner !== undefined ? PAIR_TINT[Number(owner) % 6] : activeLeft !== null ? "border-brand-gold bg-brand-surface hover:bg-brand-goldLight/50" : "border-brand-gold/50 bg-brand-surface hover:border-brand-gold"
                   }`}
                 >
-                  {owner !== undefined && <span className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${pairColor(Number(owner))}`}>{Number(owner) + 1}</span>}
-                  <span className="flex-1">{r}</span>
+                  {owner !== undefined && <span className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold sm:h-6 sm:w-6 sm:text-xs ${pairColor(Number(owner))}`}>{Number(owner) + 1}</span>}
+                  <span className="min-w-0 flex-1 break-words">{r}</span>
                 </button>
               </li>
             );
