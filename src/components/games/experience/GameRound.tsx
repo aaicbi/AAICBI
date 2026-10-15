@@ -7,17 +7,27 @@ import RoundHud from "@/components/games/experience/RoundHud";
 import RoundIntro from "@/components/games/experience/RoundIntro";
 import RoundSummary from "@/components/games/experience/RoundSummary";
 import { useRound } from "@/components/games/experience/useRound";
+import { roundTotals } from "@/lib/games/experience";
 
 /**
  * A 10-question round around the game player: welcome and countdown, a heads-up display, Loop beside the question, and a summary.
  * The player still grades everything through `api`; this only follows along and reacts to real results.
  */
-export default function GameRound({ title, api, onExit, exitLabel, onEmpty, after, nudge }: { title: string; api: PlayerApi; onExit: () => void; exitLabel: string; onEmpty?: React.ReactNode; after?: React.ReactNode; nudge?: { afterMisses: number; render: (close: () => void) => React.ReactNode } }) {
+export default function GameRound({ title, api, onExit, exitLabel, onEmpty, after, nudge }: { title: string; api: PlayerApi; onExit: () => void; exitLabel: string; onEmpty?: React.ReactNode; after?: React.ReactNode; nudge?: { failBelow: number; render: (close: () => void) => React.ReactNode } }) {
   const r = useRound();
-  // A pop-up (for example Loop pointing at the course) once someone has missed enough in a round; shown once per round.
+  // A pop-up (for example Loop pointing at the course) for a finished round that went badly (accuracy below `failBelow`). Never during
+  // play: it waits a moment after the results appear so the learner sees their result first, and shows once per round.
   const [closedRound, setClosedRound] = useState(0);
-  const misses = r.round.answers.filter((a) => a.outcome === "MISS").length;
-  const showNudge = !!nudge && r.phase === "playing" && misses >= nudge.afterMisses && closedRound !== r.roundNo;
+  const [late, setLate] = useState(false);
+  const roundDone = r.phase === "summary" && r.round.answers.length >= r.round.size;
+  const failed = roundDone && roundTotals(r.round).accuracy < (nudge?.failBelow ?? 0);
+  useEffect(() => {
+    setLate(false);
+    if (!failed) return;
+    const t = setTimeout(() => setLate(true), 1600);
+    return () => clearTimeout(t);
+  }, [failed, r.roundNo]);
+  const showNudge = !!nudge && failed && late && closedRound !== r.roundNo;
   useEffect(() => {
     if (showNudge) r.sound.play("start");
     // eslint-disable-next-line react-hooks/exhaustive-deps

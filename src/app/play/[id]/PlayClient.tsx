@@ -78,7 +78,8 @@ export default function PlayClient({ id, title, courseId, courseTitle, enrolled 
       exitLabel="Back to the feed"
       onEmpty="That's everything here for now."
       after={join}
-      nudge={{ afterMisses: 2, render: (close) => <CourseNudge courseTitle={courseTitle} courseHref={courseHref} enrolled={enrolled} onClose={close} /> }}
+      // Loop's pop-up is only for people who have not registered for the course, and only after a round they did not pass (under 70%).
+      nudge={enrolled ? undefined : { failBelow: 70, render: (close) => <CourseNudge courseTitle={courseTitle} courseHref={courseHref} onClose={close} /> }}
     />
   );
 }
