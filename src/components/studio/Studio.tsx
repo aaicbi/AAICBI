@@ -11,6 +11,7 @@ import { useConfirmModal } from "@/components/ui/useConfirmModal";
 import CommandCenter from "@/components/command/CommandCenter";
 import GamePlayer, { type PlayerApi, type PlayItem, type PlayResult } from "@/components/games/GamePlayer";
 import BankPanel from "@/components/studio/BankPanel";
+import ImportPanel from "@/components/studio/ImportPanel";
 import ItemForm, { ItemSummary, StatusBadge } from "@/components/studio/ItemParts";
 import type { StudioGame, StudioOverview, Workspace } from "@/components/studio/studioTypes";
 import { FORMAT_INFO, isItemFormat, type GameFormat } from "@/lib/quest/games";
@@ -462,7 +463,7 @@ export default function Studio({ isSuper = false }: { isSuper?: boolean } = {}) 
                     <li key={i.id} className="rounded-2xl border border-brand-gray bg-brand-surface p-3" data-testid="item-row" data-status={i.status}>
                       <div className="flex flex-wrap items-center gap-2">
                         <StatusBadge status={i.status} />
-                        <span className="text-xs text-gray-500">{i.source === "LOOP" ? "Written by Loop" : "Written by staff"}</span>
+                        <span className="text-xs text-gray-500">{i.source === "LOOP" ? "Written by Loop" : i.source === "IMPORT" ? "Imported, reviewed outside" : "Written by staff"}</span>
                         <span className="ml-auto flex gap-1">
                           {i.status !== "APPROVED" && (
                             <Button size="sm" variant="secondary" disabled={busy} onClick={() => void act("PATCH", `/api/admin/studio/modules/${workspace.module.id}/items/${i.id}`, { status: "APPROVED" })}>
@@ -498,6 +499,14 @@ export default function Studio({ isSuper = false }: { isSuper?: boolean } = {}) 
           )}
 
           <BankPanel moduleId={workspace.module.id} moduleTitle={workspace.module.title} canUse={!!overview?.permissions.includes("BANK_AI")} onChanged={() => void loadWorkspace(workspace.module.id)} refreshKey={workspace} />
+
+          <ImportPanel
+            moduleId={workspace.module.id}
+            moduleTitle={workspace.module.title}
+            canUse={!!overview?.permissions.includes("BANK_AI") && !!overview?.permissions.includes("ITEMS")}
+            canMakeGames={!!overview?.permissions.includes("GAMES")}
+            onChanged={() => void loadWorkspace(workspace.module.id)}
+          />
 
           <Card data-testid="pools-card">
             <h3 className="text-sm font-semibold text-brand-ink">Quiz questions for {workspace.module.title}</h3>
