@@ -155,7 +155,7 @@ export async function deleteGame(id: string) {
 // Assigning a game to a module
 // ---------------------------------------------------------------------------
 
-export async function assignGame(gameId: string, moduleId: string, opts: { assigned: boolean; live?: boolean }) {
+export async function assignGame(gameId: string, moduleId: string, opts: { assigned: boolean; live?: boolean; openToVisitors?: boolean }) {
   const [game, mod] = await Promise.all([
     prisma.game.findUnique({ where: { id: gameId }, select: { id: true, format: true, enabledRewards: true } }),
     prisma.module.findUnique({ where: { id: moduleId }, select: { id: true } }),
@@ -190,10 +190,13 @@ export async function assignGame(gameId: string, moduleId: string, opts: { assig
     await applyQuestSettings(moduleId, { practiceEnabled: false });
   }
 
+  // Visitors can only try a game that is live, so switching it off closes it to them too.
+  const wantOpen = wantLive && (opts.openToVisitors ?? existing?.openToVisitors ?? false);
+  if (opts.openToVisitors && !wantLive) throw new StudioError("Make the game live before opening it to visitors.", 409);
   await prisma.gameAssignment.upsert({
     where: { gameId_moduleId: { gameId, moduleId } },
-    create: { gameId, moduleId, live: wantLive },
-    update: { live: wantLive },
+    create: { gameId, moduleId, live: wantLive, openToVisitors: wantOpen },
+    update: { live: wantLive, openToVisitors: wantOpen },
   });
 }
 
@@ -209,7 +212,7 @@ export async function moduleWorkspace(moduleId: string) {
       orderBy: { createdAt: "asc" },
       select: { id: true, objectiveId: true, format: true, content: true, status: true, source: true },
     }),
-    prisma.gameAssignment.findMany({ where: { moduleId }, select: { gameId: true, live: true, game: { select: { title: true, format: true } } } }),
+    prisma.gameAssignment.findMany({ where: { moduleId }, select: { id: true, gameId: true, live: true, openToVisitors: true, game: { select: { title: true, format: true } } } }),
   ]);
   if (!quest.module) throw new StudioError("That module could not be found.", 404);
   return {
@@ -224,7 +227,7 @@ export async function moduleWorkspace(moduleId: string) {
       title: isItemFormat(i.format) ? itemTitle(i.format, i.content as unknown as ItemContent) : "",
       content: i.content,
     })),
-    assignments: assignments.map((a) => ({ gameId: a.gameId, live: a.live, title: a.game.title, format: a.game.format })),
+    assignments: assignments.map((a) => ({ id: a.id, gameId: a.gameId, live: a.live, openToVisitors: a.openToVisitors, title: a.game.title, format: a.game.format })),
   };
 }
 

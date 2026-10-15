@@ -120,3 +120,13 @@ The module-content skill (`.claude/skills/module-content`) turns a module's less
 3. Nothing is playable until a person approves: use **Approve all that passed** on both the Games and practice tab and the Assessment tab of the question bank, and **Approve** on the drafts, then switch the games on.
 
 Importing the same file again adds nothing (items the module already has are skipped, and games are not created twice). Needs the question-bank and item permissions (and the games one to create games). Code: `src/lib/quest/contentImport.ts` (checking and planning, pure), `contentImportApply.ts` (database), `/api/admin/studio/modules/[id]/import`, `src/components/studio/ImportPanel.tsx`. Tests: `tests/contentImport.test.ts` and `scripts/device-checks/content-import.cjs`.
+
+## Games on the feed (try before you register)
+
+A live game can be shown on the public feed so people try it and then register for the course. In the studio, tick **Show on the feed** on the game (it needs the game live; switching the game off, or not live, takes it off the feed at once). The course must be published, and the game needs at least 10 things to play.
+
+- The feed shows a **Try a game** card (`src/components/ecosystem/TryGames.tsx`). Each game opens at `/play/<assignment id>`.
+- **Playing needs a signed-in account** (any kind). Someone not signed in sees a gate with *Create a free account* and *Log in* (it brings them back to the game).
+- The round is the same animated ten-question experience trainees get (Loop, sounds on by default for this game, confetti, streaks). Nothing is saved and no XP is paid. Quiz games serve approved **practice** questions only, never assessment ones; the answer key stays on the server.
+- After **two misses in a round**, Loop pops up (a bottom sheet on a phone) naming the course with a **Register now** button (or **Open the course** if they are already enrolled); it shows once per round. The results screen repeats the invitation.
+- Code: `src/lib/quest/visitorPlay.ts`, `/api/public/play/[id]/next` and `/answer` (rate limited, signed-in only), `src/app/play/[id]`, `CourseNudge.tsx`. Check: `scripts/device-checks/visitor-play.cjs`.

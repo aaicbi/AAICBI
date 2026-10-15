@@ -12,6 +12,7 @@ import { ComposeBox, ComposeFab } from "@/components/posts/ComposeEntry";
 import DiscoveryPanelsView from "@/components/ecosystem/DiscoveryPanels";
 import { getDiscoveryPanels, hasPanels } from "@/lib/ecosystem/discovery";
 import DiscoverFeed from "@/app/feed/DiscoverFeed";
+import TryGames from "@/components/ecosystem/TryGames";
 import { getSession } from "@/lib/auth/session";
 import { dashboardHrefFor } from "@/lib/auth/home";
 import { getEcosystemFlags } from "@/lib/ecosystem/flags";
@@ -75,6 +76,7 @@ export default async function FeedHome({ searchParams, base }: { searchParams: {
               <div className="space-y-4 p-3"><DiscoveryPanelsView panels={panels} signedIn={!!actor} /></div>
             </details>
           )}
+          <TryGames />
           <nav aria-label="Feed tabs" className="mt-4 flex gap-2 overflow-x-auto pb-2">
             {TABS.map(([t, l]) => <Link key={t} href={tabHref(t)} aria-current={tab === t ? "page" : undefined} className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold ${tab === t ? "bg-brand-action text-brand-onAccent" : "border border-brand-gray bg-brand-surface text-brand-ink hover:border-brand-teal"}`}>{l}</Link>)}
           </nav>

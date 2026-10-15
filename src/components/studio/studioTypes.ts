@@ -60,5 +60,5 @@ export interface Workspace {
     rewardOptions: { kind: string; label: string }[];
   };
   items: WorkspaceItem[];
-  assignments: { gameId: string; live: boolean; title: string; format: GameFormat }[];
+  assignments: { id: string; gameId: string; live: boolean; openToVisitors: boolean; title: string; format: GameFormat }[];
 }

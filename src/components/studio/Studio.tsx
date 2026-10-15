@@ -418,6 +418,13 @@ export default function Studio({ isSuper = false }: { isSuper?: boolean } = {}) 
                   disabled={busy || !assignment}
                   onChange={(e) => void act("PUT", `/api/admin/studio/games/${game.id}/assign`, { moduleId: workspace.module.id, assigned: true, live: e.target.checked }, e.target.checked ? "Live for trainees." : "Hidden from trainees.")}
                 />
+                <Checkbox
+                  label="Show on the feed: signed-in people can try it"
+                  hint="A ten-question round on the feed for anyone with an account. Nothing is saved; after a couple of misses Loop invites them to register for the course. Quiz games share practice questions only, never assessment ones. Needs the game live and the course published."
+                  checked={!!assignment?.openToVisitors}
+                  disabled={busy || !assignment?.live}
+                  onChange={(e) => void act("PUT", `/api/admin/studio/games/${game.id}/assign`, { moduleId: workspace.module.id, assigned: true, live: true, openToVisitors: e.target.checked }, e.target.checked ? "Shown on the feed." : "Taken off the feed.")}
+                />
               </div>
             )}
           </div>

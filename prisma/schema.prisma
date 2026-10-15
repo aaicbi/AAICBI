@@ -4137,6 +4137,8 @@ model GameAssignment {
   module    Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   // Trainees see it only while live.
   live      Boolean  @default(false)
+  // Anyone may try a live game without an account (a short round, nothing saved) from the feed, as a taste of the course.
+  openToVisitors Boolean @default(false)
   createdAt DateTime @default(now())
 
   @@unique([gameId, moduleId])
