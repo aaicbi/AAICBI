@@ -3,18 +3,18 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { ChangeRequestError, createRequest, listRequests } from "@/lib/changeRequests/server";
 
-/** GET: a Super Admin sees every change request; other staff see their own. */
+/** GET: every change request. Super Admin only. */
 export async function GET() {
   return withApiErrors(async () => {
-    const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
+    const session = await requireRole("SUPER_ADMIN");
     return NextResponse.json({ requests: await listRequests(session), isSuper: session.role === "SUPER_ADMIN" });
   });
 }
 
-/** POST: write down a change you want made. It waits for a Super Admin to approve it. */
+/** POST: write down a change you want made. It waits for approval. Super Admin only. */
 export async function POST(req: NextRequest) {
   return withApiErrors(async () => {
-    const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
+    const session = await requireRole("SUPER_ADMIN");
     const body = await req.json().catch(() => ({}));
     try {
       const created = await createRequest(session.userId, body ?? {});
