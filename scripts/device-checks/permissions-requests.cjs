@@ -124,13 +124,13 @@ const lastRequest = () => fs.readFileSync('/tmp/fakeclaude-stream.log', 'utf8').
   await pg.getByRole('button', { name: /Your team/i }).click();
   await pg.locator(`[data-testid="permissions-toggle-${staffUser.id}"]`).click();
   const boxes = pg.locator(`ul[aria-label*="may use"] input[type="checkbox"]`);
-  log((await boxes.count()) === 10, 'the People panel lists all ten tools with checkboxes');
+  log((await boxes.count()) === 11, 'the People panel lists all eleven tools with checkboxes');
   await pg.screenshot({ path: '/tmp/dev/permissions-panel.png' });
   const sctx = await browser.newContext(dv.context); await sctx.addCookies(await cookiesFor('/api/auth/login', 'staff@dev.test'));
   const sp = await sctx.newPage(); sp.on('pageerror', (e) => errors.push(e.message));
   await sp.goto(B + '/admin/requests'); await sp.waitForSelector('[data-testid="requests-inbox"]');
   log((await sp.locator('[data-testid="approve-request"]').count()) === 0 && (await sp.locator('[data-testid="brief-card"]').count()) === 0, 'staff see no approve buttons and no hand-off card');
-  log((await sp.locator('nav a[href="/admin/requests"], a[href="/admin/requests"]').count()) >= 1, 'Change requests is in the sidebar');
+  log((await sp.locator('nav a[href="/admin/requests"], aside a[href="/admin/requests"]').count()) === 0, 'Change requests is not in the sidebar for staff');
   log(errors.length === 0, 'no page errors');
   await browser.close();
   await prisma.user.update({ where: { id: staffUser.id }, data: { studioPermissions: null, loopMaxLevel: 1, loopLevel: 1 } });

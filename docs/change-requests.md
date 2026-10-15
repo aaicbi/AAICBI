@@ -2,7 +2,7 @@
 
 A way for staff to ask for changes to the platform and for a Super Admin to hand the approved ones to Claude Code.
 
-Page: `/admin/requests` (sidebar, near the top). API: `/api/admin/requests`.
+Page: `/admin/requests` (sidebar, near the top, shown to Super Admins only). API: `/api/admin/requests`.
 
 ## Flow
 
