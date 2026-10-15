@@ -11,8 +11,9 @@ interface Counts {
 }
 interface Preview {
   moduleTitle: string;
+  existing: { id: string; text: string }[];
   plan: {
-    objectives: { number: number; text: string; match: { how: string; existing: { text: string } | null }; counts: Record<string, Counts>; invalid: { kind: string; index: number; error: string }[] }[];
+    objectives: { number: number; text: string; match: { how: string; existing: { id: string; text: string } | null }; counts: Record<string, Counts>; invalid: { kind: string; index: number; error: string }[]; reserved: number; skipped: boolean }[];
     totals: Record<string, Counts>;
   };
 }
@@ -43,6 +44,8 @@ export default function ImportPanel({ moduleId, moduleTitle, canUse, canMakeGame
   const [done, setDone] = useState<Result | null>(null);
   const [createGames, setCreateGames] = useState(true);
   const [progress, setProgress] = useState<string | null>(null);
+  const [choices, setChoices] = useState<Record<string, string>>({});
+  const [reserve, setReserve] = useState(6);
 
   async function post(body: Record<string, unknown>) {
     const res = await fetch(`/api/admin/studio/modules/${moduleId}/import`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -54,23 +57,45 @@ export default function ImportPanel({ moduleId, moduleTitle, canUse, canMakeGame
     return json;
   }
 
+  async function look(parsed: unknown, c: Record<string, string>, r: number) {
+    setBusy(true);
+    setError(null);
+    try {
+      setPreview((await post({ file: parsed, choices: c, reserve: r })) as Preview);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "The file couldn't be checked.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function choose(f: File | undefined) {
     setError(null);
     setPreview(null);
     setDone(null);
+    setChoices({});
     if (!f) return;
     try {
       const parsed = JSON.parse(await f.text());
       setFile(parsed);
       setName(f.name);
       setBusy(true);
-      setPreview((await post({ file: parsed })) as Preview);
+      setPreview((await post({ file: parsed, choices: {}, reserve })) as Preview);
     } catch (e) {
       setFile(null);
       setError(e instanceof SyntaxError ? "That file couldn't be read. Choose the .json content file." : e instanceof Error ? e.message : "The file couldn't be checked.");
     } finally {
       setBusy(false);
     }
+  }
+
+  /** What the person sees is what gets saved: every objective's current pairing is sent, so nothing is re-guessed between steps. */
+  function pinned(): Record<string, string> {
+    const out: Record<string, string> = {};
+    preview?.plan.objectives.forEach((o, i) => {
+      out[String(i)] = o.skipped ? "skip" : o.match.existing ? o.match.existing.id : "new";
+    });
+    return out;
   }
 
   async function run() {
@@ -83,7 +108,7 @@ export default function ImportPanel({ moduleId, moduleTitle, canUse, canMakeGame
       const todo = preview.plan.objectives.map((o, i) => ({ o, i })).filter(({ o }) => Object.values(o.counts).some((c) => c.create > 0));
       for (const [n, { i }] of todo.entries()) {
         setProgress(`Importing objective ${n + 1} of ${todo.length}…`);
-        const r = (await post({ file, apply: true, only: [i] })) as Result;
+        const r = (await post({ file, apply: true, only: [i], choices: pinned(), reserve })) as Result;
         total.objectivesCreated += r.objectivesCreated;
         total.objectivesMatched += r.objectivesMatched;
         total.questions += r.questions;
@@ -94,7 +119,7 @@ export default function ImportPanel({ moduleId, moduleTitle, canUse, canMakeGame
       }
       if (createGames && canMakeGames) {
         setProgress("Setting up the games…");
-        const r = (await post({ file, apply: true, only: [], createGames: true })) as Result;
+        const r = (await post({ file, apply: true, only: [], createGames: true, choices: pinned(), reserve })) as Result;
         total.gamesCreated = r.gamesCreated;
       }
       setDone(total);
@@ -151,15 +176,53 @@ export default function ImportPanel({ moduleId, moduleTitle, canUse, canMakeGame
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-xs font-semibold text-brand-ink">Objectives</p>
-          <ul className="mt-1 space-y-1 text-xs text-gray-700">
-            {preview.plan.objectives.map((o) => (
-              <li key={o.number} data-testid="import-objective">
-                <span className="font-medium">{o.text}</span> —{" "}
-                {o.match.existing ? `matches “${o.match.existing.text}” (${o.match.how})` : "new objective, will be added"}
+          <p className="mt-3 text-xs font-semibold text-brand-ink">Which objective does each part of the file belong to?</p>
+          <ul className="mt-1 space-y-2 text-xs text-gray-700">
+            {preview.plan.objectives.map((o, i) => (
+              <li key={o.number} data-testid="import-objective" className="rounded-xl border border-brand-gray bg-brand-surface p-2">
+                <p className="font-medium text-brand-ink">{o.text}</p>
+                <label className="mt-1 flex flex-wrap items-center gap-2">
+                  <span>Goes to:</span>
+                  <select
+                    aria-label={`Where objective ${o.number} goes`}
+                    data-testid="import-objective-choice"
+                    disabled={busy}
+                    value={o.skipped ? "skip" : o.match.existing ? o.match.existing.id : "new"}
+                    onChange={(e) => {
+                      const c = { ...pinned(), [String(i)]: e.target.value };
+                      setChoices(c);
+                      void look(file, c, reserve);
+                    }}
+                    className="min-h-[36px] max-w-full rounded-lg border border-brand-gray bg-brand-surface px-2 text-xs text-brand-ink"
+                  >
+                    <option value="new">Add it as a new objective</option>
+                    {preview.existing.map((e) => (
+                      <option key={e.id} value={e.id}>
+                        {e.text.length > 90 ? `${e.text.slice(0, 90)}…` : e.text}
+                      </option>
+                    ))}
+                    <option value="skip">Leave this part out</option>
+                  </select>
+                  {!o.skipped && o.match.how !== "new" && o.match.how !== "chosen" && <span className="text-gray-500">(matched by {o.match.how})</span>}
+                </label>
               </li>
             ))}
           </ul>
+          <label className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-700">
+            Set aside
+            <input
+              type="number"
+              min={0}
+              max={10}
+              value={reserve}
+              data-testid="import-reserve"
+              aria-label="Quiz questions per objective to set aside for the assessment"
+              onChange={(e) => setReserve(Math.max(0, Math.min(10, Number(e.target.value) || 0)))}
+              onBlur={() => void look(file, pinned(), reserve)}
+              className="min-h-[36px] w-16 rounded-lg border border-brand-gray bg-brand-surface px-2 text-xs"
+            />
+            quiz questions per objective for the assessment (taken out of games and practice, not copied). The quiz game needs at least 6 for the assessment and 10 for practice per objective.
+          </label>
           {preview.plan.objectives.some((o) => o.invalid.length > 0) && (
             <ul className="mt-2 space-y-0.5 rounded-xl bg-brand-goldLight/50 px-3 py-2 text-xs text-brand-ink">
               {preview.plan.objectives.flatMap((o) => o.invalid.map((x) => <li key={`${o.number}-${x.kind}-${x.index}`}>Skipped {x.kind} item {x.index + 1} of objective {o.number}: {x.error}</li>)).slice(0, 8)}
@@ -184,7 +247,7 @@ export default function ImportPanel({ moduleId, moduleTitle, canUse, canMakeGame
         <div className="mt-3 rounded-2xl bg-brand-mint px-3 py-2 text-xs text-brand-ink" data-testid="import-done">
           <p className="font-semibold">Imported.</p>
           <p className="mt-0.5">
-            {done.questions} quiz questions are waiting in the question bank (Games and practice tab: &ldquo;Approve all that passed&rdquo;). Drafts: {done.items.MATCHING} matching, {done.items.ORDERING} ordering, {done.items.SCENARIO} scenario: approve them in the
+            {done.questions} quiz questions are waiting in the question bank: open the Games and practice tab and the Assessment tab and use &ldquo;Approve all that passed&rdquo; on each. Drafts: {done.items.MATCHING} matching, {done.items.ORDERING} ordering, {done.items.SCENARIO} scenario: approve them in the
             studio. {done.objectivesCreated > 0 ? `${done.objectivesCreated} new objective${done.objectivesCreated === 1 ? "" : "s"} added. ` : ""}
             {done.gamesCreated.length > 0 ? `Games created (off): ${done.gamesCreated.join("; ")}. ` : ""}
             {done.skippedDuplicates > 0 ? `${done.skippedDuplicates} skipped because the module already had them.` : ""}

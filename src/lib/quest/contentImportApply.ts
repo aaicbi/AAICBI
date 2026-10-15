@@ -39,12 +39,33 @@ async function loadModule(moduleId: string, file: ContentFile) {
   return { mod, objectives, exam, known };
 }
 
+export interface ImportOptions {
+  /** A person's choice per file objective (by position in the file): an existing objective's id, "new", or "skip". */
+  choices?: Record<string, string>;
+  /** Quiz questions per objective to set aside for the assessment. */
+  reserve?: number;
+}
+
+function planOptions(o: ImportOptions, objectives: { id: string }[]) {
+  const choices: Record<number, string> = {};
+  const taken = new Set<string>();
+  for (const [k, v] of Object.entries(o.choices ?? {})) {
+    if (v !== "new" && v !== "skip") {
+      if (!objectives.some((x) => x.id === v)) throw new ImportError("One of the chosen objectives isn't part of this module.");
+      if (taken.has(v)) throw new ImportError("Two objectives in the file can't go to the same objective in the module.");
+      taken.add(v);
+    }
+    choices[Number(k)] = v;
+  }
+  return { choices, reserve: Math.max(0, Math.min(10, Math.floor(o.reserve ?? 0))) };
+}
+
 /** What importing this file into this module would do. Saves nothing. */
-export async function previewImport(moduleId: string, raw: unknown): Promise<{ moduleTitle: string; plan: ImportPlan }> {
+export async function previewImport(moduleId: string, raw: unknown, options: ImportOptions = {}): Promise<{ moduleTitle: string; existing: { id: string; text: string }[]; plan: ImportPlan }> {
   const parsed = parseContentFile(raw);
   if (!parsed.ok) throw new ImportError(parsed.error);
   const { mod, objectives, known } = await loadModule(moduleId, parsed.file);
-  return { moduleTitle: mod.title, plan: planImport(parsed.file, objectives, known) };
+  return { moduleTitle: mod.title, existing: objectives.map((o) => ({ id: o.id, text: o.text })), plan: planImport(parsed.file, objectives, known, planOptions(options, objectives)) };
 }
 
 export interface ImportResult {
@@ -58,13 +79,13 @@ export interface ImportResult {
 }
 
 /** Saves the file's content into the module. Quiz questions and game items wait for approval; games are attached but off. */
-export async function applyImport(moduleId: string, userId: string, raw: unknown, opts: { createGames: boolean; only?: number[] }): Promise<ImportResult> {
+export async function applyImport(moduleId: string, userId: string, raw: unknown, opts: { createGames: boolean; only?: number[] } & ImportOptions): Promise<ImportResult> {
   const parsed = parseContentFile(raw);
   if (!parsed.ok) throw new ImportError(parsed.error);
   const { mod, objectives, exam: foundExam, known } = await loadModule(moduleId, parsed.file);
   // The whole file is planned (so objectives line up the same way every time); `only` limits which objectives are saved in this call,
   // letting a large file be imported one objective at a time inside the server's time limit.
-  const plan = planImport(parsed.file, objectives, known);
+  const plan = planImport(parsed.file, objectives, known, planOptions(opts, objectives));
   const chosen = (i: number) => !opts.only || opts.only.includes(i);
   const result: ImportResult = {
     objectivesCreated: 0,
@@ -122,7 +143,7 @@ export async function applyImport(moduleId: string, userId: string, raw: unknown
           reviewReason: "Imported after being written and reviewed outside the platform. Waiting for your approval.",
           bankStatus: "VALIDATED_PASS" as const,
           bankObjectiveId: objectiveId,
-          bankPool: "PRACTICE" as const,
+          bankPool: (q.pool ?? "PRACTICE") as "PRACTICE" | "FORMAL",
         })),
         select: { id: true },
       });

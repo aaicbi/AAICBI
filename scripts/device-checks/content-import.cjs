@@ -84,17 +84,28 @@ const FILE = '/home/user/AAICBI/content/ai-automation/module-1.json';
     log(r.status === 200 && r.json.approved > 0, `the studio approves the ${f.toLowerCase()} drafts`);
   }
 
-  // ---- one objective at a time (how the panel sends large files), and speed
+  // ---- one objective at a time (how the panel sends large files), with a chosen objective and questions set aside for the assessment
   const mod3 = await prisma.module.create({ data: { courseId: course.id, title: 'Import check module three', order: 2 } });
+  const mine = await prisma.moduleLearningObjective.create({ data: { moduleId: mod3.id, text: 'Know what robots in offices do', order: 0, confirmedById: superUser.id } });
   const url3 = `/api/admin/studio/modules/${mod3.id}/import`;
+  const choices = { 0: mine.id };
+  for (let i = 1; i < 8; i++) choices[i] = 'new';
   let t0 = Date.now();
-  r = await api(sa, 'POST', url3, { file, apply: true, only: [2] });
+  r = await api(sa, 'POST', url3, { file, choices, reserve: 6 });
+  log(r.status === 200 && r.json.existing.length === 1 && r.json.plan.objectives[0].match.how === 'chosen' && r.json.plan.objectives[0].reserved === 6, 'the preview honours the objective a person chose and the questions set aside');
+  r = await api(sa, 'POST', url3, { file, choices, reserve: 6, apply: true, only: [2] });
   const q3 = await prisma.question.count({ where: { exam: { moduleId: mod3.id } } });
   const o3 = await prisma.moduleLearningObjective.count({ where: { moduleId: mod3.id } });
-  log(r.status === 200 && o3 === 1 && q3 === 20 && r.json.questions === 20, 'importing just one objective saves only that objective and its 20 questions');
-  for (let i = 0; i < 8; i++) if (i !== 2) await api(sa, 'POST', url3, { file, apply: true, only: [i] });
-  r = await api(sa, 'POST', url3, { file, apply: true, only: [], createGames: true });
-  log((await prisma.question.count({ where: { exam: { moduleId: mod3.id } } })) === 160 && (await prisma.gameItem.count({ where: { moduleId: mod3.id } })) === 438 && (await prisma.moduleLearningObjective.count({ where: { moduleId: mod3.id } })) === 8 && r.json.gamesCreated.length === 4, 'eight objective-by-objective imports plus the games step give the same result as one import');
+  log(r.status === 200 && o3 === 2 && q3 === 20 && r.json.questions === 20, 'importing just one objective saves only that objective and its 20 questions');
+  for (let i = 0; i < 8; i++) if (i !== 2) await api(sa, 'POST', url3, { file, choices, reserve: 6, apply: true, only: [i] });
+  r = await api(sa, 'POST', url3, { file, choices, reserve: 6, apply: true, only: [], createGames: true });
+  log((await prisma.question.count({ where: { exam: { moduleId: mod3.id } } })) === 160 && (await prisma.gameItem.count({ where: { moduleId: mod3.id } })) === 438 && r.json.gamesCreated.length === 4, 'eight objective-by-objective imports plus the games step give the same result as one import');
+  log((await prisma.moduleLearningObjective.count({ where: { moduleId: mod3.id } })) === 8, 'the chosen objective was used instead of adding a duplicate, so the module has exactly eight');
+  const mineQs = await prisma.question.count({ where: { bankObjectiveId: mine.id } });
+  log(mineQs === 20, 'the module\'s own objective received the first file objective\'s 20 questions');
+  const pools = await prisma.question.groupBy({ by: ['bankObjectiveId', 'bankPool'], where: { exam: { moduleId: mod3.id } }, _count: { _all: true } });
+  const okPools = new Set(pools.map((p) => p.bankObjectiveId)).size === 8 && pools.filter((p) => p.bankPool === 'FORMAL').every((p) => p._count._all === 6) && pools.filter((p) => p.bankPool === 'PRACTICE').every((p) => p._count._all === 14);
+  log(okPools && pools.length === 16, 'every objective ends with 14 questions for games and practice and 6 for the assessment, enough to meet the quiz minimums');
   log(Date.now() - t0 < 20000, 'a whole module imports in a few seconds (' + (Date.now() - t0) + ' ms)');
 
   // ---- the panel

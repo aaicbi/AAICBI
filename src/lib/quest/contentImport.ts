@@ -74,14 +74,34 @@ export interface ObjectiveMatch {
   fileIndex: number;
   /** The module's objective it lines up with, or null when a new one would be created from the file. */
   existing: ExistingObjective | null;
-  how: "same text" | "similar text" | "new";
+  how: "same text" | "similar text" | "new" | "chosen" | "skipped";
 }
 
+/** A person's choice for one file objective: an existing objective's id, "new" (add it), or "skip" (leave its content out). */
+export type ObjectiveChoices = Record<number, string>;
+
 /** Lines the file's objectives up with the module's: same text first, then clearly similar text, otherwise new. Each existing one is used once. */
-export function matchObjectives(file: ContentFile, existing: ExistingObjective[], threshold = 0.7): ObjectiveMatch[] {
+export function matchObjectives(file: ContentFile, existing: ExistingObjective[], threshold = 0.7, choices: ObjectiveChoices = {}): ObjectiveMatch[] {
   const used = new Set<string>();
-  const result: ObjectiveMatch[] = file.objectives.map((_, fileIndex) => ({ fileIndex, existing: null, how: "new" as const }));
+  const result: ObjectiveMatch[] = file.objectives.map((_, fileIndex): ObjectiveMatch => ({ fileIndex, existing: null, how: "new" }));
+  const decided = new Set<number>();
+  // What a person chose always wins over the automatic lining up.
+  for (const [k, choice] of Object.entries(choices)) {
+    const i = Number(k);
+    if (!Number.isInteger(i) || i < 0 || i >= file.objectives.length) continue;
+    decided.add(i);
+    if (choice === "skip") result[i] = { fileIndex: i, existing: null, how: "skipped" };
+    else if (choice === "new") result[i] = { fileIndex: i, existing: null, how: "new" };
+    else {
+      const e = existing.find((x) => x.id === choice);
+      if (e && !used.has(e.id)) {
+        used.add(e.id);
+        result[i] = { fileIndex: i, existing: e, how: "chosen" };
+      } else decided.delete(i);
+    }
+  }
   file.objectives.forEach((o, i) => {
+    if (decided.has(i)) return;
     const hit = existing.find((e) => !used.has(e.id) && norm(e.text) === norm(o.text));
     if (hit) {
       used.add(hit.id);
@@ -89,7 +109,7 @@ export function matchObjectives(file: ContentFile, existing: ExistingObjective[]
     }
   });
   file.objectives.forEach((o, i) => {
-    if (result[i].existing) return;
+    if (decided.has(i) || result[i].existing) return;
     let best: { e: ExistingObjective; s: number } | null = null;
     for (const e of existing) {
       if (used.has(e.id)) continue;
@@ -113,7 +133,11 @@ export function itemSignature(kind: FileKind, item: unknown): string {
   return `s|${norm(String(x.situation ?? ""))}`;
 }
 
+export type QuizPool = "PRACTICE" | "FORMAL";
+
 export interface CleanQuiz {
+  /** Which side of the question bank it goes to: games and practice, or the assessment. */
+  pool?: QuizPool;
   question: string;
   options: { text: string; isCorrect: boolean }[];
   explanation: string | null;
@@ -138,6 +162,21 @@ export interface PlannedObjective {
   invalid: { kind: FileKind; index: number; error: string }[];
   quiz: CleanQuiz[];
   items: { format: ItemFormat; content: ItemContent }[];
+  /** How many of the new quiz questions are set aside for the assessment. */
+  reserved: number;
+  skipped: boolean;
+}
+
+/** Spreads `n` picks evenly over `count` positions, so what is set aside is a fair mix rather than the first few. */
+export function spreadPicks(count: number, n: number): number[] {
+  const k = Math.max(0, Math.min(n, count));
+  return Array.from({ length: k }, (_, i) => Math.floor((i * count) / k));
+}
+
+export interface PlanOptions {
+  choices?: ObjectiveChoices;
+  /** Quiz questions per objective to set aside for the assessment instead of games and practice (0 for none). */
+  reserve?: number;
 }
 
 export interface ImportPlan {
@@ -148,12 +187,13 @@ export interface ImportPlan {
 const zero = () => ({ create: 0, duplicate: 0, invalid: 0 });
 
 /** What the import would do. `known` holds the fingerprints of what the module already has, so repeats are skipped. */
-export function planImport(file: ContentFile, existing: ExistingObjective[], known: Set<string>): ImportPlan {
-  const matches = matchObjectives(file, existing);
+export function planImport(file: ContentFile, existing: ExistingObjective[], known: Set<string>, opts: PlanOptions = {}): ImportPlan {
+  const matches = matchObjectives(file, existing, 0.7, opts.choices ?? {});
   const seen = new Set(known);
   const totals: ImportPlan["totals"] = { quiz: zero(), matching: zero(), ordering: zero(), scenario: zero() };
   const objectives = file.objectives.map((o, fileIndex): PlannedObjective => {
-    const p: PlannedObjective = { fileIndex, number: o.number ?? fileIndex + 1, text: o.text.trim(), match: matches[fileIndex], counts: { quiz: zero(), matching: zero(), ordering: zero(), scenario: zero() }, invalid: [], quiz: [], items: [] };
+    const p: PlannedObjective = { fileIndex, number: o.number ?? fileIndex + 1, text: o.text.trim(), match: matches[fileIndex], counts: { quiz: zero(), matching: zero(), ordering: zero(), scenario: zero() }, invalid: [], quiz: [], items: [], reserved: 0, skipped: matches[fileIndex].how === "skipped" };
+    if (p.skipped) return p;
     for (const kind of FILE_FORMATS) {
       (o[kind] as unknown[]).forEach((item, index) => {
         const sig = itemSignature(kind, item);
@@ -180,6 +220,11 @@ export function planImport(file: ContentFile, existing: ExistingObjective[], kno
         totals[kind].create++;
       });
     }
+    // Set some questions aside for the assessment: taken out of games and practice, not copied, so nothing is asked twice.
+    const reserve = Math.min(opts.reserve ?? 0, Math.floor(p.quiz.length / 2));
+    const picks = new Set(spreadPicks(p.quiz.length, reserve));
+    p.quiz = p.quiz.map((q, i) => ({ ...q, pool: picks.has(i) ? "FORMAL" : "PRACTICE" }));
+    p.reserved = picks.size;
     return p;
   });
   return { objectives, totals };
