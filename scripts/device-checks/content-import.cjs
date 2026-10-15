@@ -129,6 +129,23 @@ const FILE = '/home/user/AAICBI/content/ai-automation/module-1.json';
   await pg.getByTestId('import-done').waitFor();
   log((await prisma.question.count({ where: { exam: { moduleId: mod2.id } } })) === 160, 'clicking Import saves the module through the panel');
   log(/160 quiz questions are waiting/.test(await pg.getByTestId('import-done').innerText()), 'the panel says what to approve next');
+  // tidy tools
+  const post = (action, extra) => pg.evaluate(async ([u, b]) => { const r = await fetch(u, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(b) }); return { status: r.status, json: await r.json().catch(() => ({})) }; }, [`/api/admin/studio/modules/${mod2.id}/tidy`, { action, ...extra }]);
+  const tObjs = await prisma.moduleLearningObjective.findMany({ where: { moduleId: mod2.id }, orderBy: { order: 'asc' } });
+  const tEmpty = await prisma.moduleLearningObjective.create({ data: { moduleId: mod2.id, text: 'Spare empty objective', order: 20, confirmedById: tObjs[0].confirmedById } });
+  let tr = await post('delete', { id: tEmpty.id });
+  log(tr.status === 200 && !(await prisma.moduleLearningObjective.findUnique({ where: { id: tEmpty.id } })), 'tidy removes an empty objective');
+  tr = await post('delete', { id: tObjs[0].id });
+  log(tr.status >= 400 && !!(await prisma.moduleLearningObjective.findUnique({ where: { id: tObjs[0].id } })), 'tidy refuses to remove an objective that has content');
+  const tDup = await prisma.moduleLearningObjective.create({ data: { moduleId: mod2.id, text: 'Duplicate of the first', order: 21, confirmedById: tObjs[0].confirmedById } });
+  const tQs = await prisma.question.findMany({ where: { exam: { moduleId: mod2.id }, bankObjectiveId: tObjs[1].id }, take: 3 });
+  await prisma.question.updateMany({ where: { id: { in: tQs.map((q) => q.id) } }, data: { bankObjectiveId: tDup.id } });
+  const tBefore = await prisma.question.count({ where: { exam: { moduleId: mod2.id }, bankObjectiveId: tObjs[1].id } });
+  tr = await post('merge', { fromId: tDup.id, toId: tObjs[1].id });
+  log(tr.status === 200 && (await prisma.question.count({ where: { exam: { moduleId: mod2.id }, bankObjectiveId: tObjs[1].id } })) === tBefore + 3 && !(await prisma.moduleLearningObjective.findUnique({ where: { id: tDup.id } })), 'tidy merges a duplicate objective and moves its questions');
+  await prisma.question.updateMany({ where: { exam: { moduleId: mod2.id }, bankObjectiveId: tObjs[2].id }, data: { bankPool: 'PRACTICE' } });
+  tr = await post('fillAssessment', {});
+  log(tr.status === 200 && (await prisma.question.count({ where: { exam: { moduleId: mod2.id }, bankObjectiveId: tObjs[2].id, bankPool: 'FORMAL' } })) === 6, 'tidy fills the assessment side to six per objective');
   log(errors.length === 0, 'no page errors' + (errors.length ? ': ' + errors[0] : ''));
   await br.close();
 

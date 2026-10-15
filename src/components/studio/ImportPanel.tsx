@@ -44,7 +44,6 @@ export default function ImportPanel({ moduleId, moduleTitle, canUse, canMakeGame
   const [done, setDone] = useState<Result | null>(null);
   const [createGames, setCreateGames] = useState(true);
   const [progress, setProgress] = useState<string | null>(null);
-  const [choices, setChoices] = useState<Record<string, string>>({});
   const [reserve, setReserve] = useState(6);
 
   async function post(body: Record<string, unknown>) {
@@ -73,7 +72,6 @@ export default function ImportPanel({ moduleId, moduleTitle, canUse, canMakeGame
     setError(null);
     setPreview(null);
     setDone(null);
-    setChoices({});
     if (!f) return;
     try {
       const parsed = JSON.parse(await f.text());
@@ -190,7 +188,6 @@ export default function ImportPanel({ moduleId, moduleTitle, canUse, canMakeGame
                     value={o.skipped ? "skip" : o.match.existing ? o.match.existing.id : "new"}
                     onChange={(e) => {
                       const c = { ...pinned(), [String(i)]: e.target.value };
-                      setChoices(c);
                       void look(file, c, reserve);
                     }}
                     className="min-h-[36px] max-w-full rounded-lg border border-brand-gray bg-brand-surface px-2 text-xs text-brand-ink"

@@ -24,15 +24,15 @@ import { applyQuestSettings, autoSplitPools, QuestAdminError } from "@/lib/quest
 import { sendLoopBroadcast } from "@/lib/messaging/loopBroadcast";
 import type { RecipientFilter } from "@/lib/messaging/recipients";
 import { issueMessagingSuspension } from "@/lib/messagingModeration";
-import { FORMAT_INFO, isItemFormat, validateItemContent, type ItemFormat } from "@/lib/quest/games";
+import { FORMAT_INFO, isItemFormat, type ItemFormat } from "@/lib/quest/games";
 import { gamesWhere } from "@/lib/quest/studioAccess";
 import { resolveModuleForScope, type LoopScope } from "@/lib/loop/scope";
 import { cleanRequestInput } from "@/lib/changeRequests/core";
 import { ChangeRequestError, createRequest } from "@/lib/changeRequests/server";
-import { bankModelInfo, BankModelError } from "@/lib/ai/bankModels";
+import { BankModelError } from "@/lib/ai/bankModels";
 import { validateBankQuestionBatch } from "@/lib/ai/validateBankQuestions";
-import { approveQuestions as approveQuestionsFor, generateQuestions as generateQuestionsFor, GENERATE_PER_REQUEST, reviewQuestions as reviewQuestionsFor } from "@/lib/quest/bank";
-import { StudioError, approveDrafts, assignGame, createGame, createItem, isGameFormat, updateGame } from "@/lib/quest/studio";
+import { approveQuestions as approveQuestionsFor } from "@/lib/quest/bank";
+import { StudioError, approveDrafts, assignGame, createGame, isGameFormat, updateGame } from "@/lib/quest/studio";
 
 export class ActionInputError extends Error {}
 
@@ -115,70 +115,6 @@ const saveObjectives: ActionDef = {
   },
 };
 
-/** Finds one confirmed objective of the module by text; quotes, dashes and extra spaces are ignored when comparing. */
-async function objectiveFrom(moduleId: string, query: string) {
-  const flat = (t: string) => t.toLowerCase().replace(/[\u2018\u2019\u201C\u201D"'`]/g, "").replace(/[\u2013\u2014-]/g, " ").replace(/\s+/g, " ").trim();
-  const wanted = flat(query);
-  if (!wanted) throw new ActionInputError("objectiveQuery is required.");
-  const all = await prisma.moduleLearningObjective.findMany({ where: { moduleId }, select: { id: true, text: true } });
-  const hits = all.filter((o) => flat(o.text).includes(wanted) || wanted.includes(flat(o.text)));
-  if (hits.length === 0) throw new ActionInputError("No confirmed learning objective of that module matched. Save the objectives first (save_learning_objectives).");
-  if (hits.length > 1) throw new ActionInputError(`More than one objective matched. Ask which one was meant: ${hits.map((o) => o.text).join("; ")}`);
-  return hits[0];
-}
-
-const generateQuestions: ActionDef = {
-  name: "generate_bank_questions",
-  description:
-    "Write questions for one CONFIRMED learning objective of a module, grounded in its materials. Questions are for ONE side of the bank: games and practice, or the assessment, so say which in `purpose` (ask the person if it is not clear). One Claude model writes them and a different one reviews them afterwards (call review_bank_questions next). They stay hidden from trainees until a person approves them.",
-  inputSchema: {
-    type: "object",
-    properties: {
-      moduleQuery: MODULE_PROP,
-      objectiveQuery: { type: "string", description: "The confirmed objective's text or a fragment of it." },
-      count: { type: "number", description: "How many questions (at most 6 at a time)." },
-      purpose: { type: "string", enum: ["games", "assessment"], description: "What the questions are for: 'games' (games and practice) or 'assessment' (the formal assessment). They are never shared between the two unless a person copies one." },
-    },
-    required: ["moduleQuery", "objectiveQuery", "count", "purpose"],
-  },
-  async prepare(raw, state) {
-    const { module, label } = await moduleFrom(raw, state);
-    const objective = await objectiveFrom(module.id, typeof raw.objectiveQuery === "string" ? raw.objectiveQuery : "");
-    const count = Math.min(typeof raw.count === "number" && raw.count > 0 ? Math.floor(raw.count) : 10, GENERATE_PER_REQUEST);
-    const models = bankModelInfo();
-    const purpose = raw.purpose === "assessment" ? "assessment" : raw.purpose === "games" ? "games" : null;
-    if (!purpose) throw new ActionInputError("Say whether the questions are for games and practice or for the assessment, then try again.");
-    return {
-      input: { moduleId: module.id, objectiveId: objective.id, count, pool: purpose === "assessment" ? "FORMAL" : "PRACTICE" },
-      summary: `Have ${models.generator} write up to ${count} ${purpose === "assessment" ? "assessment" : "games and practice"} questions for ${label}, testing “${objective.text}”. ${models.independent ? `${models.reviewer} reviews them next.` : "(The reviewer is set to the same model as the writer.)"} They stay hidden from trainees until you approve them.`,
-      risk: "low",
-    };
-  },
-  async execute(input, ctx) {
-    return generateQuestionsFor(String(input.moduleId), ctx.userId, { objectiveId: String(input.objectiveId), count: Number(input.count), pool: input.pool === "FORMAL" ? "FORMAL" : input.pool === "PRACTICE" ? "PRACTICE" : null });
-  },
-};
-
-const reviewQuestionsAction: ActionDef = {
-  name: "review_bank_questions",
-  description:
-    "Have the REVIEWER model (a different Claude model from the one that wrote them) check a module's newly written questions: it works out each answer from the lesson material blind, checks the question tests its objective, and flags ambiguous or duplicate ones. Passed questions wait for a person's approval; flagged ones wait for a decision. Nothing goes live.",
-  inputSchema: { type: "object", properties: { moduleQuery: MODULE_PROP }, required: ["moduleQuery"] },
-  async prepare(raw, state) {
-    const { module, label } = await moduleFrom(raw, state);
-    const waiting = await prisma.question.count({ where: { exam: { moduleId: module.id }, bankStatus: "PENDING_REVIEW" } });
-    if (waiting === 0) throw new ActionInputError("No newly written questions are waiting for review in this module.");
-    const models = bankModelInfo();
-    return {
-      input: { moduleId: module.id },
-      summary: `Have ${models.reviewer} review ${Math.min(waiting, 10)} of the ${waiting} newly written question${waiting === 1 ? "" : "s"} in ${label}. Nothing goes live; you approve afterwards.`,
-      risk: "low",
-    };
-  },
-  async execute(input) {
-    return reviewQuestionsFor(String(input.moduleId));
-  },
-};
 
 const approveQuestionsAction: ActionDef = {
   name: "approve_bank_questions",
@@ -457,57 +393,6 @@ const assignGameAction: ActionDef = {
   },
 };
 
-const addGameItems: ActionDef = {
-  name: "add_game_items",
-  description:
-    "Write playable items for a module's game format, as DRAFTS that stay hidden until a person approves them. Base them on the module's real materials (read_module_materials) and one confirmed learning objective. Shapes: MATCHING {prompt, pairs:[{left,right}] 3-6, all different}; ORDERING {prompt, steps:[strings in the CORRECT order] 3-8}; SCENARIO {situation, options:[{text, outcome, correct}] 2-4, exactly one correct, each with what happens if chosen}. Write 3 to 8 items per call.",
-  inputSchema: {
-    type: "object",
-    properties: {
-      moduleQuery: MODULE_PROP,
-      objectiveQuery: { type: "string", description: "The confirmed objective's text or a fragment of it." },
-      format: { type: "string", enum: ["MATCHING", "ORDERING", "SCENARIO"] },
-      items: { type: "array", items: { type: "object" }, description: "1 to 10 items in the shape for the format." },
-    },
-    required: ["moduleQuery", "objectiveQuery", "format", "items"],
-  },
-  async prepare(raw, state) {
-    const { module, label } = await moduleFrom(raw, state);
-    if (typeof raw.format !== "string" || !isItemFormat(raw.format)) throw new ActionInputError("format must be MATCHING, ORDERING or SCENARIO.");
-    const format: ItemFormat = raw.format;
-    const q = typeof raw.objectiveQuery === "string" ? raw.objectiveQuery.trim().toLowerCase() : "";
-    const objectives = await prisma.moduleLearningObjective.findMany({ where: { moduleId: module.id }, select: { id: true, text: true } });
-    if (objectives.length === 0) throw new ActionInputError("This module has no confirmed learning objectives yet. Save them first (save_learning_objectives).");
-    const matches = q ? objectives.filter((o) => o.text.toLowerCase().includes(q)) : [];
-    if (matches.length === 0) throw new ActionInputError(`No objective matched. The module's objectives are: ${objectives.map((o) => `“${o.text}”`).join("; ")}`);
-    if (matches.length > 1) throw new ActionInputError(`More than one objective matched. Ask which one: ${matches.map((o) => o.text).join("; ")}`);
-    const list = Array.isArray(raw.items) ? raw.items.slice(0, 10) : [];
-    if (list.length === 0) throw new ActionInputError("items must have at least one item.");
-    const valid: unknown[] = [];
-    const problems: string[] = [];
-    list.forEach((item, i) => {
-      const v = validateItemContent(format, item);
-      if (v.ok) valid.push(v.content);
-      else problems.push(`Item ${i + 1}: ${v.error}`);
-    });
-    if (valid.length === 0) throw new ActionInputError(`None of the items were valid. ${problems.join(" ")}`);
-    const noun = FORMAT_INFO[format].itemNoun;
-    return {
-      input: { moduleId: module.id, objectiveId: matches[0].id, format, items: valid },
-      summary: `Add ${valid.length} ${noun}${valid.length === 1 ? "" : "s"} to ${label} for the objective “${matches[0].text}”. They are saved as drafts that trainees cannot see until you approve them.${problems.length ? `\n(${problems.length} item${problems.length === 1 ? " was" : "s were"} left out: ${problems.join(" ")})` : ""}`,
-      risk: "low",
-    };
-  },
-  async execute(input) {
-    let added = 0;
-    for (const content of input.items as unknown[]) {
-      await createItem(String(input.moduleId), { objectiveId: String(input.objectiveId), format: String(input.format), content, source: "LOOP", status: "DRAFT" });
-      added++;
-    }
-    return { added };
-  },
-};
-
 const approveGameItems: ActionDef = {
   name: "approve_game_items",
   description:
@@ -559,8 +444,6 @@ const logChangeRequest: ActionDef = {
 
 export const LOOP_ACTIONS: ActionDef[] = [
   saveObjectives,
-  generateQuestions,
-  reviewQuestionsAction,
   approveQuestionsAction,
   validateQuestions,
   splitPools,
@@ -568,7 +451,6 @@ export const LOOP_ACTIONS: ActionDef[] = [
   createGameAction,
   setGameRewards,
   assignGameAction,
-  addGameItems,
   approveGameItems,
   sendMessage,
   suspendMessaging,

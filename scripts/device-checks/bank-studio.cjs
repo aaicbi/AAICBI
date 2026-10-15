@@ -69,18 +69,17 @@ const DETAIL = (extra = {}) => ({ correctness: { agrees: false, verifiedOptionIn
   log(fq.bucket === 'FLAGGED' && /option B/.test(fq.reasons[0]) && fq.reviewedBy === 'claude-opus-5-5', 'a flagged question says why, in plain words, and which model reviewed it');
 
   // ---------- who may use it ----------
-  r = await api(staff, 'POST', `/api/admin/studio/modules/${M}/bank`, { action: 'review' });
+  r = await api(staff, 'POST', `/api/admin/studio/modules/${M}/bank`, { action: 'approve', allPassed: true });
   log(r.status === 403 || r.status === 404, 'staff cannot work another person’s bank');
   r = await api(staff, 'GET', `/api/admin/studio/modules/${M}/bank`);
   log(r.status === 404, 'nor read it');
 
-  // ---------- review: automatic, by the reviewer model ----------
+  // ---------- the AI writing and review routes are gone ----------
   r = await api(sa, 'POST', `/api/admin/studio/modules/${M}/bank`, { action: 'review' });
-  log(r.status === 200 && r.json.validated === 1 && r.json.needsReview === 1 && r.json.remaining === 0, 'the reviewer checks the waiting question and flags the ambiguous one');
-  const calls = fakeLog().filter((c) => c.stream === false || c.stream === undefined);
-  log(calls.length >= 2 && calls.every((c) => c.model === 'claude-opus-5-5'), 'every review call went to the reviewer model, never the writer’s');
+  log(r.status === 400, 'the bank no longer has an AI review action');
+  r = await api(sa, 'POST', `/api/admin/studio/modules/${M}/bank`, { action: 'generate', objectiveId: W.o1.id, count: 5 });
+  log(r.status === 400, 'nor an AI writing action');
   let row = await prisma.question.findUnique({ where: { id: waiting.id } });
-  log(row.bankStatus === 'VALIDATED_FLAGGED' && row.needsReview === true, 'a flagged question stays out of exams and practice');
 
   // ---------- one approval ----------
   r = await api(sa, 'POST', `/api/admin/studio/modules/${M}/bank`, { action: 'approve', allPassed: true });
@@ -107,8 +106,6 @@ const DETAIL = (extra = {}) => ({ correctness: { agrees: false, verifiedOptionIn
   r = await api(sa, 'POST', `/api/admin/studio/modules/${M}/bank`, { action: 'reject', ids: [doomed.id] });
   row = await prisma.question.findUnique({ where: { id: doomed.id } });
   log(r.json.rejected === 1 && row.bankStatus === 'REJECTED', 'a question can be thrown out');
-  r = await api(sa, 'POST', `/api/admin/studio/modules/${M}/bank`, { action: 'generate', objectiveId: W.o1.id, count: 5 });
-  log(r.status === 409 && /No usable materials/.test(r.json.error), 'asking for questions on a module with nothing to read gives a plain reason');
 
   // ---------- Loop reads and approves, from the studio chat ----------
   r = await chat(sa, { message: 'BANK:Bank studio module', level: 3, studio: { moduleId: M, gameId: null } });
@@ -128,11 +125,11 @@ const DETAIL = (extra = {}) => ({ correctness: { agrees: false, verifiedOptionIn
   log(r.status === 403, 'staff need the question-bank permission to approve, even on their own module');
   r = await chat(staff, { message: 'BANK:Bank staff module', level: 1, studio: { moduleId: SW.mod.id, gameId: null } });
   const tools = fakeLog().filter((c) => c.stream === true).pop().tools;
-  log(tools.includes('get_bank_questions') && !tools.some((t) => ['generate_bank_questions', 'review_bank_questions', 'approve_bank_questions'].includes(t)), 'without the permission Loop can show their bank but not write, review or approve');
+  log(tools.includes('get_bank_questions') && !tools.includes('approve_bank_questions'), 'without the permission Loop can show their bank but not approve');
   r = await api(sa, 'PUT', '/api/admin/studio/people', { userId: staffUser.id, permissions: ['LOOP', 'GAMES', 'ITEMS', 'ASSIGN', 'QUESTIONS', 'BANK_AI'] });
   r = await chat(staff, { message: 'BANKAPPROVE:Bank staff module', level: 3, studio: { moduleId: SW.mod.id, gameId: null } });
   const tools2 = fakeLog().filter((c) => c.stream === true).slice(-2)[0].tools;
-  log(['generate_bank_questions', 'review_bank_questions', 'approve_bank_questions'].every((t) => tools2.includes(t)), 'with it Loop offers all three');
+  log(tools2.includes('approve_bank_questions') && !tools2.some((t) => ['generate_bank_questions', 'review_bank_questions'].includes(t)), 'with it Loop offers approving, and never writing or reviewing questions');
   log(r.cards.length === 1 && r.cards[0].status === 'PENDING', 'and the approval still asks, at level 3');
   r = await api(staff, 'POST', `/api/admin/studio/modules/${SW.mod.id}/bank`, { action: 'approve', allPassed: true });
   row = await prisma.question.findUnique({ where: { id: sq.id } });
@@ -155,18 +152,14 @@ const DETAIL = (extra = {}) => ({ correctness: { agrees: false, verifiedOptionIn
   await pg.getByTestId('module-row').filter({ hasText: 'Bank studio module' }).click();
   await pg.getByTestId('bank-card').waitFor();
   await pg.getByTestId('bank-passed').waitFor();
-  const models = await pg.getByTestId('bank-models').innerText();
-  log(/claude-sonnet-5-5/.test(models) && /claude-opus-5-5/.test(models) && /different model/.test(models), 'the panel says which model writes and which reviews');
+  log(/arrive by importing a reviewed content file/.test(await pg.getByTestId('bank-intro').innerText()), 'the panel says questions arrive by import');
   log((await pg.getByTestId('bank-flagged').getByTestId('bank-reasons').first().innerText()).match(/option B/) !== null, 'a flagged question shows why next to it');
   log((await pg.getByTestId('bank-unassigned').count()) === 1, 'older questions with no purpose are called out, with a choice of where they belong');
   await pg.getByTestId('bank-assign-PRACTICE').click();
   await pg.getByText(/set for games and practice/).first().waitFor({ timeout: 10000 });
   log((await prisma.question.count({ where: { examId: W.exam.id, bankPool: null, AND: [{ bankStatus: { not: null } }, { bankStatus: { not: 'REJECTED' } }] } })) === 0, 'choosing a side gives every older question a purpose');
-  log((await pg.getByTestId('bank-prepare').count()) === 1, 'there is one button to get the games and practice questions ready');
+  log((await pg.getByTestId('bank-prepare').count()) === 0 && (await pg.getByTestId('bank-review').count()) === 0, 'the panel has no buttons that ask AI to write or review questions');
   await pg.getByTestId('bank-card').screenshot({ path: '/tmp/dev/bank-panel.png' });
-  await pg.getByTestId('bank-prepare').click();
-  await pg.getByTestId('bank-error').waitFor({ timeout: 15000 });
-  log(/No usable materials/.test(await pg.getByTestId('bank-error').innerText()), 'if the module has nothing to read, the panel says so instead of failing quietly');
   await pg.getByTestId('bank-approve-passed').click();
   await pg.getByText(/Approved \d+ questions?/).first().waitFor({ timeout: 10000 });
   log((await prisma.question.count({ where: { examId: W.exam.id, bankStatus: 'VALIDATED_PASS', bankPool: 'PRACTICE' } })) === 0, 'Approve all that passed approves them');
