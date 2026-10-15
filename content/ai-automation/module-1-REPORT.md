@@ -36,6 +36,6 @@ above the platform minimum of 10 per format.
 
 - Reviewed by AI only; a human should skim the items before they go live (the studio approval step is built for this).
 - A few correct options may still be somewhat longer than the distractors.
-- The source says "an hour of preparation" nowhere and gives no ordering for several lists, so items about those were avoided.
+- The source gives several lists (for example the manual tasks in the registration example) without any order, so ordering items about those were avoided.
 - Source wording differences noted by writers: the PDF slide lists six beginner mistakes while the lesson summary names five;
   "task" (a Zapier term) is not in the Module 1 PDF and is treated as Module 2 content.
