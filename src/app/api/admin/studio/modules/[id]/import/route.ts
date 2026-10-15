@@ -6,7 +6,7 @@ import { ImportError, applyImport, previewImport } from "@/lib/quest/contentImpo
 
 export const maxDuration = 60;
 
-const Body = z.object({ file: z.unknown(), apply: z.boolean().optional(), createGames: z.boolean().optional(), only: z.array(z.number().int().min(0).max(30)).max(30).optional() });
+const Body = z.object({ file: z.unknown(), apply: z.boolean().optional(), createGames: z.boolean().optional(), only: z.array(z.number().int().min(0).max(30)).max(30).optional(), choices: z.record(z.string().max(60)).optional(), reserve: z.number().int().min(0).max(10).optional() });
 
 /**
  * POST: a reviewed content file for this module. Without `apply` it only says what would be saved (nothing is written). With `apply` it
@@ -22,9 +22,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const parsed = Body.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Choose a content file." }, { status: 400 });
     try {
-      if (!parsed.data.apply) return NextResponse.json(await previewImport(params.id, parsed.data.file));
+      if (!parsed.data.apply) return NextResponse.json(await previewImport(params.id, parsed.data.file, { choices: parsed.data.choices, reserve: parsed.data.reserve }));
       if (parsed.data.createGames) requireStudioPermission(session, "GAMES");
-      return NextResponse.json(await applyImport(params.id, session.userId, parsed.data.file, { createGames: !!parsed.data.createGames, only: parsed.data.only }));
+      return NextResponse.json(await applyImport(params.id, session.userId, parsed.data.file, { createGames: !!parsed.data.createGames, only: parsed.data.only, choices: parsed.data.choices, reserve: parsed.data.reserve }));
     } catch (e) {
       if (e instanceof ImportError) return NextResponse.json({ error: e.message }, { status: e.status });
       throw e;
