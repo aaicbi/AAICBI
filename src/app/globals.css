@@ -655,6 +655,28 @@ img.rounded-full:not(.no-ring) {
   0% { opacity: 1; transform: translate3d(0, 0, 0) rotate(0deg); }
   100% { opacity: 0; transform: translate3d(var(--dx), var(--dy), 0) rotate(var(--rot)); }
 }
+@keyframes gx-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes gx-sheet {
+  0% { opacity: 0; transform: translateY(40px) scale(0.98); }
+  70% { opacity: 1; transform: translateY(-4px) scale(1); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes gx-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes gx-pulse {
+  0% { box-shadow: 0 0 0 0 rgb(1 107 97 / 0.45); }
+  70% { box-shadow: 0 0 0 14px rgb(1 107 97 / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(1 107 97 / 0); }
+}
+.gx-fade { animation: gx-fade 0.2s ease-out both; }
+.gx-sheet { animation: gx-sheet 0.45s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+.gx-bounce { animation: gx-bounce 1.1s ease-in-out infinite; }
+.gx-pulse { animation: gx-pulse 1.6s ease-out infinite; }
 .gx-rise { animation: gx-rise 0.28s ease-out both; }
 .gx-stagger { animation: gx-rise 0.3s ease-out both; animation-delay: calc(var(--i, 0) * 45ms); }
 .gx-pop { animation: gx-pop 0.35s ease-out; }

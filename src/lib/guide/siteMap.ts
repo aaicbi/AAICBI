@@ -183,6 +183,7 @@ export const DYNAMIC: DynamicPage[] = [
   { route: "/courses/[id]", what: "A program's page with its outline, requirements and enrol button.", from: "/courses", how: "Open a program from the list." },
   { route: "/organizations/[slug]", what: "An organization's public page: courses, events, videos.", from: "/organizations", how: "Open an organization from the list." },
   { route: "/jobs/[id]", what: "One job with its description and apply button.", from: "/jobs", how: "Open a job from the list." },
+  { route: "/play/[id]", what: "A ten-question game round from a course, opened from the feed. Signing in is needed; when it goes badly Loop invites you to register for the course.", from: "/", how: "Tap a game under Try a game on the feed." },
   { route: "/learn/[id]", what: "One education video.", from: "/learn", how: "Open a video from the list." },
   { route: "/showcase/[id]", what: "One showcase project.", from: "/showcase", how: "Open a project from the showcase." },
   { route: "/certificate/[code]", what: "The result of verifying one certificate.", from: "/certificate", how: "Enter the certificate code." },
