@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 /**
  * The installed app's identity. One start address (/app) for every kind
- * of account: it sends the person to their own home, so a trainee, an
- * employer and an organization each open straight into their own area.
+ * of account: it opens the feed, and each person reaches their own
+ * dashboard from the feed's Dashboard button.
  * Colors match the brand: the teal of the logo, and the dark theme's
  * background (dark is the platform default) behind the splash screen.
  */
