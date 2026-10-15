@@ -42,11 +42,15 @@ export default function ImportPanel({ moduleId, moduleTitle, canUse, canMakeGame
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<Result | null>(null);
   const [createGames, setCreateGames] = useState(true);
+  const [progress, setProgress] = useState<string | null>(null);
 
   async function post(body: Record<string, unknown>) {
     const res = await fetch(`/api/admin/studio/modules/${moduleId}/import`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(String(json.error ?? "The import didn't work."));
+    const json = await res.json().catch(() => null);
+    if (!res.ok) {
+      if (json?.error) throw new Error(String(json.error));
+      throw new Error(`The server stopped before it finished (it answered ${res.status}). Nothing is lost: choose the file and click Import again and it carries on where it stopped.`);
+    }
     return json;
   }
 
@@ -70,17 +74,37 @@ export default function ImportPanel({ moduleId, moduleTitle, canUse, canMakeGame
   }
 
   async function run() {
+    if (!preview) return;
     setBusy(true);
     setError(null);
+    const total: Result = { objectivesCreated: 0, objectivesMatched: 0, questions: 0, items: { MATCHING: 0, ORDERING: 0, SCENARIO: 0 }, gamesCreated: [], skippedDuplicates: 0, skippedInvalid: 0 };
     try {
-      const r = (await post({ file, apply: true, createGames: createGames && canMakeGames })) as Result;
-      setDone(r);
+      // One objective at a time: a whole module in one request could outlast the server's time limit.
+      const todo = preview.plan.objectives.map((o, i) => ({ o, i })).filter(({ o }) => Object.values(o.counts).some((c) => c.create > 0));
+      for (const [n, { i }] of todo.entries()) {
+        setProgress(`Importing objective ${n + 1} of ${todo.length}…`);
+        const r = (await post({ file, apply: true, only: [i] })) as Result;
+        total.objectivesCreated += r.objectivesCreated;
+        total.objectivesMatched += r.objectivesMatched;
+        total.questions += r.questions;
+        total.items.MATCHING += r.items.MATCHING;
+        total.items.ORDERING += r.items.ORDERING;
+        total.items.SCENARIO += r.items.SCENARIO;
+        total.skippedDuplicates = r.skippedDuplicates;
+      }
+      if (createGames && canMakeGames) {
+        setProgress("Setting up the games…");
+        const r = (await post({ file, apply: true, only: [], createGames: true })) as Result;
+        total.gamesCreated = r.gamesCreated;
+      }
+      setDone(total);
       setPreview(null);
       showToast("Imported. Now approve what you want to go live.", "success");
       onChanged();
     } catch (e) {
       setError(e instanceof Error ? e.message : "The import didn't work.");
     } finally {
+      setProgress(null);
       setBusy(false);
     }
   }
@@ -103,6 +127,11 @@ export default function ImportPanel({ moduleId, moduleTitle, canUse, canMakeGame
           </Button>
           {name && <span className="text-xs text-gray-600">{name}</span>}
         </div>
+      )}
+      {progress && (
+        <p role="status" aria-live="polite" className="mt-2 text-xs font-medium text-brand-tealDeep" data-testid="import-progress">
+          {progress}
+        </p>
       )}
       {error && (
         <p role="alert" className="mt-2 rounded-xl bg-brand-roseLight px-3 py-2 text-xs text-brand-rose" data-testid="import-error">

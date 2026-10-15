@@ -84,6 +84,19 @@ const FILE = '/home/user/AAICBI/content/ai-automation/module-1.json';
     log(r.status === 200 && r.json.approved > 0, `the studio approves the ${f.toLowerCase()} drafts`);
   }
 
+  // ---- one objective at a time (how the panel sends large files), and speed
+  const mod3 = await prisma.module.create({ data: { courseId: course.id, title: 'Import check module three', order: 2 } });
+  const url3 = `/api/admin/studio/modules/${mod3.id}/import`;
+  let t0 = Date.now();
+  r = await api(sa, 'POST', url3, { file, apply: true, only: [2] });
+  const q3 = await prisma.question.count({ where: { exam: { moduleId: mod3.id } } });
+  const o3 = await prisma.moduleLearningObjective.count({ where: { moduleId: mod3.id } });
+  log(r.status === 200 && o3 === 1 && q3 === 20 && r.json.questions === 20, 'importing just one objective saves only that objective and its 20 questions');
+  for (let i = 0; i < 8; i++) if (i !== 2) await api(sa, 'POST', url3, { file, apply: true, only: [i] });
+  r = await api(sa, 'POST', url3, { file, apply: true, only: [], createGames: true });
+  log((await prisma.question.count({ where: { exam: { moduleId: mod3.id } } })) === 160 && (await prisma.gameItem.count({ where: { moduleId: mod3.id } })) === 438 && (await prisma.moduleLearningObjective.count({ where: { moduleId: mod3.id } })) === 8 && r.json.gamesCreated.length === 4, 'eight objective-by-objective imports plus the games step give the same result as one import');
+  log(Date.now() - t0 < 20000, 'a whole module imports in a few seconds (' + (Date.now() - t0) + ' ms)');
+
   // ---- the panel
   const br = await launch();
   const ctx = await signedIn(br, device('Desktop Chrome', { viewport: { width: 1480, height: 900 } }), '/api/auth/login', 'super@dev.test');

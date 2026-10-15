@@ -58,14 +58,17 @@ export interface ImportResult {
 }
 
 /** Saves the file's content into the module. Quiz questions and game items wait for approval; games are attached but off. */
-export async function applyImport(moduleId: string, userId: string, raw: unknown, opts: { createGames: boolean }): Promise<ImportResult> {
+export async function applyImport(moduleId: string, userId: string, raw: unknown, opts: { createGames: boolean; only?: number[] }): Promise<ImportResult> {
   const parsed = parseContentFile(raw);
   if (!parsed.ok) throw new ImportError(parsed.error);
   const { mod, objectives, exam: foundExam, known } = await loadModule(moduleId, parsed.file);
+  // The whole file is planned (so objectives line up the same way every time); `only` limits which objectives are saved in this call,
+  // letting a large file be imported one objective at a time inside the server's time limit.
   const plan = planImport(parsed.file, objectives, known);
+  const chosen = (i: number) => !opts.only || opts.only.includes(i);
   const result: ImportResult = {
     objectivesCreated: 0,
-    objectivesMatched: plan.objectives.filter((o) => o.match.existing).length,
+    objectivesMatched: plan.objectives.filter((o, i) => chosen(i) && o.match.existing).length,
     questions: 0,
     items: { MATCHING: 0, ORDERING: 0, SCENARIO: 0 },
     gamesCreated: [],
@@ -76,13 +79,16 @@ export async function applyImport(moduleId: string, userId: string, raw: unknown
   // Objectives in the file the module doesn't have yet are added, confirmed by the person importing.
   let nextOrder = objectives.reduce((m, o) => Math.max(m, o.order), -1) + 1;
   const objectiveIds: string[] = [];
-  for (const o of plan.objectives) {
+  for (const [i, o] of plan.objectives.entries()) {
+    if (!chosen(i)) {
+      objectiveIds.push("");
+      continue;
+    }
     if (o.match.existing) {
       objectiveIds.push(o.match.existing.id);
       continue;
     }
-    const wants = o.quiz.length + o.items.length > 0;
-    if (!wants) {
+    if (o.quiz.length + o.items.length === 0) {
       objectiveIds.push("");
       continue;
     }
@@ -91,7 +97,7 @@ export async function applyImport(moduleId: string, userId: string, raw: unknown
     objectiveIds.push(made.id);
   }
 
-  const totalQuestions = plan.objectives.reduce((n, o) => n + o.quiz.length, 0);
+  const totalQuestions = plan.objectives.reduce((n, o, i) => n + (chosen(i) ? o.quiz.length : 0), 0);
   let exam = foundExam;
   if (!exam && totalQuestions > 0) {
     try {
@@ -102,26 +108,27 @@ export async function applyImport(moduleId: string, userId: string, raw: unknown
     }
   }
 
+  // A handful of bulk inserts per objective (not one query per row), so a whole module fits comfortably in one request.
   for (const [idx, o] of plan.objectives.entries()) {
     const objectiveId = objectiveIds[idx];
     if (!objectiveId) continue;
-    for (const q of o.quiz) {
-      const created = await prisma.question.create({
-        data: {
+    if (o.quiz.length > 0) {
+      const made = await prisma.question.createManyAndReturn({
+        data: o.quiz.map((q) => ({
           examId: exam!.id,
           text: q.question,
           explanation: q.explanation,
           needsReview: true,
           reviewReason: "Imported after being written and reviewed outside the platform. Waiting for your approval.",
-          bankStatus: "VALIDATED_PASS",
+          bankStatus: "VALIDATED_PASS" as const,
           bankObjectiveId: objectiveId,
-          bankPool: "PRACTICE",
-          options: { create: q.options.map((x, i) => ({ text: x.text, isCorrect: x.isCorrect, key: String.fromCharCode(65 + i), order: i })) },
-        },
+          bankPool: "PRACTICE" as const,
+        })),
         select: { id: true },
       });
-      await prisma.questionBankEvent.create({ data: { questionId: created.id, fromStatus: null, toStatus: "VALIDATED_PASS", kind: "IMPORTED_REVIEWED", note: "Imported from a reviewed content file", actedById: userId } });
-      result.questions++;
+      await prisma.option.createMany({ data: made.flatMap((m, qi) => o.quiz[qi].options.map((x, i) => ({ questionId: m.id, text: x.text, isCorrect: x.isCorrect, key: String.fromCharCode(65 + i), order: i }))) });
+      await prisma.questionBankEvent.createMany({ data: made.map((m) => ({ questionId: m.id, fromStatus: null, toStatus: "VALIDATED_PASS" as const, kind: "IMPORTED_REVIEWED", note: "Imported from a reviewed content file", actedById: userId })) });
+      result.questions += made.length;
     }
     if (o.items.length > 0) {
       await prisma.gameItem.createMany({ data: o.items.map((i) => ({ moduleId, objectiveId, format: i.format, content: i.content as object, status: "DRAFT" as const, source: "IMPORT" })) });
@@ -130,9 +137,12 @@ export async function applyImport(moduleId: string, userId: string, raw: unknown
   }
 
   if (opts.createGames) {
+    // Decided from what the module holds now, so it works when the file is imported one objective at a time.
+    const hasQuestions = (await prisma.question.count({ where: { exam: { moduleId }, bankStatus: { not: null } } })) > 0;
+    const itemFormats = new Set((await prisma.gameItem.findMany({ where: { moduleId }, select: { format: true }, distinct: ["format"] })).map((i) => i.format as string));
     const wanted: GameFormat[] = [];
-    if (result.questions > 0) wanted.push("QUIZ");
-    for (const f of ["MATCHING", "ORDERING", "SCENARIO"] as const) if (result.items[f] > 0) wanted.push(f);
+    if (hasQuestions) wanted.push("QUIZ");
+    for (const f of ["MATCHING", "ORDERING", "SCENARIO"] as const) if (itemFormats.has(f)) wanted.push(f);
     for (const format of wanted) {
       const already = await prisma.gameAssignment.findFirst({ where: { moduleId, game: { format } }, select: { id: true } });
       if (already) continue;
