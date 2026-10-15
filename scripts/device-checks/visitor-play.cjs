@@ -1,6 +1,6 @@
 // Games on the feed: a game staff switch "Show on the feed" appears under "Try a game" for everyone, but playing needs a signed-in account.
-// The answer key never reaches the browser, nothing is recorded, assessment questions are never served, two misses make Loop pop up
-// with the course and a Register now button, and switching the game off closes it at once. Phone first.
+// The answer key never reaches the browser, nothing is recorded, assessment questions are never served, a failed round makes Loop pop up for someone not registered
+// (never mid-game, never for someone enrolled), and switching the game off closes it at once. Phone first.
 const { B, log, launch, device, signedIn, results, clearThrottle } = require('./lib.cjs');
 const { PrismaClient } = require('/home/user/AAICBI/node_modules/@prisma/client');
 const fs = require('fs');
@@ -69,6 +69,10 @@ const scenario = (i) => ({ situation: `Situation number ${i}: what do you do?`, 
   r = await put({ live: true, openToVisitors: true });
   log(r.status === 200 && (await prisma.gameAssignment.findUnique({ where: { id: asg.id } })).openToVisitors === true, 'staff can show a live game on the feed');
 
+  await prisma.course.update({ where: { id: course.id }, data: { status: 'DRAFT' } });
+  r = await fetch(`${B}/api/admin/studio/modules/${mod.id}`, { headers: { Cookie: sa } }).then(async (x) => ({ status: x.status, json: await x.json().catch(() => ({})) }));
+  log((r.json?.assignments ?? []).some((a) => /course is not published/.test(a.feedBlocker ?? '')), 'the studio says why a game is not on the feed (the course is not published)');
+  await prisma.course.update({ where: { id: course.id }, data: { status: 'PUBLISHED' } });
   // ---- anyone sees it on the feed; the play page asks them to sign in
   await ap.goto(B + '/', { waitUntil: 'load' });
   await ap.getByTestId('try-games').waitFor();
@@ -105,29 +109,38 @@ const scenario = (i) => ({ situation: `Situation number ${i}: what do you do?`, 
     log(served === 10 && formalSeen === 0, 'a quiz game serves ten practice questions and never an assessment one');
   } else log(true, 'quiz check skipped (exam model needs more fields)');
 
-  // ---- on a phone: two misses bring Loop and the course
+  // ---- on a phone: no pop-up during play; after a failed round, Loop invites someone not registered to register
   const tctx = await signedIn(br, device('iPhone 13'), '/api/auth/trainee-login', 't0@dev.test');
-  const p = await tctx.newPage(); p.setDefaultTimeout(20000);
-  p.on('pageerror', (e) => errors.push(String(e)));
-  await p.goto(`${B}/play/${asg.id}`, { waitUntil: 'load' });
-  await p.getByTestId('round-start').click();
-  await p.getByRole('button', { name: 'Skip' }).click();
-  log((await p.evaluate(() => window.localStorage.getItem('aaicbi.game.sound'))) === 'on', 'sounds start switched on for this game (the speaker button turns them off)');
-  const pick = async (wrong) => {
+  const traineeUser = await prisma.trainee.findUnique({ where: { email: 't0@dev.test' } });
+  await prisma.courseEnrollment.deleteMany({ where: { courseId: course.id, traineeId: traineeUser.id } });
+  const pick = async (p, wrong) => {
     const gp = p.getByTestId('game-player'); await gp.waitFor();
     await gp.locator('fieldset button', { hasText: wrong ? /Wrong choice A/ : /Right choice/ }).first().click();
     await p.getByRole('button', { name: 'Check answer' }).click();
     await p.getByRole('button', { name: /Next question|See my results/ }).waitFor();
   };
-  await pick(true);
-  log((await p.getByTestId('course-nudge').count()) === 0, 'one miss does not interrupt');
-  await p.getByRole('button', { name: /Next question/ }).click();
-  await pick(true);
+  const playRound = async (p, wrongCount, checkMidGame) => {
+    for (let q = 1; q <= 10; q++) {
+      await pick(p, q <= wrongCount);
+      if (checkMidGame && q <= wrongCount) { await sleep(150); if ((await p.getByTestId('course-nudge').count()) !== 0) return false; }
+      await p.getByRole('button', { name: /Next question|See my results/ }).click();
+    }
+    await p.getByTestId('round-summary').waitFor();
+    return true;
+  };
+  const start = async (p) => { await p.goto(`${B}/play/${asg.id}`, { waitUntil: 'load' }); await p.getByTestId('round-start').click(); const skip = p.getByRole('button', { name: 'Skip' }); if (await skip.waitFor({ timeout: 2500 }).then(() => true, () => false)) await skip.click(); };
+
+  const p = await tctx.newPage(); p.setDefaultTimeout(20000);
+  p.on('pageerror', (e) => errors.push(String(e)));
+  await start(p);
+  log((await p.evaluate(() => window.localStorage.getItem('aaicbi.game.sound'))) === 'on', 'sounds start switched on for this game (the speaker button turns them off)');
+  log(await playRound(p, 4, true), 'four misses in a row never interrupt the game with a pop-up');
+  await sleep(700);
+  log((await p.getByTestId('course-nudge').count()) === 0, 'the results show first, without a pop-up in the way');
   await p.getByTestId('course-nudge').waitFor();
   const nudgeText = await p.getByTestId('course-nudge').innerText();
-  log(/Feed game course/.test(nudgeText) && /Register now/.test(nudgeText), 'after two misses Loop pops up naming the course with a Register now button');
-  const href = await p.getByTestId('nudge-register').getAttribute('href');
-  log(href === `/courses/${course.id}`, 'Register now leads to the course page');
+  log(/Feed game course/.test(nudgeText) && /Register now/.test(nudgeText), 'after a failed round Loop pops up naming the course with a Register now button');
+  log((await p.getByTestId('nudge-register').getAttribute('href')) === `/courses/${course.id}`, 'Register now leads to the course page');
   await sleep(800);
   const box = await p.getByTestId('course-nudge').locator('[role=dialog]').boundingBox();
   const vp = p.viewportSize();
@@ -136,19 +149,26 @@ const scenario = (i) => ({ situation: `Situation number ${i}: what do you do?`, 
   await p.screenshot({ path: '/tmp/dev/nudge-phone.png' });
   await p.keyboard.press('Escape');
   await p.getByTestId('course-nudge').waitFor({ state: 'detached' });
-  log(true, 'Escape closes it and the game carries on');
-  await p.getByRole('button', { name: /Next question/ }).click();
-  await pick(true);
-  await sleep(500);
-  log((await p.getByTestId('course-nudge').count()) === 0, 'it shows once per round, not on every miss');
-  for (let q = 4; q <= 10; q++) { await p.getByRole('button', { name: /Next question/ }).click(); await pick(false); }
-  await p.getByRole('button', { name: /See my results/ }).click();
-  await p.getByTestId('round-summary').waitFor();
-  log((await p.getByTestId('play-cta').count()) === 1 && /Register now/.test(await p.getByTestId('play-cta').innerText()), 'the results screen also invites them to register');
+  log((await p.getByTestId('play-cta').count()) === 1 && /Register now/.test(await p.getByTestId('play-cta').innerText()), 'closing it leaves the invitation on the results screen');
   const over = await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   log(over <= 1, 'no sideways scrolling on a phone');
   log((await prisma.gamePlay.count()) === before[0], 'a whole round later, still nothing is recorded');
   await p.screenshot({ path: '/tmp/dev/play-summary-phone.png' });
+
+  // a round that goes well gets no pop-up
+  await start(p);
+  await playRound(p, 1, false);
+  await sleep(2400);
+  log((await p.getByTestId('course-nudge').count()) === 0, 'a round that went well gets no pop-up');
+
+  // someone already registered for the course never gets it, even after a failed round
+  await prisma.courseEnrollment.create({ data: { courseId: course.id, traineeId: traineeUser.id, source: 'FREE' } });
+  await start(p);
+  await playRound(p, 10, false);
+  await sleep(2400);
+  log((await p.getByTestId('course-nudge').count()) === 0, 'someone already registered for the course gets no pop-up, even after a failed round');
+  log(/Open the course/.test(await p.getByTestId('play-cta').innerText()), 'they are offered the course itself instead');
+  await prisma.courseEnrollment.deleteMany({ where: { courseId: course.id, traineeId: traineeUser.id } });
 
   // ---- switching it off closes it
   r = await put({ live: true, openToVisitors: false });

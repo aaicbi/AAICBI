@@ -12,6 +12,7 @@
  *  - XP goes through the same ledger and rules as practice mode.
  */
 import { prisma } from "@/lib/prisma";
+import { feedBlocker } from "@/lib/quest/visitorPlay";
 import {
   ALL_REWARDS,
   QUEST_DEFAULTS,
@@ -227,7 +228,7 @@ export async function moduleWorkspace(moduleId: string) {
       title: isItemFormat(i.format) ? itemTitle(i.format, i.content as unknown as ItemContent) : "",
       content: i.content,
     })),
-    assignments: assignments.map((a) => ({ id: a.id, gameId: a.gameId, live: a.live, openToVisitors: a.openToVisitors, title: a.game.title, format: a.game.format })),
+    assignments: await Promise.all(assignments.map(async (a) => ({ id: a.id, gameId: a.gameId, live: a.live, openToVisitors: a.openToVisitors, feedBlocker: await feedBlocker({ moduleId, live: a.live, openToVisitors: a.openToVisitors, game: a.game }), title: a.game.title, format: a.game.format }))),
   };
 }
 

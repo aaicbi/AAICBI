@@ -32,7 +32,7 @@ async function openAssignment(id: string) {
   return a;
 }
 
-async function available(a: { moduleId: string; game: { format: string } }): Promise<number> {
+export async function available(a: { moduleId: string; game: { format: string } }): Promise<number> {
   if (a.game.format === "QUIZ") return prisma.question.count({ where: practiceWhere(a.moduleId) });
   return prisma.gameItem.count({ where: { moduleId: a.moduleId, format: a.game.format as ItemFormat, status: "APPROVED" } });
 }
@@ -118,4 +118,15 @@ export async function visitorAnswer(assignmentId: string, itemId: string, respon
   const graded = gradeItem(format, item.content as unknown as ItemContent, response);
   if (!graded) throw new VisitorPlayError("Finish your answer first.", 400);
   return graded;
+}
+
+/** Why an assignment is (not) on the feed, in plain words, for the studio. Null when nothing is in the way. */
+export async function feedBlocker(a: { moduleId: string; live: boolean; openToVisitors: boolean; game: { format: string } }): Promise<string | null> {
+  if (!a.openToVisitors) return null;
+  if (!a.live) return "Not shown: the game is not live.";
+  const mod = await prisma.module.findUnique({ where: { id: a.moduleId }, select: { course: { select: { status: true } } } });
+  if (mod?.course.status !== "PUBLISHED") return "Not shown yet: the course is not published (it is " + (mod?.course.status ?? "missing").toLowerCase() + ").";
+  const n = await available(a);
+  if (n < VISITOR_MIN_ITEMS) return `Not shown yet: it needs at least ${VISITOR_MIN_ITEMS} approved ${a.game.format === "QUIZ" ? "practice questions" : "items"} and has ${n}.`;
+  return null;
 }
