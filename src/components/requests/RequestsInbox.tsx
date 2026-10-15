@@ -107,7 +107,7 @@ export default function RequestsInbox() {
 
       {isSuper && (
         <Card className="flex flex-wrap items-center gap-2" data-testid="brief-card">
-          <p className="min-w-0 flex-1 text-sm text-gray-700">
+          <p className="min-w-0 flex-1 basis-48 text-sm text-gray-700">
             <span className="font-semibold text-brand-ink">{approvedCount} approved</span> and waiting for Claude Code.
           </p>
           <Button size="sm" variant="secondary" onClick={() => void copyBrief()} disabled={approvedCount === 0} data-testid="copy-brief">
@@ -125,7 +125,7 @@ export default function RequestsInbox() {
         {(requests ?? []).map((r) => (
           <Card key={r.id} data-testid="request-card">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="min-w-0 flex-1 text-sm font-semibold text-brand-ink">{r.title}</h2>
+              <h2 className="min-w-0 flex-1 basis-48 text-sm font-semibold text-brand-ink">{r.title}</h2>
               <Badge variant={VARIANT[r.status]}>{STATUS_LABEL[r.status]}</Badge>
             </div>
             <p className="mt-1 text-xs text-gray-500">
