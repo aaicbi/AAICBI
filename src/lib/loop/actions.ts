@@ -432,6 +432,9 @@ const logChangeRequest: ActionDef = {
     return { input: { ...cleaned.value }, summary: `Save a change request: “${cleaned.value.title}” (it will wait for your approval on the Change requests page).`, risk: "low" };
   },
   async execute(input, ctx) {
+    // Belt and braces: the tool is only offered to Super Admins, and it only runs for one.
+    const who = await prisma.user.findUnique({ where: { id: ctx.userId }, select: { role: true } });
+    if (who?.role !== "SUPER_ADMIN") throw new ActionInputError("Only a Super Admin can save change requests.");
     try {
       const created = await createRequest(ctx.userId, input);
       return { requestId: created.id, status: "PROPOSED", note: "Saved as waiting for approval. The admin approves it on the Change requests page." };

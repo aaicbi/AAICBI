@@ -80,18 +80,22 @@ const lastRequest = () => fs.readFileSync('/tmp/fakeclaude-stream.log', 'utf8').
   r = await setPerms(['LOOP', 'GAMES', 'ITEMS', 'ASSIGN', 'QUESTIONS']);
 
   // ---------- change requests ----------
-  r = await api(staff, 'POST', '/api/admin/requests', { title: 'x', details: 'short' });
+  r = await api(sa, 'POST', '/api/admin/requests', { title: 'x', details: 'short' });
   log(r.status === 400, 'a request needs a real title and details');
   r = await api(staff, 'POST', '/api/admin/requests', { title: 'Show module numbers', details: 'Show the module number next to each module in the studio list.', page: '/admin/studio' });
-  const rid = r.json.id; log(r.status === 201 && r.json.status === 'PROPOSED', 'staff can propose a change');
+  log([401, 403].includes(r.status), 'staff cannot write a change request');
+  r = await api(sa, 'POST', '/api/admin/requests', { title: 'Show module numbers', details: 'Show the module number next to each module in the studio list.', page: '/admin/studio' });
+  const rid = r.json.id; log(r.status === 201 && r.json.status === 'PROPOSED', 'a Super Admin can propose a change');
   r = await api(staff, 'PATCH', `/api/admin/requests/${rid}`, { status: 'APPROVED' });
-  log([401, 403].includes(r.status), 'staff cannot approve, not even their own');
+  log([401, 403].includes(r.status), 'staff cannot approve');
   r = await api(sa, 'GET', '/api/admin/requests/brief');
   log(r.json.count === 0 && /no approved requests/.test(r.json.markdown), 'nothing is handed to Claude Code before approval');
   r = await api(staff, 'GET', '/api/admin/requests/brief');
   log([401, 403].includes(r.status), 'staff cannot read the hand-off');
   r = await api(staff, 'GET', '/api/admin/requests');
-  log(r.json.requests.length === 1 && r.json.isSuper === false, 'staff see their own requests');
+  log([401, 403].includes(r.status), 'staff cannot read the requests');
+  r = await api(sa, 'GET', '/api/admin/requests');
+  log(r.json.requests.length === 1 && r.json.isSuper === true, 'the Super Admin sees the request');
   r = await api(sa, 'PATCH', `/api/admin/requests/${rid}`, { status: 'DONE' });
   log(r.status === 409, 'a request cannot skip approval');
   r = await api(sa, 'PATCH', `/api/admin/requests/${rid}`, { status: 'APPROVED', note: 'Desktop list only' });
@@ -128,8 +132,9 @@ const lastRequest = () => fs.readFileSync('/tmp/fakeclaude-stream.log', 'utf8').
   await pg.screenshot({ path: '/tmp/dev/permissions-panel.png' });
   const sctx = await browser.newContext(dv.context); await sctx.addCookies(await cookiesFor('/api/auth/login', 'staff@dev.test'));
   const sp = await sctx.newPage(); sp.on('pageerror', (e) => errors.push(e.message));
-  await sp.goto(B + '/admin/requests'); await sp.waitForSelector('[data-testid="requests-inbox"]');
-  log((await sp.locator('[data-testid="approve-request"]').count()) === 0 && (await sp.locator('[data-testid="brief-card"]').count()) === 0, 'staff see no approve buttons and no hand-off card');
+  await sp.goto(B + '/admin/requests', { waitUntil: 'load' });
+  await sp.waitForURL((u) => !/\/admin\/requests/.test(u.pathname), { timeout: 8000 }).catch(() => {});
+  log(!/\/admin\/requests/.test(sp.url()) && (await sp.locator('[data-testid="requests-inbox"]').count()) === 0, 'staff who open the page are sent back to their dashboard (' + sp.url() + ')');
   log((await sp.locator('nav a[href="/admin/requests"], aside a[href="/admin/requests"]').count()) === 0, 'Change requests is not in the sidebar for staff');
   log(errors.length === 0, 'no page errors');
   await browser.close();
