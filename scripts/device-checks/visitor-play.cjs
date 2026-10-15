@@ -75,13 +75,33 @@ const scenario = (i) => ({ situation: `Situation number ${i}: what do you do?`, 
   await prisma.course.update({ where: { id: course.id }, data: { status: 'PUBLISHED' } });
   // ---- anyone sees it on the feed; the play page asks them to sign in
   await ap.goto(B + '/', { waitUntil: 'load' });
-  await ap.getByTestId('try-games').waitFor();
-  log((await ap.locator(`[data-testid=try-game-link][href="/play/${asg.id}"]`).count()) === 1, 'the game is listed under Try a game on the feed');
+  await ap.locator('[data-testid=try-games]:visible').waitFor();
+  log((await ap.locator(`[data-testid=try-game-link][href="/play/${asg.id}"]:visible`).count()) === 1, 'the game is advertised on the feed');
   await ap.screenshot({ path: '/tmp/dev/try-games-phone.png' });
-  await ap.locator(`[data-testid=try-game-link][href="/play/${asg.id}"]`).click();
+  log((await ap.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 1, 'no sideways scrolling on the feed on a phone');
+  await ap.locator(`[data-testid=try-game-link][href="/play/${asg.id}"]:visible`).click();
   await ap.getByTestId('play-gate').waitFor();
   log((await ap.getByTestId('play-gate-login').getAttribute('href')).includes('next=%2Fplay%2F'), 'someone not signed in is asked to sign in and brought back to the game');
   log((await ap.getByTestId('play-gate-join').count()) === 1 && (await ap.getByTestId('game-player').count()) === 0, 'and can create a free account; no questions are shown');
+
+  // ---- on a desktop: the advert is on the left and the ecosystem card on the right, both pinned while the feed scrolls
+  const dctx = await br.newContext({ ...device('Desktop Chrome', { viewport: { width: 1366, height: 900 } }), serviceWorkers: 'block' });
+  await dctx.addCookies([{ name: 'aaicbi_cookie_consent', value: 'declined', url: B }]);
+  const dp = await dctx.newPage(); dp.setDefaultTimeout(20000);
+  await dp.goto(B + '/', { waitUntil: 'load' });
+  const ad = dp.locator('[data-testid=try-games]:visible'); const eco = dp.locator('[data-testid=feed-ecosystem]:visible');
+  await ad.waitFor(); await eco.waitFor();
+  const a0 = await ad.boundingBox(); const e0 = await eco.boundingBox();
+  log(a0.x < 400 && e0.x > 900, 'on a desktop the game advert is on the left and the ecosystem card on the right');
+  await dp.mouse.wheel(0, 700); await sleep(500);
+  const a1 = await ad.boundingBox(); const e1 = await eco.boundingBox();
+  log(Math.abs(a1.y - a0.y) < 140 && a1.y > 0 && Math.abs(e1.y - e0.y) < 140 && e1.y > 0, 'both stay pinned in view while the feed scrolls');
+  log(a1.y + a1.height <= 900 && e1.y + e1.height <= 900, 'and both fit the screen, so nothing needs scrolling inside them');
+  const ecoFirst = await dp.locator('[data-testid=feed-ecosystem-detail]:visible').innerText();
+  await sleep(4200);
+  log((await dp.locator('[data-testid=feed-ecosystem-detail]:visible').innerText()) !== ecoFirst, 'the ecosystem card tours its parts by itself');
+  await dp.screenshot({ path: '/tmp/dev/feed-desktop.png' });
+  await dctx.close();
 
   // ---- signed in: the API never sends the key and records nothing
   const trainee = (await require('./lib.cjs').cookiesFor('/api/auth/trainee-login', 't0@dev.test')).map((x) => `${x.name}=${x.value}`).join('; ');
