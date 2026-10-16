@@ -9,7 +9,7 @@ import { parseYouTubeUrl } from "@/lib/ecosystem/youtube";
 import { ensureProfile } from "@/lib/profiles/profiles";
 import { recipientOf } from "@/lib/profiles/handleChanges";
 import { cardsFor, type ProfileCard } from "@/lib/profiles/card";
-import { loadProfileView } from "@/lib/profiles/view";
+import { visibleProfileIds } from "@/lib/profiles/view";
 import { can } from "@/lib/startups/startupCore";
 import { canDecide, canEscalate, canReturn, checkReason, orgMayBlock, appealEffect, type AppealAction } from "@/lib/review/reviewCore";
 import { traineeOrganizations } from "@/lib/ecosystem/orgScope";
@@ -302,9 +302,8 @@ export async function toViews(posts: Array<Post & { media: Array<{ url: string; 
   const profileIds = [...new Set(posts.flatMap((p) => [p.authorProfileId, p.actingAsProfileId]).filter((x): x is string => !!x))];
   const profiles = await prisma.profile.findMany({ where: { id: { in: profileIds } } });
   const cards = await cardsFor(profiles);
-  const linkable = new Map<string, boolean>();
-  for (const p of profiles) linkable.set(p.id, !!(await loadProfileView(p, viewer)));
-  const withLink = (id: string): (ProfileCard & { linkable: boolean }) => ({ ...cards.get(id)!, linkable: linkable.get(id) ?? false });
+  const visible = await visibleProfileIds(profiles, viewer);
+  const withLink = (id: string): (ProfileCard & { linkable: boolean }) => ({ ...cards.get(id)!, linkable: visible.has(id) });
   return posts.map((p) => ({
     id: p.id, type: p.type, title: p.title, body: p.body, tags: p.tags, youtubeId: p.youtubeId, youtubeUrl: p.youtubeUrl,
     images: [...p.media].sort((a, b) => a.order - b.order).map((m) => ({ url: m.url, alt: m.alt })),

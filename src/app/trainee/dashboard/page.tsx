@@ -78,7 +78,8 @@ export default async function TraineeDashboardPage() {
   // run whenever a trainee actually comes back — best-effort, not a
   // guarantee (a trainee who never revisits the dashboard again still
   // won't get swept).
-  await expireStaleAttemptsForTrainee(session.userId);
+  // The two sweeps do not depend on each other, so they run together (the reads below must still wait for both).
+  const sweeps = Promise.all([expireStaleAttemptsForTrainee(session.userId), expireLapsedEnrollmentsForTrainee(session.userId)]);
 
   // Course enrollment/subscription system — same "runs whenever a
   // trainee actually comes back" best-effort discipline as the exam
@@ -86,9 +87,9 @@ export default async function TraineeDashboardPage() {
   // own comment for why this alone isn't a complete solution (the
   // Vercel Cron sweep is the real safety net for someone who never
   // revisits).
-  await expireLapsedEnrollmentsForTrainee(session.userId);
+  await sweeps;
 
-  const [publishedCourseCount, certificates, notifications, unreadCount, examRows] = await Promise.all([
+  const [publishedCourseCount, certificates, notifications, unreadCount, examRows, sinceLastVisit, expiringSoon, attemptActivity, lessonActivity, enrollments] = await Promise.all([
     prisma.course.count({ where: { status: "PUBLISHED" } }),
     prisma.certificate.findMany({
       where: { traineeId: session.userId, revokedAt: null },
@@ -102,6 +103,30 @@ export default async function TraineeDashboardPage() {
     // "Next Assessment" shortcut, same aggregation the new
     // /trainee/examinations page itself uses.
     getTraineeExaminationOverview(session.userId),
+    getEventsSinceLastVisit("TRAINEE", session.userId, trainee.previousLoginAt, 10),
+    prisma.courseEnrollment.findMany({
+      where: {
+        traineeId: session.userId,
+        accessRevokedAt: null,
+        unlockedAt: { not: null },
+        course: { accessModel: "FIXED_DURATION" },
+        currentPeriodEnd: { gte: new Date(), lte: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) },
+      },
+      select: { courseId: true, currentPeriodEnd: true, course: { select: { title: true } } },
+      orderBy: { currentPeriodEnd: "asc" },
+    }),
+    prisma.attempt.findMany({
+      where: { traineeId: session.userId, exam: { courseModule: { isNot: null } } },
+      select: { startedAt: true, exam: { select: { courseModule: { select: { courseId: true } } } } },
+    }),
+    prisma.lessonProgress.findMany({
+      where: { traineeId: session.userId },
+      select: { completedAt: true, lesson: { select: { module: { select: { courseId: true } } } } },
+    }),
+    prisma.courseEnrollment.findMany({
+      where: { traineeId: session.userId },
+      select: { courseId: true, source: true, accessRevokedAt: true },
+    }),
   ]);
 
   const examAvailableCount = examRows.filter((r) => r.status === "AVAILABLE" || r.status === "RETAKE_AVAILABLE").length;
@@ -112,40 +137,6 @@ export default async function TraineeDashboardPage() {
     examRows.find((r) => r.status === "AVAILABLE") ??
     examRows.find((r) => r.status === "RETAKE_AVAILABLE") ??
     null;
-  const sinceLastVisit = await getEventsSinceLastVisit("TRAINEE", session.userId, trainee.previousLoginAt, 10);
-
-  // Course enrollment/subscription system — task Section 17's
-  // dashboard "expiring soon" note. Scoped the same way the course
-  // page's own status banner is (see GET /api/courses/[id]): only a
-  // real, active, FIXED_DURATION enrollment with a currentPeriodEnd
-  // within the next 14 days ever shows here — a RECURRING_SUBSCRIPTION
-  // course auto-renews and never needs this nudge.
-  const expiringSoon = await prisma.courseEnrollment.findMany({
-    where: {
-      traineeId: session.userId,
-      accessRevokedAt: null,
-      unlockedAt: { not: null },
-      course: { accessModel: "FIXED_DURATION" },
-      currentPeriodEnd: { gte: new Date(), lte: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) },
-    },
-    select: { courseId: true, currentPeriodEnd: true, course: { select: { title: true } } },
-    orderBy: { currentPeriodEnd: "asc" },
-  });
-
-  // Same "which courses has this trainee actually started" query as
-  // GET /api/trainee/progress — see that route's own comment for why
-  // this isn't just "every published course."
-  const [attemptActivity, lessonActivity] = await Promise.all([
-    prisma.attempt.findMany({
-      where: { traineeId: session.userId, exam: { courseModule: { isNot: null } } },
-      select: { startedAt: true, exam: { select: { courseModule: { select: { courseId: true } } } } },
-    }),
-    prisma.lessonProgress.findMany({
-      where: { traineeId: session.userId },
-      select: { completedAt: true, lesson: { select: { module: { select: { courseId: true } } } } },
-    }),
-  ]);
-
   const lastActivityByCourseId = new Map<string, Date>();
   for (const a of attemptActivity) {
     const courseId = a.exam.courseModule?.courseId;
@@ -177,10 +168,6 @@ export default async function TraineeDashboardPage() {
           select: { id: true, title: true, modules: { select: { id: true } } },
         });
 
-  const enrollments = await prisma.courseEnrollment.findMany({
-    where: { traineeId: session.userId },
-    select: { courseId: true, source: true, accessRevokedAt: true },
-  });
   const enrollmentByCourseId = new Map(enrollments.map((e) => [e.courseId, e]));
 
   const inProgress = (
