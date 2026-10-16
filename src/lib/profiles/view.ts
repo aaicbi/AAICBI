@@ -151,3 +151,54 @@ export async function loadProfileView(profile: Profile, viewer: SessionPayload |
   const [followers, following] = await Promise.all([prisma.follow.count({ where: { followedProfileId: profile.id } }), prisma.follow.count({ where: { followerProfileId: profile.id } })]);
   return { ...v, followers, following, profileId: profile.id };
 }
+
+/**
+ * Which of these profiles loadProfileView would return a page for, worked out for the whole list in a handful of queries.
+ * It follows exactly the same rules (a member found by name once their email is confirmed, an approved organization or employer,
+ * a startup once approved or to staff and its own team, an investor only to themselves and staff), but never builds the pages.
+ * Use it where a list only needs to know whether each profile is visible; one profile at a time costs about ten queries each.
+ */
+export async function visibleProfileIds(profiles: Profile[], viewer: SessionPayload | null): Promise<Set<string>> {
+  const pick = (k: keyof Profile) => [...new Set(profiles.map((p) => p[k] as string | null).filter((x): x is string => !!x))];
+  const traineeIds = pick("traineeId");
+  const userIds = pick("userId");
+  const orgIds = pick("trainingOrganizationId");
+  const employerIds = pick("employerId");
+  const startupIds = pick("startupId");
+  const investorIds = pick("investorId");
+  const [trainees, users, orgs, employers, startups, investors, teams] = await Promise.all([
+    traineeIds.length ? prisma.trainee.findMany({ where: { id: { in: traineeIds } }, select: { id: true, emailVerified: true, profileVisibility: true } }) : [],
+    userIds.length ? prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, active: true, profileVisibility: true } }) : [],
+    orgIds.length ? prisma.trainingOrganization.findMany({ where: { id: { in: orgIds }, approvalState: "APPROVED" }, select: { id: true } }) : [],
+    employerIds.length ? prisma.employer.findMany({ where: { id: { in: employerIds }, approvalState: "APPROVED" }, select: { id: true } }) : [],
+    startupIds.length ? prisma.startup.findMany({ where: { id: { in: startupIds } }, select: { id: true, status: true } }) : [],
+    investorIds.length ? prisma.investor.findMany({ where: { id: { in: investorIds } }, select: { id: true } }) : [],
+    startupIds.length && viewer?.role === "TRAINEE" ? prisma.startupMember.findMany({ where: { startupId: { in: startupIds }, traineeId: viewer.userId, status: "ACTIVE" }, select: { startupId: true } }) : [],
+  ]);
+  const t = new Map(trainees.map((x) => [x.id, x]));
+  const u = new Map(users.map((x) => [x.id, x]));
+  const okOrg = new Set(orgs.map((x) => x.id));
+  const okEmployer = new Set(employers.map((x) => x.id));
+  const st = new Map(startups.map((x) => [x.id, x]));
+  const okInvestor = new Set(investors.map((x) => x.id));
+  const mine = new Set(teams.map((x) => x.startupId));
+  const staff = isStaff(viewer);
+  const out = new Set<string>();
+  for (const p of profiles) {
+    let ok = false;
+    if (p.kind === "PERSON" && p.traineeId) {
+      const x = t.get(p.traineeId);
+      ok = !!x && (x.emailVerified || (await canViewProfile(x.profileVisibility, x.id, "TRAINEE", viewer)));
+    } else if (p.kind === "STAFF" && p.userId) {
+      const x = u.get(p.userId);
+      ok = !!x && x.active && (await canViewProfile(x.profileVisibility, x.id, "STAFF", viewer));
+    } else if (p.kind === "TRAINING_ORG" && p.trainingOrganizationId) ok = okOrg.has(p.trainingOrganizationId);
+    else if (p.kind === "EMPLOYER" && p.employerId) ok = okEmployer.has(p.employerId);
+    else if (p.kind === "STARTUP" && p.startupId) {
+      const x = st.get(p.startupId);
+      ok = !!x && (x.status === "APPROVED" || staff || mine.has(x.id));
+    } else if (p.kind === "INVESTOR" && p.investorId) ok = okInvestor.has(p.investorId) && ((viewer?.role === "INVESTOR" && viewer.userId === p.investorId) || staff);
+    if (ok) out.add(p.id);
+  }
+  return out;
+}

@@ -5,7 +5,7 @@ import { rateLimit } from "@/lib/rateLimit";
 import type { SessionPayload } from "@/lib/auth/session";
 import { profileForSession, recipientOf } from "@/lib/profiles/handleChanges";
 import { cardsFor, type ProfileCard } from "@/lib/profiles/card";
-import { loadProfileView } from "@/lib/profiles/view";
+import { loadProfileView, visibleProfileIds } from "@/lib/profiles/view";
 import { PostError, publicPostWhere, toViews, type PostView } from "@/lib/posts/posts";
 import { isPubliclyVisible } from "@/lib/posts/postCore";
 import { canReviewUser } from "@/lib/review/access";
@@ -196,9 +196,10 @@ export async function followersOf(profileId: string, viewer: SessionPayload, cur
   const profiles = await prisma.profile.findMany({ where: { id: { in: page.map((r) => r.followerProfileId) } } });
   const cards = await cardsFor(profiles);
   const people: ProfileCard[] = [];
+  const visible = await visibleProfileIds(profiles, viewer);
   for (const r of page) {
     const p = profiles.find((x) => x.id === r.followerProfileId);
-    if (p && (await loadProfileView(p, viewer))) people.push(cards.get(p.id)!);
+    if (p && visible.has(p.id)) people.push(cards.get(p.id)!);
   }
   const last = page[page.length - 1];
   return { people, next: rows.length > take && last ? encodeCursor(last.createdAt, last.followerProfileId) : null };
@@ -354,10 +355,11 @@ export async function suggestions(actor: Actor | null, take = 4): Promise<Array<
   const followed = await followingSet(actor, candidates.map((p) => p.id));
   const ordered = candidates.filter((p) => !followed.has(p.id)).sort((a, b) => (n.get(b.id) ?? 0) - (n.get(a.id) ?? 0) || a.handle.localeCompare(b.handle));
   const out: Array<ProfileCard & { followers: number; followed: boolean }> = [];
-  const cards = await cardsFor(ordered.slice(0, 20));
-  for (const p of ordered) {
+  const shortlist = ordered.slice(0, 20);
+  const [cards, visible] = await Promise.all([cardsFor(shortlist), visibleProfileIds(shortlist, actor?.session ?? null)]);
+  for (const p of shortlist) {
     if (out.length >= take) break;
-    if (await loadProfileView(p, actor?.session ?? null)) out.push({ ...cards.get(p.id)!, followers: n.get(p.id) ?? 0, followed: false });
+    if (visible.has(p.id)) out.push({ ...cards.get(p.id)!, followers: n.get(p.id) ?? 0, followed: false });
   }
   return out;
 }
