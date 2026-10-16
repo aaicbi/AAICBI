@@ -211,6 +211,8 @@ async function seed(traineeEmail) {
   const txt = await p.locator('main').innerText();
   log(/never counts\s+toward your certificate/.test(txt.replace(/\n/g, ' ')) , 'the practice screen says practice never counts toward the certificate');
   log(/explorer|problem solver/i.test(txt) && /streak/i.test(txt) && /xp today/i.test(txt), 'level, streak and XP today are shown');
+  const narrow = await p.evaluate(() => [...document.querySelectorAll('main li p.text-sm.font-medium')].map((e) => Math.round(e.getBoundingClientRect().width)));
+  log(narrow.length > 0 && narrow.every((w) => w >= 200), 'each objective’s wording gets the full width of its card on a phone, not a thin column (' + narrow.join(', ') + ' px)');
   await p.screenshot({ path: '/tmp/dev/quest-overview-phone.png', fullPage: true });
   await p.getByRole('button', { name: 'Practise what needs work' }).click();
   await p.getByTestId('round-start').click();   // the round's welcome comes first; the question follows the countdown

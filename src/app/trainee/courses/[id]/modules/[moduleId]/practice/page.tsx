@@ -538,8 +538,8 @@ export default function PracticePage({ params }: { params: { id: string; moduleI
                 <li key={o.id}>
                   <Card>
                     <div className="flex flex-wrap items-start justify-between gap-2">
-                      <p className="flex-1 text-sm font-medium text-brand-ink">{o.text}</p>
-                      <div className="flex items-center gap-2">
+                      <p className="min-w-0 basis-full break-words text-sm font-medium text-brand-ink sm:basis-0 sm:flex-1">{o.text}</p>
+                      <div className="flex flex-wrap items-center gap-2">
                         {o.isCritical && <Badge variant="gold">Required for assessment</Badge>}
                         <Badge variant={STATE_VARIANT[o.mastery.state]}>{STATE_LABEL[o.mastery.state]}</Badge>
                       </div>
