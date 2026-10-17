@@ -90,6 +90,8 @@ export default function GuideSpotlight() {
     const look = () => {
       let found = findVisible(target);
       let more = false;
+      // A menu item inside a closed sidebar section: ask the sidebar to open that section.
+      if (!found && target.startsWith("nav:")) window.dispatchEvent(new CustomEvent("aaicbi:reveal-nav", { detail: target.slice(4) }));
       if (!found && target.startsWith("nav:")) {
         found = findVisible("more");
         more = !!found;

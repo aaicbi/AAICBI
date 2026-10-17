@@ -6,14 +6,13 @@ import { Menu, X, HelpCircle } from "lucide-react";
 import Logo from "@/components/Logo";
 import LogoutButton from "@/components/admin/LogoutButton";
 import Icon from "@/components/ui/Icon";
-import { getNavIcon } from "@/components/icons/navIcons";
 import MobileDrawer from "@/components/ui/MobileDrawer";
 import CommandPalette, { PaletteTrigger } from "@/components/ui/CommandPalette";
 import AvatarFallback from "@/components/ui/AvatarFallback";
 import Badge from "@/components/ui/Badge";
 import { getAdminNavGroups } from "@/lib/admin/nav";
 import { getSidebarTourGuideContent } from "@/lib/tourGuideContent";
-import { navTarget } from "@/lib/guide/navigation";
+import NavAccordion from "@/components/ui/NavAccordion";
 
 const ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: "Super Admin",
@@ -139,32 +138,7 @@ export default function AdminSidebar({
         <PaletteTrigger onOpen={() => setMobileOpen(false)} />
       </div>
       <nav aria-label="Admin" className="flex-1 overflow-y-auto px-3 py-3">
-        {navGroups.map((group, gi) => (
-          <div key={group.label ?? `group-${gi}`} className={gi === 0 ? "" : "mt-4"}>
-            {group.label && (
-              <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-gray-600">
-                {group.label}
-              </p>
-            )}
-            {group.items.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                data-guide-target={navTarget(item.href)}
-                onClick={() => setMobileOpen(false)}
-                aria-current={item.href === activeHref ? "page" : undefined}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold ${
-                  item.href === activeHref
-                    ? "bg-brand-mint text-brand-teal"
-                    : "text-gray-600 hover:bg-brand-mint hover:text-brand-teal"
-                }`}
-              >
-                <Icon icon={getNavIcon(item.href)} size="md" />
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        ))}
+        <NavAccordion groups={navGroups} activeHref={activeHref} onNavigate={() => setMobileOpen(false)} storageKey={`aaicbi-nav-open:${isTrainingOrg ? "org" : role}`} />
       </nav>
 
       <div ref={helpRef} className="relative border-t border-brand-gray p-3">
