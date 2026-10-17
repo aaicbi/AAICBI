@@ -8,10 +8,13 @@ export default function FollowButton({ profileId, initial, name, size = "sm" }: 
   const [on, setOn] = useState(initial);
   const [busy, setBusy] = useState(false);
   async function toggle() {
+    // Change at once and put it back if the server says no, so the tap answers instantly.
+    const was = on;
+    setOn(!was);
     setBusy(true);
-    const res = await act("/api/follow", { method: on ? "DELETE" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profileId }) });
+    const res = await act("/api/follow", { method: was ? "DELETE" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profileId }) });
     setBusy(false);
-    if (res?.ok) setOn(!on);
+    if (!res?.ok) setOn(was);
   }
   return (
     <button type="button" onClick={toggle} disabled={busy} aria-pressed={on} aria-label={`${on ? "Unfollow" : "Follow"} ${name}`}

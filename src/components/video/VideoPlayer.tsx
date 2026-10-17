@@ -90,6 +90,7 @@ export default function VideoPlayer({ source, title, lowBandwidthMode = false, c
   const [managedActive, setManagedActive] = useState(false);
   const [forced, setForced] = useState(false);
   const [autoAllowed, setAutoAllowed] = useState(false);
+  const [near, setNear] = useState(false);
   const frame = useRef<HTMLDivElement>(null);
   const poster = posterUrl(source);
   const showPoster = !lowBandwidthMode && !posterFailed && poster;
@@ -110,10 +111,18 @@ export default function VideoPlayer({ source, title, lowBandwidthMode = false, c
     return watchVideo(frame.current, setManagedActive);
   }, [autoAllowed]);
   useEffect(() => { if (autoAllowed && managedActive) setStarted(true); }, [autoAllowed, managedActive]);
+  // Get the player ready (paused) while the video is still about a screen away, so it starts the moment it arrives instead of
+  // loading then. Only one screen above and below, so at most a few players exist at once.
+  useEffect(() => {
+    if (!autoAllowed || !frame.current || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver((entries) => setNear(entries.some((e) => e.isIntersecting)), { rootMargin: "100% 0px 100% 0px" });
+    io.observe(frame.current);
+    return () => io.disconnect();
+  }, [autoAllowed]);
   // Someone who taps play on a video before the page has picked it keeps it playing until it scrolls away.
   useEffect(() => { if (!managedActive) return; return () => setForced(false); }, [managedActive]);
 
-  const playing = started && isYouTube;
+  const playing = (started || (autoAllowed && near)) && isYouTube;
   const active = autoAllowed ? (managedActive || forced) && !expanded : !expanded;
   const grow = autoAllowed && managedActive && started;
   const sizing = autoAllowed ? `w-auto transition-[margin,border-radius] duration-300 motion-reduce:transition-none ${grow ? `${bleedClass} rounded-lg` : "mx-3 rounded-xl sm:mx-4"}` : "w-full rounded-xl";
@@ -138,7 +147,7 @@ export default function VideoPlayer({ source, title, lowBandwidthMode = false, c
           </span>
         </button>
       )}
-      {!started && (
+      {!started && !playing && (
         <button type="button" onClick={() => setExpanded(true)} aria-label={`Expand video: ${title}`} className="absolute right-2 top-2 z-10 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-black/60 text-white backdrop-blur hover:bg-black/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
           <Icon icon={Maximize2} size="md" />
         </button>

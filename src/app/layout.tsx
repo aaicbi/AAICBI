@@ -2,12 +2,11 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Manrope } from "next/font/google";
 import { ToastProvider } from "@/components/ui/Toast";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
-import TourGuideButton from "@/components/TourGuideButton";
 import ThemeToggle from "@/components/ThemeToggle";
-import LoopGuide from "@/components/guide/LoopGuide";
+import LazyChrome from "@/components/LazyChrome";
+import NavProgress from "@/components/ui/NavProgress";
+import { Suspense } from "react";
 import PwaRegister from "@/components/pwa/PwaRegister";
-import NetworkStatus from "@/components/pwa/NetworkStatus";
-import InstallPrompt from "@/components/pwa/InstallPrompt";
 import GlobalBottomNav from "@/components/pwa/GlobalBottomNav";
 import ResponsiveTables from "@/components/pwa/ResponsiveTables";
 import "./globals.css";
@@ -95,15 +94,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             fixed-position affordance rather than an element-anchored
             tour. */}
         <ThemeToggle />
-        <TourGuideButton />
         {/* Loop, the ecosystem guide — mounted once, here, like the page
             help button it replaces wherever it shows. See
             src/components/guide/LoopGuide.tsx. */}
-        <LoopGuide />
+        <LazyChrome />
+        <Suspense fallback={null}><NavProgress /></Suspense>
         {/* The installable-app layer: service worker, offline notice, install prompt, and phone-friendly tables. */}
         <PwaRegister />
-        <NetworkStatus />
-        <InstallPrompt />
         <GlobalBottomNav />
         <ResponsiveTables />
       </body>
