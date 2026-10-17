@@ -41,7 +41,7 @@ describe("guide targets", () => {
   });
 
   it("every menu renders its items with their target id", () => {
-    for (const f of ["trainee/TraineeSidebar", "employer/EmployerSidebar", "investor/InvestorSidebar", "admin/AdminSidebar"]) {
+    for (const f of ["trainee/TraineeSidebar", "employer/EmployerSidebar", "investor/InvestorSidebar", "ui/NavAccordion"]) {
       expect(readFileSync(`src/components/${f}.tsx`, "utf8"), f).toContain("data-guide-target={navTarget(item.href)}");
     }
     const bottom = readFileSync("src/components/pwa/MobileBottomNav.tsx", "utf8");
