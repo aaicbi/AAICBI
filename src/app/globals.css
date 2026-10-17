@@ -729,3 +729,19 @@ img.rounded-full:not(.no-ring) {
 .eco-hub { animation: eco-hub 2.4s ease-out infinite; }
 .eco-pulse { animation: eco-hub 1.6s ease-out infinite; }
 .eco-card { background: radial-gradient(circle at 50% 30%, rgb(1 107 97 / 0.12), transparent 60%), linear-gradient(135deg, rgb(var(--card-gradient-from)) 0%, rgb(var(--card-gradient-to)) 100%); }
+
+/* Taps answer at once: no double-tap-to-zoom wait on phones, and a pressed look the instant a finger lands, before any script
+   has run. Uses filter (not transform) so it never fights the scale effects some controls already have. */
+a, button, summary, label, input, select, textarea, [role="button"], [role="tab"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+button:not(:disabled):active,
+[role="button"]:active,
+[role="tab"]:active,
+a[class*="rounded"]:active {
+  filter: brightness(0.9);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress-bar { transition: none !important; }
+}
