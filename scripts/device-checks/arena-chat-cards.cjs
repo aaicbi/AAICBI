@@ -51,6 +51,17 @@ const psql = (q) => require('child_process').execFileSync('/usr/lib/postgresql/1
   await cs.request.post(`${B}/api/admin/courses/arena_play/arena/sprint`, { data: { action: 'start', custom: { text: 'Pick B', options: ['x', 'y'], correctIndex: 1 } } });
   const payload = await pa.evaluate(async () => JSON.stringify(await (await fetch('/api/arena/courses/arena_play')).json()));
   log(!/correctKey":"[A-F]/.test(payload.split('Pick B')[1]?.slice(0, 600) ?? 'x'), 'an open question is sent without its answer key');
+  // small phone: reactions fold into one button that opens a tray
+  const rxHidden = !(await pb.locator('.ar-chat > .ar-chatrx').isVisible());
+  log(rxHidden, 'on a small phone the reaction row is folded away');
+  await pb.locator('.ar-emojibtn').click();
+  await pb.locator('.ar-chat > .ar-chatrx.ar-open').waitFor();
+  await pb.screenshot({ path: '/tmp/dev/chat-cards-phone-tray.png' });
+  await pb.locator('.ar-chatrxb').nth(3).click();
+  await pb.locator('.ar-bigmoji', { hasText: '🔥' }).first().waitFor({ timeout: 6000 });
+  log(true, 'a reaction from the tray is posted as a big emoji');
+  const fits = await pb.evaluate(() => { const l = document.querySelector('.ar-chatlist'); return l.getBoundingClientRect().height; });
+  log(fits > 150, 'the thread keeps a readable height on a small phone (' + Math.round(fits) + ' px)');
   await pb.screenshot({ path: '/tmp/dev/chat-cards-phone.png' });
   psql(`update "ArenaMatch" set status='CANCELLED' where status in ('PENDING','LOBBY','ACTIVE')`);
   psql(`update "ArenaSprint" set status='CLOSED' where "courseId"='arena_play'`);

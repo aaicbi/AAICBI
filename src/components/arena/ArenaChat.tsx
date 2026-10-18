@@ -19,6 +19,7 @@ export default function ArenaChat({ courseId, chat, suspended, online, busy, onC
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [picking, setPicking] = useState(false);
+  const [rxOpen, setRxOpen] = useState(false);
   const list = useRef<HTMLDivElement>(null);
   const last = chat.messages[chat.messages.length - 1];
   const lastKey = last ? `${last.id}:${last.sprint?.open ?? ""}:${last.challenge?.status ?? ""}` : "";
@@ -67,8 +68,7 @@ export default function ArenaChat({ courseId, chat, suspended, online, busy, onC
       return (
         <div className="ar-card ar-cchallenge">
           <div className="ar-crown">⚔️ Challenge</div>
-          <p className="ar-name">{c.fromName} → {c.toName}{c.topic ? ` · ${c.topic}` : ""}</p>
-          <p className="ar-sub">{label}</p>
+          <p className="ar-name">{c.fromName} → {c.toName}{c.topic ? ` · ${c.topic}` : ""} <span className="ar-sub">· {label}</span></p>
           {c.status === "PENDING" && c.toMe && <div className="ar-row"><button type="button" className="ar-btn ar-sm" onClick={() => void respond(c.matchId, true)}>Accept</button><button type="button" className="ar-btn ar-ghost ar-sm" onClick={() => void respond(c.matchId, false)}>Decline</button></div>}
           {live && (c.toMe || c.fromMe) && <button type="button" className="ar-btn ar-sm" onClick={() => router.push(`/trainee/arena/match/${c.matchId}`)}>Join match</button>}
         </div>
@@ -81,7 +81,7 @@ export default function ArenaChat({ courseId, chat, suspended, online, busy, onC
         <div className="ar-card ar-cfast">
           <div className="ar-crown">⚡ Fastest Fingers · {s.points} credits</div>
           <p className="ar-name">{s.question}</p>
-          <div className="ar-fopts">
+          <div className="ar-fopts ar-fgrid">
             {s.options.map((o) => {
               const right = s.correctKey === o.key;
               const picked = s.mine?.choice === o.key;
@@ -126,10 +126,11 @@ export default function ArenaChat({ courseId, chat, suspended, online, busy, onC
         <p className="ar-note ar-miss" role="status">{suspended}</p>
       ) : (
         <>
-          <div className="ar-chatrx" role="group" aria-label="Reactions">
-            {EMOJIS.map((x) => <button key={x.l} type="button" className="ar-chatrxb" disabled={sending} aria-label={x.l} title={x.l} onClick={(e) => void send(e, x.e)}>{x.e}</button>)}
+          <div className={`ar-chatrx${rxOpen ? " ar-open" : ""}`} role="group" aria-label="Reactions">
+            {EMOJIS.map((x) => <button key={x.l} type="button" className="ar-chatrxb" disabled={sending} aria-label={x.l} title={x.l} onClick={(e) => { setRxOpen(false); void send(e, x.e); }}>{x.e}</button>)}
           </div>
           <form className="ar-row" onSubmit={(e) => void send(e)}>
+            <button type="button" className="ar-emojibtn" aria-expanded={rxOpen} aria-label="Reactions" onClick={() => setRxOpen((o) => !o)}>😀</button>
             <input className="ar-chatin" value={text} onChange={(e) => setText(e.target.value)} maxLength={500} placeholder="Write a message" aria-label="Message" enterKeyHint="send" />
             <button type="submit" className="ar-btn ar-sm" disabled={sending || !text.trim()}>Send</button>
           </form>
