@@ -183,6 +183,7 @@ export interface DynamicPage {
 export const DYNAMIC: DynamicPage[] = [
   { route: "/trainee/arena/[courseId]", what: "A course's arena: who is online, challenges and recent matches.", from: "/trainee/arena", how: "Pick a course on the Ayakbi Arena page." },
   { route: "/trainee/arena/[courseId]/chat", what: "The course chat: talk with coursemates, accept or decline Ayakbi Arena challenges and answer Fastest Fingers questions.", from: "/trainee/courses", how: "Open a course, then the Course chat card on a course page, or tap a chat notification." },
+  { route: "/trainee/arena/[courseId]/ladder", what: "The course's champion ladder: top players, tiers, the weekly champion and your own place.", from: "/trainee/arena", how: "Open a course in Ayakbi Arena, then tap your tier at the top or the Ladder link." },
   { route: "/trainee/arena/match/[id]", what: "A live match of Ayakbi Arena, full screen and landscape.", from: "/trainee/arena", how: "Open a course, then challenge a coursemate or accept a challenge." },
   { route: "/post/[id]", what: "One post with all its comments.", from: "/feed", how: "Open a post from the feed." },
   { route: "/tags/[tag]", what: "Posts that use one #topic.", from: "/feed", how: "Tap a #topic on a post or in Topics this week." },

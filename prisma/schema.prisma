@@ -746,6 +746,9 @@ model Trainee {
   arenaSuspensions ArenaSuspension[]
   arenaSprintAnswers ArenaSprintAnswer[]
   arenaChatReads  ArenaChatRead[]
+  arenaRatings    ArenaRating[]
+  arenaRatingChanges ArenaRatingChange[]
+  arenaChampions  ArenaChampion[]
   arenaSprintsWon ArenaSprint[]
   arenaCredits    ArenaCredit[]
 }
@@ -1404,6 +1407,9 @@ model Course {
   arenaSuspensions ArenaSuspension[]
   arenaSprints  ArenaSprint[]
   arenaChatReads ArenaChatRead[]
+  arenaRatings  ArenaRating[]
+  arenaRatingChanges ArenaRatingChange[]
+  arenaChampions ArenaChampion[]
   arenaCredits  ArenaCredit[]
 }
 
@@ -5645,6 +5651,8 @@ model ArenaConfig {
   gameEnabled   Boolean?
   chatEnabled   Boolean?
   ladderEnabled Boolean?
+  /// Spending and sending credits. Off until a Super Admin switches it on.
+  walletEnabled Boolean?
   /// Fastest Fingers in the course chat. Off until it is switched on here.
   fastestEnabled Boolean?
   spectators    ArenaSpectators?
@@ -5911,6 +5919,8 @@ model ArenaCredit {
   points    Int
   reason    String
   refId     String?
+  /// A short human line for the history ("Sent to Amaka").
+  note      String?
   createdAt DateTime @default(now())
 
   @@unique([traineeId, reason, refId])
@@ -5927,4 +5937,58 @@ model ArenaChatRead {
   lastReadAt DateTime @default(now())
 
   @@id([traineeId, courseId])
+}
+
+/// The champion ladder: one rating per trainee per course (Elo, starts at 1000).
+model ArenaRating {
+  traineeId String
+  trainee   Trainee  @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  rating    Int      @default(1000)
+  matches   Int      @default(0)
+  wins      Int      @default(0)
+  losses    Int      @default(0)
+  draws     Int      @default(0)
+  /// An instructor can take a player off the ladder (and put them back).
+  hidden    Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  @@id([traineeId, courseId])
+  @@index([courseId, rating])
+}
+
+/// What one finished match did to one player's rating. Weekly and monthly boards are sums of these.
+model ArenaRatingChange {
+  id        String   @id @default(cuid())
+  matchId   String
+  traineeId String
+  trainee   Trainee  @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  before    Int
+  after     Int
+  delta     Int
+  /// false when the match did not move the ladder (the same pair has already played the daily limit).
+  counted   Boolean  @default(true)
+  result    String
+  createdAt DateTime @default(now())
+
+  @@unique([matchId, traineeId])
+  @@index([courseId, createdAt])
+  @@index([traineeId, createdAt])
+}
+
+/// The weekly champion of a course, recorded once so the announcement goes out once.
+model ArenaChampion {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  weekStart DateTime
+  traineeId String
+  trainee   Trainee  @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  points    Int
+  createdAt DateTime @default(now())
+
+  @@unique([courseId, weekStart])
 }

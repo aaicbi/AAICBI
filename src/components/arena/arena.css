@@ -530,3 +530,35 @@
   .ar-chat>.ar-chatrx.ar-open{display:grid;grid-template-columns:repeat(6,1fr);gap:.3em;padding:.4em;border-radius:.8em;background:rgba(0,0,0,.35);border:1px solid var(--glass-line);overflow:visible}
   .ar-chat>.ar-chatrx.ar-open .ar-chatrxb{font-size:1.3em;padding:.25em 0}
 }
+
+/* Champion ladder */
+.ar-ladder{grid-template-rows:auto minmax(0,1fr)}
+.ar-board{display:grid;gap:.6em;min-height:0;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr) auto;max-width:44em;width:100%;justify-self:center}
+.ar-seg{display:flex;gap:.25em;background:rgba(0,0,0,.25);border-radius:999px;padding:.2em}
+.ar-seg button{flex:1;font:800 .85em var(--f-body);border:0;border-radius:999px;padding:.4em .6em;background:transparent;color:var(--white);opacity:.75;cursor:pointer}
+.ar-seg button.ar-on{background:var(--gold);color:var(--ink);opacity:1}
+.ar-podium{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:.45em;align-items:end}
+.ar-pod{border-radius:1em 1em .4em .4em;padding:.55em .25em;text-align:center;background:var(--glass);border:1px solid var(--glass-line);display:grid;gap:.15em;justify-items:center;min-width:0}
+.ar-pod b{font-size:.9em;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ar-pod.ar-p1{background:linear-gradient(180deg,rgba(255,157,61,.35),rgba(255,157,61,.08));border-color:#ff9d3d;padding-top:.8em}
+.ar-pod.ar-p2{margin-top:.6em}.ar-pod.ar-p3{margin-top:1em}
+.ar-pod.ar-empty{background:transparent;border-color:transparent}
+.ar-crownem{font-size:1.4em;line-height:1}
+.ar-prate{font:800 1em var(--f-display)}
+.ar-lrows{display:grid;gap:.35em;overflow:auto;min-height:0;align-content:start}
+.ar-lrow{display:flex;align-items:center;gap:.6em;padding:.4em .6em;border-radius:.8em;background:var(--glass);border:1px solid transparent;min-width:0}
+.ar-lrow.ar-me{border-color:var(--gold);background:rgba(242,184,75,.14)}
+.ar-rk{width:1.6em;text-align:center;font-weight:800;color:var(--mint);opacity:.8}
+.ar-nm{flex:1;min-width:0}.ar-nm b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ar-nm small{opacity:.85}
+.ar-rt{font:800 1em var(--f-display);min-width:3em;text-align:right}
+.ar-delta{font-size:.8em;font-weight:800}.ar-up{color:var(--green)}.ar-down{color:var(--rose)}
+.ar-tier{display:inline-flex;align-items:center;font:800 .7em var(--f-body);letter-spacing:.04em;text-transform:uppercase;border-radius:999px;padding:.05em .55em;border:1px solid currentColor}
+.ar-t-bronze{color:#d08a52}.ar-t-silver{color:#c5d0d6}.ar-t-gold{color:var(--gold)}.ar-t-platinum{color:#7fd6e8}.ar-t-champion{color:#ff9d3d}
+.ar-you{display:flex;align-items:center;gap:.7em;border-radius:1em;padding:.55em .8em;background:rgba(0,0,0,.28);border:1px solid var(--gold)}
+.ar-meter{height:.45em;border-radius:.3em;background:rgba(255,255,255,.14);overflow:hidden;margin:.25em 0}
+.ar-meter i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),#ffd98a)}
+.ar-lrow .ar-btn.ar-sm{flex:none}
+.ar-champ-chip{margin-left:.3em}
+.ar-ladderres{display:grid;gap:.4em;justify-items:center;text-align:center;border-radius:1em;padding:.7em .9em;background:rgba(0,0,0,.25);border:1px solid var(--glass-line);width:100%;max-width:26em}
+.ar-ldelta{font:800 1.4em var(--f-display)}
+.ar-ladderres .ar-meter{width:100%}

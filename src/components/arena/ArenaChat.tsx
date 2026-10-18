@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ChatMessageView, ChatView } from "@/lib/arena/chat";
 import { EMOJI } from "./reactions";
+import ArenaWallet from "./ArenaWallet";
 
 const EMOJIS = Object.values(EMOJI);
 const isEmoji = (b: string) => EMOJIS.some((x) => x.e === b);
@@ -20,6 +21,7 @@ export default function ArenaChat({ courseId, chat, suspended, online, busy, onC
   const [sending, setSending] = useState(false);
   const [picking, setPicking] = useState(false);
   const [rxOpen, setRxOpen] = useState(false);
+  const [walletOpen, setWalletOpen] = useState(false);
   const list = useRef<HTMLDivElement>(null);
   const last = chat.messages[chat.messages.length - 1];
   const lastKey = last ? `${last.id}:${last.sprint?.open ?? ""}:${last.challenge?.status ?? ""}` : "";
@@ -100,7 +102,8 @@ export default function ArenaChat({ courseId, chat, suspended, online, busy, onC
 
   return (
     <div className={`ar-glass ar-chat${big ? " ar-chatbig" : ""}`}>
-      <div className="ar-row"><strong className="ar-grow">Course chat</strong>{chat.fastest || chat.credits > 0 ? <span className="ar-pill" title="Your credit scores in this course">⭐ {chat.credits}</span> : null}{!suspended && <button type="button" className="ar-btn ar-ghost ar-sm" disabled={busy} onClick={() => setPicking((p) => !p)} aria-expanded={picking}>⚔️ Challenge</button>}</div>
+      <div className="ar-row"><strong className="ar-grow">Course chat</strong>{chat.fastest || chat.credits > 0 ? (chat.wallet ? <button type="button" className="ar-pill" title="Your credits: open your wallet" aria-expanded={walletOpen} onClick={() => setWalletOpen((o) => !o)} style={{ cursor: "pointer", color: "inherit" }}>⭐ {chat.credits}</button> : <span className="ar-pill" title="Your credit scores">⭐ {chat.credits}</span>) : null}{!suspended && <button type="button" className="ar-btn ar-ghost ar-sm" disabled={busy} onClick={() => setPicking((p) => !p)} aria-expanded={picking}>⚔️ Challenge</button>}</div>
+      {walletOpen && chat.wallet && <ArenaWallet courseId={courseId} onClose={() => setWalletOpen(false)} onChanged={onChanged} flash={flash} />}
       {picking && (
         <div className="ar-picker" role="menu">
           {online.length === 0 && <p className="ar-muted">Nobody else is online right now.</p>}

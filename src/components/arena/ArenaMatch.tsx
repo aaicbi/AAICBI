@@ -628,6 +628,19 @@ function Result({ v, act }: { v: MatchView; act: Act }) {
       <div className="ar-big">{head}</div>
       <div className="ar-final">{r.myScore} <span>–</span> {r.opponentScore}</div>
       <div className="ar-muted">{early ? "The match ended early. " : ""}{sub}</div>
+      {r.ladder && (
+        <div className="ar-ladderres" data-testid="ladder-result">
+          <div className={`ar-ldelta ${r.ladder.delta > 0 ? "ar-up" : r.ladder.delta < 0 ? "ar-down" : ""}`}>{r.ladder.counted ? `${r.ladder.delta > 0 ? "+" : r.ladder.delta < 0 ? "−" : ""}${Math.abs(r.ladder.delta)} ladder points` : "Not counted on the ladder"}</div>
+          <div className="ar-muted">{r.ladder.counted ? `${r.ladder.before.toLocaleString()} → ${r.ladder.after.toLocaleString()}` : "You have already played this person the most times the ladder counts today."}</div>
+          <div className="ar-row" style={{ justifyContent: "center", gap: ".5em" }}>
+            {r.ladder.tierUp && <span className="ar-pill ar-gold">⬆ New tier!</span>}
+            <span className={`ar-tier ar-t-${r.ladder.tierKey.toLowerCase()}`}>{r.ladder.tier}</span>
+            {r.ladder.rank && <span className="ar-pill">#{r.ladder.rank} on the ladder</span>}
+          </div>
+          {r.ladder.toNext && <><div className="ar-meter"><i style={{ width: `${Math.round(r.ladder.toNext.fraction * 100)}%` }} /></div><div className="ar-muted">{r.ladder.toNext.toNext} points to {r.ladder.toNext.next}</div></>}
+          <a className="ar-btn ar-ghost ar-sm" href={`/trainee/arena/${v.courseId}/ladder`} style={{ textDecoration: "none", display: "inline-block" }}>See the ladder</a>
+        </div>
+      )}
       <div className="ar-chips">
         <span className="ar-pill">✔ {r.correct} of {r.answered} right</span>
         {r.bestStreak >= 2 && <span className="ar-pill ar-gold">🔥 Best streak {r.bestStreak}</span>}
