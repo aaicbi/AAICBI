@@ -465,3 +465,15 @@
 .ar-danger{background:var(--rose);color:#2a0509;box-shadow:0 .25em 0 #c94a56}
 
 .ar-bar .ar-home{border-color:var(--gold-deep);color:var(--gold)}
+
+/* Course chat */
+.ar-chat{display:grid;gap:.5em;grid-template-rows:auto minmax(0,1fr) auto;height:16em;max-height:45%;min-height:11em}
+.ar-chatlist{display:flex;flex-direction:column;gap:.45em;overflow:auto;min-height:0;padding-right:.2em}
+.ar-msg{display:flex;gap:.5em;align-items:flex-end;max-width:90%}
+.ar-msg.ar-mine{align-self:flex-end;flex-direction:row-reverse}
+.ar-bub{background:var(--glass);border:1px solid var(--glass-line);border-radius:.9em;padding:.35em .7em;overflow-wrap:anywhere;font-size:.95em}
+.ar-mine .ar-bub{background:var(--gold);color:var(--ink);border-color:transparent}
+.ar-who{font-size:.75em;font-weight:800;color:var(--gold)}
+.ar-at{font-size:.7em;opacity:.65;text-align:right}
+.ar-chatin{flex:1;min-width:0;font:inherit;font-size:16px;padding:.5em .8em;border-radius:999px;border:1px solid var(--glass-line);background:rgba(0,0,0,.25);color:var(--white)}
+@media (max-aspect-ratio: 1/1){.ar-chat{height:15em;max-height:none;flex:none}}

@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import ArenaFrame from "./ArenaFrame";
+import ArenaChat from "./ArenaChat";
 import { useArenaLive, channels } from "./useArenaLive";
 import type { CourseArenaView } from "@/lib/arena/arenaView";
 
@@ -43,7 +44,8 @@ export default function ArenaLobby({ courseId, traineeId }: { courseId: string; 
       </ArenaFrame>
     );
   }
-  const busy = !!v.active;
+  const sus = v.suspension ? `You're suspended from the arena${v.suspension.until ? ` until ${new Date(v.suspension.until).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}` : ""}${v.suspension.reason ? `: ${v.suspension.reason}` : "."}` : null;
+  const busy = !!v.active || !!sus;
   return (
     <ArenaFrame title={`${v.course.title} · Arena`} backHref="/trainee/arena">
       <div className="ar-stage">
@@ -51,6 +53,7 @@ export default function ArenaLobby({ courseId, traineeId }: { courseId: string; 
           <div className="ar-top"><div className="ar-t">The Interview</div><span className="ar-pill ar-gold">{v.rules.questionsPerMatch} questions · {v.rules.questionSeconds}s each</span></div>
           <div className="ar-main ar-two">
             <div className="ar-col">
+              {sus && !v.chat.enabled && <p className="ar-note ar-miss" role="status">{sus}</p>}
               <div className="ar-glass ar-fill ar-lobbylist">
                 <div className="ar-row"><strong className="ar-grow">Online now</strong>
                   <select aria-label="Topic" value={topic} onChange={(e) => setTopic(e.target.value)} style={{ maxWidth: "50%" }}>
@@ -83,6 +86,7 @@ export default function ArenaLobby({ courseId, traineeId }: { courseId: string; 
               {v.active && v.active.status !== "PENDING" && (
                 <div className="ar-glass ar-champ"><div className="ar-crown">Game on</div><p className="ar-name">Your match with {v.active.opponentName} is waiting</p><button type="button" className="ar-btn ar-sm" onClick={() => router.push(`/trainee/arena/match/${v.active!.id}`)}>Go to match</button></div>
               )}
+              {v.chat.enabled && <ArenaChat courseId={courseId} chat={v.chat} suspended={sus} onSent={() => void reload()} flash={flash} />}
               <div className="ar-glass ar-fill ar-lobbylist">
                 <strong>Recent matches</strong>
                 {v.recent.length === 0 && <p className="ar-muted">No matches yet. Challenge someone!</p>}

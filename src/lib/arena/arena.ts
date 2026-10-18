@@ -17,6 +17,7 @@ import {
 import { basePointsFor, chooseEntry, gradeEntry, poolFor, revealEntry, serveEntry, type PoolEntry } from "@/lib/arena/arenaPool";
 import { channels } from "@/lib/arena/realtimeCore";
 import { pokeMany } from "@/lib/arena/realtime";
+import { activeSuspension, suspensionText } from "@/lib/arena/suspension";
 
 export class ArenaError extends Error {
   constructor(message: string, public status = 400) {
@@ -319,6 +320,9 @@ export async function createChallenge(input: { challengerId: string; opponentId:
   const { challengerId, opponentId, courseId } = input;
   if (challengerId === opponentId) throw new ArenaError("Choose a coursemate to challenge.");
   const rules = await requireArena(challengerId, courseId);
+  const mine = await activeSuspension(challengerId, courseId);
+  if (mine) throw new ArenaError(suspensionText(mine), 403);
+  if (await activeSuspension(opponentId, courseId)) throw new ArenaError("That person can't play in this arena right now.", 409);
   if (!(await isEnrolled(opponentId, courseId))) throw new ArenaError("That person isn't in this course's arena.", 404);
   // A rematch goes to someone who has just been playing, so the "online in the arena" check is only for fresh challenges.
   if (!input.rematchOfId) {
@@ -348,6 +352,11 @@ function requirePlayer(d: Draft, id: string) {
 }
 
 export async function respondToChallenge(matchId: string, traineeId: string, accept: boolean) {
+  if (accept) {
+    const m = await prisma.arenaMatch.findUnique({ where: { id: matchId }, select: { courseId: true } });
+    const s = m ? await activeSuspension(traineeId, m.courseId) : null;
+    if (s) throw new ArenaError(suspensionText(s), 403);
+  }
   return mutate(matchId, (d, now) => {
     requirePlayer(d, traineeId);
     if (d.m.opponentId !== traineeId) throw new ArenaError("Only the player who was challenged can answer.", 403);

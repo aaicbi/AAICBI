@@ -7,6 +7,8 @@ import { availabilityForCourse, resolveForCourse } from "@/lib/arena/config";
 import { RULE_LIMITS, type ArenaRules } from "@/lib/arena/configCore";
 import { STEAL_MS, boardSize, isPlayer, reactionsOpen, rulesFrom, stealPoints, type MatchStatus, type Phase } from "@/lib/arena/arenaCore";
 import { ONLINE_SECONDS, ArenaError, mutate } from "@/lib/arena/arena";
+import { chatFor, type ChatView } from "@/lib/arena/chat";
+import { activeSuspension } from "@/lib/arena/suspension";
 import { modulesWithPool, type Reveal, type ServedRound } from "@/lib/arena/arenaPool";
 
 export interface PlayerView { id: string; name: string; initials: string; avatarUrl: string | null; score: number; pausesLeft: number; ready: boolean }
@@ -211,6 +213,10 @@ export interface CourseArenaView {
   active: { id: string; status: MatchStatus; opponentName: string } | null;
   recent: { id: string; opponentName: string; result: "won" | "lost" | "draw" | "forfeit"; myScore: number; opponentScore: number; endedAt: number }[];
   topics: { id: string; title: string; count: number }[];
+  /** The course chat as this player sees it (empty and disabled until a Super Admin switches it on). */
+  chat: ChatView;
+  /** Set while a moderator has this player suspended from the course arena. */
+  suspension: { until: number | null; reason: string | null } | null;
   serverNow: number;
 }
 
@@ -233,8 +239,9 @@ export async function courseArenaView(traineeId: string, courseId: string): Prom
   const incoming = await Promise.all(mine.filter((x) => x.status === "PENDING" && x.opponentId === traineeId).map(async (x) => ({ id: x.id, from: { id: x.challenger.id, name: x.challenger.name, initials: initialsOf(x.challenger.name) }, topic: await topicTitle(x.moduleId), expiresAt: x.expiresAt.getTime() })));
   const outgoing = await Promise.all(mine.filter((x) => x.status === "PENDING" && x.challengerId === traineeId).map(async (x) => ({ id: x.id, to: { id: x.opponent.id, name: x.opponent.name }, topic: await topicTitle(x.moduleId), expiresAt: x.expiresAt.getTime() })));
   const act = mine.find((x) => x.status === "LOBBY" || x.status === "ACTIVE");
+  const [chat, suspended] = await Promise.all([chatFor(courseId, traineeId), activeSuspension(traineeId, courseId)]);
   return {
-    course, me, rules,
+    course, me, rules, chat, suspension: suspended ? { until: suspended.expiresAt ? suspended.expiresAt.getTime() : null, reason: suspended.reason } : null,
     online: present.map((p) => ({ id: p.trainee.id, name: p.trainee.name, initials: initialsOf(p.trainee.name), avatarUrl: p.trainee.avatarUrl, status: busyIds.has(p.trainee.id) ? ("BUSY" as const) : ("AVAILABLE" as const) })),
     incoming, outgoing,
     active: act ? { id: act.id, status: act.status as MatchStatus, opponentName: act.challengerId === traineeId ? act.opponent.name : act.challenger.name } : null,
