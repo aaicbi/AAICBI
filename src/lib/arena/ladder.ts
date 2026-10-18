@@ -23,7 +23,7 @@ export async function settleLadder(matchId: string): Promise<void> {
     const [a, b] = [m.challengerId, m.opponentId];
     const day = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate()));
     const today = await prisma.arenaMatch.findMany({ where: { courseId: m.courseId, id: { not: matchId }, endedAt: { gte: day }, status: { in: ["COMPLETED", "FORFEITED"] }, OR: [{ challengerId: a, opponentId: b }, { challengerId: b, opponentId: a }] }, select: { id: true } });
-    const earlier = today.length ? await prisma.arenaRatingChange.count({ where: { traineeId: a, counted: true, matchId: { in: today.map((x) => x.id) } } }) : 0;
+    const earlier = today.length ? await prisma.arenaRatingChange.count({ where: { traineeId: a, counted: true, voided: false, matchId: { in: today.map((x) => x.id) } } }) : 0;
     const counted = earlier < SAME_PAIR_DAILY_LIMIT;
 
     const score = (id: string): 0 | 0.5 | 1 => (m.winnerId === null ? 0.5 : m.winnerId === id ? 1 : 0);
@@ -85,7 +85,7 @@ export async function ensureChampion(courseId: string): Promise<{ id: string; na
   if (existing) return existing.trainee;
   if (Date.now() - (announced.get(courseId) ?? 0) < 60_000) return null;
   announced.set(courseId, Date.now());
-  const sums = await prisma.arenaRatingChange.groupBy({ by: ["traineeId"], where: { courseId, counted: true, createdAt: { gte: lastWeek, lt: thisWeek } }, _sum: { delta: true }, _count: { _all: true } });
+  const sums = await prisma.arenaRatingChange.groupBy({ by: ["traineeId"], where: { courseId, counted: true, voided: false, createdAt: { gte: lastWeek, lt: thisWeek } }, _sum: { delta: true }, _count: { _all: true } });
   const hidden = await prisma.arenaRating.findMany({ where: { courseId, hidden: true }, select: { traineeId: true } });
   const out = new Set(hidden.map((h) => h.traineeId));
   const best = sums.filter((s) => !out.has(s.traineeId) && s._count._all >= CHAMPION_MIN_MATCHES && (s._sum.delta ?? 0) > 0).sort((x, y) => (y._sum.delta ?? 0) - (x._sum.delta ?? 0))[0];
@@ -115,7 +115,7 @@ export async function ladderView(courseId: string, viewerId: string, period: Per
 
   const [ratings, weekly, champion] = await Promise.all([
     prisma.arenaRating.findMany({ where: { courseId, hidden: false, matches: { gte: MIN_MATCHES } }, include: { trainee: { select: { id: true, name: true } } } }),
-    prisma.arenaRatingChange.groupBy({ by: ["traineeId"], where: { courseId, counted: true, createdAt: { gte: from ?? weekFrom } }, _sum: { delta: true }, _count: { _all: true } }),
+    prisma.arenaRatingChange.groupBy({ by: ["traineeId"], where: { courseId, counted: true, voided: false, createdAt: { gte: from ?? weekFrom } }, _sum: { delta: true }, _count: { _all: true } }),
     ensureChampion(courseId),
   ]);
   const gain = new Map(weekly.map((w) => [w.traineeId, w._sum.delta ?? 0]));

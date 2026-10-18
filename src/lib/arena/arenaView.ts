@@ -103,7 +103,7 @@ export async function viewMatch(matchId: string, viewerId: string): Promise<Matc
     prisma.trainee.findUnique({ where: { id: m.opponentId }, select: { id: true, name: true, avatarUrl: true } }),
     prisma.course.findUnique({ where: { id: m.courseId }, select: { title: true } }),
     m.moduleId ? prisma.module.findUnique({ where: { id: m.moduleId }, select: { title: true } }) : null,
-    prisma.arenaMessage.findMany({ where: { matchId }, orderBy: { createdAt: "asc" }, take: 40 }),
+    prisma.arenaMessage.findMany({ where: { matchId, deletedAt: null }, orderBy: { createdAt: "asc" }, take: 40 }),
     prisma.arenaReaction.findMany({ where: { matchId, createdAt: { gte: new Date(Date.now() - 20_000) } }, orderBy: { createdAt: "asc" }, take: 30 }),
     prisma.arenaSpectator.count({ where: { matchId, lastSeenAt: { gte: new Date(Date.now() - 30_000) } } }),
     prisma.arenaCheer.findMany({ where: { matchId, createdAt: { gte: new Date(Date.now() - 10_000) } }, orderBy: { createdAt: "asc" }, take: 20 }),

@@ -26,8 +26,8 @@ async function allow(traineeId: string, matchId: string) {
 
 export interface SpectateView {
   id: string; status: string; courseId: string; courseTitle: string; topic: string | null; event: { id: string } | null;
-  a: { name: string; initials: string; score: number; tier: string | null; tierKey: string | null };
-  b: { name: string; initials: string; score: number; tier: string | null; tierKey: string | null };
+  a: { id: string; name: string; initials: string; score: number; tier: string | null; tierKey: string | null };
+  b: { id: string; name: string; initials: string; score: number; tier: string | null; tierKey: string | null };
   phase: MatchView["phase"]; phaseEndsAt: number | null; roundNo: number; totalRounds: number; turn: "a" | "b" | null;
   round: null | { number: number; format: string; points: number; stage: "ANSWER" | "STEAL" | "REVEAL"; answerer: "a" | "b"; served: NonNullable<MatchView["round"]>["served"] };
   reveal: null | { outcome: string; awardedTo: "a" | "b" | null; points: number; answer: NonNullable<MatchView["reveal"]>["answer"] };
@@ -50,8 +50,8 @@ export async function spectateView(traineeId: string, matchId: string): Promise<
   void prisma.arenaSpectator.deleteMany({ where: { lastSeenAt: { lt: new Date(Date.now() - 2 * 3_600_000) } } }).catch(() => undefined);
   return {
     id: v.id, status: v.status, courseId: v.courseId, courseTitle: v.courseTitle, topic: v.topic, event: m0.eventId ? { id: m0.eventId } : null,
-    a: { name: v.me.name, initials: v.me.initials, score: v.me.score, tier: ra?.tier ?? null, tierKey: ra?.tierKey ?? null },
-    b: { name: v.opponent.name, initials: v.opponent.initials, score: v.opponent.score, tier: rb?.tier ?? null, tierKey: rb?.tierKey ?? null },
+    a: { id: m0.challengerId, name: v.me.name, initials: v.me.initials, score: v.me.score, tier: ra?.tier ?? null, tierKey: ra?.tierKey ?? null },
+    b: { id: m0.opponentId, name: v.opponent.name, initials: v.opponent.initials, score: v.opponent.score, tier: rb?.tier ?? null, tierKey: rb?.tierKey ?? null },
     phase: v.phase, phaseEndsAt: v.phaseEndsAt, roundNo: v.roundNo, totalRounds: v.totalRounds, turn: side(v.turn),
     round: v.round ? { number: v.round.number, format: v.round.format, points: v.round.points, stage: v.round.stage, answerer: side(v.round.answerer)!, served: v.round.served } : null,
     reveal: v.reveal ? { outcome: v.reveal.outcome, awardedTo: side(v.reveal.awardedTo), points: v.reveal.points, answer: v.reveal.answer } : null,
