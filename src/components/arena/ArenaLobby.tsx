@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import ArenaFrame from "./ArenaFrame";
 import ArenaChat from "./ArenaChat";
 import PushNudge from "./PushNudge";
+import ChallengeMute from "./ChallengeMute";
 import { useArenaLive, channels } from "./useArenaLive";
 import type { CourseArenaView } from "@/lib/arena/arenaView";
 
@@ -32,7 +33,7 @@ export default function ArenaLobby({ courseId, traineeId }: { courseId: string; 
     if (j.reach && j.reach !== "online") {
       // Not in the arena: stay here and say how it will reach them. The waiting card below opens the match.
       const who = [...v!.online, ...v!.offline].find((p) => p.id === opponentId)?.name.split(" ")[0] ?? "They";
-      flash(j.reach === "push" ? `Challenge sent. ${who} gets a notification on their phone.` : `Challenge sent. ${who} hasn't turned on phone alerts, so they'll see it next time they open the app.`);
+      flash(j.reach === "push" ? `Challenge sent. ${who} gets a notification on their phone.` : `Challenge sent. ${who} won't get a phone alert, so they'll see it next time they open the app.`);
       void reload();
       return;
     }
@@ -82,6 +83,7 @@ export default function ArenaLobby({ courseId, traineeId }: { courseId: string; 
                 </div>
               )}
               <PushNudge what="challenges" />
+              <ChallengeMute />
               <div className="ar-glass ar-fill ar-lobbylist">
                 <div className="ar-row"><strong className="ar-grow">Online now</strong>
                   <select aria-label="Topic" value={topic} onChange={(e) => setTopic(e.target.value)} style={{ maxWidth: "50%" }}>

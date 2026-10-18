@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { arenaJson, arenaTrainee } from "@/lib/arena/arenaApi";
 import { activeMatchOf, touchPresence, sweepExpiredChallenges } from "@/lib/arena/arena";
 import { availabilityForCourse } from "@/lib/arena/config";
+import { challengeAlertsMuted } from "@/lib/arena/prefs";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export async function GET() {
     const m = await activeMatchOf(me);
     if (!m) return { match: null };
     const other = await prisma.trainee.findUnique({ where: { id: m.challengerId === me ? m.opponentId : m.challengerId }, select: { name: true } });
-    const kind = m.status === "PENDING" ? (m.opponentId === me ? "challenge" : "waiting") : "game";
+    const kind = m.status === "PENDING" ? (m.opponentId === me ? ((await challengeAlertsMuted(me)) ? "waiting" : "challenge") : "waiting") : "game";
     return { match: { id: m.id, kind, status: m.status, opponentName: other?.name ?? "A coursemate", paused: m.pausedById !== null } };
   });
 }

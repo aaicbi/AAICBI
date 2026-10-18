@@ -748,6 +748,7 @@ model Trainee {
   arenaChatReads  ArenaChatRead[]
   arenaRatings    ArenaRating[]
   arenaEventPlayers ArenaEventPlayer[]
+  arenaPreference ArenaPreference?
   arenaRatingChanges ArenaRatingChange[]
   arenaChampions  ArenaChampion[]
   arenaSprintsWon ArenaSprint[]
@@ -6075,4 +6076,14 @@ model ArenaCheer {
   createdAt DateTime @default(now())
 
   @@index([matchId, createdAt])
+}
+
+/// A trainee's own arena settings. Today: muting phone alerts for challenges.
+model ArenaPreference {
+  traineeId           String    @id
+  trainee             Trainee   @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  /// Muted until this moment, or until the person turns it back on when `challengeMuted` is set.
+  challengeMutedUntil DateTime?
+  challengeMuted      Boolean   @default(false)
+  updatedAt           DateTime  @updatedAt
 }

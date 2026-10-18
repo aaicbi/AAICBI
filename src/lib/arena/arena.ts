@@ -17,6 +17,7 @@ import {
 import { basePointsFor, chooseEntry, gradeEntry, poolFor, revealEntry, serveEntry, type PoolEntry } from "@/lib/arena/arenaPool";
 import { channels } from "@/lib/arena/realtimeCore";
 import { pokeMany } from "@/lib/arena/realtime";
+import { challengeAlertsMuted } from "@/lib/arena/prefs";
 import { notifyChallenge, notifyChallengeReply, notifyChallengeExpired } from "@/lib/arena/challengeNotify";
 import { activeSuspension, suspensionText } from "@/lib/arena/suspension";
 
@@ -349,7 +350,7 @@ export async function createChallenge(input: { challengerId: string; opponentId:
   void pokeMany([{ channel: channels.user(opponentId), message: { v: m.version, k: "challenge" } }, { channel: channels.course(courseId), message: { v: 0, k: "lobby" } }]);
   void notifyChallenge(m);
   // How the challenge will reach them: they are here now, it goes to their phone, or they will only see it next time they open the app.
-  const reach: "online" | "push" | "none" = online ? "online" : (await prisma.pushSubscription.count({ where: { recipientType: "TRAINEE", recipientId: opponentId } })) > 0 ? "push" : "none";
+  const reach: "online" | "push" | "none" = online ? "online" : (await challengeAlertsMuted(opponentId)) ? "none" : (await prisma.pushSubscription.count({ where: { recipientType: "TRAINEE", recipientId: opponentId } })) > 0 ? "push" : "none";
   return Object.assign(m, { reach });
 }
 

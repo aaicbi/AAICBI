@@ -47,7 +47,7 @@ export default function ArenaChat({ courseId, chat, suspended, online, offline, 
     if (!res.ok) return flash(j.error ?? "That didn't work.");
     if (j.reach && j.reach !== "online") {
       const who = [...online, ...offline].find((p) => p.id === id)?.name.split(" ")[0] ?? "They";
-      flash(j.reach === "push" ? `Challenge sent. ${who} gets a notification on their phone.` : `Challenge sent. ${who} hasn't turned on phone alerts, so they'll see it next time they open the app.`);
+      flash(j.reach === "push" ? `Challenge sent. ${who} gets a notification on their phone.` : `Challenge sent. ${who} won't get a phone alert, so they'll see it next time they open the app.`);
       onChanged();
       return;
     }

@@ -31,7 +31,7 @@ export default function ArenaLadder({ courseId }: { courseId: string }) {
     if (!res.ok) { setToast(j.error ?? "That didn't work."); setTimeout(() => setToast(null), 3500); return; }
     if (j.reach && j.reach !== "online") {
       const who = e.name.split(" ")[0];
-      setToast(j.reach === "push" ? `Challenge sent. ${who} gets a notification on their phone.` : `Challenge sent. ${who} hasn't turned on phone alerts, so they'll see it next time they open the app.`);
+      setToast(j.reach === "push" ? `Challenge sent. ${who} gets a notification on their phone.` : `Challenge sent. ${who} won't get a phone alert, so they'll see it next time they open the app.`);
       setTimeout(() => setToast(null), 5000);
       return;
     }

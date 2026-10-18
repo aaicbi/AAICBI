@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { arenaJson, arenaTrainee } from "@/lib/arena/arenaApi";
 import { chatSummaries } from "@/lib/arena/chat";
 import { activeMatchOf } from "@/lib/arena/arena";
+import { challengeAlertsMuted } from "@/lib/arena/prefs";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export async function GET() {
       activeMatchOf(me),
     ]);
     const direct = (await Promise.all(parts.map((p) => prisma.conversationMessage.count({ where: { conversationId: p.conversationId, createdAt: { gt: p.lastReadAt ?? new Date(0) }, NOT: { authorType: "TRAINEE", authorId: me } } })))).reduce((a, b) => a + b, 0);
-    const challenge = !!active && active.status === "PENDING" && active.opponentId === me;
+    const challenge = !!active && active.status === "PENDING" && active.opponentId === me && !(await challengeAlertsMuted(me));
     const groups = chats.reduce((a, c) => a + c.unread, 0);
     return { chats, direct, challenge, total: groups + direct + (challenge ? 1 : 0) };
   });

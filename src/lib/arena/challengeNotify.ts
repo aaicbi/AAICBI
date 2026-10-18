@@ -4,6 +4,7 @@
  */
 import { prisma } from "@/lib/prisma";
 import { sendPushForNotification } from "@/lib/push/send";
+import { challengeAlertsMuted } from "@/lib/arena/prefs";
 import { challengeNotice, replyNotice, expiredNotice, CHALLENGE_TYPE, type ChallengeFacts } from "@/lib/arena/challengeNotifyCore";
 
 async function facts(m: { id: string; courseId: string; challengerId: string; opponentId: string; moduleId: string | null; rematchOfId: string | null }): Promise<ChallengeFacts> {
@@ -16,15 +17,16 @@ async function facts(m: { id: string; courseId: string; challengerId: string; op
   return { matchId: m.id, courseId: m.courseId, courseTitle: course?.title ?? "Your course", fromName: from?.name ?? "", toName: to?.name ?? "", topic: mod?.title ?? null, rematch: !!m.rematchOfId };
 }
 
-async function deliver(recipientId: string, note: { type: string; title: string; body: string; url: string }) {
+async function deliver(recipientId: string, note: { type: string; title: string; body: string; url: string }, opts: { quiet?: boolean } = {}) {
   await prisma.userNotification.create({ data: { recipientType: "TRAINEE", recipientId, ...note } });
-  await sendPushForNotification("TRAINEE", recipientId, note);
+  if (!opts.quiet) await sendPushForNotification("TRAINEE", recipientId, note);
 }
 
 type MatchRow = Parameters<typeof facts>[0];
 
 export async function notifyChallenge(m: MatchRow): Promise<void> {
-  try { await deliver(m.opponentId, challengeNotice(await facts(m))); } catch (e) { console.error("Challenge notification failed:", e); }
+  // A muted player still finds the challenge in the app and in their bell; only the phone push is held back.
+  try { await deliver(m.opponentId, challengeNotice(await facts(m)), { quiet: await challengeAlertsMuted(m.opponentId) }); } catch (e) { console.error("Challenge notification failed:", e); }
 }
 
 export async function notifyChallengeReply(m: MatchRow, accepted: boolean): Promise<void> {
