@@ -6159,6 +6159,7 @@ model GrowthCampaign {
 
   taster  GrowthTasterQuestion[]
   plays   GrowthGuestPlay[]
+  squads  GrowthSquad[]
 }
 
 // The five questions newcomers play for free. The course's instructor approves each one.
@@ -6202,6 +6203,11 @@ model GrowthGuestPlay {
   duelOfId    String?
   durationMs  Int?
 
+  // Squads: the squad this play counts for, and the squad whose challenge this play answered (before a squad of its own exists).
+  squadId      String?
+  rivalSquadId String?
+
+  @@index([squadId])
   @@index([duelOfId])
   @@index([campaignId, startedAt])
   @@index([campaignId, completedAt])
@@ -6253,4 +6259,23 @@ model GrowthGrant {
 
   @@unique([traineeId, courseId])
   @@index([campaignId])
+}
+
+// A squad: a group (a WhatsApp group, a school, a company) whose members play the same five questions. Its score is the total of its members' scores.
+model GrowthSquad {
+  id            String         @id @default(cuid())
+  campaignId    String
+  campaign      GrowthCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  // Public code in the join link.
+  code          String         @unique
+  name          String
+  // Every member plays these, in this order, so squads can be compared fairly.
+  questionIds   Json
+  // The squad whose challenge this squad was started to answer.
+  rivalOfId     String?
+  captainPlayId String?
+  createdAt     DateTime       @default(now())
+
+  @@index([campaignId])
+  @@index([rivalOfId])
 }

@@ -210,3 +210,46 @@ export const challengeText = (name: string | null, score: number, total: number,
 export const CARD_SIZES = { og: { width: 1200, height: 630 }, status: { width: 1080, height: 1920 } } as const;
 export type CardFormat = keyof typeof CARD_SIZES;
 export const cardFormat = (raw: unknown): CardFormat => (raw === "status" ? "status" : "og");
+
+// ---------------------------------------------------------------- squads
+
+export const SQUAD_MAX_MEMBERS = 50;
+export const SQUAD_NAME_MIN = 3;
+export const SQUAD_NAME_MAX = 24;
+/** The squad board lists this many members, best first. */
+export const SQUAD_BOARD_MEMBERS = 10;
+export const SQUAD_BOARD_RIVALS = 5;
+/** One device can join the same squad this many times an hour, so a single phone cannot pad a squad's total. */
+export const SQUAD_JOINS_PER_HOUR = 6;
+
+/** A squad's name: same safe characters as a challenge name, 3 to 24 characters. */
+export function cleanSquadName(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const s = raw.replace(/[^\p{L}\p{N} '_-]+/gu, "").replace(/\s+/g, " ").trim().slice(0, SQUAD_NAME_MAX).trim();
+  return s.length >= SQUAD_NAME_MIN ? s : null;
+}
+
+export interface SquadTotals { members: number; total: number; max: number; average: number }
+
+/** A squad's score is the total of its members' scores out of everything they could have earned; the average is shown beside it. */
+export function squadTotals(scores: number[], perPlay: number): SquadTotals {
+  const total = scores.reduce((a, b) => a + b, 0);
+  return { members: scores.length, total, max: scores.length * perPlay, average: scores.length ? Math.round((total / scores.length) * 10) / 10 : 0 };
+}
+
+export type SquadStanding = "AHEAD" | "BEHIND" | "LEVEL";
+/** How a squad stands against another on total points. */
+export function squadStanding(mine: number, theirs: number): SquadStanding {
+  return mine === theirs ? "LEVEL" : mine > theirs ? "AHEAD" : "BEHIND";
+}
+
+export interface SquadRankInput { id: string; total: number; members: number }
+/** Highest total first; on a tie the bigger squad first; then by id so the order never flickers. */
+export function rankSquads<T extends SquadRankInput>(rows: T[]): T[] {
+  return [...rows].sort((a, b) => b.total - a.total || b.members - a.members || a.id.localeCompare(b.id));
+}
+
+export const squadPath = (slug: string, code: string) => `/play/${slug}?squad=${code}`;
+export const rivalPath = (slug: string, code: string) => `/play/${slug}?rival=${code}`;
+export const squadJoinText = (squadName: string, url: string) => `Join ${squadName}! We're playing a 90-second AI automation quiz and every score counts for the squad. No signup: ${url}`;
+export const squadRivalText = (squadName: string, url: string) => `${squadName} challenges your squad on an AI automation quiz. Start your squad, get your friends to play the same 5 questions, and see who wins. No signup: ${url}`;
