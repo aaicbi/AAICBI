@@ -259,6 +259,7 @@ export async function mutate<T>(matchId: string, fn?: (d: Draft, now: number) =>
       d.m.version = before.version + 1;
       void pokeMatch(d.m);
       if (before.status !== d.m.status && (d.m.status === "COMPLETED" || d.m.status === "FORFEITED")) void import("@/lib/arena/ladder").then((l) => l.settleLadder(d.m.id)).catch(() => undefined);
+      if (before.status !== d.m.status && d.m.eventTieId && (d.m.status === "COMPLETED" || d.m.status === "FORFEITED" || d.m.status === "CANCELLED" || d.m.status === "EXPIRED")) void import("@/lib/arena/event").then((e) => e.onEventMatchEnd(d.m.id)).catch(() => undefined);
     }
     if (refusal) throw refusal;
     return { match: d.m, rounds: d.rounds, value };

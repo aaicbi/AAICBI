@@ -119,6 +119,21 @@ export default function ArenaMatch({ matchId }: { matchId: string }) {
     }
   }, [v, play]);
 
+  // Cheers from spectators float up the screen like reactions (nobody is named).
+  const cheersSeen = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (!v) return;
+    if (cheersSeen.current === null) { cheersSeen.current = new Set(v.spectators.cheers.map((c) => c.id)); return; }
+    for (const c of v.spectators.cheers) {
+      if (cheersSeen.current.has(c.id)) continue;
+      cheersSeen.current.add(c.id);
+      const em = ({ applause: "👏", fire: "🔥", wow: "😮", strong: "💪", cheer: "🎉" } as Record<string, string>)[c.kind]; if (!em) continue;
+      const item = { id: c.id, e: em, who: "The crowd" };
+      setHeroes((h) => [...h, item]);
+      setTimeout(() => setHeroes((h) => h.filter((x) => x.id !== item.id)), 2700);
+    }
+  }, [v]);
+
   // Messages ping.
   const msgCount = useRef<number | null>(null);
   useEffect(() => {
@@ -213,6 +228,7 @@ export default function ArenaMatch({ matchId }: { matchId: string }) {
           <div className="ar-top">
             <div className="ar-t">{v.status === "ACTIVE" ? `Question ${Math.min(Math.max(v.roundNo, 1), v.totalRounds)} of ${v.totalRounds}` : statusLabel(v)}</div>
             <div className="ar-prog" aria-hidden>{v.progress.map((p, i) => <i key={i} className={p === "won" ? "ar-d" : p === "lost" ? "ar-w" : p === "now" ? "ar-n" : ""} />)}</div>
+            {v.spectators.watching > 0 && <span className="ar-pill" data-testid="spectators">👁 {v.spectators.watching}</span>}
             {v.status === "ACTIVE" && !pausedNow && <button type="button" className="ar-pill ar-pausebtn" disabled={v.me.pausesLeft === 0} onClick={() => void act("pause")}>⏸ Pause · {v.me.pausesLeft} left</button>}
           </div>
           <div className="ar-main">

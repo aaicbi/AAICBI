@@ -76,7 +76,7 @@ export default function ArenaAdmin() {
       <span className="text-xs text-gray-600">Using the wider setting</span>
     );
 
-  const SwitchRow = ({ k, title, hint, disabled, note }: { k: "enabled" | "gameEnabled" | "chatEnabled" | "ladderEnabled" | "fastestEnabled" | "walletEnabled"; title: string; hint: string; disabled?: boolean; note?: string }) => (
+  const SwitchRow = ({ k, title, hint, disabled, note }: { k: "enabled" | "gameEnabled" | "chatEnabled" | "ladderEnabled" | "fastestEnabled" | "walletEnabled" | "eventsEnabled"; title: string; hint: string; disabled?: boolean; note?: string }) => (
     <div className="flex items-start justify-between gap-4 border-t border-brand-gray py-3 first:border-t-0">
       <div className="min-w-0">
         <h3 className="text-sm font-semibold text-brand-ink">{title}</h3>
@@ -156,6 +156,7 @@ export default function ArenaAdmin() {
             <SwitchRow k="enabled" title="Ayakbi Arena" hint="The master switch. Nothing in the arena works while it is off." />
             <SwitchRow k="gameEnabled" title="Two-player Interview game" hint="Challenges, the lobby, the match, results and rematch." disabled={!s.enabled} />
             <SwitchRow k="chatEnabled" title="Course chat" hint="A group chat for each course." />
+            <SwitchRow k="eventsEnabled" title="Live events" hint="Lets instructors run an arena night: a knockout for the course, with a big screen and spectators. Needs the two-player game. Off until you switch it on." />
             <SwitchRow k="walletEnabled" title="Credit wallet" hint="Lets trainees send their credit scores to coursemates, and is where credits will be spent on platform features later. Off until the platform features are ready." />
             <SwitchRow k="fastestEnabled" title="Fastest Fingers" hint="Instructors post a question in the course chat; the first trainee with the right answer wins credit scores. Needs the course chat. Off until you switch it on." />
             <SwitchRow k="ladderEnabled" title="Champion ladder" hint="Rankings, and challenging the champion." />

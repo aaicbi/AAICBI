@@ -62,6 +62,25 @@ export default function ArenaLobby({ courseId, traineeId }: { courseId: string; 
           <div className={`ar-main ar-two${v.chat.enabled ? " ar-lobby3" : ""}`}>
             <div className="ar-col">
               {sus && !v.chat.enabled && <p className="ar-note ar-miss" role="status">{sus}</p>}
+              {v.event && (
+                <div className="ar-glass ar-champ" data-testid="event-banner">
+                  <div className="ar-crown">⚔️ Live event · {v.event.status === "SIGNUP" ? "sign-up open" : v.event.status === "LIVE" ? "running now" : "finished"}</div>
+                  <p className="ar-name">{v.event.name} · {v.event.players} player{v.event.players === 1 ? "" : "s"}</p>
+                  <div className="ar-row"><a className="ar-btn ar-sm" href={`/trainee/arena/${courseId}/event/${v.event.id}`} style={{ textDecoration: "none" }}>{v.event.status === "SIGNUP" && !v.event.joined ? "Join the event" : "Open the event"}</a></div>
+                </div>
+              )}
+              {v.live.length > 0 && (
+                <div className="ar-glass" data-testid="live-now">
+                  <div className="ar-row"><strong className="ar-grow">Live now</strong><span className="ar-live"><i />{v.live.length} match{v.live.length === 1 ? "" : "es"}</span></div>
+                  {v.live.map((m) => (
+                    <div key={m.id} className="ar-row">
+                      <div className="ar-grow"><div className="ar-name">{m.a.split(" ")[0]} vs {m.b.split(" ")[0]}</div><div className="ar-sub">{m.aTier ? `${m.aTier} · ` : ""}question {m.round} of {m.total} · {m.watching} watching{m.event ? " · event" : ""}</div></div>
+                      <span className="ar-rt">{m.scoreA}–{m.scoreB}</span>
+                      <a className="ar-btn ar-sm" href={`/trainee/arena/watch/${m.id}`} style={{ textDecoration: "none" }}>Watch</a>
+                    </div>
+                  ))}
+                </div>
+              )}
               <PushNudge what="challenges" />
               <div className="ar-glass ar-fill ar-lobbylist">
                 <div className="ar-row"><strong className="ar-grow">Online now</strong>

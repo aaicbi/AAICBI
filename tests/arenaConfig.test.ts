@@ -9,7 +9,7 @@ describe("arena settings", () => {
     expect(s.questionSeconds).toBe(60);
     expect(s.pickSeconds).toBe(180);
     expect(s.bonusPercent).toBe(50);
-    expect(availability(s)).toEqual({ arena: false, game: false, chat: false, ladder: false, fastest: false, wallet: false, spectators: "OFF" });
+    expect(availability(s)).toEqual({ arena: false, game: false, chat: false, ladder: false, fastest: false, wallet: false, events: false, spectators: "OFF" });
   });
 
   it("the narrowest scope that sets a value wins, and null falls back to the wider one", () => {
@@ -29,9 +29,9 @@ describe("arena settings", () => {
 
   it("each feature needs the master switch, and spectators and the ladder need the game", () => {
     const on = { ...ARENA_DEFAULTS, enabled: true, chatEnabled: true, ladderEnabled: true, spectators: "ENROLLED" as const };
-    expect(availability(on)).toEqual({ arena: true, game: true, chat: true, ladder: true, fastest: false, wallet: false, spectators: "ENROLLED" });
+    expect(availability(on)).toEqual({ arena: true, game: true, chat: true, ladder: true, fastest: false, wallet: false, events: false, spectators: "ENROLLED" });
     expect(availability({ ...on, gameEnabled: false })).toMatchObject({ game: false, ladder: false, spectators: "OFF", chat: true });
-    expect(availability({ ...on, enabled: false })).toEqual({ arena: false, game: false, chat: false, ladder: false, fastest: false, wallet: false, spectators: "OFF" });
+    expect(availability({ ...on, enabled: false })).toEqual({ arena: false, game: false, chat: false, ladder: false, fastest: false, wallet: false, events: false, spectators: "OFF" });
   });
 
   it("Fastest Fingers is off by default and needs the chat", () => {
@@ -48,6 +48,14 @@ describe("arena settings", () => {
     expect(availability(on).wallet).toBe(true);
     expect(availability({ ...on, enabled: false }).wallet).toBe(false);
     expect(normalizeSwitches({ ...on, enabled: false }).walletEnabled).toBe(false);
+  });
+
+  it("live events are off by default and need the game", () => {
+    expect(ARENA_DEFAULTS.eventsEnabled).toBe(false);
+    const on = { ...ARENA_DEFAULTS, enabled: true, eventsEnabled: true };
+    expect(availability(on).events).toBe(true);
+    expect(availability({ ...on, gameEnabled: false }).events).toBe(false);
+    expect(normalizeSwitches({ ...on, gameEnabled: false }).eventsEnabled).toBe(false);
   });
 
   it("normalizeSwitches turns dependants off", () => {
