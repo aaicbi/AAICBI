@@ -90,6 +90,9 @@ export async function serveEntry(e: PoolEntry): Promise<ServedRound | null> {
   const it = await prisma.gameItem.findUnique({ where: { id: e.id }, select: { format: true, content: true, objective: { select: { text: true } }, module: { select: { title: true } } } });
   if (!it) return null;
   const served = serveItem(it.format as ItemFormat, it.content as unknown as ItemContent);
+  // A malformed item (a missing term, an empty step) must never reach a match; the caller picks another.
+  const texts = served.format === "MATCHING" ? [...served.lefts, ...served.rights] : served.format === "ORDERING" ? served.steps : served.options;
+  if (!texts.length || texts.some((t) => typeof t !== "string" || !t.trim())) return null;
   return { ...served, topic: it.objective?.text ?? it.module.title, level: "Medium" } as ServedRound;
 }
 
