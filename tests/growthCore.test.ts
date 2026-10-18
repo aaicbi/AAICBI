@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TASTER_SIZE, answerGrid, beatPercent, bpsToPercent, checkLead, cleanEmail, cleanSource, effectivePreviewCount, isCampaignSlug, normalizePhone, percentToBps, readinessIssues, slugify, switchBlockers, tasterRank } from "@/lib/growth/growthCore";
+import { TASTER_SIZE, answerGrid, cardFormat, challengeText, cleanNickname, displayName, duelHeadline, duelOutcome, duelPath, isShareCode, rankStandings, beatPercent, bpsToPercent, checkLead, cleanEmail, cleanSource, effectivePreviewCount, isCampaignSlug, normalizePhone, percentToBps, readinessIssues, slugify, switchBlockers, tasterRank } from "@/lib/growth/growthCore";
 
 const on = { enabled: true, agreementAt: new Date() };
 const base = { platform: on, own: on, orgs: on, organization: on, organizationId: null as string | null, campaignEnabled: true };
@@ -133,5 +133,55 @@ describe("module 1 access", () => {
     expect(effectivePreviewCount(null, 1)).toBe(1);
     expect(effectivePreviewCount(2, 1)).toBe(2);
     expect(effectivePreviewCount(0, undefined)).toBe(0);
+  });
+});
+
+describe("duels", () => {
+  it("cleans a challenge name so it cannot carry a link", () => {
+    expect(cleanNickname("  Ada   O'Neil ")).toBe("Ada O'Neil");
+    expect(cleanNickname("visit http://x.co/win now")).toBe("visit httpxcowin now");
+    expect(cleanNickname("<b>Ada</b>")).toBe("bAdab");
+    expect(cleanNickname("😀😀")).toBeNull();
+    expect(cleanNickname("   ")).toBeNull();
+    expect(cleanNickname(7)).toBeNull();
+    expect(cleanNickname("x".repeat(60))!.length).toBe(20);
+    expect(cleanNickname("Chidi_okafor-1")).toBe("Chidi_okafor-1");
+    expect(cleanNickname("Ngozi Adé")).toBe("Ngozi Adé");
+  });
+  it("decides who won", () => {
+    expect(duelOutcome({ score: 4, durationMs: 90000 }, { score: 3, durationMs: 10000 })).toBe("WIN");
+    expect(duelOutcome({ score: 2, durationMs: 1000 }, { score: 3, durationMs: 90000 })).toBe("LOSE");
+    expect(duelOutcome({ score: 3, durationMs: 20000 }, { score: 3, durationMs: 40000 })).toBe("WIN");
+    expect(duelOutcome({ score: 3, durationMs: 40000 }, { score: 3, durationMs: 20000 })).toBe("LOSE");
+    expect(duelOutcome({ score: 3, durationMs: 20000 }, { score: 3, durationMs: 20500 })).toBe("TIE");
+    expect(duelOutcome({ score: 3, durationMs: null }, { score: 3, durationMs: 20000 })).toBe("TIE");
+  });
+  it("ranks standings by score, then speed, and keeps ten", () => {
+    const rows = [
+      { id: "a", nickname: null, score: 3, durationMs: 50000 },
+      { id: "b", nickname: "Bo", score: 5, durationMs: 80000 },
+      { id: "c", nickname: "Cy", score: 3, durationMs: 30000 },
+      { id: "d", nickname: "Di", score: 3, durationMs: null },
+    ];
+    expect(rankStandings(rows).map((r) => r.id)).toEqual(["b", "c", "a", "d"]);
+    const many = Array.from({ length: 15 }, (_, i) => ({ id: String(i).padStart(2, "0"), nickname: null, score: 1, durationMs: i }));
+    expect(rankStandings(many)).toHaveLength(10);
+  });
+  it("words the result", () => {
+    expect(duelHeadline("WIN", "Ada")).toBe("You beat Ada!");
+    expect(duelHeadline("LOSE", "Ada")).toBe("Ada wins this one.");
+    expect(duelHeadline("TIE", "Ada")).toBe("It's a tie with Ada.");
+    expect(displayName(null)).toBe("A friend");
+  });
+  it("recognizes share codes and card formats", () => {
+    expect(isShareCode("abcd2345")).toBe(true);
+    expect(isShareCode("ABCD2345")).toBe(false);
+    expect(isShareCode("abcd234")).toBe(false);
+    expect(isShareCode("abcd23io")).toBe(false);
+    expect(cardFormat("status")).toBe("status");
+    expect(cardFormat("anything")).toBe("og");
+    expect(duelPath("orbit-ai", "abcd2345")).toBe("/play/orbit-ai?duel=abcd2345");
+    expect(challengeText("Ada", 4, 5, "u")).toMatch(/^Ada here\. I got 4\/5/);
+    expect(challengeText(null, 4, 5, "u")).toMatch(/^I got 4\/5/);
   });
 });

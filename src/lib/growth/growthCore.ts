@@ -159,3 +159,54 @@ export function checkLead(input: { phone?: unknown; email?: unknown; consent?: u
 export function effectivePreviewCount(coursePreviewCount: number | null | undefined, grantModules: number | null | undefined): number {
   return Math.max(coursePreviewCount ?? 0, grantModules ?? 0);
 }
+
+// ---------------------------------------------------------------- async duels and the result card
+
+export const NICK_MAX = 20;
+export const SHARE_CODE_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
+export const SHARE_CODE_LENGTH = 8;
+export const isShareCode = (s: unknown): s is string => typeof s === "string" && s.length === SHARE_CODE_LENGTH && [...s].every((c) => SHARE_CODE_ALPHABET.includes(c));
+/** Standings show this many players at most (the challenger and the friends who took the challenge). */
+export const STANDINGS_MAX = 10;
+/** Two plays on the same score are a tie unless one was this much faster. */
+export const TIE_WINDOW_MS = 1000;
+
+/** The name shown on a challenge: letters, numbers, spaces, apostrophes, hyphens and underscores only (so no links), 20 characters at most. */
+export function cleanNickname(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const s = raw.replace(/[^\p{L}\p{N} '_-]+/gu, "").replace(/\s+/g, " ").trim().slice(0, NICK_MAX).trim();
+  return s || null;
+}
+export const displayName = (nickname: string | null | undefined) => nickname || "A friend";
+
+export interface DuelSide { score: number; durationMs: number | null }
+export type DuelOutcome = "WIN" | "LOSE" | "TIE";
+
+/** How `me` did against `other`: the higher score wins; on the same score the clearly faster run wins, otherwise it is a tie. */
+export function duelOutcome(me: DuelSide, other: DuelSide): DuelOutcome {
+  if (me.score !== other.score) return me.score > other.score ? "WIN" : "LOSE";
+  if (me.durationMs == null || other.durationMs == null) return "TIE";
+  const gap = other.durationMs - me.durationMs;
+  if (Math.abs(gap) < TIE_WINDOW_MS) return "TIE";
+  return gap > 0 ? "WIN" : "LOSE";
+}
+
+export interface StandingInput { id: string; nickname: string | null; score: number; durationMs: number | null }
+
+/** Highest score first; on the same score the faster run first (a missing time counts as slowest); then by id so the order never flickers. */
+export function rankStandings<T extends StandingInput>(rows: T[]): T[] {
+  return [...rows].sort((a, b) => b.score - a.score || (a.durationMs ?? Infinity) - (b.durationMs ?? Infinity) || a.id.localeCompare(b.id)).slice(0, STANDINGS_MAX);
+}
+
+export function duelHeadline(outcome: DuelOutcome, otherName: string): string {
+  if (outcome === "WIN") return `You beat ${otherName}!`;
+  if (outcome === "LOSE") return `${otherName} wins this one.`;
+  return `It's a tie with ${otherName}.`;
+}
+
+export const duelPath = (slug: string, code: string) => `/play/${slug}?duel=${code}`;
+export const challengeText = (name: string | null, score: number, total: number, url: string) => `${displayName(name) === "A friend" ? "I" : `${name} here. I`} got ${score}/${total} on this AI automation quiz. Can you beat me? Same 5 questions, 90 seconds, no signup: ${url}`;
+
+export const CARD_SIZES = { og: { width: 1200, height: 630 }, status: { width: 1080, height: 1920 } } as const;
+export type CardFormat = keyof typeof CARD_SIZES;
+export const cardFormat = (raw: unknown): CardFormat => (raw === "status" ? "status" : "og");

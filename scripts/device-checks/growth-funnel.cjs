@@ -146,8 +146,10 @@ const call = async (cookie, method, path, body) => { const r = await fetch(B + p
   await page.getByTestId('growth-score').waitFor();
   log(/\d\/5/.test(await page.getByTestId('growth-score').innerText()), 'on a phone: the five questions end in a score');
   log((await page.getByTestId('growth-rank').innerText()).length > 3, 'and a rank is shown');
-  const href = await page.getByTestId('growth-share').getAttribute('href');
-  log(/^https:\/\/wa\.me\/\?text=/.test(href) && decodeURIComponent(href).includes(`/play/${slug}?src=share`), 'the WhatsApp share carries the link');
+  await page.getByTestId('growth-challenge').click();
+  await page.getByTestId('growth-wa-send').waitFor();
+  const href = await page.getByTestId('growth-wa-send').getAttribute('href');
+  log(/^https:\/\/wa\.me\/\?text=/.test(href) && decodeURIComponent(href).includes(`/play/${slug}?duel=`), 'the WhatsApp share carries a challenge link');
   log((await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)), 'no sideways scroll on the phone');
   await page.screenshot({ path: '/tmp/dev/growth-result-phone.png' });
   await page.reload();

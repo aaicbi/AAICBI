@@ -6195,7 +6195,14 @@ model GrowthGuestPlay {
   traineeId   String?
   claimedAt   DateTime?
   lead        GrowthLead?
+  // Async duels: the name shown on a challenge, the public code that names this finished play in a share link or card,
+  // the play this one is a duel against (same five questions), and how long the five questions took.
+  nickname    String?
+  shareCode   String?        @unique
+  duelOfId    String?
+  durationMs  Int?
 
+  @@index([duelOfId])
   @@index([campaignId, startedAt])
   @@index([campaignId, completedAt])
   @@index([traineeId])

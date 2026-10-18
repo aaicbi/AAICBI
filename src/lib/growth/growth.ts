@@ -3,8 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { shuffle } from "@/lib/shuffle";
 import { organizationOfCourse } from "@/lib/arena/config";
 import { hasAvailableTrainingSeat } from "@/lib/trainingOrgSeatCap";
+import { appUrl } from "@/lib/appUrl";
 import {
-  CONSENT_TEXT, TASTER_SIZE, beatPercent, checkLead, cleanSource, readinessIssues, slugify, switchBlockers, tasterRank,
+  CONSENT_TEXT, SHARE_CODE_ALPHABET, SHARE_CODE_LENGTH, TASTER_SIZE, beatPercent, challengeText, checkLead, cleanNickname, cleanSource, displayName, duelHeadline, duelOutcome, duelPath, isShareCode, rankStandings, readinessIssues, slugify, switchBlockers, tasterRank,
   type GrowthScope, type SwitchRow,
 } from "@/lib/growth/growthCore";
 
@@ -241,9 +242,19 @@ export async function swapTasterQuestion(actorId: string, courseId: string, ques
 
 type Choice = { questionId: string; choice: string; correct: boolean };
 
+export interface Standing { name: string; score: number; total: number; durationMs: number | null; rank: { key: string; label: string }; you: boolean }
+export interface DuelResult { outcome: "WIN" | "LOSE" | "TIE"; headline: string; opponentName: string; opponentScore: number; opponentTotal: number }
+
 export type PlayState =
-  | { status: "question"; index: number; total: number; question: { id: string; text: string; options: { key: string; text: string }[] } }
-  | { status: "done"; score: number; total: number; rank: { key: string; label: string }; grid: boolean[]; weakSpot: string | null; beatPercent: number | null };
+  | { status: "question"; index: number; total: number; question: { id: string; text: string; options: { key: string; text: string }[] }; duelAgainst: string | null }
+  | {
+      status: "done"; score: number; total: number; rank: { key: string; label: string }; grid: boolean[]; weakSpot: string | null; beatPercent: number | null;
+      shareCode: string | null; nickname: string | null; durationMs: number | null;
+      /** Set when this play was a duel against someone else's. */
+      duel: DuelResult | null;
+      /** The challenger and the friends who took the challenge, best first. Empty until someone has. */
+      standings: Standing[];
+    };
 
 async function servedQuestion(id: string) {
   const q = await prisma.question.findUnique({ where: { id }, select: { id: true, text: true, options: { select: { key: true, text: true } } } });
@@ -251,22 +262,72 @@ async function servedQuestion(id: string) {
   return { id: q.id, text: q.text, options: shuffle(q.options) };
 }
 
-async function stateOf(play: { id: string; campaignId: string; questionIds: unknown; answers: unknown; score: number; completedAt: Date | null }): Promise<PlayState> {
+type PlayRow = { id: string; campaignId: string; questionIds: unknown; answers: unknown; score: number; completedAt: Date | null; nickname: string | null; shareCode: string | null; duelOfId: string | null; durationMs: number | null };
+
+async function standingsFor(play: PlayRow, total: number) {
+  const rootId = play.duelOfId ?? play.id;
+  const rows = await prisma.growthGuestPlay.findMany({ where: { completedAt: { not: null }, OR: [{ id: rootId }, { duelOfId: rootId }] }, select: { id: true, nickname: true, score: true, durationMs: true } });
+  if (rows.length < 2) return { standings: [] as Standing[], root: rows.find((r) => r.id === rootId) ?? null };
+  const ranked = rankStandings(rows);
+  return {
+    root: rows.find((r) => r.id === rootId) ?? null,
+    standings: ranked.map((r) => ({ name: r.id === play.id ? "You" : r.nickname ?? (r.id === rootId ? "The challenger" : "A friend"), score: r.score, total, durationMs: r.durationMs, rank: tasterRank(r.score, total), you: r.id === play.id })),
+  };
+}
+
+async function stateOf(play: PlayRow): Promise<PlayState> {
   const ids = play.questionIds as string[];
   const answers = play.answers as Choice[];
   if (answers.length < ids.length) {
     const q = await servedQuestion(ids[answers.length]);
-    if (q) return { status: "question", index: answers.length, total: ids.length, question: q };
+    if (q) {
+      const against = play.duelOfId ? await prisma.growthGuestPlay.findUnique({ where: { id: play.duelOfId }, select: { nickname: true } }) : null;
+      return { status: "question", index: answers.length, total: ids.length, question: q, duelAgainst: play.duelOfId ? displayName(against?.nickname) : null };
+    }
   }
   const grid = answers.map((a) => a.correct);
   const missed = answers.find((a) => !a.correct);
   const weak = missed ? await prisma.question.findUnique({ where: { id: missed.questionId }, select: { bankObjective: { select: { text: true } } } }) : null;
   const finished = await prisma.growthGuestPlay.findMany({ where: { campaignId: play.campaignId, completedAt: { not: null } }, select: { score: true }, take: 2000 });
-  return { status: "done", score: play.score, total: ids.length, rank: tasterRank(play.score, ids.length), grid, weakSpot: weak?.bankObjective?.text ?? null, beatPercent: beatPercent(play.score, finished.map((f) => f.score)) };
+  const { standings, root } = await standingsFor(play, ids.length);
+  let duel: DuelResult | null = null;
+  if (play.duelOfId && root && root.id !== play.id) {
+    const outcome = duelOutcome({ score: play.score, durationMs: play.durationMs }, { score: root.score, durationMs: root.durationMs });
+    const opponentName = displayName(root.nickname);
+    duel = { outcome, headline: duelHeadline(outcome, opponentName), opponentName, opponentScore: root.score, opponentTotal: ids.length };
+  }
+  return {
+    status: "done", score: play.score, total: ids.length, rank: tasterRank(play.score, ids.length), grid, weakSpot: weak?.bankObjective?.text ?? null,
+    beatPercent: beatPercent(play.score, finished.map((f) => f.score)), shareCode: play.shareCode, nickname: play.nickname, durationMs: play.durationMs, duel, standings,
+  };
 }
 
-/** Starts a taster (or resumes one by its token). Starting needs the link to be live; a run already under way may finish. */
-export async function playStart(slug: string, token: string | null, source: unknown): Promise<{ token: string; state: PlayState }> {
+function newShareCode(): string {
+  const bytes = randomBytes(SHARE_CODE_LENGTH);
+  return [...bytes].map((b) => SHARE_CODE_ALPHABET[b % SHARE_CODE_ALPHABET.length]).join("");
+}
+
+/** A public code for a finished play, made once. Retries on the rare clash. */
+async function ensureShareCode(playId: string): Promise<string> {
+  const existing = await prisma.growthGuestPlay.findUnique({ where: { id: playId }, select: { shareCode: true } });
+  if (existing?.shareCode) return existing.shareCode;
+  for (let n = 0; n < 6; n++) {
+    const code = newShareCode();
+    try {
+      const r = await prisma.growthGuestPlay.updateMany({ where: { id: playId, shareCode: null }, data: { shareCode: code } });
+      if (r.count === 1) return code;
+      return (await prisma.growthGuestPlay.findUniqueOrThrow({ where: { id: playId }, select: { shareCode: true } })).shareCode as string;
+    } catch {
+      // a code clash: try another
+    }
+  }
+  throw new GrowthError("Could not make a share link. Please try again.", 500);
+}
+
+export interface StartOptions { duel?: unknown; nickname?: unknown }
+
+/** Starts a taster (or resumes one by its token). Starting needs the link to be live; a run already under way may finish. With a duel code the newcomer plays the same five questions in the same order as the person who shared it. */
+export async function playStart(slug: string, token: string | null, source: unknown, opts: StartOptions = {}): Promise<{ token: string; state: PlayState }> {
   const campaign = await campaignBySlug(slug);
   if (!campaign) throw new GrowthError("This link isn't available.", 404);
   if (token) {
@@ -275,9 +336,23 @@ export async function playStart(slug: string, token: string | null, source: unkn
   }
   const g = await courseGrowth(campaign.courseId);
   if (!g.live) throw new GrowthError("This campaign has ended.", 410);
-  const taster = await prisma.growthTasterQuestion.findMany({ where: { campaignId: campaign.id, status: "APPROVED" }, orderBy: { position: "asc" }, select: { questionId: true } });
+
+  let questionIds: string[] | null = null;
+  let duelOfId: string | null = null;
+  if (isShareCode(opts.duel)) {
+    const root = await prisma.growthGuestPlay.findUnique({ where: { shareCode: opts.duel }, select: { id: true, campaignId: true, completedAt: true, questionIds: true } });
+    if (root && root.campaignId === campaign.id && root.completedAt) {
+      const ids = root.questionIds as string[];
+      // The duel only works while every one of its questions still exists; otherwise it quietly becomes an ordinary play.
+      if ((await prisma.question.count({ where: { id: { in: ids } } })) === ids.length) { questionIds = ids; duelOfId = root.id; }
+    }
+  }
+  if (!questionIds) {
+    const taster = await prisma.growthTasterQuestion.findMany({ where: { campaignId: campaign.id, status: "APPROVED" }, orderBy: { position: "asc" }, select: { questionId: true } });
+    questionIds = taster.map((t) => t.questionId);
+  }
   const play = await prisma.growthGuestPlay.create({
-    data: { token: randomBytes(24).toString("hex"), campaignId: campaign.id, source: cleanSource(source), questionIds: taster.map((t) => t.questionId) },
+    data: { token: randomBytes(24).toString("hex"), campaignId: campaign.id, source: cleanSource(source) ?? (duelOfId ? "duel" : null), questionIds, duelOfId, nickname: cleanNickname(opts.nickname) },
   });
   return { token: play.token, state: await stateOf(play) };
 }
@@ -302,9 +377,11 @@ export async function playAnswer(slug: string, token: string, choice: unknown) {
   const updated = await prisma.growthGuestPlay.updateMany({
     // The length check makes a repeated tap on the same question a no-op instead of a second answer.
     where: { id: play.id, answers: { equals: play.answers as object } },
-    data: { answers: nextAnswers, score: nextAnswers.filter((a) => a.correct).length, completedAt: done ? new Date() : null },
+    data: { answers: nextAnswers, score: nextAnswers.filter((a) => a.correct).length, completedAt: done ? new Date() : null, durationMs: done ? Date.now() - play.startedAt.getTime() : null },
   });
   if (updated.count === 0) throw new GrowthError("That answer was already counted.", 409);
+  // Everyone who finishes gets a public code, so any result can be shared or challenged.
+  if (done) await ensureShareCode(play.id);
   const fresh = await prisma.growthGuestPlay.findUniqueOrThrow({ where: { id: play.id } });
   return { correct, correctKey, explanation: q.explanation, state: await stateOf(fresh) };
 }
@@ -385,4 +462,49 @@ export async function claimPlay(traineeId: string, slug: string, token: string |
     await prisma.growthGrant.upsert({ where: { traineeId_courseId: { traineeId, courseId: campaign.courseId } }, create: { traineeId, courseId: campaign.courseId, campaignId: campaign.id, modules: 1 }, update: {} });
   }
   return { courseId: campaign.courseId };
+}
+
+// ---------------------------------------------------------------- challenges and the result card
+
+/** Names the challenge (optional) and returns what is needed to share it. Only a finished play can challenge. */
+export async function createChallenge(slug: string, token: string, nickname: unknown) {
+  const campaign = await campaignBySlug(slug);
+  if (!campaign) throw new GrowthError("This link isn't available.", 404);
+  const play = await prisma.growthGuestPlay.findUnique({ where: { token } });
+  if (!play || play.campaignId !== campaign.id) throw new GrowthError("Start again to play.", 404);
+  if (!play.completedAt) throw new GrowthError("Finish the five questions first.", 409);
+  const name = nickname === undefined ? play.nickname : cleanNickname(nickname);
+  if (name !== play.nickname) await prisma.growthGuestPlay.update({ where: { id: play.id }, data: { nickname: name } });
+  const code = await ensureShareCode(play.id);
+  const duelUrl = appUrl(duelPath(slug, code));
+  return {
+    shareCode: code, nickname: name, duelUrl,
+    text: challengeText(name, play.score, (play.questionIds as string[]).length, duelUrl),
+    cardPath: `/api/public/growth/${slug}/card/${code}`,
+  };
+}
+
+/** What a friend sees before they start a duel: the challenger's name and score, never their answers. */
+export async function duelPreview(slug: string, code: string) {
+  if (!isShareCode(code)) return null;
+  const campaign = await campaignBySlug(slug);
+  if (!campaign) return null;
+  const play = await prisma.growthGuestPlay.findUnique({ where: { shareCode: code }, select: { campaignId: true, completedAt: true, nickname: true, score: true, questionIds: true } });
+  if (!play || play.campaignId !== campaign.id || !play.completedAt) return null;
+  const total = (play.questionIds as string[]).length;
+  return { name: displayName(play.nickname), score: play.score, total, rank: tasterRank(play.score, total) };
+}
+
+/** Everything the result card image shows. */
+export async function cardData(slug: string, code: string) {
+  if (!isShareCode(code)) return null;
+  const campaign = await publicCampaign(slug);
+  if (!campaign) return null;
+  const play = await prisma.growthGuestPlay.findUnique({ where: { shareCode: code }, select: { campaignId: true, completedAt: true, nickname: true, score: true, answers: true, questionIds: true } });
+  if (!play || play.campaignId !== campaign.id || !play.completedAt) return null;
+  const total = (play.questionIds as string[]).length;
+  return {
+    name: play.nickname, score: play.score, total, rank: tasterRank(play.score, total), grid: (play.answers as Choice[]).map((a) => a.correct),
+    courseTitle: campaign.courseTitle, organizationName: campaign.organizationName, link: appUrl(`/play/${slug}`).replace(/^https?:\/\//, ""),
+  };
 }
