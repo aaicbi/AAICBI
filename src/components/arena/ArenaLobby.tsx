@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import ArenaFrame from "./ArenaFrame";
 import ArenaChat from "./ArenaChat";
+import PushNudge from "./PushNudge";
 import { useArenaLive, channels } from "./useArenaLive";
 import type { CourseArenaView } from "@/lib/arena/arenaView";
 
@@ -28,6 +29,13 @@ export default function ArenaLobby({ courseId, traineeId }: { courseId: string; 
     const res = await fetch(`/api/arena/courses/${courseId}/challenge`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ opponentId, moduleId: topic || null }) });
     const j = await res.json().catch(() => ({}));
     if (!res.ok) return flash(j.error ?? "That didn't work.");
+    if (j.reach && j.reach !== "online") {
+      // Not in the arena: stay here and say how it will reach them. The waiting card below opens the match.
+      const who = [...v!.online, ...v!.offline].find((p) => p.id === opponentId)?.name.split(" ")[0] ?? "They";
+      flash(j.reach === "push" ? `Challenge sent. ${who} gets a notification on their phone.` : `Challenge sent. ${who} hasn't turned on phone alerts, so they'll see it next time they open the app.`);
+      void reload();
+      return;
+    }
     { leaving.current = false; router.push(`/trainee/arena/match/${j.id}`); }
   }
   async function respond(id: string, accept: boolean) {
@@ -54,6 +62,7 @@ export default function ArenaLobby({ courseId, traineeId }: { courseId: string; 
           <div className={`ar-main ar-two${v.chat.enabled ? " ar-lobby3" : ""}`}>
             <div className="ar-col">
               {sus && !v.chat.enabled && <p className="ar-note ar-miss" role="status">{sus}</p>}
+              <PushNudge what="challenges" />
               <div className="ar-glass ar-fill ar-lobbylist">
                 <div className="ar-row"><strong className="ar-grow">Online now</strong>
                   <select aria-label="Topic" value={topic} onChange={(e) => setTopic(e.target.value)} style={{ maxWidth: "50%" }}>
@@ -61,7 +70,7 @@ export default function ArenaLobby({ courseId, traineeId }: { courseId: string; 
                     {v.topics.map((t) => <option key={t.id} value={t.id}>{t.title} ({t.count})</option>)}
                   </select>
                 </div>
-                {v.online.length === 0 && <p className="ar-muted">Nobody else is in the arena yet. Ask a coursemate to open it.</p>}
+                {v.online.length === 0 && <p className="ar-muted">Nobody else is in the arena right now. You can still challenge a coursemate below, and they'll get a notification on their phone.</p>}
                 {v.online.map((p) => (
                   <div key={p.id} className="ar-row">
                     <span className={`ar-dot${p.status === "BUSY" ? " ar-busy" : ""}`} aria-hidden />
@@ -70,6 +79,20 @@ export default function ArenaLobby({ courseId, traineeId }: { courseId: string; 
                     <button type="button" className="ar-btn ar-sm" disabled={busy || p.status === "BUSY"} onClick={() => void challenge(p.id)}>Challenge</button>
                   </div>
                 ))}
+                {v.offline.length > 0 && (
+                  <details className="ar-offline" data-testid="offline-mates">
+                    <summary><strong>Not online</strong> · {v.offline.length} coursemate{v.offline.length === 1 ? "" : "s"} you can still challenge</summary>
+                    <p className="ar-muted" style={{ margin: ".3em 0" }}>They get a notification on their phone.</p>
+                    {v.offline.map((p) => (
+                      <div key={p.id} className="ar-row">
+                        <span className="ar-dot ar-away" aria-hidden />
+                        <div className="ar-av" aria-hidden>{p.initials}</div>
+                        <div className="ar-grow"><div className="ar-name">{p.name}</div><div className="ar-sub">{p.tier && p.tierKey && <><span className={`ar-tier ar-t-${p.tierKey.toLowerCase()}`}>{p.tier}</span> · </>}Not online</div></div>
+                        <button type="button" className="ar-btn ar-sm" disabled={busy} onClick={() => void challenge(p.id)}>Challenge</button>
+                      </div>
+                    ))}
+                  </details>
+                )}
               </div>
             </div>
             <div className="ar-col">
@@ -94,7 +117,7 @@ export default function ArenaLobby({ courseId, traineeId }: { courseId: string; 
                 ))}
               </div>
             </div>
-            {v.chat.enabled && <div className="ar-col ar-chatcol"><ArenaChat courseId={courseId} chat={v.chat} suspended={sus} online={v.online} busy={busy} onChanged={() => void reload()} flash={flash} /></div>}
+            {v.chat.enabled && <div className="ar-col ar-chatcol"><ArenaChat courseId={courseId} chat={v.chat} suspended={sus} online={v.online} offline={v.offline} busy={busy} onChanged={() => void reload()} flash={flash} /></div>}
           </div>
         </div>
         {toast && <div className="ar-toast" role="alert">{toast}</div>}

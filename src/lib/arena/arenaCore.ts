@@ -20,6 +20,8 @@ export const SPEED_BONUS_SHARE = 0.2;
 /** How long the result of a question stays on screen before the next turn. */
 export const REVEAL_SECONDS = 6;
 export const INVITE_MINUTES = 10;
+/** A challenge to someone who is not in the arena waits longer, because it has to reach their phone first. */
+export const OFFLINE_INVITE_MINUTES = 60;
 export const LOBBY_MINUTES = 15;
 /** An active match nobody has touched for this long is closed. */
 export const ABANDON_MINUTES = 30;

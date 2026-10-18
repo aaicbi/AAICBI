@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import ArenaFrame from "./ArenaFrame";
 import ArenaChat from "./ArenaChat";
+import PushNudge from "./PushNudge";
 import { useArenaLive, channels } from "./useArenaLive";
 import type { CourseArenaView } from "@/lib/arena/arenaView";
 
@@ -21,8 +22,9 @@ export default function ArenaChatPage({ courseId, traineeId }: { courseId: strin
       <div className="ar-stage">
         <div className="ar-in ar-chatpage">
           <div className="ar-top"><div className="ar-t">Ayakbi Arena · chat</div><a className="ar-pill ar-gold" href={`/trainee/arena/${courseId}`}>Open the arena</a></div>
+          <PushNudge />
           {v.chat.enabled
-            ? <ArenaChat courseId={courseId} chat={v.chat} suspended={sus} online={v.online} busy={!!v.active || !!sus} onChanged={() => void reload()} flash={flash} big />
+            ? <ArenaChat courseId={courseId} chat={v.chat} suspended={sus} online={v.online} offline={v.offline} busy={!!v.active || !!sus} onChanged={() => void reload()} flash={flash} big />
             : <div className="ar-glass"><p className="ar-muted">The course chat isn't open for this course yet.</p></div>}
         </div>
         {toast && <div className="ar-toast" role="alert">{toast}</div>}

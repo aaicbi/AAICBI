@@ -29,6 +29,12 @@ export default function ArenaLadder({ courseId }: { courseId: string }) {
     const res = await fetch(`/api/arena/courses/${courseId}/challenge`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ opponentId: e.id, moduleId: null }) });
     const j = await res.json().catch(() => ({}));
     if (!res.ok) { setToast(j.error ?? "That didn't work."); setTimeout(() => setToast(null), 3500); return; }
+    if (j.reach && j.reach !== "online") {
+      const who = e.name.split(" ")[0];
+      setToast(j.reach === "push" ? `Challenge sent. ${who} gets a notification on their phone.` : `Challenge sent. ${who} hasn't turned on phone alerts, so they'll see it next time they open the app.`);
+      setTimeout(() => setToast(null), 5000);
+      return;
+    }
     router.push(`/trainee/arena/match/${j.id}`);
   }
 
@@ -61,7 +67,7 @@ export default function ArenaLadder({ courseId }: { courseId: string }) {
                         <span className="ar-rk">{e.rank}</span><span className="ar-av">{e.initials}</span>
                         <div className="ar-nm"><b>{e.name}{e.champion ? " 👑" : ""}</b><small><Tier e={e} /> {e.online ? "· online" : ""}</small></div>
                         <Delta n={e.change} /><span className="ar-rt">{e.rating.toLocaleString()}</span>
-                        {!e.mine && e.online && <button type="button" className="ar-btn ar-sm" onClick={() => void challenge(e)}>Challenge</button>}
+                        {!e.mine && <button type="button" className="ar-btn ar-sm" onClick={() => void challenge(e)}>Challenge</button>}
                       </div>
                     ))}
                   </div>
