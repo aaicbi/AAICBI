@@ -747,6 +747,7 @@ model Trainee {
   arenaSprintAnswers ArenaSprintAnswer[]
   arenaChatReads  ArenaChatRead[]
   arenaRatings    ArenaRating[]
+  arenaEventPlayers ArenaEventPlayer[]
   arenaRatingChanges ArenaRatingChange[]
   arenaChampions  ArenaChampion[]
   arenaSprintsWon ArenaSprint[]
@@ -1408,6 +1409,7 @@ model Course {
   arenaSprints  ArenaSprint[]
   arenaChatReads ArenaChatRead[]
   arenaRatings  ArenaRating[]
+  arenaEvents   ArenaEvent[]
   arenaRatingChanges ArenaRatingChange[]
   arenaChampions ArenaChampion[]
   arenaCredits  ArenaCredit[]
@@ -5653,6 +5655,8 @@ model ArenaConfig {
   ladderEnabled Boolean?
   /// Spending and sending credits. Off until a Super Admin switches it on.
   walletEnabled Boolean?
+  /// Live events: an instructor runs an arena night (a knockout for the course). Off until switched on.
+  eventsEnabled Boolean?
   /// Fastest Fingers in the course chat. Off until it is switched on here.
   fastestEnabled Boolean?
   spectators    ArenaSpectators?
@@ -5737,6 +5741,9 @@ model ArenaMatch {
   endReason      String?
   /// The match this one is a rematch of: its questions are not asked again while there are fresh ones.
   rematchOfId    String?
+  /// Set when the match is part of a live event (the tie it settles).
+  eventId        String?
+  eventTieId     String?
   version        Int       @default(0)
   createdAt      DateTime  @default(now())
   startedAt      DateTime?
@@ -5991,4 +5998,81 @@ model ArenaChampion {
   createdAt DateTime @default(now())
 
   @@unique([courseId, weekStart])
+}
+
+/// A live event: an instructor-run knockout for a course ("arena night").
+model ArenaEvent {
+  id                String   @id @default(cuid())
+  courseId          String
+  course            Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  name              String
+  /// SIGNUP, LIVE, DONE or CANCELLED.
+  status            String   @default("SIGNUP")
+  questionsPerMatch Int      @default(10)
+  moduleId          String?
+  /// The staff user who created it (plain text so deleting that account never erases the record).
+  createdById       String
+  round             Int      @default(0)
+  totalRounds       Int      @default(0)
+  championId        String?
+  createdAt         DateTime @default(now())
+  startedAt         DateTime?
+  endedAt           DateTime?
+  players           ArenaEventPlayer[]
+  ties              ArenaEventTie[]
+
+  @@index([courseId, status])
+}
+
+model ArenaEventPlayer {
+  eventId   String
+  event     ArenaEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  traineeId String
+  trainee   Trainee    @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  /// 1 is the strongest by ladder rating when the event started; 0 before that.
+  seed      Int        @default(0)
+  joinedAt  DateTime   @default(now())
+
+  @@id([eventId, traineeId])
+}
+
+/// One pairing in the bracket.
+model ArenaEventTie {
+  id       String     @id @default(cuid())
+  eventId  String
+  event    ArenaEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  round    Int
+  slot     Int
+  aId      String?
+  bId      String?
+  matchId  String?
+  winnerId String?
+  bye      Boolean    @default(false)
+  /// PENDING (waiting for the earlier round), READY (called, match in its lobby), DONE.
+  status   String     @default("PENDING")
+  calledAt DateTime?
+
+  @@unique([eventId, round, slot])
+  @@index([matchId])
+}
+
+/// Who is watching a match right now (a heartbeat). Kept light: no foreign keys, old rows are swept.
+model ArenaSpectator {
+  matchId    String
+  traineeId  String
+  lastSeenAt DateTime @default(now())
+
+  @@id([matchId, traineeId])
+  @@index([matchId, lastSeenAt])
+}
+
+/// An emoji cheer from a spectator.
+model ArenaCheer {
+  id        String   @id @default(cuid())
+  matchId   String
+  traineeId String
+  kind      String
+  createdAt DateTime @default(now())
+
+  @@index([matchId, createdAt])
 }

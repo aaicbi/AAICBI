@@ -192,6 +192,53 @@ function LadderPlayers({ courseId, showToast }: { courseId: string; showToast: (
   );
 }
 
+interface EventsAdmin { on: boolean; events: { id: string; name: string; status: string; players: number; round: number; totalRounds: number; at: number }[] }
+
+/** Live events: open an arena night for the course, start the knockout, open the big screen, cancel it. */
+function LiveEvents({ courseId, showToast }: { courseId: string; showToast: (message: string, variant?: "success" | "error") => void }) {
+  const url = `/api/admin/courses/${courseId}/arena/events`;
+  const [d, setD] = useState<EventsAdmin | null>(null);
+  const [name, setName] = useState("");
+  const [qs, setQs] = useState(10);
+  const load = useCallback(async () => { const res = await fetch(url); if (res.ok) setD(await res.json()); }, [url]);
+  useEffect(() => { void load(); const t = setInterval(() => void load(), 10000); return () => clearInterval(t); }, [load]);
+  async function act(body: Record<string, unknown>, done: string) {
+    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const j = await res.json().catch(() => null);
+    if (!res.ok) return showToast(j?.error ?? "That didn't work.", "error");
+    setD(j); showToast(done);
+  }
+  if (!d) return null;
+  const open = d.events.find((e) => e.status === "SIGNUP" || e.status === "LIVE");
+  return (
+    <div className="border-t border-brand-gray py-3" id="arena-live-events">
+      <h3 className="text-sm font-semibold text-brand-ink">Live events</h3>
+      {!d.on ? <p className="text-sm text-gray-600">Live events are off. A Super Admin switches them on in the Ayakbi Arena settings.</p> : (
+        <>
+          <p className="text-sm text-gray-600">Run an arena night: players join, you start it, and the system pairs them in a knockout. Winners go through until there is a champion. Everyone else can watch.</p>
+          {open ? (
+            <div className="mt-2 rounded-lg bg-brand-mint px-3 py-2 text-sm" data-testid="open-event">
+              <p><b>{open.name}</b> · {open.status === "SIGNUP" ? `signing up · ${open.players} joined` : `running · round ${open.round} of ${open.totalRounds}`}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {open.status === "SIGNUP" && <button type="button" className="rounded-full bg-brand-teal px-4 py-1.5 text-xs font-semibold text-white" onClick={() => act({ action: "start", eventId: open.id }, "The event has started.")}>Start the event</button>}
+                <a className="rounded-full border border-brand-gray bg-white px-4 py-1.5 text-xs font-semibold text-brand-ink" href={`/admin/courses/${courseId}/arena-event/${open.id}`} target="_blank" rel="noreferrer">Open the big screen</a>
+                <button type="button" className="rounded-full border border-red-300 bg-white px-4 py-1.5 text-xs font-semibold text-red-700" onClick={() => act({ action: "cancel", eventId: open.id }, "The event was cancelled.")}>Cancel the event</button>
+              </div>
+            </div>
+          ) : (
+            <form className="mt-2 flex flex-wrap items-end gap-2" onSubmit={(e) => { e.preventDefault(); void act({ action: "create", name, questionsPerMatch: qs }, "The event is open for sign-up.").then(() => setName("")); }}>
+              <label className="min-w-0 flex-1 text-xs text-gray-600">Event name<input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder="Cyber Quiz Night" className="mt-1 w-full rounded-lg border border-brand-gray bg-brand-surface px-3 py-2 text-sm text-brand-ink" /></label>
+              <label className="text-xs text-gray-600">Questions per match<input type="number" min={4} max={30} value={qs} onChange={(e) => setQs(Number(e.target.value) || 10)} className="mt-1 block w-24 rounded-lg border border-brand-gray bg-brand-surface px-3 py-2 text-sm text-brand-ink" /></label>
+              <button type="submit" disabled={!name.trim()} className="rounded-full bg-brand-teal px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">Open for sign-up</button>
+            </form>
+          )}
+          {d.events.filter((e) => e !== open).length > 0 && <div className="mt-3 space-y-1"><p className="text-xs font-semibold uppercase text-gray-700">Earlier events</p>{d.events.filter((e) => e !== open).map((e) => <p key={e.id} className="text-sm text-gray-700">{e.name} · {e.status === "DONE" ? "finished" : e.status === "CANCELLED" ? "cancelled" : e.status.toLowerCase()} · {e.players} players</p>)}</div>}
+        </>
+      )}
+    </div>
+  );
+}
+
 /** The rules of play for this course's Ayakbi Arena. A Super Admin turns the arena itself on; the course owner sets how it plays. */
 export default function ArenaSettings({ courseId, showToast }: { courseId: string; showToast: (message: string, variant?: "success" | "error") => void }) {
   const [data, setData] = useState<Payload | null>(null);
@@ -253,6 +300,7 @@ export default function ArenaSettings({ courseId, showToast }: { courseId: strin
       <ChatModeration courseId={courseId} showToast={showToast} />
       <FastestFingers courseId={courseId} showToast={showToast} />
       <LadderPlayers courseId={courseId} showToast={showToast} />
+      <LiveEvents courseId={courseId} showToast={showToast} />
     </Card>
   );
 }

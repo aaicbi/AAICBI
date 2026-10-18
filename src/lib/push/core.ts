@@ -16,7 +16,7 @@ export interface PushPayload {
 /** Notification types whose text is private (a person's own words): the push says only that something arrived. */
 const PRIVATE_TYPES = new Set(["MESSAGE_TO_ADMIN"]);
 /** Notification types a person is waiting on: the push stays on screen until they tap it. */
-const URGENT_TYPES = new Set(["ARENA_CHALLENGE"]);
+const URGENT_TYPES = new Set(["ARENA_CHALLENGE", "ARENA_EVENT_MATCH"]);
 const MAX_TITLE = 80;
 const MAX_BODY = 120;
 

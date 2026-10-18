@@ -8,6 +8,7 @@ import { RULE_LIMITS, type ArenaRules } from "@/lib/arena/configCore";
 import { STEAL_MS, boardSize, isPlayer, reactionsOpen, rulesFrom, stealPoints, type MatchStatus, type Phase } from "@/lib/arena/arenaCore";
 import { ONLINE_SECONDS, ArenaError, mutate } from "@/lib/arena/arena";
 import { matchLadderResult, ratingsFor, ensureChampion, rankOf } from "@/lib/arena/ladder";
+import { courseEvent } from "@/lib/arena/event";
 import { chatFor, type ChatView } from "@/lib/arena/chat";
 import { activeSuspension } from "@/lib/arena/suspension";
 import { modulesWithPool, type Reveal, type ServedRound } from "@/lib/arena/arenaPool";
@@ -51,6 +52,8 @@ export interface MatchView {
   messages: { id: string; from: "me" | "opponent"; body: string; at: number }[];
   reactions: { id: string; from: "me" | "opponent"; kind: string; at: number }[];
   reactionsOpen: boolean;
+  /** Spectators: how many are watching and the latest cheers (names are never shown to the players). */
+  spectators: { watching: number; cheers: { id: string; kind: string; at: number }[] };
   ready: { me: boolean; opponent: boolean };
   expiresAt: number;
   /** Answers in a row, per player, for the flame badge. */
@@ -95,13 +98,15 @@ const initialsOf = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 
 export async function viewMatch(matchId: string, viewerId: string): Promise<MatchView> {
   const { match: m, rounds } = await mutate(matchId);
   if (!isPlayer(m, viewerId)) throw new ArenaError("That match could not be found.", 404);
-  const [challenger, opponent, course, mod, messages, reactions] = await Promise.all([
+  const [challenger, opponent, course, mod, messages, reactions, watching, cheers] = await Promise.all([
     prisma.trainee.findUnique({ where: { id: m.challengerId }, select: { id: true, name: true, avatarUrl: true } }),
     prisma.trainee.findUnique({ where: { id: m.opponentId }, select: { id: true, name: true, avatarUrl: true } }),
     prisma.course.findUnique({ where: { id: m.courseId }, select: { title: true } }),
     m.moduleId ? prisma.module.findUnique({ where: { id: m.moduleId }, select: { title: true } }) : null,
     prisma.arenaMessage.findMany({ where: { matchId }, orderBy: { createdAt: "asc" }, take: 40 }),
     prisma.arenaReaction.findMany({ where: { matchId, createdAt: { gte: new Date(Date.now() - 20_000) } }, orderBy: { createdAt: "asc" }, take: 30 }),
+    prisma.arenaSpectator.count({ where: { matchId, lastSeenAt: { gte: new Date(Date.now() - 30_000) } } }),
+    prisma.arenaCheer.findMany({ where: { matchId, createdAt: { gte: new Date(Date.now() - 10_000) } }, orderBy: { createdAt: "asc" }, take: 20 }),
   ]);
   const rules = rulesFrom(m.rules);
   const iAmChallenger = viewerId === m.challengerId;
@@ -200,6 +205,7 @@ export async function viewMatch(matchId: string, viewerId: string): Promise<Matc
     messages: messages.map((x) => ({ id: x.id, from: side(x.senderId), body: x.body, at: x.createdAt.getTime() })),
     reactions: reactions.map((x) => ({ id: x.id, from: side(x.senderId), kind: x.kind, at: x.createdAt.getTime() })),
     reactionsOpen: reactionsOpen(m.status, m.phase, paused),
+    spectators: { watching, cheers: cheers.map((c) => ({ id: c.id, kind: c.kind, at: c.createdAt.getTime() })) },
     ready: { me: me.ready, opponent: opp.ready }, expiresAt: m.expiresAt.getTime(), result,
   };
 }
@@ -213,6 +219,12 @@ export interface CourseArenaView {
   me: { id: string; name: string };
   rules: ArenaRules;
   online: { id: string; name: string; initials: string; avatarUrl: string | null; status: "AVAILABLE" | "BUSY"; tier: string | null; tierKey: string | null; champion: boolean }[];
+  /** Matches being played right now that this player may watch (empty when spectating is off). */
+  live: { id: string; a: string; b: string; aTier: string | null; scoreA: number; scoreB: number; round: number; total: number; watching: number; event: string | null }[];
+  /** How spectating is set up for this course: OFF, ENROLLED (any match) or LIVE (live events only). */
+  spectate: "OFF" | "ENROLLED" | "LIVE";
+  /** The live event that is open or running (or just finished) for this course. */
+  event: { id: string; name: string; status: string; players: number; joined: boolean } | null;
   /** Coursemates who are not in the arena right now: they can still be challenged and are notified on their phone. */
   offline: { id: string; name: string; initials: string; tier: string | null; tierKey: string | null }[];
   /** The champion ladder: whether it is on, this player's rating and place, and last week's champion. */
@@ -248,6 +260,12 @@ export async function courseArenaView(traineeId: string, courseId: string): Prom
   const incoming = await Promise.all(mine.filter((x) => x.status === "PENDING" && x.opponentId === traineeId).map(async (x) => ({ id: x.id, from: { id: x.challenger.id, name: x.challenger.name, initials: initialsOf(x.challenger.name) }, topic: await topicTitle(x.moduleId), expiresAt: x.expiresAt.getTime() })));
   const outgoing = await Promise.all(mine.filter((x) => x.status === "PENDING" && x.challengerId === traineeId).map(async (x) => ({ id: x.id, to: { id: x.opponent.id, name: x.opponent.name }, topic: await topicTitle(x.moduleId), expiresAt: x.expiresAt.getTime() })));
   const act = mine.find((x) => x.status === "LOBBY" || x.status === "ACTIVE");
+  // Matches this player may watch: those in the course, not their own, as far as the spectator switch allows.
+  const mode = avail.spectators;
+  const watchable = mode === "OFF" ? [] : matches.filter((x) => x.courseId === courseId && x.status === "ACTIVE" && x.challengerId !== traineeId && x.opponentId !== traineeId && (mode === "ENROLLED" || !!x.eventId)).slice(0, 8);
+  const eyes = watchable.length ? await prisma.arenaSpectator.groupBy({ by: ["matchId"], where: { matchId: { in: watchable.map((x) => x.id) }, lastSeenAt: { gte: new Date(Date.now() - 30_000) } }, _count: { _all: true } }) : [];
+  const eyesOf = new Map(eyes.map((e) => [e.matchId, e._count._all]));
+  const event = avail.events ? await courseEvent(courseId, traineeId) : null;
   const [chat, suspended] = await Promise.all([chatFor(courseId, traineeId), activeSuspension(traineeId, courseId)]);
   const onlineIds = new Set(present.map((p) => p.trainee.id));
   const mates = await prisma.courseEnrollment.findMany({ where: { courseId, traineeId: { notIn: [traineeId, ...onlineIds] }, unlockedAt: { not: null }, accessRevokedAt: null }, select: { trainee: { select: { id: true, name: true } } }, take: 120 });
@@ -256,6 +274,9 @@ export async function courseArenaView(traineeId: string, courseId: string): Prom
   const myRating = ratings?.get(traineeId);
   return {
     course, me, rules, chat,
+    spectate: mode,
+    event,
+    live: watchable.map((x) => ({ id: x.id, a: x.challenger.name, b: x.opponent.name, aTier: ratings?.get(x.challengerId)?.tier ?? null, scoreA: x.scoreChallenger, scoreB: x.scoreOpponent, round: x.roundNo, total: rulesFrom(x.rules).questionsPerMatch, watching: eyesOf.get(x.id) ?? 0, event: x.eventId })),
     offline: mates.map((m) => m.trainee).sort((a, b) => a.name.localeCompare(b.name)).map((t) => ({ id: t.id, name: t.name, initials: initialsOf(t.name), tier: ratings?.get(t.id)?.tier ?? null, tierKey: ratings?.get(t.id)?.tierKey ?? null })),
     ladder: { enabled: avail.ladder, rating: myRating?.rating ?? 1000, tier: myRating?.tier ?? "Silver", tierKey: myRating?.tierKey ?? "SILVER", rank: myRank, champion }, suspension: suspended ? { until: suspended.expiresAt ? suspended.expiresAt.getTime() : null, reason: suspended.reason } : null,
     online: present.map((p) => ({ id: p.trainee.id, name: p.trainee.name, initials: initialsOf(p.trainee.name), avatarUrl: p.trainee.avatarUrl, status: busyIds.has(p.trainee.id) ? ("BUSY" as const) : ("AVAILABLE" as const), tier: ratings?.get(p.trainee.id)?.tier ?? null, tierKey: ratings?.get(p.trainee.id)?.tierKey ?? null, champion: champion?.id === p.trainee.id })),
