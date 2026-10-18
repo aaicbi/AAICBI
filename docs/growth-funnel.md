@@ -20,6 +20,20 @@ A public link that lets anyone with a phone try a 5-question taster of a course 
 
 Module 1 comes from a `GrowthGrant` row (trainee + course), checked in `getModuleAccessLevel` and the course page API next to the course's own free-preview setting; the larger of the two applies. The grant is kept if the campaign is later switched off, so people who started keep module 1. New people cannot start. Paid trainees are never affected.
 
+## Follow-up messages
+
+People who save their score (with the consent box ticked) can be messaged. It is a separate switch under **Growth > Follow-up messages** and is off until a Super Admin turns it on.
+
+- **The four messages**, each sent at most once to a person: a **welcome** straight after saving; **reminder 1** a day later and **reminder 2** (the last) three days later, both only while they have not started Module 1; and a **finish Module 1** nudge two days after they started it, if they have not finished. At least 20 hours between messages. Nothing after 14 days.
+- **It stops** for anyone who opted out (the stop link in every message, or replying STOP on WhatsApp) or who has paid. Nothing is sent between **21:00 and 07:00 in Nigeria** (editable), and not more than the daily limit (default 200).
+- **How it sends**, chosen by the Super Admin:
+  - **By hand** works today with nothing to set up. Each message waits in the outbox with a "Send on WhatsApp" button that opens the chat with the text filled in, then "Mark as sent".
+  - **WhatsApp, automatic** uses Meta's WhatsApp Business Cloud API (`src/lib/notifications/whatsapp.ts`). Meta only lets a business start a chat with a message template it has approved, so every message is a template with five positional variables: {{1}} first name, {{2}} rank, {{3}} course, {{4}} link, {{5}} stop link. The screen shows the exact text to register with Meta for each message and the template name to use. Set on the server: `WHATSAPP_ENABLED=true`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET`, and optionally `WHATSAPP_TEMPLATE_LANG` (default `en`). Register `https://<app>/api/webhooks/whatsapp` as the webhook. **This has been tested against a stand-in for Meta's API, not against Meta itself.**
+  - **Email** uses the existing sender (`RESEND_API_KEY`) for people who left an email.
+- **The webhook** (`/api/webhooks/whatsapp`) answers Meta's one-time check, then accepts delivery receipts (sent, delivered, read, failed) and STOP replies. It only trusts a body whose `X-Hub-Signature-256` matches `WHATSAPP_APP_SECRET`.
+- **The messages are editable** (each must include `{stop}`; placeholders `{name}`, `{rank}`, `{course}`, `{link}`, `{stop}`). The hourly job `/api/cron/growth-messages` (`CRON_SECRET`) queues and sends what has come due; a welcome is also tried the moment a score is saved. Failed messages can be retried or skipped from the outbox.
+- Data: `GrowthMessage` (the outbox, unique per person and message) and a `config` field on the `MESSAGING` row of `GrowthSetting` (migration `20261126090000_growth_messaging`). Pure rules and tests: `messagingCore.ts`, `tests/growthMessaging.test.ts`. Device check: `scripts/device-checks/growth-funnel-5.cjs`.
+
 ## Switches (all off by default)
 
 A course's link is live only when every layer allows it:

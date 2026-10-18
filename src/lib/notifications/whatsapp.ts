@@ -1,31 +1,23 @@
 /**
- * M14 — WhatsApp, deliberately NOT implemented in this pass.
+ * WhatsApp, sent through Meta's WhatsApp Business Cloud API.
  *
- * The roadmap's own sizing for this milestone is explicit about why:
- * "M (WhatsApp, mostly integration/approval overhead not code
- * complexity)... don't let its API approval lead time block shipping
- * email first." Meta's WhatsApp Business API (or a BSP layer on top of
- * it like Twilio) requires a verified business, a real phone number
- * registered as a WhatsApp Business sender, and Meta's own approval of
- * message templates before anything can be sent — none of which can
- * happen inside a coding session. Writing a real integration against
- * that API here would mean guessing at credentials and endpoints this
- * project doesn't have and can't test, which is worse than not writing
- * it: broken, untestable code is worse than an honest gap.
+ * This file used to be a placeholder because nothing here could be tested against Meta: it needs a verified
+ * business, a registered sender number and Meta-approved message templates, none of which exist inside a coding
+ * session. It is now a real implementation of Meta's documented "send a template message" call, and it is tested
+ * against a stand-in server that answers the way Meta's API does. It has NOT been run against Meta itself: that
+ * happens the first time real credentials are set. Until then it stays off.
  *
- * What's here instead is the seam a real integration drops into later:
- * the same shape sendEmail() has (recipient, content in, ok/error out),
- * gated behind WHATSAPP_ENABLED so the rest of the notification system
- * can call this unconditionally and get a clean "not available" rather
- * than needing to know WhatsApp doesn't exist yet.
+ * To turn it on, set in the environment:
+ *   WHATSAPP_ENABLED="true"
+ *   WHATSAPP_ACCESS_TOKEN        a permanent (system user) access token
+ *   WHATSAPP_PHONE_NUMBER_ID     the sender's phone number id from Meta
+ *   WHATSAPP_TEMPLATE_LANG       optional, the language code of the approved templates (default "en")
+ *   WHATSAPP_API_BASE            optional, default https://graph.facebook.com/v20.0 (the stand-in server in tests)
+ * and, for delivery receipts and STOP replies, the webhook settings read by /api/webhooks/whatsapp.
  *
- * When this gets built for real: Trainee.phone already exists (M9) and
- * is exactly what a WhatsApp send needs — no schema change required to
- * start. Register the account and templates with Meta (or a BSP), get
- * WHATSAPP_ENABLED and provider credentials into env, and this file is
- * the only one that needs a real implementation — every call site
- * already goes through notifyByEmail()'s sibling function shape in
- * log.ts, unchanged.
+ * Only template messages are sent. Meta only allows a business to start a conversation with an approved template,
+ * so a free-form text would be refused outside a 24-hour customer-service window. Template variables are positional
+ * ({{1}}, {{2}}, ...), passed here as a record whose keys are the positions.
  */
 export interface SendWhatsAppInput {
   to: string; // E.164 phone number
@@ -36,21 +28,66 @@ export interface SendWhatsAppInput {
 export interface SendWhatsAppResult {
   ok: boolean;
   error?: string;
+  /** Meta's id for the message, used to match delivery receipts. */
+  messageId?: string;
 }
 
 export function whatsAppEnabled(): boolean {
   return process.env.WHATSAPP_ENABLED === "true";
 }
 
-export async function sendWhatsApp(_input: SendWhatsAppInput): Promise<SendWhatsAppResult> {
+/** Enabled and holding the credentials a send needs. */
+export function whatsAppConfigured(): boolean {
+  return whatsAppEnabled() && !!process.env.WHATSAPP_ACCESS_TOKEN && !!process.env.WHATSAPP_PHONE_NUMBER_ID;
+}
+
+const SEND_TIMEOUT_MS = 10_000;
+
+/** Positional variables in order: "1", "2", ... numerically when all keys are numbers, otherwise in the order given. */
+function orderedParameters(variables: Record<string, string>) {
+  const keys = Object.keys(variables);
+  if (keys.every((k) => /^\d+$/.test(k))) keys.sort((a, b) => Number(a) - Number(b));
+  return keys.map((k) => ({ type: "text", text: String(variables[k]) }));
+}
+
+export async function sendWhatsApp(input: SendWhatsAppInput): Promise<SendWhatsAppResult> {
   if (!whatsAppEnabled()) {
-    return { ok: false, error: "WhatsApp is not enabled — pending Meta/BSP approval, see this file's own comment." };
+    return { ok: false, error: "WhatsApp is not enabled. Set WHATSAPP_ENABLED and the Meta credentials, see this file's comment." };
   }
-  // Never reached today — whatsAppEnabled() can't be true without a
-  // real implementation replacing this. Left as an explicit throw
-  // rather than a silent no-op so a misconfigured WHATSAPP_ENABLED=true
-  // fails loudly instead of pretending to send something it can't.
-  throw new Error(
-    "WHATSAPP_ENABLED is true but no WhatsApp provider is implemented yet — see the comment at the top of this file."
-  );
+  const token = process.env.WHATSAPP_ACCESS_TOKEN;
+  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  if (!token || !phoneId) return { ok: false, error: "WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID are required to send." };
+  const to = input.to.replace(/\D/g, "");
+  if (to.length < 7) return { ok: false, error: "That phone number is not valid." };
+
+  const base = (process.env.WHATSAPP_API_BASE || "https://graph.facebook.com/v20.0").replace(/\/$/, "");
+  const parameters = orderedParameters(input.variables);
+  const body = {
+    messaging_product: "whatsapp",
+    to,
+    type: "template",
+    template: {
+      name: input.templateName,
+      language: { code: process.env.WHATSAPP_TEMPLATE_LANG || "en" },
+      ...(parameters.length ? { components: [{ type: "body", parameters }] } : {}),
+    },
+  };
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SEND_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${base}/${phoneId}/messages`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    const json = (await res.json().catch(() => null)) as { messages?: { id?: string }[]; error?: { message?: string } } | null;
+    if (!res.ok) return { ok: false, error: (json?.error?.message ?? `WhatsApp refused the message (${res.status}).`).slice(0, 200) };
+    return { ok: true, messageId: json?.messages?.[0]?.id };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error && e.name === "AbortError" ? "WhatsApp did not answer in time." : "Could not reach WhatsApp." };
+  } finally {
+    clearTimeout(timer);
+  }
 }

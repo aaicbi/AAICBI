@@ -15,6 +15,10 @@
     {
       "path": "/api/cron/arena-sweep",
       "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/growth-messages",
+      "schedule": "0 * * * *"
     }
   ]
 }
