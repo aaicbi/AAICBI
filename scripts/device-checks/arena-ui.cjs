@@ -11,7 +11,7 @@ const SHOTS = process.env.SHOTS || '/tmp/dev/arena-shots';
   const idB = psql(`select id from "Trainee" where email='t1@dev.test'`);
   await call(b, 'GET', '/api/arena/courses/arena_play');
   const br = await launch();
-  const sizes = [['desktop', device('Desktop Chrome', { viewport: { width: 1280, height: 720 } })], ['phone', device('iPhone 13 landscape')]];
+  const sizes = [['desktop', device('Desktop Chrome', { viewport: { width: 1280, height: 720 } })], ['phone', device('iPhone 13 landscape')], ['portrait', device('iPhone 13')]];
   for (const [name, dev] of sizes) {
     clearThrottle();
     psql(`update "ArenaMatch" set status='CANCELLED' where "courseId"='arena_play' and status in ('PENDING','LOBBY','ACTIVE')`);
@@ -44,7 +44,7 @@ const SHOTS = process.env.SHOTS || '/tmp/dev/arena-shots';
     await other.screenshot({ path: `${SHOTS}/${name}-question-wait.png` });
     // no scrolling anywhere
     for (const p of [pa, pb]) {
-      const o = await p.evaluate(() => ({ sx: document.documentElement.scrollWidth > innerWidth + 1, sy: document.documentElement.scrollHeight > innerHeight + 1, bodyOverflow: getComputedStyle(document.body).overflow, cut: [...document.querySelectorAll('.ar-qcard,.ar-main,.ar-stage')].some((e) => e.scrollHeight > e.clientHeight + 2) }));
+      const o = await p.evaluate(() => ({ sx: document.documentElement.scrollWidth > innerWidth + 1, sy: document.documentElement.scrollHeight > innerHeight + 1, bodyOverflow: getComputedStyle(document.body).overflow, cut: [...document.querySelectorAll(innerHeight > innerWidth ? '.ar-main,.ar-stage' : '.ar-qcard,.ar-main,.ar-stage')].some((e) => e.scrollHeight > e.clientHeight + 2) }));
       log(!o.sx && !o.sy && !o.cut, name + ': the stage fits the screen with no scrolling ' + JSON.stringify(o));
     }
     // answer correctly: the reveal shows the right answer clearly and the points
@@ -56,7 +56,7 @@ const SHOTS = process.env.SHOTS || '/tmp/dev/arena-shots';
     log((await other.locator('.ar-rva').innerText()).includes(right), name + ': both players see the correct answer in words');
     log((await picker.locator('.ar-opt.ar-ok').count()) === 1, name + ': exactly the right option is marked');
     await picker.screenshot({ path: `${SHOTS}/${name}-reveal.png` });
-    const fits = await picker.evaluate(() => { const c = document.querySelector('.ar-qcard'); return !!c && c.scrollHeight <= c.clientHeight + 2; });
+    const fits = await picker.evaluate(() => { const c = document.querySelector('.ar-qcard'); return !!c && (innerHeight > innerWidth || c.scrollHeight <= c.clientHeight + 2); });
     log(fits, name + ': the reveal fits the card without scrolling');
     // finish the match and check the result screen and play again
     psql(`update "ArenaMatch" set status='COMPLETED', phase=null, "phaseEndsAt"=null, "winnerId"="turnId", "endedAt"=now() where "courseId"='arena_play' and status='ACTIVE'`);

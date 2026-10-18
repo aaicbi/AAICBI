@@ -1,17 +1,11 @@
 /* Gaming Arena game screens. Everything sits inside one landscape stage sized by its own height (container query units), so the same layout fits a full desktop screen and a phone turned sideways, with no scrolling. */
-.ar-root{--s1:#06322d;--s2:#0a4a41;--s3:#0e5f53;--gold:#f2b84b;--gold-deep:#d99a34;--mint:#d9ece1;--rose:#ff7a85;--green:#7fd6a0;--white:#f4fbf7;--ink:#0c241f;--glass:rgba(255,255,255,.09);--glass-line:rgba(255,255,255,.18);position:fixed;inset:0;z-index:80;display:flex;flex-direction:column;gap:6px;padding:max(8px,env(safe-area-inset-top,0px)) max(10px,env(safe-area-inset-right,0px)) max(8px,env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px));background:#0b1613;font-family:inherit;font-size:14px;line-height:1.45;overflow:hidden}
-.ar-root.ar-flipped{inset:auto;top:0;left:100vw;width:100vh;height:100vw;transform-origin:0 0;transform:rotate(90deg)}
+.ar-root{--s1:#06322d;--s2:#0a4a41;--s3:#0e5f53;--gold:#f2b84b;--gold-deep:#d99a34;--mint:#d9ece1;--rose:#ff7a85;--green:#7fd6a0;--white:#f4fbf7;--ink:#0c241f;--glass:rgba(255,255,255,.09);--glass-line:rgba(255,255,255,.18);position:fixed;inset:0;height:100vh;height:100dvh;z-index:80;display:flex;flex-direction:column;gap:6px;padding:max(8px,env(safe-area-inset-top,0px)) max(10px,env(safe-area-inset-right,0px)) max(8px,env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px));background:#0b1613;font-family:inherit;font-size:14px;line-height:1.45;overflow:hidden}
 .ar-bar{display:flex;align-items:center;gap:8px;color:var(--white);min-height:2rem}
 .ar-bar h1{font-size:15px;font-weight:800;margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ar-bar button,.ar-bar a{font:700 12px inherit;color:var(--white);background:var(--glass);border:1px solid var(--glass-line);border-radius:999px;padding:6px 11px;cursor:pointer;text-decoration:none;white-space:nowrap}
 .ar-bar button[aria-pressed="true"]{background:var(--gold);color:var(--ink);border-color:var(--gold-deep)}
-.ar-flipbtn{display:none}
-@media (orientation:portrait) and (max-width:820px){.ar-flipbtn{display:inline-flex}}
-.ar-flipped .ar-flipbtn{display:inline-flex}
 .ar-root button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .ar-body{flex:1;min-height:0;position:relative}
-.ar-rotate{display:none;position:absolute;inset:0;z-index:60;place-items:center;text-align:center;padding:1.5em;background:linear-gradient(160deg,var(--s1),var(--s2));color:var(--white);border-radius:18px}
-@media (orientation:portrait) and (max-width:820px){.ar-root:not(.ar-flipped) .ar-rotate{display:grid}}
 .ar-in input.ar-code{display:none}
 .ar-opt.ar-wait{pointer-events:none;opacity:.7}
 .ar-pw{font-weight:800;font-size:1.1em;text-align:center}
@@ -340,3 +334,81 @@
 .ar-chip-no{flex:none;max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#ffdfe2;color:#8a1f2c;border:1px solid #d4505e;border-radius:999px;padding:.05em .6em;font-size:.72em;font-weight:800}
 .ar-mt button .ar-chip-no{margin-left:auto}
 .ar-mt button.ar-paired.ar-m{cursor:default}
+
+/* ===== Phones play upright: one column, big thumb targets, reactions in a bottom sheet ===== */
+.ar-dock,.ar-sheethead,.ar-scrim{display:none}
+.ar-pausebtn{cursor:pointer;font:inherit}
+.ar-pausebtn:disabled{opacity:.5;cursor:not-allowed}
+.ar-timerbox{display:contents}
+@media (max-width:820px){.ar-btxt,.ar-fsbtn{display:none}.ar-bar h1{font-size:14px}.ar-bar a,.ar-bar button{padding:7px 12px}}
+@container (max-aspect-ratio: 1/1){
+  .ar-in{font-size:clamp(13px,4.1cqw,18px);gap:.5em;padding:.6em .7em .5em}
+  .ar-top{flex-wrap:wrap;row-gap:.4em}
+  .ar-top .ar-t{font-size:.8em;flex:1}
+  .ar-prog{display:flex;order:3;flex:1 0 100%;gap:.18em;justify-content:stretch}
+  .ar-prog i{flex:1;max-width:none;width:auto;height:.4em}
+  .ar-pausebtn{display:none}
+  .ar-main,.ar-main.ar-two{display:flex;flex-direction:column;gap:.55em;min-height:0}
+  /* scoreboard: you | timer | them, in one row */
+  .ar-board{flex:none;flex-direction:row;align-items:center;justify-content:space-between;gap:.45em}
+  .ar-board .ar-pc{flex:1;min-width:0;display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-areas:"av name" "av score";align-items:center;column-gap:.55em;padding:.4em .55em;text-align:left}
+  .ar-board .ar-avwrap{grid-area:av}.ar-board .ar-av{width:2.6em;height:2.6em}
+  .ar-board .ar-name{grid-area:name;font-size:.82em;line-height:1.1}
+  .ar-board .ar-sub{display:none}
+  .ar-board .ar-score{grid-area:score;font-size:1.55em;text-align:left}
+  .ar-board .ar-streak{right:-.9em;top:-.7em;font-size:.6em}
+  .ar-timerbox{display:flex;flex-direction:column;align-items:center;flex:none;gap:.1em}
+  .ar-timerbox .ar-timer{width:3.6em;height:3.6em;font-size:1.25em}
+  .ar-timerbox .ar-lbl{display:block;font-size:.55em;line-height:1.1}
+  .ar-mid{flex:1;min-height:0;justify-content:flex-start;align-items:stretch}
+  .ar-qcard{overflow:auto;overscroll-behavior:contain;padding:.75em .8em;gap:.55em;border-radius:1em;-webkit-overflow-scrolling:touch}
+  .ar-meta{gap:.35em}.ar-tag{font-size:.62em}
+  .ar-q{font-size:1.12em;line-height:1.3}
+  .ar-opts,.ar-opts.ar-one{grid-template-columns:1fr;grid-auto-rows:minmax(3.2em,auto);flex:none;gap:.5em}
+  .ar-opt{padding:.55em .8em;font-size:1em}
+  .ar-opt b{width:2em;height:2em}
+  .ar-ord{flex:none;grid-auto-rows:minmax(3.1em,auto)}
+  .ar-ord li{padding:.3em .6em}
+  .ar-mv button{width:2.6em;height:2.6em;font-size:1em}
+  .ar-mt{flex:none}.ar-mt>div{grid-auto-rows:minmax(3.3em,auto);overflow:visible}
+  .ar-mt button{min-height:3.3em;font-size:.88em;padding:.3em .6em}
+  .ar-hint{display:block;font-size:.78em}
+  .ar-go{position:sticky;bottom:0;flex:none;padding:.85em;font-size:1.05em;z-index:3;width:100%}
+  .ar-fbw{min-height:0}
+  .ar-scn{font-size:.95em}
+  .ar-picker{flex:none;grid-auto-rows:auto;gap:.45em}
+  .ar-num{aspect-ratio:1/.82;font-size:1.5em;border-radius:.7em}
+  .ar-num.ar-used{font-size:1.2em}
+  .ar-pickmsg strong{font-size:1.2em}
+  .ar-rv{padding:.5em .7em}
+  /* reactions slide up as a sheet */
+  .ar-rxcol{position:absolute;left:0;right:0;bottom:0;z-index:60;flex:none;gap:.5em;padding:.7em .8em calc(.8em + env(safe-area-inset-bottom,0px));background:rgba(5,30,26,.98);border-radius:1.2em 1.2em 0 0;box-shadow:0 -1em 2.5em rgba(0,0,0,.5);clip-path:inset(100% 0 0 0);transition:clip-path .25s ease;visibility:hidden}
+  .ar-rxcol.ar-rxopen{clip-path:inset(-3em 0 0 0);visibility:visible}
+  .ar-sheethead{display:flex;align-items:center;justify-content:space-between}
+  .ar-sheetx{width:2.4em;height:2.4em;border-radius:50%;border:1px solid var(--glass-line);background:var(--glass);color:var(--white);cursor:pointer}
+  .ar-rxcol .ar-lbl{display:block;font-size:.75em}
+  .ar-tray.ar-t3{grid-template-columns:repeat(4,1fr);grid-auto-rows:auto;flex:none;gap:.4em}
+  .ar-t3 .ar-rx{font-size:.62em;padding:.5em .2em}.ar-t3 .ar-rx .ar-e{font-size:2.3em}.ar-t3 .ar-rx .ar-l{display:block}
+  .ar-scrim{display:block;position:absolute;inset:0;z-index:55;background:rgba(0,0,0,.45);border:0;cursor:pointer}
+  /* bottom dock under the card: React and Pause, thumb height */
+  .ar-dock{display:flex;gap:.5em;flex:none}
+  .ar-dockbtn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:.4em;min-height:2.9em;font:700 .9em inherit;color:var(--white);background:var(--glass);border:1px solid var(--glass-line);border-radius:999px;cursor:pointer}
+  .ar-dockbtn:disabled{opacity:.45}
+  /* overlays and effects scale with the width, not the height */
+  .ar-introvs{font-size:9cqw}.ar-countnum{font-size:44cqw}
+  .ar-hero .ar-big{font-size:46cqw}.ar-hero .ar-who{font-size:4cqw}
+  .ar-pause{padding:.6em}.ar-pbox{max-height:100%}
+  .ar-pq{display:flex}
+  .ar-win{padding:.8em;gap:.55em}
+  .ar-win .ar-big{font-size:2em}.ar-stars{font-size:2em}.ar-final{font-size:1.9em}
+  .ar-actions .ar-btn{flex:1 1 100%}
+  .ar-vs{grid-template-columns:1fr auto 1fr}.ar-vsb{font-size:2em}
+  .ar-main.ar-two{overflow:auto}.ar-main.ar-two .ar-col{flex:none}
+  .ar-toast{bottom:5.5em}
+}
+@media (prefers-reduced-motion:reduce){.ar-rxcol{transition:none}}
+.ar-sheetx{display:none}
+@container (max-aspect-ratio: 1/1){.ar-sheetx{display:inline-grid;place-items:center}}
+.ar-in{grid-template-columns:minmax(0,1fr)}
+.ar-in>*{min-width:0}
+.ar-stage{min-width:0}

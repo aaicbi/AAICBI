@@ -58,6 +58,7 @@ export default function ArenaMatch({ matchId }: { matchId: string }) {
   const [toast, setToast] = useState<string | null>(null);
   const [heroes, setHeroes] = useState<{ id: string; e: string; who: string }[]>([]);
   const [intro, setIntro] = useState<number | null>(null);
+  const [rxOpen, setRxOpen] = useState(false);
   const [flash, setFlash] = useState<"good" | "bad" | null>(null);
   const seen = useRef<Set<string> | null>(null);
   const lastScore = useRef<{ me: number; opp: number } | null>(null);
@@ -210,33 +211,38 @@ export default function ArenaMatch({ matchId }: { matchId: string }) {
           <div className="ar-top">
             <div className="ar-t">{v.status === "ACTIVE" ? `Question ${Math.min(Math.max(v.roundNo, 1), v.totalRounds)} of ${v.totalRounds}` : statusLabel(v)}</div>
             <div className="ar-prog" aria-hidden>{v.progress.map((p, i) => <i key={i} className={p === "won" ? "ar-d" : p === "lost" ? "ar-w" : p === "now" ? "ar-n" : ""} />)}</div>
-            {v.status === "ACTIVE" && <span className="ar-pill">⏸ {v.me.pausesLeft} left</span>}
+            {v.status === "ACTIVE" && !pausedNow && <button type="button" className="ar-pill ar-pausebtn" disabled={v.me.pausesLeft === 0} onClick={() => void act("pause")}>⏸ Pause · {v.me.pausesLeft} left</button>}
           </div>
           <div className="ar-main">
-            <div className="ar-col">
+            <div className="ar-col ar-board">
               <PlayerCard p={v.me} you active={v.turn === "me"} streak={v.streak.me} phase={v.phase} live={v.status === "ACTIVE"} />
               {v.status === "ACTIVE" && !pausedNow && (
-                phase === "PICK" ? <div className="ar-lbl" style={{ margin: "auto 0" }}>no rush,<br />choose a number</div> : secs !== null && (
-                  <>
+                phase === "PICK" ? <div className="ar-timerbox"><div className="ar-lbl" style={{ margin: "auto 0" }}>no rush,<br />choose a number</div></div> : secs !== null && (
+                  <div className="ar-timerbox">
                     <div className={`ar-timer${urgent ? " ar-hot" : ""}${phase === "STEAL" ? " ar-pick" : ""}`} style={{ ["--t" as string]: `${pct}%` }} role="timer" aria-label={`${secs} seconds left`}><span className="ar-tnum">{secs}</span></div>
                     <div className="ar-lbl">{phase === "STEAL" ? "bonus chance" : phase === "REVEAL" ? "next question" : "seconds left"}</div>
-                  </>
+                  </div>
                 )
               )}
               <PlayerCard p={v.opponent} active={v.turn === "opponent"} streak={v.streak.opponent} phase={v.phase} live={v.status === "ACTIVE"} />
             </div>
             <div className="ar-col ar-mid">{center(v, act, secs, play)}</div>
-            <div className="ar-col">
-              <div className="ar-lbl">Reactions</div>
+            <div className={`ar-col ar-rxcol${rxOpen ? " ar-rxopen" : ""}`}>
+              <div className="ar-sheethead"><span className="ar-lbl">Reactions</span><button type="button" className="ar-sheetx" onClick={() => setRxOpen(false)} aria-label="Close reactions">✕</button></div>
               <div className={`ar-tray ar-t3${v.reactionsOpen ? "" : " ar-locked"}`}>
                 {Object.entries(EMOJI).map(([k, x]) => (
-                  <button key={k} type="button" className="ar-rx" disabled={!v.reactionsOpen} onClick={() => { play(() => sfx.reactionPop(k)); void act("react", { kind: k }); }} aria-label={x.l}><span className="ar-e">{x.e}</span><span className="ar-l">{x.l}</span></button>
+                  <button key={k} type="button" className="ar-rx" disabled={!v.reactionsOpen} onClick={() => { play(() => sfx.reactionPop(k)); void act("react", { kind: k }); setRxOpen(false); }} aria-label={x.l}><span className="ar-e">{x.e}</span><span className="ar-l">{x.l}</span></button>
                 ))}
               </div>
               <div className="ar-rxnote">{v.reactionsOpen ? (over ? "Say good game!" : "Send a reaction") : "Reactions open between questions"}</div>
             </div>
           </div>
+          <div className="ar-dock">
+            <button type="button" className="ar-dockbtn" onClick={() => setRxOpen((x) => !x)} aria-expanded={rxOpen}>😀 <span>{v.reactionsOpen ? "React" : "Reactions"}</span></button>
+            {v.status === "ACTIVE" && !pausedNow && <button type="button" className="ar-dockbtn" disabled={v.me.pausesLeft === 0} onClick={() => void act("pause")}>⏸ <span>Pause · {v.me.pausesLeft}</span></button>}
+          </div>
         </div>
+        {rxOpen && <button type="button" className="ar-scrim" aria-label="Close reactions" onClick={() => setRxOpen(false)} />}
         <div className="ar-fx" ref={fx} aria-hidden>
           {heroes.map((h) => <div key={h.id} className="ar-hero"><div className="ar-big">{h.e}</div><span className="ar-who">{h.who}</span></div>)}
         </div>

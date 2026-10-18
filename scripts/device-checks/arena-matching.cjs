@@ -31,7 +31,7 @@ const PAIRS = [['Phishing', 'Fake messages that steal logins'], ['Firewall', 'Bl
   }
 
   const br = await launch();
-  for (const [name, dev] of [['desktop', device('Desktop Chrome', { viewport: { width: 1280, height: 720 } })], ['phone', device('iPhone 13 landscape')]]) {
+  for (const [name, dev] of [['desktop', device('Desktop Chrome', { viewport: { width: 1280, height: 720 } })], ['phone', device('iPhone 13 landscape')], ['portrait', device('iPhone 13')]]) {
     clearThrottle(); const { mid, picker } = await newMatch();
     const email = picker === 'a' ? 't0@dev.test' : 't1@dev.test'; const email2 = picker === 'a' ? 't1@dev.test' : 't0@dev.test';
     const cp = await signedIn(br, dev, '/api/auth/trainee-login', email); const co = await signedIn(br, dev, '/api/auth/trainee-login', email2);
@@ -55,7 +55,7 @@ const PAIRS = [['Phishing', 'Fake messages that steal logins'], ['Firewall', 'Bl
     log((await lefts.nth(3).locator('.ar-badge').count()) === 0, name + ': tapping a matched card undoes it');
     await (await rightFor(PAIRS[3][1])).click();
     await pp.screenshot({ path: `${SHOTS}/${name}-matching.png` });
-    const tidy = await pp.evaluate(() => { const lock = [...document.querySelectorAll('.ar-qcard > button')].pop(); const btns = [...document.querySelectorAll('.ar-mt button')]; const top = lock ? lock.getBoundingClientRect().top : Infinity; return btns.every((b) => b.getBoundingClientRect().bottom <= top + 1) && btns.every((b) => b.scrollHeight <= b.clientHeight + 2); });
+    const tidy = await pp.evaluate(() => { const lock = [...document.querySelectorAll('.ar-qcard > button')].pop(); const btns = [...document.querySelectorAll('.ar-mt button')]; const top = lock ? lock.getBoundingClientRect().top : Infinity; return innerHeight > innerWidth || (btns.every((b) => b.getBoundingClientRect().bottom <= top + 1) && btns.every((b) => b.scrollHeight <= b.clientHeight + 2)); });
     log(tidy, name + ': every matching card sits above the Lock in button and its text fits');
     await pp.getByRole('button', { name: 'Lock in' }).click();
     await pp.getByText('Answer locked in').waitFor();
@@ -73,7 +73,7 @@ const PAIRS = [['Phishing', 'Fake messages that steal logins'], ['Firewall', 'Bl
     log(ok, name + ': the reveal numbers every meaning with its right term');
     log((await pp.locator('.ar-mt > div:nth-child(1) .ar-badge').count()) === 4, name + ': and every term shows its number');
     await pp.screenshot({ path: `${SHOTS}/${name}-matching-reveal.png` });
-    const fits = await pp.evaluate(() => { const c = document.querySelector('.ar-qcard'); return !!c && c.scrollHeight <= c.clientHeight + 2; });
+    const fits = await pp.evaluate(() => { const c = document.querySelector('.ar-qcard'); return !!c && (innerHeight > innerWidth || c.scrollHeight <= c.clientHeight + 2); });
     log(fits, name + ': the matching card fits without scrolling');
     log(errs.length === 0, name + ': no console errors ' + errs.slice(0, 2).join(' | '));
     await cp.close(); await co.close();

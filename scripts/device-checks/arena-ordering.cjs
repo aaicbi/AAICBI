@@ -31,7 +31,7 @@ const PAIRS_UNUSED = [['Phishing', 'Fake messages that steal logins'], ['Firewal
     return { mid, picker };
   }
   const br = await launch();
-  for (const [name, dev] of [['desktop', device('Desktop Chrome', { viewport: { width: 1280, height: 720 } })], ['phone', device('iPhone 13 landscape')]]) {
+  for (const [name, dev] of [['desktop', device('Desktop Chrome', { viewport: { width: 1280, height: 720 } })], ['phone', device('iPhone 13 landscape')], ['portrait', device('iPhone 13')]]) {
     clearThrottle(); const { mid, picker } = await newMatch();
     const e1 = picker === 'a' ? 't0@dev.test' : 't1@dev.test'; const e2 = picker === 'a' ? 't1@dev.test' : 't0@dev.test';
     const cp = await signedIn(br, dev, '/api/auth/trainee-login', e1); const co = await signedIn(br, dev, '/api/auth/trainee-login', e2);
@@ -50,7 +50,7 @@ const PAIRS_UNUSED = [['Phishing', 'Fake messages that steal logins'], ['Firewal
       log((await pg.locator('.ar-ord li .ar-chip-no').count()) >= 1, name + ': ' + who + ' sees where their own steps were wrong');
     }
     await pp.screenshot({ path: `${SHOTS}/${name}-ordering-reveal.png` });
-    const fits = await pp.evaluate(() => { const c = document.querySelector('.ar-qcard'); return !!c && c.scrollHeight <= c.clientHeight + 2; });
+    const fits = await pp.evaluate(() => { const c = document.querySelector('.ar-qcard'); return !!c && (innerHeight > innerWidth || c.scrollHeight <= c.clientHeight + 2); });
     log(fits, name + ': the ordering reveal fits the card');
     await cp.close(); await co.close();
     psql(`update "ArenaMatch" set status='CANCELLED' where id='${mid}'`);

@@ -67,3 +67,13 @@ One table, `ArenaConfig` (migration `20261112090000_arena_config`, additive). Ro
 - **Play again:** after a match either player can ask for a rematch with new questions (the previous match's questions are skipped while fresh ones remain). If both press it, they land in one lobby. Schema: `ArenaMatch.rematchOfId`.
 - **Questions and answers:** options that point at each other ("All of the above", "Both A and B") keep their written order; typed letter prefixes ("A) ...") are removed so they cannot clash with the letters the game draws. The reveal now says the correct answer in words with the explanation, and marks your own wrong pick.
 - **Game feel:** 3-2-1-GO start, streak flames, score count-up, confetti and flying points on a correct answer, edge flash, winner colours on the number board, rising countdown beeps in the last 5 s, a synthesized sound kit (tick, pop, correct arpeggio, gentle miss, bonus stinger, victory/defeat/draw), 12 reactions with their own sounds, stars and a head-to-head record on the result screen, and a "review the answers" recap that puts missed questions first.
+
+## Release 4: phones play upright
+
+Quiz-style games on phones are played in **portrait** (Kahoot, Trivia Crack, QuizUp and Duolingo all do): one hand, thumb reach, text-heavy questions read naturally, and nobody has to turn the phone. The Arena therefore no longer asks for landscape or a "flip screen".
+
+- **Portrait (phones):** one column. A scoreboard row (you | timer | them), the progress strip, then the question card with large full-width answer buttons; the card scrolls inside itself when a question is long and the Lock in button stays pinned at its bottom. A dock under the card holds **React** (opens a bottom sheet of 12 reactions) and **Pause**.
+- **Wide screens (tablets, desktops, phones held sideways):** the three-column board as before, with a Pause button in the top bar.
+- Layout is chosen from the stage's own shape with a container query (`max-aspect-ratio: 1/1`), so it needs no device sniffing. The root uses `100dvh` so mobile browser bars never cut it off.
+- Pause had an API and an overlay but no button; it now has one in both layouts.
+- Check: `scripts/device-checks/arena-ui.cjs`, `arena-matching.cjs` and `arena-ordering.cjs` run desktop, landscape phone and portrait phone.
