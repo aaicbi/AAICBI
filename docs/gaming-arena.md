@@ -60,3 +60,10 @@ One table, `ArenaConfig` (migration `20261112090000_arena_config`, additive). Ro
 **Real time.** Ably only says "something changed". Browsers listen over a plain event stream with a short-lived subscribe-only token from `/api/arena/realtime/token` (no Ably library is shipped to phones); the page then refetches its own view. With no key, or if the stream drops, pages poll every 1-2 s.
 
 **Checks.** `tests/arenaCore.test.ts` (rules), `scripts/device-checks/arena-match.cjs` (two trainees play a complete match through the API: challenge, lobby, pick, answer, bonus, pause, reactions, timeouts, forfeit, expiry, rate limit) and `scripts/device-checks/arena-ui.cjs` (two browsers on desktop and a landscape phone, no scrolling, no console errors).
+
+## Release 3: play again, a minute per question, livelier game
+
+- **Defaults:** 60 s per question (instructor 10-180), 20 questions per match (a match is as long as the course has questions when that is fewer, never below 4), 20 s for a bonus chance. Picking a number has no visible timer; `pickSeconds` (default 180) is only a safety net so a match cannot stall if someone walks away.
+- **Play again:** after a match either player can ask for a rematch with new questions (the previous match's questions are skipped while fresh ones remain). If both press it, they land in one lobby. Schema: `ArenaMatch.rematchOfId`.
+- **Questions and answers:** options that point at each other ("All of the above", "Both A and B") keep their written order; typed letter prefixes ("A) ...") are removed so they cannot clash with the letters the game draws. The reveal now says the correct answer in words with the explanation, and marks your own wrong pick.
+- **Game feel:** 3-2-1-GO start, streak flames, score count-up, confetti and flying points on a correct answer, edge flash, winner colours on the number board, rising countdown beeps in the last 5 s, a synthesized sound kit (tick, pop, correct arpeggio, gentle miss, bonus stinger, victory/defeat/draw), 12 reactions with their own sounds, stars and a head-to-head record on the result screen, and a "review the answers" recap that puts missed questions first.

@@ -75,7 +75,7 @@ const pastDeadline = (id) => psql(`update "ArenaMatch" set "phaseEndsAt"=now()-i
 
   // pick
   let v = (await call(first.me, 'GET', '/api/arena/matches/' + mid)).j;
-  log(v.turn === 'me' && v.rules.pickSeconds === 10 && v.phaseEndsAt - v.serverNow <= 10500, 'the picker has the 10 s pick timer');
+  log(v.turn === 'me' && v.rules.questionSeconds === 60 && v.rules.pickSeconds >= 120, 'a minute per question, and a long safety limit (not a visible timer) for picking');
   r = await call(first.other, 'POST', `/api/arena/matches/${mid}/pick`, { number: 3 });
   log(r.s === 403, 'the other player cannot pick');
   r = await call(first.me, 'POST', `/api/arena/matches/${mid}/pick`, { number: 99 });
@@ -159,6 +159,32 @@ const pastDeadline = (id) => psql(`update "ArenaMatch" set "phaseEndsAt"=now()-i
   log(v.result && bv.result && v.result.myScore === bv.result.opponentScore && v.result.opponentScore === bv.result.myScore, 'both players see the same final score from their side');
   log(v.result.winner === 'draw' ? bv.result.winner === 'draw' : v.result.winner !== bv.result.winner, 'one winner (or a draw) agreed by both');
   log(v.result.topics.length >= 1, 'the result has a per-topic breakdown');
+  log(v.result.recap.length >= 3 && v.result.recap.every((x) => x.answer && x.prompt) && [1, 2, 3].includes(v.result.stars), 'the result has a recap with the answer to every question, and a star rating');
+  log(v.result.record.wins + v.result.record.losses + v.result.record.draws >= 1, 'the result shows the head-to-head record');
+
+  // play again: new questions, one lobby
+  const usedBefore = psql(`select string_agg("itemId", ',') from "ArenaRound" where "matchId"='${mid}'`).split(',');
+  r = await call(a, 'POST', `/api/arena/matches/${mid}/rematch`);
+  log(r.s === 200 && r.j.rematch && r.j.rematch.status === 'PENDING' && r.j.rematch.from === 'me', 'play again sends a rematch request');
+  const rid = r.j.rematch.id;
+  r = await call(b, 'GET', '/api/arena/matches/' + mid);
+  log(r.j.rematch && r.j.rematch.from === 'opponent' && r.j.rematch.id === rid, 'the other player sees the request on their result screen');
+  r = await call(a, 'POST', `/api/arena/matches/${mid}/rematch`);
+  log(r.j.rematch.id === rid, 'asking twice does not make a second match');
+  r = await call(b, 'POST', `/api/arena/matches/${mid}/rematch`);
+  log(r.s === 200 && r.j.rematch.id === rid && r.j.rematch.status === 'LOBBY', 'both pressing play again lands in one lobby');
+  r = await call(a, 'POST', `/api/arena/matches/${rid}/ready`, { ready: true }); r = await call(b, 'POST', `/api/arena/matches/${rid}/ready`, { ready: true });
+  log(r.j.status === 'ACTIVE' && r.j.totalRounds === 4, 'the rematch starts');
+  for (let n = 1; n <= 3; n++) {
+    let rv = (await call(a, 'GET', '/api/arena/matches/' + rid)).j;
+    const pk = rv.turn === 'me' ? a : b;
+    await call(pk, 'POST', `/api/arena/matches/${rid}/pick`, { number: n });
+    for (let k = 0; k < 3; k++) { pastDeadline(rid); await call(a, 'GET', '/api/arena/matches/' + rid); } // question, bonus and reveal time out
+  }
+  const usedAfter = psql(`select string_agg("itemId", ',') from "ArenaRound" where "matchId"='${rid}'`).split(',');
+  log(usedAfter.length >= 3 && usedAfter.every((x) => !usedBefore.includes(x)), 'the rematch asks new questions (none repeated while the course has fresh ones)');
+  await call(a, 'POST', `/api/arena/matches/${rid}/leave`);
+
   r = await call(a, 'POST', `/api/arena/matches/${mid}/pick`, { number: 1 });
   log(r.s >= 400, 'nothing can be played after the match ends');
 

@@ -32,7 +32,7 @@ export default function ArenaFrame({ title, backHref, sound, onSound, children }
       <div className="ar-bar">
         <Link href={backHref} aria-label="Leave the arena screen">← Back</Link>
         <h1>{title}</h1>
-        {onSound && <button type="button" aria-pressed={!!sound} onClick={() => onSound(!sound)}>{sound ? "🔊 Ticking on" : "🔈 Ticking off"}</button>}
+        {onSound && <button type="button" aria-pressed={!!sound} onClick={() => onSound(!sound)}>{sound ? "🔊 Sound on" : "🔇 Sound off"}</button>}
         <button type="button" className="ar-flipbtn" onClick={() => setFlipped((v) => !v)}>Flip screen</button>
         <button type="button" aria-pressed={full} onClick={toggleFull}>{full ? "Exit full screen" : "Full screen"}</button>
       </div>

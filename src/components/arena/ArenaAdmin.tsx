@@ -175,8 +175,8 @@ export default function ArenaAdmin() {
           <Card className="space-y-1">
             <h2 className="font-display text-lg font-semibold text-brand-ink">Rules of play</h2>
             <p className="text-sm text-gray-600">Instructors can also set these for their own course, from the course page. A value set on a course wins over the platform and organization.</p>
-            <NumRow k="questionSeconds" title={ARENA_SETTING_LABELS.questionSeconds} hint="Default 15. Counts down on every question." unit="seconds" />
-            <NumRow k="pickSeconds" title={ARENA_SETTING_LABELS.pickSeconds} hint="Default 10. If it runs out, the system picks a question for the player." unit="seconds" />
+            <NumRow k="questionSeconds" title={ARENA_SETTING_LABELS.questionSeconds} hint="Default 60. Counts down on every question." unit="seconds" />
+            <NumRow k="pickSeconds" title={ARENA_SETTING_LABELS.pickSeconds} hint="Default 180. Players are not shown a timer when picking a number; this only stops a match from stalling if someone walks away." unit="seconds" />
             <NumRow k="bonusPercent" title={ARENA_SETTING_LABELS.bonusPercent} hint="When one player misses, the other gets 5 seconds to answer for the normal points plus this extra share." unit="% extra" />
             <NumRow k="pausesPerPlayer" title={ARENA_SETTING_LABELS.pausesPerPlayer} hint="Each player can pause and chat with the other." />
             <NumRow k="pauseSeconds" title={ARENA_SETTING_LABELS.pauseSeconds} hint="The game resumes by itself after this long." unit="seconds" />

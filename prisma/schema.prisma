@@ -5714,6 +5714,8 @@ model ArenaMatch {
 
   winnerId       String?
   endReason      String?
+  /// The match this one is a rematch of: its questions are not asked again while there are fresh ones.
+  rematchOfId    String?
   version        Int       @default(0)
   createdAt      DateTime  @default(now())
   startedAt      DateTime?
@@ -5727,6 +5729,7 @@ model ArenaMatch {
   @@index([courseId, status])
   @@index([challengerId, status])
   @@index([opponentId, status])
+  @@index([rematchOfId])
 }
 
 model ArenaRound {

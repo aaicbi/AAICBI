@@ -66,6 +66,12 @@ export async function modulesWithPool(courseId: string, minimum: number): Promis
   return out;
 }
 
+/** "A) text" and "B. text" prefixes would clash with the letters the game draws, so they are removed. */
+export const cleanOptionText = (t: string) => t.replace(/^\s*\(?[A-Ha-h][\).:\-]\s+/, "").trim() || t;
+
+/** Options that point at each other ("All of the above", "Both A and B") only make sense in their written order. */
+export const dependsOnOrder = (texts: string[]) => texts.some((t) => /\b(all|none|both|neither|any)\s+of\s+(the\s+)?(above|these|them)\b|\b(both|and|or)\s+\(?[A-H]\)?(\s+(and|or)\s+\(?[A-H]\)?)?\b(?=\W*$)|\boption\s+[A-H]\b|\babove\b/i.test(t));
+
 export const basePointsFor = (e: PoolEntry) => BASE_POINTS[e.format];
 
 /** Picks one at random that hasn't been used in this match. Null if the pool has run dry. */
@@ -79,7 +85,7 @@ export async function serveEntry(e: PoolEntry): Promise<ServedRound | null> {
   if (e.kind === "QUESTION") {
     const q = await prisma.question.findUnique({ where: { id: e.id }, select: { text: true, difficulty: true, bankObjective: { select: { text: true } }, exam: { select: { courseModule: { select: { title: true } } } }, options: { select: { key: true, text: true }, orderBy: { order: "asc" } } } });
     if (!q) return null;
-    return { format: "QUIZ", topic: q.bankObjective?.text ?? q.exam.courseModule?.title ?? "Course question", level: q.difficulty ? LEVEL[q.difficulty as keyof typeof LEVEL] ?? "Medium" : "Medium", question: q.text, options: shuffle(q.options) };
+    return { format: "QUIZ", topic: q.bankObjective?.text ?? q.exam.courseModule?.title ?? "Course question", level: q.difficulty ? LEVEL[q.difficulty as keyof typeof LEVEL] ?? "Medium" : "Medium", question: q.text, options: (dependsOnOrder(q.options.map((o) => o.text)) ? q.options : shuffle(q.options)).map((o) => ({ key: o.key, text: cleanOptionText(o.text) })) };
   }
   const it = await prisma.gameItem.findUnique({ where: { id: e.id }, select: { format: true, content: true, objective: { select: { text: true } }, module: { select: { title: true } } } });
   if (!it) return null;
@@ -106,7 +112,7 @@ export async function revealEntry(e: PoolEntry): Promise<Reveal> {
   if (e.kind === "QUESTION") {
     const q = await prisma.question.findUnique({ where: { id: e.id }, select: { explanation: true, options: { select: { key: true, text: true, isCorrect: true } } } });
     const right = q?.options.find((o) => o.isCorrect);
-    return { format: "QUIZ", explanation: q?.explanation ?? null, correctKey: right?.key, correctText: right?.text };
+    return { format: "QUIZ", explanation: q?.explanation ?? null, correctKey: right?.key, correctText: right ? cleanOptionText(right.text) : undefined };
   }
   const it = await prisma.gameItem.findUnique({ where: { id: e.id }, select: { format: true, content: true } });
   if (!it) return { format: e.format, explanation: null };
