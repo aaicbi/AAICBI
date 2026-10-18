@@ -24,19 +24,19 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
   const tall = format === "status";
   const who = displayName(d.name);
   const unit = tall ? 1.6 : 1;
-  const sq = Math.round(64 * unit);
+  const sq = Math.round((tall ? 64 : 44) * unit);
 
   return new ImageResponse(
     (
-      <div style={{ width, height, display: "flex", flexDirection: "column", justifyContent: "space-between", background: INK, color: TEXT, padding: tall ? 96 : 56, fontFamily: "sans-serif" }}>
+      <div style={{ width, height, display: "flex", flexDirection: "column", justifyContent: "space-between", background: INK, color: TEXT, padding: tall ? 96 : 44, fontFamily: "sans-serif" }}>
         <div style={{ display: "flex", flexDirection: "column" }}>
-          <div style={{ display: "flex", fontSize: 30 * unit, fontWeight: 700, color: MINT, letterSpacing: 2 }}>AAICBI · AYAKBI ARENA</div>
-          {d.organizationName ? <div style={{ display: "flex", fontSize: 26 * unit, color: MUTED, marginTop: 8 }}>{d.organizationName}</div> : null}
+          <div style={{ display: "flex", fontSize: (tall ? 44 : 26), fontWeight: 700, color: MINT, letterSpacing: 2 }}>AAICBI · AYAKBI ARENA</div>
+          {d.organizationName ? <div style={{ display: "flex", fontSize: (tall ? 38 : 22), color: MUTED, marginTop: 6 }}>{d.organizationName}</div> : null}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", alignItems: tall ? "center" : "flex-start" }}>
-          <div style={{ display: "flex", fontSize: 40 * unit, color: GOLD, fontWeight: 700 }}>{d.rank.label}</div>
-          <div style={{ display: "flex", fontSize: (tall ? 360 : 230), fontWeight: 800, lineHeight: 1.05 }}>{`${d.score}/${d.total}`}</div>
+          <div style={{ display: "flex", fontSize: (tall ? 56 : 34), color: GOLD, fontWeight: 700 }}>{d.rank.label}</div>
+          <div style={{ display: "flex", fontSize: (tall ? 360 : 150), fontWeight: 800, lineHeight: 1.05 }}>{`${d.score}/${d.total}`}</div>
           <div style={{ display: "flex", marginTop: 24 * unit }}>
             {d.grid.map((ok, i) => (
               <div key={i} style={{ display: "flex", width: sq, height: sq, borderRadius: 14 * unit, marginRight: i === d.grid.length - 1 ? 0 : 14 * unit, background: ok ? MINT : RED }} />
@@ -45,9 +45,9 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", alignItems: tall ? "center" : "flex-start" }}>
-          <div style={{ display: "flex", fontSize: 46 * unit, fontWeight: 800, textAlign: tall ? "center" : "left" }}>{`Can you beat ${d.name ? who : "my score"}?`}</div>
-          <div style={{ display: "flex", fontSize: 28 * unit, color: MUTED, marginTop: 10 }}>{`5 questions · 90 seconds · no signup`}</div>
-          <div style={{ display: "flex", fontSize: 30 * unit, color: MINT, fontWeight: 700, marginTop: 14 }}>{d.link}</div>
+          <div style={{ display: "flex", fontSize: (tall ? 64 : 40), fontWeight: 800, textAlign: tall ? "center" : "left" }}>{`Can you beat ${d.name ? who : "my score"}?`}</div>
+          <div style={{ display: "flex", fontSize: (tall ? 40 : 24), color: MUTED, marginTop: 8 }}>{`5 questions · 90 seconds · no signup`}</div>
+          <div style={{ display: "flex", fontSize: (tall ? 38 : 26), color: MINT, fontWeight: 700, marginTop: 12 }}>{d.link}</div>
         </div>
       </div>
     ),

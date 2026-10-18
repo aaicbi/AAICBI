@@ -120,7 +120,7 @@ export default function GrowthPlay({ slug, courseId, courseTitle, organizationNa
     token.current = null; setState(null); setStarted(false); setFb(null); setSaved(null); setSaveOpen(false); setConsent(false); setChallenge(null);
   }
 
-  if (ended) return <Panel><h1 ref={heading} tabIndex={-1} className="outline-none font-display text-2xl font-bold text-brand-ink">This campaign has ended</h1><p className="mt-2 text-brand-ink">The free game is closed, but you can still look at the course.</p><Cta href={`/courses/${courseId}`}>See {courseTitle}</Cta></Panel>;
+  if (ended) return <Panel><h1 ref={heading} tabIndex={-1} className="outline-none focus-visible:outline-none font-display text-2xl font-bold text-brand-ink">This campaign has ended</h1><p className="mt-2 text-brand-ink">The free game is closed, but you can still look at the course.</p><Cta href={`/courses/${courseId}`}>See {courseTitle}</Cta></Panel>;
 
   if (!started || !state) {
     return (
@@ -128,14 +128,14 @@ export default function GrowthPlay({ slug, courseId, courseTitle, organizationNa
         {organizationName && <span className="inline-block rounded-full bg-brand-mint px-3 py-1 text-xs font-bold text-brand-tealDeep">{organizationName}</span>}
         {duel ? (
           <div data-testid="growth-duel-intro">
-            <h1 ref={heading} tabIndex={-1} className="outline-none mt-3 font-display text-3xl font-extrabold leading-tight text-brand-ink [text-wrap:balance]">{duel.name} challenged you</h1>
+            <h1 ref={heading} tabIndex={-1} className="outline-none focus-visible:outline-none mt-3 font-display text-3xl font-extrabold leading-tight text-brand-ink [text-wrap:balance]">{duel.name} challenged you</h1>
             <p className="mt-3 text-base text-brand-ink">{duel.name} got {duel.score}/{duel.total} ({duel.rankLabel}) on {courseTitle}. You get the same {duel.total} questions. Can you beat them?</p>
             <label htmlFor="growth-duel-name" className="mt-4 block text-sm font-semibold text-brand-ink">Your name (optional)</label>
             <input id="growth-duel-name" maxLength={NICK_MAX} autoComplete="given-name" value={myName} onChange={(e) => setMyName(e.target.value)} placeholder="So they know it was you" className="mt-1 min-h-[48px] w-full rounded-xl border border-brand-gray bg-brand-surface px-3 text-base text-brand-ink" data-testid="growth-duel-name" />
           </div>
         ) : (
           <>
-            <h1 ref={heading} tabIndex={-1} className="outline-none mt-3 font-display text-3xl font-extrabold leading-tight text-brand-ink [text-wrap:balance]">Do you think like an AI automation builder?</h1>
+            <h1 ref={heading} tabIndex={-1} className="outline-none focus-visible:outline-none mt-3 font-display text-3xl font-extrabold leading-tight text-brand-ink [text-wrap:balance]">Do you think like an AI automation builder?</h1>
             <p className="mt-3 text-base text-brand-ink">5 questions from {courseTitle}. About 90 seconds. See your rank and what to learn next. No account needed.</p>
           </>
         )}
@@ -154,7 +154,7 @@ export default function GrowthPlay({ slug, courseId, courseTitle, organizationNa
         <Panel>
           <div className="flex items-center justify-between text-sm font-semibold text-gray-600"><span>Question {showing.index + 1} of {showing.total}</span>{showing.duelAgainst && <span data-testid="growth-duel-label">Duel vs {showing.duelAgainst}</span>}</div>
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-brand-gray/50" role="progressbar" aria-valuemin={0} aria-valuemax={showing.total} aria-valuenow={showing.index + (fb ? 1 : 0)}><div className="h-full bg-brand-action" style={{ width: `${((showing.index + (fb ? 1 : 0)) / showing.total) * 100}%` }} /></div>
-          <h1 ref={heading} tabIndex={-1} className="outline-none mt-4 font-display text-xl font-bold text-brand-ink [text-wrap:balance]" data-testid="growth-question">{q.text}</h1>
+          <h1 ref={heading} tabIndex={-1} className="outline-none focus-visible:outline-none mt-4 font-display text-xl font-bold text-brand-ink [text-wrap:balance]" data-testid="growth-question">{q.text}</h1>
           <div className="mt-4 space-y-2" role="group" aria-label="Answers">
             {q.options.map((o) => {
               const picked = fb?.chosen === o.key;
@@ -187,7 +187,7 @@ export default function GrowthPlay({ slug, courseId, courseTitle, organizationNa
       )}
       <div className="rounded-2xl bg-brand-surface p-5 text-center">
         <span className="inline-block rounded-full bg-brand-goldLight px-3 py-1 text-xs font-bold text-brand-goldText" data-testid="growth-rank">{r.rank.label}</span>
-        <h1 ref={heading} tabIndex={-1} className="outline-none mt-2 font-display text-5xl font-extrabold text-brand-ink" data-testid="growth-score">{r.score}/{r.total}</h1>
+        <h1 ref={heading} tabIndex={-1} className="outline-none focus-visible:outline-none mt-2 font-display text-5xl font-extrabold text-brand-ink" data-testid="growth-score">{r.score}/{r.total}</h1>
         <p className="mt-2 text-2xl" aria-label={`${r.grid.filter(Boolean).length} correct out of ${r.total}`}>{answerGrid(r.grid)}</p>
         {r.beatPercent !== null && <p className="mt-2 text-sm text-brand-ink">You beat {r.beatPercent}% of players.</p>}
       </div>
