@@ -187,7 +187,7 @@ export async function campaignReport(viewer: Viewer, choice: ScopeChoice, period
     organizations: isSuper ? orgs.map((o) => ({ id: o.id, name: o.name })) : [],
     campaigns: campaigns.length,
     funnel: funnelSteps(total),
-    extras: { squads, challenges: plays.filter((p) => p.duelOfId).length, optedOut: plays.filter((p) => p.lead?.optedOutAt).length, messagesSent: msgCount("SENT", "DELIVERED", "READ", "MANUAL_SENT"), messagesDelivered: msgCount("DELIVERED", "READ"), messagesFailed: msgCount("FAILED") },
+    extras: { scholarships: await prisma.growthScholarship.count({ where: { campaignId: { in: campaignIds }, status: "AWARDED", ...(from ? { awardedAt: { gte: from } } : {}) } }), squads, challenges: plays.filter((p) => p.duelOfId).length, optedOut: plays.filter((p) => p.lead?.optedOutAt).length, messagesSent: msgCount("SENT", "DELIVERED", "READ", "MANUAL_SENT"), messagesDelivered: msgCount("DELIVERED", "READ"), messagesFailed: msgCount("FAILED") },
     sources: [...bySource.entries()].map(([label, f]) => ({ label, funnel: f })).sort((a, b) => b.funnel.started - a.funnel.started),
     courses: courseRows,
     commission: {

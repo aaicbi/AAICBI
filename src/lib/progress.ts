@@ -1,3 +1,4 @@
+import { awardIfEligible } from "@/lib/growth/scholarship";
 /**
  * The Prisma-dependent half of M12's locking engine — fetches what
  * progressCore.ts needs for a real trainee and course, and shapes the
@@ -139,6 +140,8 @@ export async function getModuleLockMap(courseId: string, traineeId: string): Pro
   // precise, race-safe signal for "I am the one who should notify."
   // Wrapped so a failed/slow send can never affect the lock
   // computation this function's callers actually depend on.
+  // Passing module 1 can earn a scholarship seat on a growth campaign. Never allowed to affect the lock computation.
+  if (justUnlockedModuleIds.length > 0) void awardIfEligible(traineeId, courseId).catch(() => undefined);
   if (justUnlockedModuleIds.length > 0) {
     try {
       const trainee = await prisma.trainee.findUnique({ where: { id: traineeId } });

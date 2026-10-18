@@ -1,5 +1,6 @@
 import { effectivePreviewCount } from "@/lib/growth/growthCore";
 import { grantedModules } from "@/lib/growth/growth";
+import { awardIfEligible, heldScholarship } from "@/lib/growth/scholarship";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -177,10 +178,19 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // cron run.
     await expireLapsedEnrollmentsForTrainee(session.userId);
 
-    const existingEnrollment = await prisma.courseEnrollment.findUnique({
+    const enrollmentSelect = { source: true, unlockedAt: true, accessRevokedAt: true, completedAt: true, currentPeriodEnd: true } as const;
+    let existingEnrollment = await prisma.courseEnrollment.findUnique({
       where: { traineeId_courseId: { traineeId: session.userId, courseId: course.id } },
-      select: { source: true, unlockedAt: true, accessRevokedAt: true, completedAt: true, currentPeriodEnd: true },
+      select: enrollmentSelect,
     });
+    // A free-preview trainee who has just passed module 1 may be given a scholarship seat. Completions are recorded
+    // by the lock map, so run it first, then look at the enrollment again if a seat was given.
+    if (existingEnrollment?.source === "PREVIEW" && !existingEnrollment.unlockedAt && !existingEnrollment.accessRevokedAt) {
+      await getModuleLockMap(course.id, session.userId);
+      if (await awardIfEligible(session.userId, course.id).catch(() => false)) {
+        existingEnrollment = await prisma.courseEnrollment.findUnique({ where: { traineeId_courseId: { traineeId: session.userId, courseId: course.id } }, select: enrollmentSelect });
+      }
+    }
 
     const isExpired = !!existingEnrollment?.accessRevokedAt;
     const enrolled = await hasCourseAccess(session.userId, course.id);
@@ -361,6 +371,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       // continue" messaging referencing the actual boundary without
       // having to re-derive it by counting locked modules itself.
       isPreviewing: previewing,
+      scholarship: await heldScholarship(session.userId, course.id),
       freePreviewModuleCount: previewing ? previewCount : null,
     });
   });
