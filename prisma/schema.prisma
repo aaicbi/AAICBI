@@ -5599,3 +5599,50 @@ model FeedGamePlay {
   @@index([gameId, answeredAt])
   @@index([moduleId, answeredAt])
 }
+
+// ---------------------------------------------------------------------------
+// Gaming Arena: the switches and rules, one row per scope. A Super Admin turns
+// features on or off (platform wide, for one organization, or for one course) and
+// instructors set the rules of play for their own course. A null field means "use
+// the wider scope", so the narrowest row that sets a value wins. See src/lib/arena.
+// ---------------------------------------------------------------------------
+enum ArenaScopeType {
+  PLATFORM
+  ORGANIZATION
+  COURSE
+}
+
+enum ArenaSpectators {
+  OFF
+  ENROLLED
+  LIVE
+}
+
+model ArenaConfig {
+  id        String         @id @default(cuid())
+  scopeType ArenaScopeType
+  /// "" for the platform row, otherwise the organization or course id.
+  scopeId   String         @default("")
+
+  // Switches (Super Admin only)
+  enabled       Boolean?
+  gameEnabled   Boolean?
+  chatEnabled   Boolean?
+  ladderEnabled Boolean?
+  spectators    ArenaSpectators?
+  spectatorCap  Int?
+
+  // Rules of play (instructors for their own course, Super Admin anywhere)
+  questionSeconds   Int?
+  pickSeconds       Int?
+  bonusPercent      Int?
+  pausesPerPlayer   Int?
+  pauseSeconds      Int?
+  questionsPerMatch Int?
+  tickingSound      Boolean?
+
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+
+  @@unique([scopeType, scopeId])
+}
