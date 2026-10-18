@@ -4,11 +4,13 @@ import Link from "next/link";
 import "./arena.css";
 import { wake } from "./sound";
 
-/** The full-screen landscape frame shared by the lobby and the match: title, sound, rotate / flip / fullscreen. */
+/**
+ * The full-screen frame shared by the lobby and the match. Phones play upright (portrait, one hand, the way Kahoot, Trivia Crack and
+ * Duolingo do it); tablets and desktops get the wide three-column board. No rotating or flipping is ever asked of the player.
+ */
 export default function ArenaFrame({ title, backHref, sound, onSound, children }: {
   title: string; backHref: string; sound?: boolean; onSound?: (on: boolean) => void; children: ReactNode;
 }) {
-  const [flipped, setFlipped] = useState(false);
   const [full, setFull] = useState(false);
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -23,23 +25,17 @@ export default function ArenaFrame({ title, backHref, sound, onSound, children }
     try {
       if (document.fullscreenElement) void document.exitFullscreen();
       else void document.documentElement.requestFullscreen?.();
-      // Phones that allow it: lock to landscape once fullscreen.
-      void (screen.orientation as unknown as { lock?: (o: string) => Promise<void> })?.lock?.("landscape")?.catch(() => undefined);
     } catch { /* not supported */ }
   };
   return (
-    <div className={`ar-root${flipped ? " ar-flipped" : ""}`} onPointerDown={wake}>
+    <div className="ar-root" onPointerDown={wake}>
       <div className="ar-bar">
-        <Link href={backHref} aria-label="Leave the arena screen">← Back</Link>
+        <Link href={backHref} aria-label="Leave the arena screen">←<span className="ar-btxt"> Back</span></Link>
         <h1>{title}</h1>
-        {onSound && <button type="button" aria-pressed={!!sound} onClick={() => onSound(!sound)}>{sound ? "🔊 Sound on" : "🔇 Sound off"}</button>}
-        <button type="button" className="ar-flipbtn" onClick={() => setFlipped((v) => !v)}>Flip screen</button>
-        <button type="button" aria-pressed={full} onClick={toggleFull}>{full ? "Exit full screen" : "Full screen"}</button>
+        {onSound && <button type="button" aria-pressed={!!sound} aria-label={sound ? "Sound on" : "Sound off"} onClick={() => onSound(!sound)}>{sound ? "🔊" : "🔇"}<span className="ar-btxt">{sound ? " Sound on" : " Sound off"}</span></button>}
+        <button type="button" className="ar-fsbtn" aria-pressed={full} onClick={toggleFull}>{full ? "Exit full screen" : "Full screen"}</button>
       </div>
-      <div className="ar-body">
-        {children}
-        <div className="ar-rotate" role="status"><div><div style={{ fontSize: "3em" }}>📱↻</div><p><strong>Turn your phone sideways to play.</strong></p><p style={{ opacity: 0.8, fontSize: ".9em" }}>If rotation is locked, use “Flip screen” above.</p></div></div>
-      </div>
+      <div className="ar-body">{children}</div>
     </div>
   );
 }
