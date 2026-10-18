@@ -26,6 +26,7 @@
  * early relative to its own cycle length flags admin staff via the
  * previously-unwired `likelyDuplicatePaymentEmail`.
  */
+import { recordCommissionForPayment } from "@/lib/growth/report";
 import { prisma } from "@/lib/prisma";
 import { verifyPaystackTransaction, isGenuinePaymentSuccess, PaystackVerifyResult } from "@/lib/paystack/client";
 import { computePeriodEnd, computeFixedAccessEnd } from "@/lib/paystack/billingPeriod";
@@ -338,6 +339,8 @@ export async function processConfirmedCharge(reference: string): Promise<Process
   await prisma.payment
     .update({ where: { reference }, data: { status: "SUCCESS", confirmedAt: now, method, enrollmentId: enrollment.id } })
     .catch((e) => console.error(`Failed to mark Payment SUCCESS for reference ${reference}:`, e));
+  // A payment by someone who came through a growth campaign earns the organization's commission row at the rate of the day.
+  void recordCommissionForPayment(reference).catch((e) => console.error(`Failed to record the growth commission for ${reference}:`, e));
 
   const trainee = await prisma.trainee.findUnique({ where: { id: traineeId } });
   if (trainee) {

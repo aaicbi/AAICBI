@@ -6310,3 +6310,33 @@ model GrowthMessage {
   @@index([providerMessageId])
   @@index([sentAt])
 }
+
+// The commission ledger: one row per confirmed payment that came through a growth campaign for an organization's course. The rate is
+// frozen when the row is made. AAICBI courses have no commission, so they have no rows.
+model GrowthCommission {
+  id             String    @id @default(cuid())
+  paymentId      String    @unique
+  campaignId     String
+  courseId       String
+  organizationId String?
+  traineeId      String
+  // The taster link source the trainee came from (a WhatsApp group, a share, a duel...), when it is known.
+  source         String?
+  amountKobo     Int
+  rateBps        Int
+  commissionKobo Int
+  // OWED, SETTLED (the organization paid AAICBI), REVERSED (the payment was refunded, set by hand)
+  status         String    @default("OWED")
+  // A bank reference or a note, set when settled or reversed.
+  note           String?
+  settledAt      DateTime?
+  settledById    String?
+  reversedAt     DateTime?
+  paidAt         DateTime
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([organizationId, status])
+  @@index([courseId])
+  @@index([paidAt])
+}

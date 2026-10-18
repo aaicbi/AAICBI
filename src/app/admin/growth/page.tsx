@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
+import Link from "next/link";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import GrowthAdmin from "@/components/growth/GrowthAdmin";
 import GrowthMessaging from "@/components/growth/GrowthMessaging";
@@ -15,6 +16,7 @@ export default async function AdminGrowthPage() {
       <Breadcrumbs items={[{ label: "Platform", href: "/admin/dashboard" }, { label: "Growth" }]} />
       <h1 className="mt-2 font-display text-2xl font-semibold text-brand-ink">Growth</h1>
       <p className="mt-1 max-w-2xl text-sm text-gray-600">A public link plays a 5-question taster with no account, then leads to module 1 free and payment after it. Off everywhere until you switch it on. Turn it on for an organization only when you are being paid to market its courses.</p>
+      <p className="mt-3"><Link href="/admin/growth/report" className="font-semibold text-brand-teal underline" data-testid="to-report">See the campaign report and commission ledger</Link></p>
       <div className="mt-6"><GrowthAdmin /></div>
       <div className="mt-10 border-t border-brand-gray/60 pt-8"><GrowthMessaging /></div>
     </main>
