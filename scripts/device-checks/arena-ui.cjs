@@ -66,7 +66,7 @@ const SHOTS = process.env.SHOTS || '/tmp/dev/arena-shots';
     psql(`update "ArenaMatch" set status='COMPLETED', phase=null, "phaseEndsAt"=null, "winnerId"="turnId", "endedAt"=now() where "courseId"='arena_play' and status='ACTIVE'`);
     await pa.reload(); await pb.reload();
     await pa.getByRole('button', { name: /Play again/ }).waitFor({ timeout: 10000 });
-    log(await pa.locator('.ar-stars').isVisible() && (await pa.locator('.ar-recap').count()) === 1, name + ': the result shows stars and a review of the answers');
+    log(await pa.locator('.ar-stars').isVisible() && (await pa.locator('.ar-recap li').first().isVisible()) && (await pa.locator('.ar-recap .ar-rans').first().innerText()).toLowerCase().includes('answer'), name + ': the result lists every question with its answer, already open');
     await pa.screenshot({ path: `${SHOTS}/${name}-result.png` });
     await pa.getByRole('button', { name: /Play again/ }).click();
     await pb.getByText(/wants a rematch/).waitFor({ timeout: 10000 });

@@ -549,7 +549,7 @@ function PauseOverlay({ v, act, serverNow }: { v: MatchView; act: Act; serverNow
 function Result({ v, act }: { v: MatchView; act: Act }) {
   const r = v.result;
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [onlyMissed, setOnlyMissed] = useState(false);
   if (!r) return null;
   const head = r.winner === "me" ? "Victory! 🏆" : r.winner === "draw" ? "It's a draw 🤝" : `${v.opponent.name} takes it`;
   const sub = r.winner === "me" ? "Brilliant. You earned it." : r.winner === "draw" ? "Evenly matched. Time for the decider?" : "Great effort. Every question you missed is now one you know.";
@@ -587,21 +587,23 @@ function Result({ v, act }: { v: MatchView; act: Act }) {
         </section>
       )}
       {r.recap.length > 0 && (
-        <div className="ar-recap">
-          <button type="button" className="ar-btn ar-ghost ar-sm" aria-expanded={open} onClick={() => setOpen((x) => !x)}>{open ? "Hide" : "Review"} the {missed.length ? `${missed.length} to learn from` : "answers"}</button>
-          {open && (
-            <ol>
-              {[...missed, ...r.recap.filter((x) => x.mine === "correct")].map((x, i) => (
-                <li key={i} className={x.mine === "correct" ? "ar-got" : "ar-lost"}>
-                  <div className="ar-rtopic"><b>{x.mine === "correct" ? "✔ You got this" : x.mine === "missed" ? "✗ Missed" : "– Not answered"}</b><span title={x.topic}>{x.topic}</span></div>
-                  <div className="ar-rprompt">{x.prompt}</div>
-                  <div className="ar-rans"><small>Answer</small>{x.answer}</div>
-                  {x.explanation && <div className="ar-rwhy"><small>Why</small>{x.explanation}</div>}
-                </li>
-              ))}
-            </ol>
-          )}
-        </div>
+        <section className="ar-recap" aria-label="All the questions and answers">
+          <div className="ar-rechead">
+            <h3>{r.recap.length === 1 ? "The question and answer" : `All ${r.recap.length} questions and answers`}</h3>
+            {missed.length > 0 && <button type="button" className="ar-btn ar-ghost ar-sm" aria-pressed={onlyMissed} onClick={() => setOnlyMissed((x) => !x)}>{onlyMissed ? "Show all" : `Only the ${missed.length} I missed`}</button>}
+          </div>
+          <p className="ar-muted">Read through them: the answer and the reason for each one.</p>
+          <ol>
+            {r.recap.map((x, i) => ({ x, i })).filter(({ x }) => !onlyMissed || x.mine !== "correct").map(({ x, i }) => (
+              <li key={i} className={x.mine === "correct" ? "ar-got" : "ar-lost"}>
+                <div className="ar-rtopic"><b>{`Q${x.n} · ${x.mine === "correct" ? "✔ You got this" : x.mine === "missed" ? "✗ You missed this" : "You didn't answer"}`}</b><span title={x.topic}>{x.topic}</span></div>
+                <div className="ar-rprompt">{x.prompt}</div>
+                <div className="ar-rans"><small>Answer</small>{x.answer}</div>
+                {x.explanation && <div className="ar-rwhy"><small>Why</small>{x.explanation}</div>}
+              </li>
+            ))}
+          </ol>
+        </section>
       )}
     </div>
   );

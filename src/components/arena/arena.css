@@ -440,3 +440,10 @@
   .ar-hint:not(.ar-hintok){display:none}
   .ar-board .ar-name{font-size:.75em}
 }
+
+/* Every answer is listed at the end, readable and open */
+.ar-rans{white-space:pre-line}
+.ar-recap .ar-rechead{display:flex;align-items:center;justify-content:space-between;gap:.6em;flex-wrap:wrap}
+.ar-recap h3{margin:0;font-size:.85em;letter-spacing:.06em;text-transform:uppercase;color:var(--gold)}
+.ar-recap>p{margin:.2em 0 .5em;font-size:.8em}
+.ar-recap li{scroll-margin-top:.5em}

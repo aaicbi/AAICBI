@@ -12,7 +12,7 @@
  * profiles, admin data) is ever kept by this worker. Logging out
  * therefore leaves nothing behind to clean up.
  */
-const VERSION = "v3";
+const VERSION = "v4";
 const STATIC_CACHE = `aaicbi-static-${VERSION}`;
 const SHELL_CACHE = `aaicbi-shell-${VERSION}`;
 const OFFLINE_URL = "/offline.html";
@@ -26,8 +26,17 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k.startsWith("aaicbi-") && k !== STATIC_CACHE && k !== SHELL_CACHE).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim()),
+      .then(async (keys) => {
+        const old = keys.filter((k) => k.startsWith("aaicbi-") && k !== STATIC_CACHE && k !== SHELL_CACHE);
+        await Promise.all(old.map((k) => caches.delete(k)));
+        await self.clients.claim();
+        // Only when this replaces an older release (not on a first visit): reload any game window still showing the old one,
+        // such as a home-screen bookmark that iOS kept alive.
+        if (old.length) {
+          const windows = await self.clients.matchAll({ type: "window" });
+          windows.forEach((w) => { if (w.url.includes("/trainee/arena") && "navigate" in w) w.navigate(w.url).catch(() => undefined); });
+        }
+      }),
   );
 });
 

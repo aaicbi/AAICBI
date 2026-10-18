@@ -2,6 +2,8 @@ const { staffSignInPath } = require("./src/lib/staffAccessPath");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // The page knows which release it came from, so an open game tab can notice a newer release and reload itself.
+  env: { NEXT_PUBLIC_BUILD_ID: process.env.VERCEL_GIT_COMMIT_SHA || "" },
   experimental: {
     serverActions: {
       bodySizeLimit: "10mb", // allow DOCX uploads through server actions if used

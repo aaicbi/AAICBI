@@ -159,7 +159,7 @@ const pastDeadline = (id) => psql(`update "ArenaMatch" set "phaseEndsAt"=now()-i
   log(v.result && bv.result && v.result.myScore === bv.result.opponentScore && v.result.opponentScore === bv.result.myScore, 'both players see the same final score from their side');
   log(v.result.winner === 'draw' ? bv.result.winner === 'draw' : v.result.winner !== bv.result.winner, 'one winner (or a draw) agreed by both');
   log(v.result.topics.length >= 1, 'the result has a per-topic breakdown');
-  log(v.result.recap.length >= 3 && v.result.recap.every((x) => x.answer && x.prompt) && [1, 2, 3].includes(v.result.stars), 'the result has a recap with the answer to every question, and a star rating');
+  log(v.result.recap.every((x, i) => x.n === i + 1) && v.result.recap.length >= 3 && v.result.recap.every((x) => x.answer && x.prompt) && [1, 2, 3].includes(v.result.stars), 'the result has a recap with the answer to every question, and a star rating');
   log(v.result.record.wins + v.result.record.losses + v.result.record.draws >= 1, 'the result shows the head-to-head record');
 
   // play again: new questions, one lobby
