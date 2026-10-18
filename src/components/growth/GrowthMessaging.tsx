@@ -154,7 +154,7 @@ export default function GrowthMessaging() {
           <li>Email sending: {providers.email.configured ? <Badge variant="success">Set up</Badge> : <Badge variant="neutral">Not set up</Badge>}</li>
         </ul>
         <p className="mt-3 text-sm text-gray-600">Register this address with Meta as the webhook: <span className="break-all font-semibold text-brand-ink">{providers.webhook.url}</span></p>
-        <p className="mt-2 text-sm text-gray-600">On the server set WHATSAPP_ENABLED, WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_VERIFY_TOKEN and WHATSAPP_APP_SECRET. Until then, use &quot;By hand&quot;. Automatic WhatsApp has been tested against a stand-in server only, not against Meta itself.</p>
+        <p className="mt-2 text-sm text-gray-600">Paste the credentials and switch WhatsApp on in the &quot;WhatsApp connection&quot; section above. Until then, use &quot;By hand&quot;. Automatic WhatsApp has been tested against a stand-in server only, not against Meta itself.</p>
       </Card>
 
       <div>

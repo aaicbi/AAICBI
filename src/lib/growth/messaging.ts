@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { appUrl } from "@/lib/appUrl";
 import { sendEmail } from "@/lib/notifications/email";
 import { sendWhatsApp, whatsAppConfigured, whatsAppEnabled } from "@/lib/notifications/whatsapp";
+import { loadWhatsAppConfig } from "@/lib/notifications/whatsappConfig";
 import { tasterRank } from "@/lib/growth/growthCore";
 import {
   CHANNELS, DEFAULT_DAILY_CAP, DEFAULT_QUIET, DEFAULT_TEMPLATES, KIND_LABEL, LEAD_WINDOW_DAYS, MESSAGE_KINDS, checkTemplate, cleanQuiet, dueKind, inQuietHours, metaTemplateText, nextStatus,
@@ -69,7 +70,7 @@ export async function updateMessagingSettings(actorId: string, patch: { enabled?
   // Whenever messaging will be on, the channel it uses has to be set up on this server.
   if (patch.enabled === true || (patch.enabled === undefined && current.enabled && config.channel !== undefined)) {
     const channel = (config.channel as Channel | undefined) ?? current.channel;
-    if (channel === "WHATSAPP" && !whatsAppConfigured()) throw new MessagingError("WhatsApp is not set up on this server yet. Choose manual, or set the WhatsApp credentials first.", 409);
+    if (channel === "WHATSAPP" && !(await whatsAppConfigured())) throw new MessagingError("WhatsApp is not switched on yet. Choose manual, or save the WhatsApp credentials and switch it on first.", 409);
     if (channel === "EMAIL" && !process.env.RESEND_API_KEY) throw new MessagingError("Email sending is not set up on this server (RESEND_API_KEY).", 409);
   }
   await writeConfig(actorId, { enabled: patch.enabled, config });
@@ -184,6 +185,7 @@ export async function processMessages(opts: { now?: Date; leadId?: string } = {}
     take: 200,
     include: { lead: { select: { optedOutAt: true, optOutToken: true, phone: true, email: true, play: { select: { nickname: true, score: true, questionIds: true, campaign: { select: { slug: true, courseId: true, course: { select: { title: true } } } } } } } } },
   });
+  const waReady = await whatsAppConfigured();
   for (const m of queued) {
     if (m.lead.optedOutAt) { await finish(m.id, "SKIPPED", { error: "Opted out" }); result.skipped++; continue; }
     if (m.channel === "MANUAL") { await finish(m.id, "MANUAL_PENDING", {}); result.manual++; continue; }
@@ -196,6 +198,8 @@ export async function processMessages(opts: { now?: Date; leadId?: string } = {}
       stop: appUrl(`/growth/optout/${m.lead.optOutToken}`),
     };
     if (m.channel === "WHATSAPP") {
+      // Switched off (or credentials removed): leave it queued, to go when it is switched back on.
+      if (!waReady) continue;
       if (!m.toPhone) { await finish(m.id, "SKIPPED", { error: "No phone number" }); result.skipped++; continue; }
       const r = await sendWhatsApp({ to: m.toPhone, templateName: tpl.waTemplate, variables: whatsAppVariables(vars) });
       if (r.ok) { await finish(m.id, "SENT", { providerMessageId: r.messageId ?? null, sentAt: now }); result.sent++; room--; } else { await finish(m.id, "FAILED", { error: r.error ?? "Could not send" }); result.failed++; }
@@ -245,6 +249,7 @@ export async function applyWebhook(parsed: ParsedWebhook): Promise<{ updated: nu
 
 export async function messagingOverview() {
   const settings = await getMessagingSettings();
+  const wa = await loadWhatsAppConfig();
   const [leads, withPhone, withEmail, optedOut, claimed, byStatus, sentLastDay, outbox] = await Promise.all([
     prisma.growthLead.count(),
     prisma.growthLead.count({ where: { phone: { not: null } } }),
@@ -258,9 +263,9 @@ export async function messagingOverview() {
   return {
     settings: { enabled: settings.enabled, channel: settings.channel, dailyCap: settings.dailyCap, quiet: settings.quiet },
     providers: {
-      whatsapp: { enabled: whatsAppEnabled(), configured: whatsAppConfigured() },
+      whatsapp: { enabled: await whatsAppEnabled(), configured: await whatsAppConfigured() },
       email: { configured: !!process.env.RESEND_API_KEY },
-      webhook: { url: appUrl("/api/webhooks/whatsapp"), verifyTokenSet: !!process.env.WHATSAPP_VERIFY_TOKEN, appSecretSet: !!process.env.WHATSAPP_APP_SECRET },
+      webhook: { url: appUrl("/api/webhooks/whatsapp"), verifyTokenSet: !!wa.verifyToken, appSecretSet: !!wa.appSecret },
     },
     templates: MESSAGE_KINDS.map((k) => ({ kind: k, label: KIND_LABEL[k], body: settings.templates[k].body, waTemplate: settings.templates[k].waTemplate, custom: settings.custom[k], metaText: metaTemplateText(settings.templates[k].body), defaultBody: DEFAULT_TEMPLATES[k].body })),
     counts: { leads, withPhone, withEmail, optedOut, claimed, sentLastDay, byStatus: Object.fromEntries(byStatus.map((g) => [g.status, g._count._all])) },
