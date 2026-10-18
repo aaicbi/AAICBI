@@ -886,6 +886,8 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
                 <>
                   Paid <CorrectnessMark state="correct" label={undefined} />
                 </>
+              ) : course.isPreviewing ? (
+                "Free preview"
               ) : (
                 "Free"
               )}
