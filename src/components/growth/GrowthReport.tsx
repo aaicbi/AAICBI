@@ -96,7 +96,7 @@ export default function GrowthReport({ isSuper }: { isSuper: boolean }) {
                 <li key={s.key} className="rounded-xl border border-brand-gray/60 bg-brand-surface p-3" data-testid={`funnel-${s.key}`}>
                   <div className="flex flex-wrap items-baseline justify-between gap-2"><span className="font-semibold text-brand-ink">{s.label}</span><span className="font-display text-xl font-bold text-brand-ink">{s.count}</span></div>
                   <div className="mt-1 h-2 overflow-hidden rounded-full bg-brand-gray/40" aria-hidden="true"><div className="h-full bg-brand-action" style={{ width: `${started > 0 ? Math.min(100, Math.round((s.count / started) * 100)) : 0}%` }} /></div>
-                  {s.ofStarted !== null && <p className="mt-1 text-xs text-gray-600">{s.ofStarted}% of those who started{s.ofPrevious !== null ? ` · ${s.ofPrevious}% of the step before` : ""}</p>}
+                  {s.ofStarted !== null && <p className="mt-1 text-xs text-gray-600">{s.ofStarted}% of those who started{s.ofPrevious !== null && s.ofPrevious <= 100 ? ` · ${s.ofPrevious}% of the step before` : ""}</p>}
                 </li>
               ))}
             </ol>
