@@ -19,7 +19,7 @@ export async function limit(key: string, max: number, windowMs: number): Promise
 /** Runs a handler and maps ArenaError (and anything with a status) to JSON. Match state is never cached. */
 export async function arenaJson(handler: () => Promise<unknown>): Promise<NextResponse> {
   try {
-    return NextResponse.json(await handler(), { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json(await handler(), { headers: { "Cache-Control": "no-store", "X-Build": process.env.VERCEL_GIT_COMMIT_SHA ?? "" } });
   } catch (e) {
     const err = e as Error & { status?: number };
     if (err instanceof ArenaError || typeof err.status === "number") return NextResponse.json({ error: err.message }, { status: err.status ?? 400 });

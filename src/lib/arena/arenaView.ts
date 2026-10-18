@@ -65,7 +65,7 @@ export interface MatchView {
     stars: 1 | 2 | 3;
     topics: { topic: string; correct: number; total: number }[];
     /** Every question with the answer and the reason, for learning from the match. */
-    recap: { topic: string; prompt: string; answer: string; explanation: string | null; mine: "correct" | "missed" | "skipped"; winner: "me" | "opponent" | null }[];
+    recap: { n: number; topic: string; prompt: string; answer: string; explanation: string | null; mine: "correct" | "missed" | "skipped"; winner: "me" | "opponent" | null }[];
     /** Wins, losses and draws between these two players in this course. */
     record: { wins: number; losses: number; draws: number };
   };
@@ -75,8 +75,8 @@ const promptOf = (s: ServedRound): string => (s.format === "QUIZ" ? s.question :
 
 function answerText(r: Reveal): string {
   if (r.format === "QUIZ") return r.correctText ?? "";
-  if (r.format === "MATCHING") return (r.pairs ?? []).map((p) => `${p.left} → ${p.right}`).join("; ");
-  if (r.format === "ORDERING") return (r.correctOrder ?? []).map((t, i) => `${i + 1}. ${t}`).join("  ");
+  if (r.format === "MATCHING") return (r.pairs ?? []).map((p) => `${p.left} → ${p.right}`).join("\n");
+  if (r.format === "ORDERING") return (r.correctOrder ?? []).map((t, i) => `${i + 1}. ${t}`).join("\n");
   return r.best ?? "";
 }
 
@@ -159,7 +159,7 @@ export async function viewMatch(matchId: string, viewerId: string): Promise<Matc
       const reveal = r.reveal as unknown as Reveal | null;
       if (reveal) {
         const tried = r.pickerId === viewerId ? (r.firstAt !== null && !r.firstTimedOut ? (r.firstCorrect ? "correct" : "missed") : "skipped") : r.stealerId === viewerId ? (r.stealAt !== null && !r.stealTimedOut ? (r.stealCorrect ? "correct" : "missed") : "skipped") : "skipped";
-        recap.push({ topic: served.topic, prompt: promptOf(served), answer: answerText(reveal), explanation: explanationOf(reveal), mine: tried, winner: r.awardedToId ? side(r.awardedToId) : null });
+        recap.push({ n: r.idx + 1, topic: served.topic, prompt: promptOf(served), answer: answerText(reveal), explanation: explanationOf(reveal), mine: tried, winner: r.awardedToId ? side(r.awardedToId) : null });
       }
       const mine = r.pickerId === viewerId ? { answered: !r.firstTimedOut && r.firstAt !== null, ok: r.firstCorrect === true } : r.stealerId === viewerId ? { answered: !r.stealTimedOut && r.stealAt !== null, ok: r.stealCorrect === true } : null;
       if (!mine || !mine.answered) continue;

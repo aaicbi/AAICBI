@@ -22,6 +22,13 @@ export function useArenaLive<T>(url: string, opts: { listen: string[]; pollMs?: 
     busy.current = true;
     try {
       const res = await fetch(url, { cache: "no-store" });
+      // A tab opened before a release keeps its old screens until reloaded. When the server is on a newer release, reload once.
+      const server = res.headers.get("x-build"); const mine = process.env.NEXT_PUBLIC_BUILD_ID;
+      if (server && mine && server !== mine) {
+        let done = false;
+        try { done = sessionStorage.getItem(`arena-reload-${server}`) === "1"; sessionStorage.setItem(`arena-reload-${server}`, "1"); } catch { /* private mode: reload anyway once per page load */ }
+        if (!done) { location.reload(); return; }
+      }
       const body = await res.json().catch(() => ({}));
       if (!res.ok) { setError({ message: body.error ?? "Something went wrong.", status: res.status }); return; }
       if (typeof body.serverNow === "number") offset.current = body.serverNow - Date.now();
