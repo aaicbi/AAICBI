@@ -112,3 +112,50 @@ export function percentToBps(percent: unknown): number | null {
 export const bpsToPercent = (bps: number | null | undefined): number | null => (bps == null ? null : bps / 100);
 
 export const WHATSAPP_TEXT = (score: number, total: number, url: string) => `I got ${score}/${total} on this AI automation quiz. Can you beat me? 90 seconds, no signup: ${url}`;
+
+// ---------------------------------------------------------------- saving a score
+
+/** What the newcomer agrees to when they save their score. Stored with the lead. */
+export const CONSENT_TEXT = "I agree to be contacted about this course on WhatsApp, SMS or email. I can stop at any time.";
+
+/** A Nigerian or international phone number as E.164, or null when it does not look like one. */
+export function normalizePhone(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const s = raw.trim();
+  if (!s) return null;
+  const plus = s.startsWith("+");
+  const digits = s.replace(/\D/g, "");
+  if (!digits) return null;
+  if (plus) return digits.length >= 8 && digits.length <= 15 ? `+${digits}` : null;
+  const local = digits.startsWith("234") ? digits.slice(3) : digits.startsWith("0") ? digits.slice(1) : digits;
+  if (digits.startsWith("234") || digits.startsWith("0") || digits.length === 10) return /^[789]\d{9}$/.test(local) ? `+234${local}` : null;
+  return null;
+}
+
+export function cleanEmail(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const s = raw.trim().toLowerCase();
+  return s.length <= 120 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s) ? s : null;
+}
+
+export type LeadCheck = { ok: true; phone: string | null; email: string | null } | { ok: false; error: string };
+
+/** A saved score needs consent and at least one way to reach the person. A given number or address must be valid. */
+export function checkLead(input: { phone?: unknown; email?: unknown; consent?: unknown }): LeadCheck {
+  if (input.consent !== true) return { ok: false, error: "Please tick the box to agree to be contacted." };
+  const hasPhone = typeof input.phone === "string" && input.phone.trim() !== "";
+  const hasEmail = typeof input.email === "string" && input.email.trim() !== "";
+  if (!hasPhone && !hasEmail) return { ok: false, error: "Add a WhatsApp number or an email so we can save your score." };
+  const phone = hasPhone ? normalizePhone(input.phone) : null;
+  if (hasPhone && !phone) return { ok: false, error: "That phone number doesn't look right. Try it like 0803 000 0000." };
+  const email = hasEmail ? cleanEmail(input.email) : null;
+  if (hasEmail && !email) return { ok: false, error: "That email doesn't look right." };
+  return { ok: true, phone, email };
+}
+
+// ---------------------------------------------------------------- module 1 access
+
+/** How many modules are open without payment: the course's own free preview, or the funnel's module 1 for someone who came through it. */
+export function effectivePreviewCount(coursePreviewCount: number | null | undefined, grantModules: number | null | undefined): number {
+  return Math.max(coursePreviewCount ?? 0, grantModules ?? 0);
+}

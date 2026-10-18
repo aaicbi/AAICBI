@@ -1046,6 +1046,15 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
           </div>
         )}
 
+        {course.isPreviewing && course.modules[0]?.completed && !course.isFree && (
+          <Card variant="highlighted" className="mt-6" data-testid="pay-after-pass">
+            <h2 className="font-display text-lg font-semibold text-brand-ink">You finished Module 1. Pay to keep going.</h2>
+            <p className="mt-1 text-sm text-gray-700">Paying opens the rest of the course, and the Ayakbi Arena: live matches, the ladder and your cohort&apos;s chat.</p>
+            <button type="button" onClick={pay} disabled={enrolling} className="mt-3 min-h-[48px] rounded-full bg-brand-action px-6 text-sm font-bold text-brand-onAccent hover:bg-brand-actionHover disabled:opacity-60" data-testid="pay-after-pass-button">Pay and continue</button>
+            {enrollError && <p className="mt-2 text-sm text-brand-rose" role="alert">{enrollError}</p>}
+          </Card>
+        )}
+
         <CourseChatLink courseId={course.id} />
 
         <div className="mt-8 space-y-3">

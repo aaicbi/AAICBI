@@ -2,8 +2,9 @@ import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { shuffle } from "@/lib/shuffle";
 import { organizationOfCourse } from "@/lib/arena/config";
+import { hasAvailableTrainingSeat } from "@/lib/trainingOrgSeatCap";
 import {
-  TASTER_SIZE, beatPercent, cleanSource, readinessIssues, slugify, switchBlockers, tasterRank,
+  CONSENT_TEXT, TASTER_SIZE, beatPercent, checkLead, cleanSource, readinessIssues, slugify, switchBlockers, tasterRank,
   type GrowthScope, type SwitchRow,
 } from "@/lib/growth/growthCore";
 
@@ -306,4 +307,82 @@ export async function playAnswer(slug: string, token: string, choice: unknown) {
   if (updated.count === 0) throw new GrowthError("That answer was already counted.", 409);
   const fresh = await prisma.growthGuestPlay.findUniqueOrThrow({ where: { id: play.id } });
   return { correct, correctKey, explanation: q.explanation, state: await stateOf(fresh) };
+}
+
+// ---------------------------------------------------------------- saving a score
+
+export async function saveLead(slug: string, token: string, input: { phone?: unknown; email?: unknown; consent?: unknown }) {
+  const campaign = await campaignBySlug(slug);
+  if (!campaign) throw new GrowthError("This link isn't available.", 404);
+  const play = await prisma.growthGuestPlay.findUnique({ where: { token } });
+  if (!play || play.campaignId !== campaign.id) throw new GrowthError("Start again to play.", 404);
+  if (!play.completedAt) throw new GrowthError("Finish the five questions first.", 409);
+  const check = checkLead(input);
+  if (!check.ok) throw new GrowthError(check.error);
+  const data = { phone: check.phone, email: check.email, consentAt: new Date(), consentText: CONSENT_TEXT, optedOutAt: null };
+  const lead = await prisma.growthLead.upsert({
+    where: { playId: play.id },
+    create: { playId: play.id, campaignId: campaign.id, optOutToken: randomBytes(20).toString("hex"), ...data },
+    update: data,
+  });
+  return { saved: true, phone: lead.phone, email: lead.email };
+}
+
+/** Stops all contact for a lead. Safe to repeat. */
+export async function optOut(optOutToken: string): Promise<boolean> {
+  const lead = await prisma.growthLead.findUnique({ where: { optOutToken }, select: { id: true, optedOutAt: true } });
+  if (!lead) return false;
+  if (!lead.optedOutAt) await prisma.growthLead.update({ where: { id: lead.id }, data: { optedOutAt: new Date() } });
+  return true;
+}
+
+// ---------------------------------------------------------------- continuing into module 1
+
+/** How many modules are open without payment for this trainee because they came through a campaign (0 when they did not). */
+export async function grantedModules(traineeId: string, courseId: string): Promise<number> {
+  const g = await prisma.growthGrant.findUnique({ where: { traineeId_courseId: { traineeId, courseId } }, select: { modules: true } });
+  return g?.modules ?? 0;
+}
+
+/**
+ * A signed-in trainee continues from the taster. Their play is linked to their account, and they are enrolled with module 1 open
+ * and the rest behind payment. A free course just enrolls them. Needs the campaign live unless they already came through it.
+ */
+export async function claimPlay(traineeId: string, slug: string, token: string | null) {
+  const campaign = await campaignBySlug(slug);
+  if (!campaign) throw new GrowthError("This link isn't available.", 404);
+  const [existingGrant, existing] = await Promise.all([
+    prisma.growthGrant.findUnique({ where: { traineeId_courseId: { traineeId, courseId: campaign.courseId } } }),
+    prisma.courseEnrollment.findUnique({ where: { traineeId_courseId: { traineeId, courseId: campaign.courseId } } }),
+  ]);
+  if (existing?.accessRevokedAt) throw new GrowthError("Your access to this course was revoked. Contact a staff member if you believe this is a mistake.", 403);
+  if (!existing && !existingGrant) {
+    const g = await courseGrowth(campaign.courseId);
+    if (!g.live) throw new GrowthError("This campaign has ended.", 410);
+  }
+  const course = await prisma.course.findUnique({ where: { id: campaign.courseId }, select: { isFree: true } });
+  if (!course) throw new GrowthError("Course not found.", 404);
+
+  if (token) {
+    const play = await prisma.growthGuestPlay.findUnique({ where: { token }, select: { id: true, campaignId: true, traineeId: true } });
+    if (play && play.campaignId === campaign.id && !play.traineeId) {
+      await prisma.growthGuestPlay.update({ where: { id: play.id }, data: { traineeId, claimedAt: new Date() } });
+      await prisma.growthLead.updateMany({ where: { playId: play.id }, data: { traineeId } });
+    }
+  }
+
+  if (!existing) {
+    if (course.isFree) {
+      if (!(await hasAvailableTrainingSeat(campaign.courseId, traineeId))) throw new GrowthError("This organization has reached its trainee capacity. Contact AAICBI or the organization for more information.", 409);
+      await prisma.courseEnrollment.create({ data: { traineeId, courseId: campaign.courseId, source: "FREE", unlockedAt: new Date() } });
+    } else {
+      await prisma.$transaction([
+        prisma.courseEnrollment.create({ data: { traineeId, courseId: campaign.courseId, source: "PREVIEW" } }),
+        prisma.growthGrant.upsert({ where: { traineeId_courseId: { traineeId, courseId: campaign.courseId } }, create: { traineeId, courseId: campaign.courseId, campaignId: campaign.id, modules: 1 }, update: {} }),
+      ]);
+    }
+  } else if (!existingGrant && existing.source === "PREVIEW") {
+    await prisma.growthGrant.upsert({ where: { traineeId_courseId: { traineeId, courseId: campaign.courseId } }, create: { traineeId, courseId: campaign.courseId, campaignId: campaign.id, modules: 1 }, update: {} });
+  }
+  return { courseId: campaign.courseId };
 }

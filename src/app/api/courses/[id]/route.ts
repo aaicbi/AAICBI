@@ -1,3 +1,5 @@
+import { effectivePreviewCount } from "@/lib/growth/growthCore";
+import { grantedModules } from "@/lib/growth/growth";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -190,6 +192,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // lock layered on top past the preview boundary, instead of the
     // marketing-only 403 every other not-yet-enrolled trainee gets.
     const previewing = !enrolled && !isExpired && existingEnrollment?.source === "PREVIEW";
+    // Modules open without payment: the course's own free preview, or module 1 for someone who came through a growth campaign.
+    const previewCount = previewing ? effectivePreviewCount(course.freePreviewModuleCount, await grantedModules(session.userId, course.id)) : (course.freePreviewModuleCount ?? 0);
 
     if (!enrolled && !previewing) {
       return NextResponse.json(
@@ -248,7 +252,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       (m: { id: string; description: string | null; lessons: { id: string; materials: unknown[] }[] }, index: number) => {
         const status = lockMap[m.id];
         const progressUnlocked = status?.unlocked ?? true; // fail open to "visible" for a module the lock map somehow didn't cover, never fail closed into hiding structure
-        const paymentLocked = previewing && !isModuleIndexInFreePreview(index, course.freePreviewModuleCount, course.modules.length);
+        const paymentLocked = previewing && !isModuleIndexInFreePreview(index, previewCount, course.modules.length);
         const unlocked = progressUnlocked && !paymentLocked;
         return {
           ...m,
@@ -356,7 +360,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       // continue" messaging referencing the actual boundary without
       // having to re-derive it by counting locked modules itself.
       isPreviewing: previewing,
-      freePreviewModuleCount: previewing ? course.freePreviewModuleCount : null,
+      freePreviewModuleCount: previewing ? previewCount : null,
     });
   });
 }

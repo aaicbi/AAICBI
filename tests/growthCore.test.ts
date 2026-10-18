@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TASTER_SIZE, answerGrid, beatPercent, bpsToPercent, cleanSource, isCampaignSlug, percentToBps, readinessIssues, slugify, switchBlockers, tasterRank } from "@/lib/growth/growthCore";
+import { TASTER_SIZE, answerGrid, beatPercent, bpsToPercent, checkLead, cleanEmail, cleanSource, effectivePreviewCount, isCampaignSlug, normalizePhone, percentToBps, readinessIssues, slugify, switchBlockers, tasterRank } from "@/lib/growth/growthCore";
 
 const on = { enabled: true, agreementAt: new Date() };
 const base = { platform: on, own: on, orgs: on, organization: on, organizationId: null as string | null, campaignEnabled: true };
@@ -90,5 +90,48 @@ describe("commission", () => {
     expect(percentToBps("abc")).toBeNull();
     expect(bpsToPercent(1500)).toBe(15);
     expect(bpsToPercent(null)).toBeNull();
+  });
+});
+
+describe("saving a score", () => {
+  it("normalizes Nigerian numbers to +234", () => {
+    expect(normalizePhone("0803 123 4567")).toBe("+2348031234567");
+    expect(normalizePhone("8031234567")).toBe("+2348031234567");
+    expect(normalizePhone("+234 803 123 4567")).toBe("+2348031234567");
+    expect(normalizePhone("2348031234567")).toBe("+2348031234567");
+    expect(normalizePhone("0903-123-4567")).toBe("+2349031234567");
+  });
+  it("keeps other international numbers and refuses junk", () => {
+    expect(normalizePhone("+44 7700 900123")).toBe("+447700900123");
+    expect(normalizePhone("0603 123 4567")).toBeNull();
+    expect(normalizePhone("12345")).toBeNull();
+    expect(normalizePhone("call me")).toBeNull();
+    expect(normalizePhone("")).toBeNull();
+    expect(normalizePhone(42)).toBeNull();
+    expect(normalizePhone("+123")).toBeNull();
+  });
+  it("cleans emails", () => {
+    expect(cleanEmail(" Ada@Example.COM ")).toBe("ada@example.com");
+    expect(cleanEmail("ada@")).toBeNull();
+    expect(cleanEmail("a b@c.de")).toBeNull();
+  });
+  it("needs consent and a way to reach the person", () => {
+    expect(checkLead({ phone: "0803 123 4567", consent: false }).ok).toBe(false);
+    expect(checkLead({ consent: true }).ok).toBe(false);
+    expect(checkLead({ phone: "0803 123 4567", consent: true })).toEqual({ ok: true, phone: "+2348031234567", email: null });
+    expect(checkLead({ email: "ada@example.com", consent: true })).toEqual({ ok: true, phone: null, email: "ada@example.com" });
+  });
+  it("refuses a number or email that was given but is wrong, even if the other is fine", () => {
+    expect(checkLead({ phone: "123", email: "ada@example.com", consent: true }).ok).toBe(false);
+    expect(checkLead({ phone: "0803 123 4567", email: "nope", consent: true }).ok).toBe(false);
+  });
+});
+
+describe("module 1 access", () => {
+  it("opens the larger of the course preview and the funnel grant", () => {
+    expect(effectivePreviewCount(null, null)).toBe(0);
+    expect(effectivePreviewCount(null, 1)).toBe(1);
+    expect(effectivePreviewCount(2, 1)).toBe(2);
+    expect(effectivePreviewCount(0, undefined)).toBe(0);
   });
 });

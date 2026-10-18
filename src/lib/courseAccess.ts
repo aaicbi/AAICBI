@@ -7,6 +7,8 @@
  * one" mean "forgot to call this," not "wrote the check slightly
  * differently and got it wrong."
  */
+import { effectivePreviewCount } from "@/lib/growth/growthCore";
+import { grantedModules } from "@/lib/growth/growth";
 import { prisma } from "@/lib/prisma";
 import { notifyByEmail, shouldNotifyTrainee } from "@/lib/notifications/log";
 import { subscriptionEndedEmail } from "@/lib/notifications/templates";
@@ -90,7 +92,10 @@ export async function getModuleAccessLevel(
     where: { id: courseId },
     select: { isFree: true, freePreviewModuleCount: true },
   });
-  if (!course || course.isFree || !course.freePreviewModuleCount) return "NONE";
+  if (!course || course.isFree) return "NONE";
+  // A trainee who came through a growth campaign gets module 1 open, even when the course has no preview of its own.
+  const previewCount = effectivePreviewCount(course.freePreviewModuleCount, await grantedModules(traineeId, courseId));
+  if (!previewCount) return "NONE";
 
   const enrollment = await prisma.courseEnrollment.findUnique({
     where: { traineeId_courseId: { traineeId, courseId } },
@@ -104,7 +109,7 @@ export async function getModuleAccessLevel(
     select: { id: true },
   });
   const rank = modules.findIndex((m) => m.id === moduleId);
-  return isModuleIndexInFreePreview(rank, course.freePreviewModuleCount, modules.length) ? "PREVIEW" : "NONE";
+  return isModuleIndexInFreePreview(rank, previewCount, modules.length) ? "PREVIEW" : "NONE";
 }
 
 /** Whether a specific trainee can reach this course's actual content —
