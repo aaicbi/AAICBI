@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { EMOJI } from "./reactions";
 import { useRouter } from "next/navigation";
 import ArenaFrame from "./ArenaFrame";
 import { useArenaLive, channels } from "./useArenaLive";
@@ -9,11 +10,6 @@ import { STEAL_SECONDS } from "@/lib/arena/configCore";
 import type { MatchView } from "@/lib/arena/arenaView";
 import type { Reveal, ServedRound } from "@/lib/arena/arenaPool";
 
-const EMOJI: Record<string, { e: string; l: string }> = {
-  applause: { e: "👏", l: "Applause" }, cheer: { e: "🎉", l: "Cheer" }, wow: { e: "😮", l: "Wow" }, fire: { e: "🔥", l: "On fire" }, love: { e: "❤️", l: "Love" },
-  strong: { e: "💪", l: "Strong" }, nervous: { e: "😬", l: "Nervous" }, sad: { e: "😢", l: "Sad" }, laugh: { e: "😂", l: "Funny" }, thumbs: { e: "👍", l: "Nice" },
-  gg: { e: "🤝", l: "Good game" }, think: { e: "🤔", l: "Hmm" },
-};
 const QUICK = ["Good luck!", "Back in a minute", "Ready when you are", "Well played"];
 type Act = (action: string, body?: Record<string, unknown>) => Promise<boolean>;
 
@@ -201,8 +197,8 @@ export default function ArenaMatch({ matchId }: { matchId: string }) {
     else if (v.rules.tickingSound) sfx.tick(secs <= 10);
   }, [secs, sound, phase, v, pausedNow]);
 
-  if (error && !v) return <ArenaFrame title="Gaming Arena" backHref="/trainee/arena"><div className="ar-stage"><div className="ar-in" style={{ placeItems: "center", display: "grid" }}><p>{error.message}</p></div></div></ArenaFrame>;
-  if (!v) return <ArenaFrame title="Gaming Arena" backHref="/trainee/arena"><div className="ar-stage"><div className="ar-in" style={{ display: "grid", placeItems: "center" }}>Loading the arena…</div></div></ArenaFrame>;
+  if (error && !v) return <ArenaFrame title="Ayakbi Arena" backHref="/trainee/arena"><div className="ar-stage"><div className="ar-in" style={{ placeItems: "center", display: "grid" }}><p>{error.message}</p></div></div></ArenaFrame>;
+  if (!v) return <ArenaFrame title="Ayakbi Arena" backHref="/trainee/arena"><div className="ar-stage"><div className="ar-in" style={{ display: "grid", placeItems: "center" }}>Loading the arena…</div></div></ArenaFrame>;
 
   const title = `${v.courseTitle}${v.topic ? ` · ${v.topic}` : ""}`;
   const urgent = secs !== null && secs <= 10;

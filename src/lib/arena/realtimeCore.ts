@@ -1,5 +1,5 @@
 /**
- * Gaming Arena real-time layer, the pure part: channel names and what a browser may do on them.
+ * Ayakbi Arena real-time layer, the pure part: channel names and what a browser may do on them.
  *
  * Browsers only ever SUBSCRIBE. Every message is sent by our server after it has checked the rules, so
  * nobody can forge a score or a reaction by talking to the real-time service directly. Messages carry no

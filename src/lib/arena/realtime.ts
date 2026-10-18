@@ -2,7 +2,7 @@ import * as Ably from "ably";
 import { capabilityFor, channels, TOKEN_TTL_MS, type PokeMessage } from "@/lib/arena/realtimeCore";
 
 /**
- * Gaming Arena real-time layer. Ably is the provider; everything goes through the small functions below so
+ * Ayakbi Arena real-time layer. Ably is the provider; everything goes through the small functions below so
  * the provider can be swapped without touching the game. With no ABLY_API_KEY the arena still works: pages
  * simply check for changes every second or two ("polling mode"). The key stays on the server and browsers
  * only ever receive short-lived tokens that let them subscribe to the channels they are allowed on.

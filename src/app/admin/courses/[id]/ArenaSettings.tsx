@@ -76,7 +76,90 @@ function ChatModeration({ courseId, showToast }: { courseId: string; showToast: 
   );
 }
 
-/** The rules of play for this course's Gaming Arena. A Super Admin turns the arena itself on; the course owner sets how it plays. */
+interface Sprints { on: boolean; recent: { id: string; question: string; points: number; open: boolean; winner: string | null; answers: number; at: number }[]; pool: { id: string; text: string; module: string }[] }
+
+/** Fastest Fingers: post a question in the course chat; the first trainee with the right answer wins credits. */
+function FastestFingers({ courseId, showToast }: { courseId: string; showToast: (message: string, variant?: "success" | "error") => void }) {
+  const url = `/api/admin/courses/${courseId}/arena/sprint`;
+  const [d, setD] = useState<Sprints | null>(null);
+  const [q, setQ] = useState("");
+  const [points, setPoints] = useState(10);
+  const [mode, setMode] = useState<"pick" | "write">("pick");
+  const [text, setText] = useState("");
+  const [opts, setOpts] = useState(["", "", "", ""]);
+  const [right, setRight] = useState(0);
+  const load = useCallback(async () => { const res = await fetch(`${url}?q=${encodeURIComponent(q)}`); if (res.ok) setD(await res.json()); }, [url, q]);
+  useEffect(() => { const t = setTimeout(() => void load(), 250); return () => clearTimeout(t); }, [load]);
+
+  async function act(body: Record<string, unknown>, done: string) {
+    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const j = await res.json().catch(() => null);
+    if (!res.ok) return showToast(j?.error ?? "That didn't work.", "error");
+    showToast(done);
+    void load();
+  }
+  if (!d) return null;
+  const open = d.recent.find((r) => r.open);
+  return (
+    <div className="border-t border-brand-gray py-3" id="arena-fastest-fingers">
+      <h3 className="text-sm font-semibold text-brand-ink">Fastest Fingers</h3>
+      {!d.on ? <p className="text-sm text-gray-600">Fastest Fingers is off. A Super Admin switches it on in the Ayakbi Arena settings.</p> : (
+        <>
+          <p className="text-sm text-gray-600">Post a question in the course chat. The first trainee with the right answer wins credit scores; everyone gets one try.</p>
+          {open && (
+            <div className="mt-2 flex items-center justify-between gap-3 rounded-lg bg-brand-mint px-3 py-2 text-sm">
+              <span className="min-w-0"><b>Live now:</b> {open.question} ({open.answers} answered)</span>
+              <button type="button" className="shrink-0 text-xs font-semibold text-red-700 underline" onClick={() => act({ action: "close", sprintId: open.id }, "Question closed.")}>Close</button>
+            </div>
+          )}
+          <div className="mt-3 flex gap-2 text-xs font-semibold">
+            <button type="button" className={`rounded-full px-3 py-1 ${mode === "pick" ? "bg-brand-teal text-white" : "bg-brand-gray"}`} onClick={() => setMode("pick")}>Pick from the course</button>
+            <button type="button" className={`rounded-full px-3 py-1 ${mode === "write" ? "bg-brand-teal text-white" : "bg-brand-gray"}`} onClick={() => setMode("write")}>Write my own</button>
+            <label className="ml-auto flex items-center gap-1 font-normal text-gray-600">Credits <input type="number" min={1} max={100} value={points} onChange={(e) => setPoints(Number(e.target.value) || 1)} aria-label="Credits for the winner" className="w-16 rounded-lg border border-brand-gray bg-brand-surface px-2 py-1 text-sm text-brand-ink" /></label>
+          </div>
+          {mode === "pick" ? (
+            <div className="mt-2">
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search the course questions" aria-label="Search questions" className="w-full rounded-lg border border-brand-gray bg-brand-surface px-3 py-2 text-sm text-brand-ink" />
+              <div className="mt-2 max-h-64 space-y-1 overflow-auto">
+                {d.pool.length === 0 && <p className="text-sm text-gray-600">No approved practice questions match.</p>}
+                {d.pool.map((p) => (
+                  <div key={p.id} className="flex items-start justify-between gap-3 rounded-lg bg-brand-gray/40 px-3 py-2 text-sm">
+                    <span className="min-w-0" style={{ overflowWrap: "anywhere" }}>{p.text}<span className="block text-xs text-gray-500">{p.module}</span></span>
+                    <button type="button" className="shrink-0 text-xs font-semibold text-brand-teal underline" onClick={() => act({ action: "start", questionId: p.id, points }, "Posted to the course chat.")}>Post</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-2 space-y-2">
+              <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} maxLength={500} placeholder="Your question" aria-label="Question" className="w-full rounded-lg border border-brand-gray bg-brand-surface px-3 py-2 text-sm text-brand-ink" />
+              {opts.map((o, i) => (
+                <label key={i} className="flex items-center gap-2 text-sm">
+                  <input type="radio" name="fastest-right" checked={right === i} onChange={() => setRight(i)} aria-label={`Answer ${"ABCD"[i]} is right`} />
+                  <input value={o} onChange={(e) => setOpts(opts.map((x, j) => (j === i ? e.target.value : x)))} placeholder={`Answer ${"ABCD"[i]}${i > 1 ? " (optional)" : ""}`} maxLength={200} className="flex-1 rounded-lg border border-brand-gray bg-brand-surface px-3 py-1.5 text-sm text-brand-ink" />
+                </label>
+              ))}
+              <button type="button" className="rounded-full bg-brand-teal px-4 py-1.5 text-sm font-semibold text-white" onClick={() => {
+                const kept = opts.map((o, i) => ({ o: o.trim(), i })).filter((x) => x.o);
+                const ci = kept.findIndex((x) => x.i === right);
+                if (ci < 0) return showToast("Mark one of the answers you filled in as the right one.", "error");
+                void act({ action: "start", points, custom: { text, options: kept.map((x) => x.o), correctIndex: ci } }, "Posted to the course chat.").then(() => { setText(""); setOpts(["", "", "", ""]); });
+              }}>Post to the chat</button>
+            </div>
+          )}
+          {d.recent.length > 0 && (
+            <div className="mt-3 space-y-1">
+              <p className="text-xs font-semibold uppercase text-gray-700">Recent questions</p>
+              {d.recent.map((r) => <p key={r.id} className="text-sm text-gray-700" style={{ overflowWrap: "anywhere" }}>{r.question} · {r.open ? "live" : r.winner ? `won by ${r.winner}` : "no winner"} · {r.answers} answered</p>)}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/** The rules of play for this course's Ayakbi Arena. A Super Admin turns the arena itself on; the course owner sets how it plays. */
 export default function ArenaSettings({ courseId, showToast }: { courseId: string; showToast: (message: string, variant?: "success" | "error") => void }) {
   const [data, setData] = useState<Payload | null>(null);
   const [busy, setBusy] = useState(false);
@@ -102,7 +185,7 @@ export default function ArenaSettings({ courseId, showToast }: { courseId: strin
   return (
     <Card className="mt-6 space-y-1" id="arena-settings">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-display text-lg font-semibold text-brand-ink">Gaming Arena rules</h2>
+        <h2 className="font-display text-lg font-semibold text-brand-ink">Ayakbi Arena rules</h2>
         <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${data.available.game ? "bg-brand-mint text-brand-tealDeep" : "bg-brand-gray text-gray-700"}`}>{data.available.game ? "On for this course" : "Off for this course"}</span>
       </div>
       <p className="text-sm text-gray-600">How the two-player game plays for your trainees. {data.available.game ? "" : "A Super Admin switches the arena on; you can set the rules now."}</p>
@@ -135,6 +218,7 @@ export default function ArenaSettings({ courseId, showToast }: { courseId: strin
         <Toggle checked={!!r.tickingSound.value} disabled={busy} label="Ticking sound" onChange={(next) => save({ tickingSound: next })} />
       </div>
       <ChatModeration courseId={courseId} showToast={showToast} />
+      <FastestFingers courseId={courseId} showToast={showToast} />
     </Card>
   );
 }

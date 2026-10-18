@@ -24,7 +24,7 @@ interface Payload {
 
 const SPECTATOR_LABEL: Record<ArenaSpectatorMode, string> = { OFF: "Off", ENROLLED: "Enrolled only", LIVE: "Live event: whole platform" };
 
-/** Super Admin: the Gaming Arena switches and rules, for the whole platform, one organization or one course. */
+/** Super Admin: the Ayakbi Arena switches and rules, for the whole platform, one organization or one course. */
 export default function ArenaAdmin() {
   const { showToast } = useToast();
   const [scopeType, setScopeType] = useState<ScopeType>("PLATFORM");
@@ -76,7 +76,7 @@ export default function ArenaAdmin() {
       <span className="text-xs text-gray-600">Using the wider setting</span>
     );
 
-  const SwitchRow = ({ k, title, hint, disabled, note }: { k: "enabled" | "gameEnabled" | "chatEnabled" | "ladderEnabled"; title: string; hint: string; disabled?: boolean; note?: string }) => (
+  const SwitchRow = ({ k, title, hint, disabled, note }: { k: "enabled" | "gameEnabled" | "chatEnabled" | "ladderEnabled" | "fastestEnabled"; title: string; hint: string; disabled?: boolean; note?: string }) => (
     <div className="flex items-start justify-between gap-4 border-t border-brand-gray py-3 first:border-t-0">
       <div className="min-w-0">
         <h3 className="text-sm font-semibold text-brand-ink">{title}</h3>
@@ -153,9 +153,10 @@ export default function ArenaAdmin() {
         <>
           <Card className="space-y-1">
             <h2 className="font-display text-lg font-semibold text-brand-ink">Switches</h2>
-            <SwitchRow k="enabled" title="Gaming Arena" hint="The master switch. Nothing in the arena works while it is off." />
+            <SwitchRow k="enabled" title="Ayakbi Arena" hint="The master switch. Nothing in the arena works while it is off." />
             <SwitchRow k="gameEnabled" title="Two-player Interview game" hint="Challenges, the lobby, the match, results and rematch." disabled={!s.enabled} />
             <SwitchRow k="chatEnabled" title="Course chat" hint="A group chat for each course." />
+            <SwitchRow k="fastestEnabled" title="Fastest Fingers" hint="Instructors post a question in the course chat; the first trainee with the right answer wins credit scores. Needs the course chat. Off until you switch it on." />
             <SwitchRow k="ladderEnabled" title="Champion ladder" hint="Rankings, and challenging the champion." />
             <div className="flex items-start justify-between gap-4 border-t border-brand-gray py-3">
               <div className="min-w-0">

@@ -1,4 +1,4 @@
-# Gaming Arena
+# Ayakbi Arena
 
 Two trainees challenge each other on a course, live. This page describes what is built; the full plan is in the product brief.
 
@@ -9,7 +9,7 @@ Everything is **off** until a Super Admin switches it on. Settings are kept per 
 
 | Switch | What it does |
 |---|---|
-| Gaming Arena | Master switch. Nothing works while it is off. |
+| Ayakbi Arena | Master switch. Nothing works while it is off. |
 | Two-player Interview game | Challenges, lobby, match, results, rematch. Needs the master switch. |
 | Course chat | Built in a later release (the switch is shown but disabled). |
 | Champion ladder | Built in a later release. Needs the game. |
@@ -18,7 +18,7 @@ Everything is **off** until a Super Admin switches it on. Settings are kept per 
 A feature needs the master switch, and spectators and the ladder need the game. Turning a switch off turns off what depends on it in the same row.
 
 ### Rules of play (instructors for their own course, or a Super Admin anywhere)
-Set on the course page (Gaming Arena rules) or in `/admin/arena`.
+Set on the course page (Ayakbi Arena rules) or in `/admin/arena`.
 
 | Rule | Default | Limits |
 |---|---|---|
@@ -93,6 +93,18 @@ Quiz-style games on phones are played in **portrait** (Kahoot, Trivia Crack, Qui
 ## Release 6: course chat and moderation
 
 - **One group chat per course**, for trainees enrolled in it, shown in the arena lobby. A Super Admin turns it on with the "Course chat" switch (it needs the arena itself to be on). Messages are up to 500 characters, rate limited, a repeat of the same text within 10 s is ignored, the latest 60 from the last 7 days are shown, older ones are deleted. A new message pokes `channels.course`, so everyone's list updates at once.
-- **Moderation.** Instructors and admins who own the course get a "Chat moderation" panel under the Gaming Arena rules: recent messages with **Remove**, **Suspend** (1 hour to 90 days, hides the player's last 24 hours of messages) and a list of active suspensions with **Lift**. API: `GET/POST /api/admin/courses/[id]/arena/chat` (`action: remove | suspend | lift`).
+- **Moderation.** Instructors and admins who own the course get a "Chat moderation" panel under the Ayakbi Arena rules: recent messages with **Remove**, **Suspend** (1 hour to 90 days, hides the player's last 24 hours of messages) and a list of active suspensions with **Lift**. API: `GET/POST /api/admin/courses/[id]/arena/chat` (`action: remove | suspend | lift`).
 - **Suspension** (`ArenaSuspension`) stops a trainee from posting, challenging and accepting challenges in that course; the lobby tells them why and until when. Removals keep the row (`deletedAt`, `deletedById`) as a record.
 - Check: `scripts/device-checks/arena-chat.cjs` (post, live delivery, removal, suspension).
+
+## Release 7: Ayakbi Arena chat, challenges and Fastest Fingers
+
+- **Name.** The game and the arena are now called **Ayakbi Arena** everywhere trainees and staff see them.
+- **Chat page and course page.** `/trainee/arena/[courseId]/chat` is the chat on its own full page. Course pages show a "Course chat" card (`CourseChatLink`, fed by `GET /api/arena/courses/[courseId]/chat`) when the chat is open for that trainee. Reactions (the same twelve as in a match) are one tap and post a large emoji.
+- **Phone notifications.** Each new chat message sends a web push to the other enrolled trainees who allowed notifications (`pushToCourse`; one message alert per person per course every 20 seconds, so a busy chat does not flood). Challenges and Fastest Fingers questions always notify. A tap opens that course's chat.
+- **Online anywhere.** Anyone signed in with the app open counts as online in the arenas of their courses (`/api/arena/active`, every 25 s).
+- **Challenges in the chat.** The ⚔️ button lists who is online. A challenge (from the chat or the lobby) is posted as a card (`ArenaChatMessage.kind = CHALLENGE`, `refId` = match). The challenged trainee accepts or declines on the card; the card follows the match status.
+- **Fastest Fingers.** Off until a Super Admin switches on "Fastest Fingers" (needs the chat; `fastestEnabled`, default off). An instructor or admin who owns the course posts a question (picked from the approved practice questions, or typed with 2 to 6 answers) with 1 to 100 credits (`/api/admin/courses/[id]/arena/sprint`). It appears in the chat as a card; everyone gets one try; the first right answer is decided by one atomic update, wins the credits and is announced. The answer key is not sent while the question is open. Starting a new question closes the old one; the instructor can close one with no winner.
+- **Credit scores.** `ArenaCredit` is a ledger (one row per award, unique per trainee, reason and reference). The chat shows the trainee's total for the course. Nothing spends credits yet.
+- Checks: `scripts/device-checks/arena-chat-cards.cjs`.
+- On small phones (portrait, under 700 px tall) the chat is compact: the reaction row folds into one 😀 button that opens a tray, challenge cards are one line and Fastest Fingers answers sit in two columns.

@@ -26,7 +26,7 @@ export default function ArenaReturnPill() {
       } catch { /* offline: try again later */ }
     };
     const first = setTimeout(check, 2500);
-    const id = setInterval(() => { if (!stop) void check(); }, 20_000);
+    const id = setInterval(() => { if (!stop) void check(); }, 25_000);
     return () => { stop = true; clearTimeout(first); clearInterval(id); };
   }, [hidden, path]);
   if (hidden || !m || m.kind === "waiting") return null;

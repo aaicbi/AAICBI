@@ -9,7 +9,7 @@ describe("arena settings", () => {
     expect(s.questionSeconds).toBe(60);
     expect(s.pickSeconds).toBe(180);
     expect(s.bonusPercent).toBe(50);
-    expect(availability(s)).toEqual({ arena: false, game: false, chat: false, ladder: false, spectators: "OFF" });
+    expect(availability(s)).toEqual({ arena: false, game: false, chat: false, ladder: false, fastest: false, spectators: "OFF" });
   });
 
   it("the narrowest scope that sets a value wins, and null falls back to the wider one", () => {
@@ -29,9 +29,17 @@ describe("arena settings", () => {
 
   it("each feature needs the master switch, and spectators and the ladder need the game", () => {
     const on = { ...ARENA_DEFAULTS, enabled: true, chatEnabled: true, ladderEnabled: true, spectators: "ENROLLED" as const };
-    expect(availability(on)).toEqual({ arena: true, game: true, chat: true, ladder: true, spectators: "ENROLLED" });
+    expect(availability(on)).toEqual({ arena: true, game: true, chat: true, ladder: true, fastest: false, spectators: "ENROLLED" });
     expect(availability({ ...on, gameEnabled: false })).toMatchObject({ game: false, ladder: false, spectators: "OFF", chat: true });
-    expect(availability({ ...on, enabled: false })).toEqual({ arena: false, game: false, chat: false, ladder: false, spectators: "OFF" });
+    expect(availability({ ...on, enabled: false })).toEqual({ arena: false, game: false, chat: false, ladder: false, fastest: false, spectators: "OFF" });
+  });
+
+  it("Fastest Fingers is off by default and needs the chat", () => {
+    expect(ARENA_DEFAULTS.fastestEnabled).toBe(false);
+    const on = { ...ARENA_DEFAULTS, enabled: true, chatEnabled: true, fastestEnabled: true };
+    expect(availability(on).fastest).toBe(true);
+    expect(availability({ ...on, chatEnabled: false }).fastest).toBe(false);
+    expect(normalizeSwitches({ ...on, chatEnabled: false }).fastestEnabled).toBe(false);
   });
 
   it("normalizeSwitches turns dependants off", () => {

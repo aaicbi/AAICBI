@@ -1,5 +1,5 @@
 /**
- * Gaming Arena: where the questions come from. Only what trainees already see in practice: approved practice questions and
+ * Ayakbi Arena: where the questions come from. Only what trainees already see in practice: approved practice questions and
  * approved game items of the course (the assessment pool is never used). The answer key stays here on the server: what players
  * get is the "served" shape (shuffled once, no key), and the key only appears in the reveal after the round is over.
  */

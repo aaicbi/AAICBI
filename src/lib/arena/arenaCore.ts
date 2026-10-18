@@ -1,5 +1,5 @@
 /**
- * Gaming Arena match rules, as pure functions (no database, no clock of their own).
+ * Ayakbi Arena match rules, as pure functions (no database, no clock of their own).
  *
  * A match is a series of rounds. In each round one player picks a number, the server picks the question behind it
  * (so nobody can peek), and that player answers. If they miss (wrong, or out of time) the question goes to the other

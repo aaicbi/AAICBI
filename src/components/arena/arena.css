@@ -1,4 +1,4 @@
-/* Gaming Arena game screens. Everything sits inside one landscape stage sized by its own height (container query units), so the same layout fits a full desktop screen and a phone turned sideways, with no scrolling. */
+/* Ayakbi Arena game screens. Everything sits inside one landscape stage sized by its own height (container query units), so the same layout fits a full desktop screen and a phone turned sideways, with no scrolling. */
 .ar-root{--s1:#06322d;--s2:#0a4a41;--s3:#0e5f53;--gold:#f2b84b;--gold-deep:#d99a34;--mint:#d9ece1;--rose:#ff7a85;--green:#7fd6a0;--white:#f4fbf7;--ink:#0c241f;--glass:rgba(255,255,255,.09);--glass-line:rgba(255,255,255,.18);position:fixed;inset:0;height:100vh;height:100dvh;z-index:80;display:flex;flex-direction:column;gap:6px;padding:max(8px,env(safe-area-inset-top,0px)) max(10px,env(safe-area-inset-right,0px)) max(8px,env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px));background:#0b1613;font-family:inherit;font-size:14px;line-height:1.45;overflow:hidden}
 .ar-bar{display:flex;align-items:center;gap:8px;color:var(--white);min-height:2rem}
 .ar-bar h1{font-size:15px;font-weight:800;margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -467,7 +467,7 @@
 .ar-bar .ar-home{border-color:var(--gold-deep);color:var(--gold)}
 
 /* Course chat */
-.ar-chat{display:grid;gap:.5em;grid-template-rows:auto minmax(0,1fr) auto;height:16em;max-height:45%;min-height:11em}
+.ar-chat{display:grid;gap:.5em;grid-template-rows:auto minmax(0,1fr) auto auto;height:16em;max-height:45%;min-height:11em}
 .ar-chatlist{display:flex;flex-direction:column;gap:.45em;overflow:auto;min-height:0;padding-right:.2em}
 .ar-msg{display:flex;gap:.5em;align-items:flex-end;max-width:90%}
 .ar-msg.ar-mine{align-self:flex-end;flex-direction:row-reverse}
@@ -477,3 +477,56 @@
 .ar-at{font-size:.7em;opacity:.65;text-align:right}
 .ar-chatin{flex:1;min-width:0;font:inherit;font-size:16px;padding:.5em .8em;border-radius:999px;border:1px solid var(--glass-line);background:rgba(0,0,0,.25);color:var(--white)}
 @media (max-aspect-ratio: 1/1){.ar-chat{height:15em;max-height:none;flex:none}}
+
+/* Lobby with chat: players | big chat in the middle | challenges and recent matches */
+@media (min-aspect-ratio: 1/1){
+  .ar-main.ar-lobby3{grid-template-columns:minmax(0,1fr) minmax(0,1.8fr) minmax(0,1fr)}
+  .ar-lobby3 .ar-chatcol{order:2}
+  .ar-lobby3 .ar-chatcol+*{order:0}
+  .ar-lobby3>.ar-col:nth-child(2){order:3}
+  .ar-lobby3 .ar-chat{height:100%;max-height:none;min-height:0}
+}
+.ar-chat{grid-template-rows:auto minmax(0,1fr) auto auto}
+.ar-chat>.ar-chatrx{display:flex;gap:.25em;overflow-x:auto;scrollbar-width:none}
+.ar-chatrxb{flex:none;font-size:1.35em;line-height:1;padding:.2em .3em;border-radius:.7em;background:var(--glass);border:1px solid var(--glass-line);cursor:pointer;transition:transform .12s}
+.ar-chatrxb:active{transform:scale(1.25)}
+.ar-bigmoji{font-size:2.2em;line-height:1.1}
+
+/* Chat cards, picker, system lines */
+.ar-cardrow{display:flex;justify-content:center}
+.ar-card{width:100%;max-width:34em;border-radius:1em;padding:.7em .9em;background:rgba(0,0,0,.22);border:1px solid var(--glass-line);display:grid;gap:.45em}
+.ar-cfast{border-color:var(--gold);box-shadow:0 0 0 .15em rgba(242,184,75,.18)}
+.ar-crown{font-weight:800;font-size:.78em;letter-spacing:.06em;text-transform:uppercase;color:var(--gold)}
+.ar-fopts{display:grid;gap:.4em}
+.ar-fopt{text-align:left;font:inherit;font-weight:700;padding:.55em .8em;border-radius:.8em;border:1px solid var(--glass-line);background:var(--glass);color:var(--white);cursor:pointer}
+.ar-fopt b{display:inline-grid;place-items:center;width:1.5em;height:1.5em;border-radius:50%;background:var(--gold);color:var(--ink);margin-right:.5em;font-size:.85em}
+.ar-fopt[disabled]{cursor:default;opacity:.85}
+.ar-fopt.ar-fright{background:#c9f0d8;color:var(--ink);border-color:#7fd6a0}
+.ar-fopt.ar-fwrong{background:#ffe9eb;color:var(--ink);border-color:var(--rose)}
+.ar-sysmsg{text-align:center;font-size:.85em;font-weight:700;color:var(--gold);padding:.2em .6em}
+.ar-picker{display:grid;gap:.3em;max-height:11em;overflow:auto;padding:.3em;border-radius:.8em;background:rgba(0,0,0,.25)}
+.ar-pickrow{display:flex;align-items:center;gap:.6em;font:inherit;padding:.4em .6em;border-radius:.7em;border:0;background:var(--glass);color:var(--white);cursor:pointer;text-align:left}
+.ar-pickrow[disabled]{opacity:.5;cursor:not-allowed}
+.ar-chat.ar-chatbig{height:100%;max-height:none;min-height:0}
+.ar-chat{grid-template-rows:auto auto minmax(0,1fr) auto auto}
+.ar-chatpage{grid-template-rows:auto minmax(0,1fr)}
+@media (min-aspect-ratio: 1/1){.ar-chatpage .ar-chat{max-width:60em;margin:0 auto;width:100%}}
+
+/* Chat cards: a 2-column answer grid whenever there is room for it, and the compact small-phone layout */
+.ar-emojibtn{display:none}
+@media (min-width:480px){.ar-fgrid{grid-template-columns:1fr 1fr}}
+@media (max-aspect-ratio: 1/1) and (max-height:700px){
+  .ar-chat{padding:.5em;gap:.35em}
+  .ar-card{padding:.45em .6em;gap:.3em}
+  .ar-card .ar-name{font-size:.92em;line-height:1.3}
+  .ar-crown{font-size:.7em}
+  .ar-fgrid{grid-template-columns:1fr 1fr;gap:.35em}
+  .ar-fopt{padding:.4em .55em;font-size:.9em}
+  .ar-fopt b{width:1.3em;height:1.3em;font-size:.75em;margin-right:.35em}
+  .ar-cchallenge .ar-row{gap:.4em}
+  .ar-cchallenge .ar-btn.ar-sm{padding:.3em .8em}
+  .ar-emojibtn{display:inline-grid;place-items:center;flex:none;font-size:1.25em;line-height:1;padding:.25em .5em;border-radius:999px;border:1px solid var(--glass-line);background:var(--glass);color:var(--white);cursor:pointer}
+  .ar-chat>.ar-chatrx{display:none}
+  .ar-chat>.ar-chatrx.ar-open{display:grid;grid-template-columns:repeat(6,1fr);gap:.3em;padding:.4em;border-radius:.8em;background:rgba(0,0,0,.35);border:1px solid var(--glass-line);overflow:visible}
+  .ar-chat>.ar-chatrx.ar-open .ar-chatrxb{font-size:1.3em;padding:.25em 0}
+}

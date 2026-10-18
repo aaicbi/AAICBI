@@ -39,7 +39,7 @@ export default function ArenaLobby({ courseId, traineeId }: { courseId: string; 
 
   if (!v) {
     return (
-      <ArenaFrame title="Gaming Arena" backHref="/trainee/arena">
+      <ArenaFrame title="Ayakbi Arena" backHref="/trainee/arena">
         <div className="ar-stage"><div className="ar-in" style={{ display: "grid", placeItems: "center", textAlign: "center" }}>{error ? error.message : "Opening the arena…"}</div></div>
       </ArenaFrame>
     );
@@ -50,8 +50,8 @@ export default function ArenaLobby({ courseId, traineeId }: { courseId: string; 
     <ArenaFrame title={`${v.course.title} · Arena`} backHref="/trainee/arena">
       <div className="ar-stage">
         <div className="ar-in">
-          <div className="ar-top"><div className="ar-t">The Interview</div><span className="ar-pill ar-gold">{v.rules.questionsPerMatch} questions · {v.rules.questionSeconds}s each</span></div>
-          <div className="ar-main ar-two">
+          <div className="ar-top"><div className="ar-t">Ayakbi Arena</div><span className="ar-pill ar-gold">{v.rules.questionsPerMatch} questions · {v.rules.questionSeconds}s each</span></div>
+          <div className={`ar-main ar-two${v.chat.enabled ? " ar-lobby3" : ""}`}>
             <div className="ar-col">
               {sus && !v.chat.enabled && <p className="ar-note ar-miss" role="status">{sus}</p>}
               <div className="ar-glass ar-fill ar-lobbylist">
@@ -86,7 +86,6 @@ export default function ArenaLobby({ courseId, traineeId }: { courseId: string; 
               {v.active && v.active.status !== "PENDING" && (
                 <div className="ar-glass ar-champ"><div className="ar-crown">Game on</div><p className="ar-name">Your match with {v.active.opponentName} is waiting</p><button type="button" className="ar-btn ar-sm" onClick={() => router.push(`/trainee/arena/match/${v.active!.id}`)}>Go to match</button></div>
               )}
-              {v.chat.enabled && <ArenaChat courseId={courseId} chat={v.chat} suspended={sus} onSent={() => void reload()} flash={flash} />}
               <div className="ar-glass ar-fill ar-lobbylist">
                 <strong>Recent matches</strong>
                 {v.recent.length === 0 && <p className="ar-muted">No matches yet. Challenge someone!</p>}
@@ -95,6 +94,7 @@ export default function ArenaLobby({ courseId, traineeId }: { courseId: string; 
                 ))}
               </div>
             </div>
+            {v.chat.enabled && <div className="ar-col ar-chatcol"><ArenaChat courseId={courseId} chat={v.chat} suspended={sus} online={v.online} busy={busy} onChanged={() => void reload()} flash={flash} /></div>}
           </div>
         </div>
         {toast && <div className="ar-toast" role="alert">{toast}</div>}

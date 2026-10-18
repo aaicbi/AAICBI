@@ -14,6 +14,7 @@ import Icon from "@/components/ui/Icon";
 import AttentionPulse from "@/components/ui/AttentionPulse";
 import { AchievementIcon, AssessmentIcon } from "@/components/icons/brand";
 import { ChevronDown, ChevronRight, Lock, MessageSquare, MessageCircle, ArrowRight, Star, CircleHelp, Shuffle, ListOrdered, Split, Gamepad2, Trophy, Flame, Sparkles, type LucideIcon } from "lucide-react";
+import CourseChatLink from "@/components/arena/CourseChatLink";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
 import LockedDoodle from "@/components/doodles/LockedDoodle";
 import AchievementDoodle from "@/components/doodles/AchievementDoodle";
@@ -1044,6 +1045,8 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
             />
           </div>
         )}
+
+        <CourseChatLink courseId={course.id} />
 
         <div className="mt-8 space-y-3">
           {course.modules.map((mod, i) => (
