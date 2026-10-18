@@ -73,6 +73,7 @@ export const PAGES: Array<SitePage & { group: Group }> = [
   { group: "Member (trainee)", href: "/trainee/certificates", label: "My certificates", who: ["trainee"], what: "Certificates you earned, to download and share with a verification link.", aliases: ["certificate", "download certificate", "share certificate"] },
   { group: "Member (trainee)", href: "/trainee/progress", label: "My progress", who: ["trainee"], what: "How far you are in each program.", aliases: ["progress", "how am i doing"] },
   { group: "Member (trainee)", href: "/trainee/my-activity", label: "Analytics and reports", who: ["trainee"], what: "Your learning activity over time.", aliases: ["analytics", "reports", "my activity", "stats"] },
+  { group: "Member (trainee)", href: "/trainee/arena", label: "Gaming Arena", who: ["trainee"], what: "Challenge an online coursemate to The Interview, a two-player question game, when it is switched on for your course.", aliases: ["game", "arena", "play a game", "challenge a friend", "the interview"] },
   { group: "Member (trainee)", href: "/trainee/messages", label: "Messages", who: ["trainee"], what: "Conversations with instructors, organizations and employers.", aliases: ["chat", "inbox", "dm"] },
   { group: "Member (trainee)", href: "/trainee/explore", label: "Explore", who: ["trainee"], what: "Organizations, jobs and events in one place.", aliases: ["explore", "discover"] },
   { group: "Member (trainee)", href: "/trainee/profile", label: "My profile", who: ["trainee"], what: "Your name, photo, skills, education, experience and projects; choose who can see your profile (public by default, or narrower).", aliases: ["profile", "edit profile", "profile visibility", "make my profile private", "privacy", "who can see my profile", "avatar", "profile picture"] },
@@ -130,6 +131,7 @@ export const PAGES: Array<SitePage & { group: Group }> = [
 
   // ---- AAICBI team
   { group: "AAICBI team", href: "/admin/game-results", label: "Game results", who: STAFF, what: "Who plays the games and how they do: every player from course games, quiz practice and the feed, with answers, accuracy by game type and their latest answers, plus a CSV download. A Super Admin always sees it and chooses, with a share switch and a switch per person, which staff may also open it (they see only players in their own courses).", aliases: ["game results", "player results", "who played the games", "game performance", "leaderboard", "how are players doing"] },
+  { group: "AAICBI team", href: "/admin/arena", label: "Gaming Arena", who: STAFF, what: "Turn the Gaming Arena (two trainees challenge each other live on a course) on or off for the whole platform, one organization or one course, and set the rules of play: seconds per question, seconds to pick a number, the bonus for a stolen question, pauses and questions per match. Everything is off until you switch it on. Spectators, chat and the ladder have their own switches and arrive in later releases.", aliases: ["gaming arena", "the interview game", "challenge game", "turn on the arena", "multiplayer game", "live game", "arena settings"] },
   { group: "AAICBI team", href: "/admin/analytics", label: "Analytics", who: STAFF, what: "Platform-wide activity and trends.", aliases: ["statistics", "stats"] },
   { group: "AAICBI team", href: "/admin/trainees", label: "Trainees", who: STAFF, what: "Every member account; open one for details.", aliases: ["members", "users", "find a user"] },
   { group: "AAICBI team", href: "/admin/employers", label: "Employer accounts", who: STAFF, what: "Review and manage employer applications.", aliases: ["employers", "approve employer"] },
@@ -179,6 +181,8 @@ export interface DynamicPage {
 }
 
 export const DYNAMIC: DynamicPage[] = [
+  { route: "/trainee/arena/[courseId]", what: "A course's arena: who is online, challenges and recent matches.", from: "/trainee/arena", how: "Pick a course on the Gaming Arena page." },
+  { route: "/trainee/arena/match/[id]", what: "A live match of The Interview, full screen and landscape.", from: "/trainee/arena", how: "Open a course, then challenge a coursemate or accept a challenge." },
   { route: "/post/[id]", what: "One post with all its comments.", from: "/feed", how: "Open a post from the feed." },
   { route: "/tags/[tag]", what: "Posts that use one #topic.", from: "/feed", how: "Tap a #topic on a post or in Topics this week." },
   { route: "/courses/[id]", what: "A program's page with its outline, requirements and enrol button.", from: "/courses", how: "Open a program from the list." },

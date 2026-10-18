@@ -31,6 +31,7 @@ import type { CourseStatus } from "@prisma/client";
 import CourseMarketingSettings, { type CourseMarketingFields } from "./CourseMarketingSettings";
 import CourseScheduleSettings, { type CourseScheduleFields } from "./CourseScheduleSettings";
 import MoveCourse from "./MoveCourse";
+import ArenaSettings from "./ArenaSettings";
 import ShareCard from "@/components/collab/ShareCard";
 
 import { Checkbox, Input, Select } from "@/components/ui/Field";
@@ -568,6 +569,8 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
         <WhatsappGroupSettings course={course} onSave={updateWhatsappGroup} showToast={showToast} />
 
         <CourseScheduleSettings course={course} onSave={updateSchedule} showToast={showToast} />
+
+        <ArenaSettings courseId={course.id} showToast={showToast} />
 
         <CourseMarketingSettings
           courseId={course.id}

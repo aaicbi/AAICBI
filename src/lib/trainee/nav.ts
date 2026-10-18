@@ -18,6 +18,7 @@
 export const TRAINEE_NAV = [
   { label: "Dashboard", href: "/trainee/dashboard" },
   { label: "Courses", href: "/trainee/courses" },
+  { label: "Gaming Arena", href: "/trainee/arena" },
   { label: "Feed", href: "/feed" },
   { label: "Write a post", href: "/compose" },
   { label: "My posts", href: "/my-posts" },
