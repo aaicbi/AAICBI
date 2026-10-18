@@ -87,3 +87,5 @@ Quiz-style games on phones are played in **portrait** (Kahoot, Trivia Crack, Qui
 - **Quit from the pause screen.** Pause shows Quit game, Visit the app and Resume. Quit asks first, then the match ends, the quitter sees "You quit the game", the opponent sees "X quit the game, so you win automatically" and a message is added to the match chat.
 - **Lobby list.** The topic list now uses the smallest playable pool (4) rather than the full match length, and is computed with three queries and cached for a minute instead of two queries per module on every refresh. Someone arriving is announced to the others at once, someone leaving the page drops off at once (`sendBeacon`), match screens keep a player "in the arena" so they show as busy, and online lasts 60 s instead of 45.
 - Checks: `arena-lobby.cjs`, `arena-quit.cjs`, and the drag steps in `arena-ordering.cjs`.
+
+- The practice games' **ordering** question (`GamePlayer`) is drag and drop too, using the shared `useDragReorder` hook (handle on the right, scrolls the page near its edges, arrow keys on the handle). Check: `scripts/device-checks/game-ordering-drag.cjs`.

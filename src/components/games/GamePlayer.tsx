@@ -1,4 +1,5 @@
 "use client";
+import { useDragReorder } from "./useDragReorder";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Check, CheckCircle2, XCircle } from "lucide-react";
 import Button from "@/components/ui/Button";
@@ -173,41 +174,35 @@ function Matching({ served, disabled, result, onChange }: { served: Extract<Play
 function Ordering({ served, disabled, result, onChange }: { served: Extract<PlayServed, { format: "ORDERING" }>; disabled: boolean; result: PlayResult | null; onChange: (r: unknown | null) => void }) {
   const [order, setOrder] = useState<string[]>(served.steps);
   const feedback = result?.feedback as { correctOrder?: string[]; positions?: boolean[] } | undefined;
+  const dnd = useDragReorder(order, setOrder, !disabled);
 
   useEffect(() => {
     onChange({ order });
   }, [order, onChange]);
 
-  const move = (i: number, d: -1 | 1) => {
-    const j = i + d;
-    if (j < 0 || j >= order.length) return;
-    const next = [...order];
-    [next[i], next[j]] = [next[j], next[i]];
-    setOrder(next);
-  };
-
   return (
     <div>
-      <p className="text-sm text-gray-700">Use the arrows to put the steps in the right order, first at the top.</p>
-      <ol className="mt-3 space-y-2">
+      <p className="text-sm text-gray-700">{disabled ? "Your order, first at the top." : "Hold the handle on the right and drag each step into place, first at the top."}</p>
+      <ol className="mt-3 space-y-2" ref={dnd.ref}>
         {order.map((step, i) => {
           const ok = feedback?.positions?.[i];
+          const isDrag = dnd.dragging?.key === step;
           return (
             <li
               key={step}
-              style={{ "--i": i } as React.CSSProperties}
-              className={`gx-stagger flex items-center gap-2 rounded-2xl border border-l-[6px] border-l-brand-teal px-3 py-2 text-sm font-medium shadow-sm ${ok === undefined ? "border-brand-gray bg-brand-surface" : ok ? "border-brand-teal bg-brand-mint" : "border-brand-rose bg-brand-roseLight/60"}`}
+              style={{ "--i": i, ...dnd.rowStyle(step) } as React.CSSProperties}
+              className={`gx-stagger flex items-center gap-2 rounded-2xl border border-l-[6px] border-l-brand-teal px-3 py-2 text-sm font-medium shadow-sm ${ok === undefined ? "border-brand-gray bg-brand-surface" : ok ? "border-brand-teal bg-brand-mint" : "border-brand-rose bg-brand-roseLight/60"} ${isDrag ? "scale-[1.02] border-brand-gold bg-white shadow-xl ring-2 ring-brand-gold/60" : ""}`}
             >
               <span className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-extrabold shadow ${pairColor(i)}`}>{i + 1}</span>
               <span className="flex-1">{step}</span>
               {!disabled && (
-                <span className="flex shrink-0 gap-1">
-                  <button type="button" aria-label={`Move “${step}” up`} onClick={() => move(i, -1)} disabled={i === 0} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-gray bg-brand-surface transition-transform hover:scale-110 hover:bg-brand-mint active:scale-95 disabled:opacity-30">
-                    <Icon icon={ArrowUp} size="sm" />
-                  </button>
-                  <button type="button" aria-label={`Move “${step}” down`} onClick={() => move(i, 1)} disabled={i === order.length - 1} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-gray bg-brand-surface transition-transform hover:scale-110 hover:bg-brand-mint active:scale-95 disabled:opacity-30">
-                    <Icon icon={ArrowDown} size="sm" />
-                  </button>
+                <span
+                  {...dnd.grip(step)}
+                  aria-label={`Move “${step}”. Drag it, or use the up and down arrow keys.`}
+                  style={{ touchAction: "none" }}
+                  className={`inline-flex h-11 w-11 shrink-0 select-none items-center justify-center rounded-xl border border-brand-gray bg-brand-mint/60 text-xl leading-none text-brand-teal focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-action ${isDrag ? "cursor-grabbing" : "cursor-grab"}`}
+                >
+                  ⠿
                 </span>
               )}
             </li>
