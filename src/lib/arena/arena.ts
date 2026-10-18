@@ -85,10 +85,18 @@ async function startRound(d: Draft, pickerId: string, number: number, at: number
   const rules = rulesFrom(d.m.rules);
   const pool = await poolFor(d.m.courseId, d.m.moduleId);
   const used = await usedEntries(d);
-  const entry = chooseEntry(pool, new Set([...used.now, ...used.before])) ?? chooseEntry(pool, used.now);
-  if (!entry) { finish(d, at, "COMPLETED", "no-more-questions"); return; }
-  const served = await serveEntry(entry);
-  if (!served) { finish(d, at, "COMPLETED", "no-more-questions"); return; }
+  const skip = new Set<string>();
+  let entry: PoolEntry | null = null;
+  let served: Awaited<ReturnType<typeof serveEntry>> = null;
+  // A broken item is skipped, not allowed to end the match.
+  for (let tries = 0; tries < 8 && !served; tries++) {
+    const taken = new Set([...used.now, ...skip]);
+    entry = chooseEntry(pool, new Set([...taken, ...used.before])) ?? chooseEntry(pool, taken);
+    if (!entry) break;
+    served = await serveEntry(entry);
+    if (!served) skip.add(entry.id);
+  }
+  if (!entry || !served) { finish(d, at, "COMPLETED", "no-more-questions"); return; }
   const round = {
     id: `pending-${d.rounds.length}`, matchId: d.m.id, idx: d.rounds.length, pickerId, number, format: entry.format, itemKind: entry.kind, itemId: entry.id,
     basePoints: basePointsFor(entry), served: served as unknown as object, servedAt: new Date(at),

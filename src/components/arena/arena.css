@@ -279,3 +279,21 @@
   .ar-num.ar-used{font-size:1.1em}
 }
 @media (prefers-reduced-motion:reduce){.ar-orbs i,.ar-pc.ar-active,.ar-ready-num,.ar-big-btn,.ar-qcard,.ar-stars span.ar-on,.ar-countnum{animation:none}}
+
+/* Matching, like the practice game: numbered pairs in matching colours */
+.ar-hint{margin:0;font-size:.8em;color:#4a5a55;flex:none}
+.ar-mt button{display:flex;align-items:center;gap:.5em;border-width:.15em;transition:transform .12s,background .2s,border-color .2s}
+.ar-mt button.ar-p{border-color:var(--gold-deep);background:#fff1cc;transform:scale(1.02);box-shadow:0 0 0 .15em rgba(217,154,52,.35)}
+.ar-mt button.ar-paired{border-color:var(--pc);background:color-mix(in srgb,var(--pc) 14%,#fff);cursor:pointer;animation:ar-settle .25s}
+.ar-mt button:disabled{cursor:default}
+.ar-badge{flex:none;width:1.7em;height:1.7em;border-radius:50%;display:inline-grid;place-items:center;color:#fff;font-weight:800;font-size:.85em}
+.ar-mtext{flex:1;min-width:0;overflow-wrap:anywhere}
+.ar-mt>div{overflow:hidden}
+@container (max-height:440px){
+  .ar-hint{display:none}
+  .ar-mt button{padding:.05em .5em;font-size:.8em;line-height:1.1;gap:.35em}
+  .ar-mt .ar-badge{width:1.5em;height:1.5em;font-size:.75em}
+  .ar-mt{gap:.5em}.ar-mt>div{gap:.35em}
+  .ar-go{padding:.35em 1em;font-size:.85em}
+}
+@keyframes ar-settle{from{transform:scale(.94);opacity:.6}to{transform:none;opacity:1}}

@@ -435,31 +435,64 @@ function Body({ s, canAnswer, reveal, chosen, locked, onSubmit }: { s: ServedRou
   return <Ordering s={s} canAnswer={canAnswer} reveal={reveal} locked={locked} onSubmit={onSubmit} />;
 }
 
+const PAIR_COLORS = ["#00564d", "#d99a34", "#e0566a", "#2d9d5f", "#3b6fd4", "#8a5cc7"];
+
+/** Matching works like the platform's practice game: tap a term, tap its meaning, and both cards get the same number and colour. */
 function Matching({ s, canAnswer, reveal, onSubmit }: { s: Extract<ServedRound, { format: "MATCHING" }>; canAnswer: boolean; reveal: Reveal | null; onSubmit: (r: Record<string, unknown>) => void }) {
-  const [sel, setSel] = useState<number | null>(null);
-  const [map, setMap] = useState<Record<string, string>>({});
-  const used = new Set(Object.values(map));
-  const done = Object.keys(map).length === s.lefts.length;
-  if (reveal?.pairs) {
-    return (
-      <>
-        <p className="ar-q">{s.prompt}</p>
-        <div className="ar-mt ar-one">{reveal.pairs.map((p) => <div key={p.left} className="ar-pair"><span>{p.left}</span><b>→</b><span>{p.right}</span></div>)}</div>
-      </>
-    );
-  }
+  const [pairs, setPairs] = useState<Record<number, string>>({});
+  const [active, setActive] = useState<number | null>(0);
+  const total = s.lefts.length;
+  const done = Object.keys(pairs).length === total;
+  const ownerOf = (text: string) => { const e = Object.entries(pairs).find(([, v]) => v === text); return e ? Number(e[0]) : undefined; };
+
+  // At the reveal the right pairs are numbered the same way, so a missed one can be read straight off the board.
+  const truth = reveal?.pairs;
+  const revealOwner = (right: string) => truth ? truth.findIndex((p) => p.right === right) : -1;
+
+  const pickLeft = (i: number) => {
+    if (!canAnswer) return;
+    if (pairs[i] !== undefined) { const n = { ...pairs }; delete n[i]; setPairs(n); }
+    setActive(i);
+  };
+  const pickRight = (text: string) => {
+    if (!canAnswer) return;
+    const owner = ownerOf(text);
+    if (owner !== undefined) { const n = { ...pairs }; delete n[owner]; setPairs(n); setActive(owner); return; }
+    if (active === null) return;
+    const next = { ...pairs, [active]: text };
+    setPairs(next);
+    const waiting = s.lefts.findIndex((_, i) => i !== active && next[i] === undefined);
+    setActive(waiting >= 0 ? waiting : null);
+  };
+
+  const badge = (n: number) => <span className="ar-badge" style={{ background: PAIR_COLORS[n % 6] }}>{n + 1}</span>;
   return (
     <>
       <p className="ar-q">{s.prompt}</p>
+      <p className="ar-hint">{truth ? "The right matches are numbered." : canAnswer ? "Tap a term, then its meaning. Matched cards share a number and colour. Tap a matched card to undo." : "Waiting for the answer…"}</p>
       <div className="ar-mt">
-        <div>{s.lefts.map((l, i) => (
-          <button key={l} type="button" disabled={!canAnswer} className={`${sel === i ? "ar-p" : ""}${map[i] ? " ar-m" : ""}`} onClick={() => { if (map[i]) { const n = { ...map }; delete n[i]; setMap(n); } else setSel(i); }}>{l}{map[i] ? ` → ${map[i]}` : ""}</button>
-        ))}</div>
-        <div>{s.rights.map((r) => (
-          <button key={r} type="button" disabled={!canAnswer || used.has(r)} className={used.has(r) ? "ar-m" : ""} onClick={() => { if (sel === null) return; setMap({ ...map, [sel]: r }); setSel(null); }}>{r}</button>
-        ))}</div>
+        <div>{s.lefts.map((l, i) => {
+          const mine = pairs[i];
+          const n = truth ? i : mine !== undefined ? i : -1;
+          return (
+            <button key={l} type="button" disabled={!canAnswer} aria-pressed={active === i}
+              className={`${active === i && canAnswer ? "ar-p" : ""}${n >= 0 ? " ar-paired" : ""}`} style={n >= 0 ? { ["--pc" as string]: PAIR_COLORS[n % 6] } : undefined}
+              onClick={() => pickLeft(i)}>
+              {n >= 0 && badge(n)}<span className="ar-mtext">{l}</span>
+            </button>
+          );
+        })}</div>
+        <div>{s.rights.map((r) => {
+          const owner = truth ? revealOwner(r) : ownerOf(r);
+          const has = owner !== undefined && owner >= 0;
+          return (
+            <button key={r} type="button" disabled={!canAnswer} className={has ? "ar-paired" : ""} style={has ? { ["--pc" as string]: PAIR_COLORS[owner! % 6] } : undefined} onClick={() => pickRight(r)}>
+              {has && badge(owner!)}<span className="ar-mtext">{r}</span>
+            </button>
+          );
+        })}</div>
       </div>
-      {canAnswer && <button type="button" className="ar-btn ar-go" disabled={!done} onClick={() => onSubmit({ matches: map })}>Lock in</button>}
+      {canAnswer && <button type="button" className="ar-btn ar-go" disabled={!done} onClick={() => onSubmit({ matches: pairs })}>{done ? "Lock in" : `Matched ${Object.keys(pairs).length} of ${total}`}</button>}
     </>
   );
 }
