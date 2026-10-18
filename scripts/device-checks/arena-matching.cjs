@@ -31,7 +31,7 @@ const PAIRS = [['Phishing', 'Fake messages that steal logins'], ['Firewall', 'Bl
   }
 
   const br = await launch();
-  for (const [name, dev] of [['desktop', device('Desktop Chrome', { viewport: { width: 1280, height: 720 } })], ['phone', device('iPhone 13 landscape')], ['portrait', device('iPhone 13')]]) {
+  for (const [name, dev] of [['desktop', device('Desktop Chrome', { viewport: { width: 1280, height: 720 } })], ['phone', device('iPhone 13 landscape')], ['portrait', device('iPhone 13')], ['small', device('iPhone 7', { viewport: { width: 375, height: 553 } })]]) {
     clearThrottle(); const { mid, picker } = await newMatch();
     const email = picker === 'a' ? 't0@dev.test' : 't1@dev.test'; const email2 = picker === 'a' ? 't1@dev.test' : 't0@dev.test';
     const cp = await signedIn(br, dev, '/api/auth/trainee-login', email); const co = await signedIn(br, dev, '/api/auth/trainee-login', email2);

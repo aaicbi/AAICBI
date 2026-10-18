@@ -42,6 +42,10 @@ const SHOTS = process.env.SHOTS || '/tmp/dev/arena-shots';
     await picker.locator('.ar-qcard').waitFor(); await other.locator('.ar-qcard').waitFor();
     await picker.screenshot({ path: `${SHOTS}/${name}-question.png` });
     await other.screenshot({ path: `${SHOTS}/${name}-question-wait.png` });
+    if (name === 'small') {
+      const fit = await picker.evaluate(() => { const c = document.querySelector('.ar-qcard'); const d = document.querySelector('.ar-dock'); const opts = [...document.querySelectorAll('.ar-opt')]; const cr = c.getBoundingClientRect(); return { card: c.scrollHeight <= c.clientHeight + 2, dock: d.getBoundingClientRect().bottom <= innerHeight + 1, opts: opts.length === 4 && opts.every((o) => o.getBoundingClientRect().bottom <= cr.bottom + 1), wide: document.documentElement.scrollWidth <= innerWidth }; });
+      log(fit.card && fit.dock && fit.opts && fit.wide, name + ': on a 375x553 phone all four answers and the dock fit with nothing cut ' + JSON.stringify(fit));
+    }
     // no scrolling anywhere
     for (const p of [pa, pb]) {
       const o = await p.evaluate(() => ({ sx: document.documentElement.scrollWidth > innerWidth + 1, sy: document.documentElement.scrollHeight > innerHeight + 1, bodyOverflow: getComputedStyle(document.body).overflow, cut: [...document.querySelectorAll(innerHeight > innerWidth ? '.ar-main,.ar-stage' : '.ar-qcard,.ar-main,.ar-stage')].some((e) => e.scrollHeight > e.clientHeight + 2) }));

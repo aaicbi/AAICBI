@@ -74,6 +74,8 @@ Quiz-style games on phones are played in **portrait** (Kahoot, Trivia Crack, Qui
 
 - **Portrait (phones):** one column. A scoreboard row (you | timer | them), the progress strip, then the question card with large full-width answer buttons; the card scrolls inside itself when a question is long and the Lock in button stays pinned at its bottom. A dock under the card holds **React** (opens a bottom sheet of 12 reactions) and **Pause**.
 - **Wide screens (tablets, desktops, phones held sideways):** the three-column board as before, with a Pause button in the top bar.
-- Layout is chosen from the stage's own shape with a container query (`max-aspect-ratio: 1/1`), so it needs no device sniffing. The root uses `100dvh` so mobile browser bars never cut it off.
+- The phone layout is chosen with a plain media query on the screen's shape (`max-aspect-ratio: 1/1`), not a container query, so it also works on older iPhones (Safari before 16 ignores container queries). Container-query units keep a viewport-unit fallback. The root uses `100dvh` so mobile browser bars never cut it off.
 - Pause had an API and an overlay but no button; it now has one in both layouts.
 - Check: `scripts/device-checks/arena-ui.cjs`, `arena-matching.cjs` and `arena-ordering.cjs` run desktop, landscape phone and portrait phone.
+
+- Sized for an iPhone 7 (375 x 553 visible): thin top strip, one-line progress, a 52 px scoreboard row, a question card that takes the rest, and a 34 px dock. `arena-ui.cjs` checks a 375x553 viewport: all four answers and the dock fit with nothing cut or wider than the screen.
