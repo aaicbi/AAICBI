@@ -6,7 +6,7 @@ import { GrowthError, playStart } from "@/lib/growth/growth";
 
 export const dynamic = "force-dynamic";
 
-const Body = z.object({ token: z.string().max(80).nullish(), source: z.string().max(80).nullish() });
+const Body = z.object({ token: z.string().max(80).nullish(), source: z.string().max(80).nullish(), duel: z.string().max(20).nullish(), nickname: z.string().max(60).nullish() });
 
 /** POST — a newcomer starts the taster (or resumes it with the token their browser kept). No account. */
 export async function POST(req: Request, { params }: { params: { slug: string } }) {
@@ -16,7 +16,7 @@ export async function POST(req: Request, { params }: { params: { slug: string } 
     const parsed = Body.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) return NextResponse.json({ error: "That request wasn't understood." }, { status: 400 });
     try {
-      return NextResponse.json(await playStart(params.slug, parsed.data.token ?? null, parsed.data.source));
+      return NextResponse.json(await playStart(params.slug, parsed.data.token ?? null, parsed.data.source, { duel: parsed.data.duel, nickname: parsed.data.nickname }));
     } catch (e) {
       if (e instanceof GrowthError) return NextResponse.json({ error: e.message }, { status: e.status });
       throw e;

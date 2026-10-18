@@ -13,14 +13,23 @@ import { FORMAT_INFO, type GameFormat } from "@/lib/quest/games";
 import PlayClient from "./PlayClient";
 import Logo from "@/components/Logo";
 import GrowthPlay from "@/components/growth/GrowthPlay";
-import { publicCampaign } from "@/lib/growth/growth";
+import { duelPreview, publicCampaign } from "@/lib/growth/growth";
 import { appUrl } from "@/lib/appUrl";
 import { cleanSource } from "@/lib/growth/growthCore";
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: { params: { id: string }; searchParams: { duel?: string } }): Promise<Metadata> {
   const campaign = await publicCampaign(params.id);
+  if (campaign && campaign.live && typeof searchParams.duel === "string") {
+    // A challenge link previews as the challenger's result card, so it looks good pasted into WhatsApp.
+    const d = await duelPreview(params.id, searchParams.duel);
+    if (d) {
+      const image = appUrl(`/api/public/growth/${params.id}/card/${searchParams.duel}`);
+      const title = `Can you beat ${d.name}'s ${d.score}/${d.total}?`;
+      return { title, description: "Same 5 questions, 90 seconds, no signup.", openGraph: { title, description: "Same 5 questions, 90 seconds, no signup.", images: [{ url: image, width: 1200, height: 630 }] }, twitter: { card: "summary_large_image", images: [image] } };
+    }
+  }
   if (campaign) return campaign.live
     ? { title: `Do you think like an AI automation builder? ${campaign.courseTitle}`, description: "5 questions, 90 seconds, no signup. See your rank and challenge a friend.", openGraph: { title: "Can you beat my score?", description: `A 5-question taster from ${campaign.courseTitle}. No signup.` } }
     : { title: "Campaign ended" };
@@ -29,16 +38,17 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 }
 
 /** /play/[id] — a round of a game that staff opened to the feed. Needs a signed-in account (anyone), saves nothing, and points at the course when it goes badly. */
-export default async function PlayPage({ params, searchParams }: { params: { id: string }; searchParams: { src?: string } }) {
+export default async function PlayPage({ params, searchParams }: { params: { id: string }; searchParams: { src?: string; duel?: string } }) {
   // A course campaign link (/play/<slug>) takes priority: it needs no account and no feed.
   const campaign = await publicCampaign(params.id);
   if (campaign) {
+    const duel = campaign.live && typeof searchParams.duel === "string" ? await duelPreview(params.id, searchParams.duel) : null;
     return (
       <>
         <header className="mx-auto flex w-full max-w-md items-center justify-center px-4 pt-5"><Logo compact /></header>
         <main className="mx-auto w-full max-w-md px-4 py-5">
           {campaign.live ? (
-            <GrowthPlay slug={campaign.slug} courseId={campaign.courseId} courseTitle={campaign.courseTitle} organizationName={campaign.organizationName} source={cleanSource(searchParams.src)} shareUrl={appUrl(`/play/${campaign.slug}?src=share`)} />
+            <GrowthPlay slug={campaign.slug} courseId={campaign.courseId} courseTitle={campaign.courseTitle} organizationName={campaign.organizationName} source={cleanSource(searchParams.src)} duel={duel ? { code: searchParams.duel as string, name: duel.name, score: duel.score, total: duel.total, rankLabel: duel.rank.label } : null} />
           ) : (
             <Card>
               <h1 className="font-display text-2xl font-bold text-brand-ink">This campaign has ended</h1>
