@@ -112,3 +112,10 @@ Quiz-style games on phones are played in **portrait** (Kahoot, Trivia Crack, Qui
 ## Release 8: one Messages button
 
 The floating Messages button (trainee pages with the sidebar) is now one inbox (`MessagesPanel`): **course group chats** (the Ayakbi Arena course chat, opened inside the button with its challenge and Fastest Fingers cards, plus a "Full chat" link), the existing **cohort chats**, and **direct messages** with instructors, admins and coursemates, with a ＋ New message picker (the existing `/api/conversations/contacts` and `/direct` rules apply: only people from your own courses and cohorts). The button's badge adds up unread direct, cohort and group messages. Unread group messages are tracked per trainee in `ArenaChatRead` (`/api/arena/chats`, `/api/arena/courses/[courseId]/chat/read` and `/thread`). "Share to Showcase" stays as the second tab. Check: `scripts/device-checks/messages-inbox.cjs`.
+
+## Release 9: challenge notifications
+
+- **Challenged player.** A new challenge (or rematch request) adds an entry to their notification bell (`ARENA_CHALLENGE`) and sends a push to their phone, even when they are somewhere else in the app and whether or not the course chat is on. The wording and links are in `challengeNotifyCore.ts` (tested).
+- **On screen.** The gold challenge bar that shows on every page now has **Accept** and **Decline** on it (`ArenaReturnPill`), so a challenge can be answered without opening the game first. It checks every 25 seconds.
+- **Challenger.** When the other player accepts or declines, the challenger gets a bell entry and a push ("X accepted your challenge", "X declined your challenge"). Answering clears the invitation from the other player's bell.
+- Check: `scripts/device-checks/arena-challenge-notify.cjs`. Not covered: a "no answer" notice when an invitation expires, and a per-person mute for these alerts.
