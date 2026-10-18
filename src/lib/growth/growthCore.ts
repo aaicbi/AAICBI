@@ -253,3 +253,41 @@ export const squadPath = (slug: string, code: string) => `/play/${slug}?squad=${
 export const rivalPath = (slug: string, code: string) => `/play/${slug}?rival=${code}`;
 export const squadJoinText = (squadName: string, url: string) => `Join ${squadName}! We're playing a 90-second AI automation quiz and every score counts for the squad. No signup: ${url}`;
 export const squadRivalText = (squadName: string, url: string) => `${squadName} challenges your squad on an AI automation quiz. Start your squad, get your friends to play the same 5 questions, and see who wins. No signup: ${url}`;
+
+// ---------------------------------------------------------------- scholarship seats
+
+export const MAX_SCHOLARSHIP_SEATS = 1000;
+
+/** Why scholarship seats cannot be given for a course right now, because of the switches (empty when they allow it). */
+export function scholarshipBlockers(i: Omit<LayerInput, "campaignEnabled"> & { ownScholarships: boolean; organizationScholarships: boolean }): string[] {
+  const out: string[] = [];
+  if (!i.platform?.enabled) out.push("The platform master switch is off.");
+  if (i.organizationId) {
+    if (!i.orgs?.enabled) out.push("The organization courses switch is off.");
+    if (!i.organization?.agreementAt) out.push("The organization's agreement is not recorded.");
+    if (!i.organizationScholarships) out.push("Scholarship seats are off for this organization.");
+  } else {
+    if (!i.own?.enabled) out.push("The AAICBI courses switch is off.");
+    if (!i.ownScholarships) out.push("Scholarship seats are off for AAICBI courses.");
+  }
+  return out;
+}
+
+/** Whole number in range, else null. */
+export function cleanCount(v: unknown, max = MAX_SCHOLARSHIP_SEATS): number | null {
+  const n = typeof v === "string" && v.trim() !== "" ? Number(v) : v;
+  if (typeof n !== "number" || !Number.isInteger(n) || n < 0 || n > max) return null;
+  return n;
+}
+
+export interface SeatInput { seats: number; minPlays: number; finishedPlays: number; held: number }
+export interface SeatState { open: boolean; left: number; reason: string | null }
+
+/** Whether a new seat can be given: seats set, enough people have played, and some are still free. */
+export function seatState(i: SeatInput): SeatState {
+  const left = Math.max(0, i.seats - i.held);
+  if (i.seats <= 0) return { open: false, left: 0, reason: "No seats are set for this course." };
+  if (i.finishedPlays < i.minPlays) return { open: false, left, reason: `Opens after ${i.minPlays} people finish the taster (${i.finishedPlays} so far).` };
+  if (left === 0) return { open: false, left: 0, reason: "All seats are taken." };
+  return { open: true, left, reason: null };
+}

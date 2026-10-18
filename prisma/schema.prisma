@@ -6156,6 +6156,9 @@ model GrowthCampaign {
   enabled          Boolean   @default(false)
   tasterApprovedAt DateTime?
   tasterApprovedById String?
+  // Scholarship seats for people who pass module 1: how many, and how many finished taster plays must exist before the first one is given.
+  scholarshipSeats    Int @default(0)
+  scholarshipMinPlays Int @default(0)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -6262,6 +6265,23 @@ model GrowthGrant {
 
   @@unique([traineeId, courseId])
   @@index([campaignId])
+}
+
+// A scholarship seat: full access to the course without paying, earned by passing module 1 while seats last.
+model GrowthScholarship {
+  id          String    @id @default(cuid())
+  traineeId   String
+  courseId    String
+  campaignId  String
+  // AWARDED holds a seat; REVOKED gives it back.
+  status      String    @default("AWARDED")
+  awardedAt   DateTime  @default(now())
+  revokedAt   DateTime?
+  revokedById String?
+  note        String?
+
+  @@unique([traineeId, courseId])
+  @@index([campaignId, status])
 }
 
 // A squad: a group (a WhatsApp group, a school, a company) whose members play the same five questions. Its score is the total of its members' scores.

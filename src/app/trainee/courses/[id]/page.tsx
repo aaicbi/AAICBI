@@ -272,6 +272,7 @@ interface CourseDto {
   whatsappGroupUrl: string | null;
   // Free preview modules
   isPreviewing?: boolean;
+  scholarship?: { awardedAt: string } | null;
   freePreviewModuleCount?: number | null;
 }
 
@@ -820,7 +821,9 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
           overview={course.description}
           badges={
             <>
-              {course.isPaid ? (
+              {course.scholarship ? (
+                <Badge variant="success">SCHOLARSHIP</Badge>
+              ) : course.isPaid ? (
                 <Badge variant="success">
                   PAID <CorrectnessMark state="correct" label={undefined} />
                 </Badge>
@@ -882,7 +885,9 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
           <div>
             <span className="text-gray-500 block">Payment Status</span>
             <span className="inline-flex items-center gap-1 font-semibold text-brand-ink">
-              {course.isPaid ? (
+              {course.scholarship ? (
+                "Scholarship seat"
+              ) : course.isPaid ? (
                 <>
                   Paid <CorrectnessMark state="correct" label={undefined} />
                 </>
@@ -1046,6 +1051,13 @@ export default function TraineeCourseViewPage({ params }: { params: { id: string
               description="This course doesn't have any modules yet — check back soon."
             />
           </div>
+        )}
+
+        {course.scholarship && (
+          <Card variant="highlighted" className="mt-6" data-testid="scholarship-card">
+            <h2 className="font-display text-lg font-semibold text-brand-ink">You earned a scholarship seat</h2>
+            <p className="mt-1 text-sm text-gray-700">You passed Module 1, so the rest of the course and the Ayakbi Arena are open to you at no cost.</p>
+          </Card>
         )}
 
         {course.isPreviewing && course.modules[0]?.completed && !course.isFree && (

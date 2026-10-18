@@ -140,6 +140,23 @@ ${courseUrl}`,
   };
 }
 
+/** Sent when a trainee who passed module 1 is given a scholarship seat for the rest of the course. */
+export function scholarshipAwardedEmail(traineeName: string, courseTitle: string, courseUrl: string): EmailContent {
+  return {
+    subject: `You earned a scholarship seat for ${courseTitle}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(traineeName)},</p>
+      <p style="margin:0 0 16px;">You passed Module 1 of <strong>${escapeHtml(courseTitle)}</strong> and earned a scholarship seat. The rest of the course is open to you, free of charge.</p>
+      ${button(courseUrl, "Continue the Course")}
+    `),
+    text: `Hi ${traineeName},
+
+You passed Module 1 of ${courseTitle} and earned a scholarship seat. The rest of the course is open to you, free of charge.
+
+${courseUrl}`,
+  };
+}
+
 /**
  * Standalone-exam access control — the trainee's only real discovery
  * path for a grant, same reasoning as courseAccessGrantedEmail just

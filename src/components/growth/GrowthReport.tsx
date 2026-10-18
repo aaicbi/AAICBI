@@ -15,7 +15,7 @@ interface Report {
   organizations: { id: string; name: string }[];
   campaigns: number;
   funnel: FunnelStep[];
-  extras: { squads: number; challenges: number; optedOut: number; messagesSent: number; messagesDelivered: number; messagesFailed: number };
+  extras: { scholarships: number; squads: number; challenges: number; optedOut: number; messagesSent: number; messagesDelivered: number; messagesFailed: number };
   sources: { label: string; funnel: FunnelCounts }[];
   courses: { courseId: string; title: string; organization: string | null; funnel: FunnelCounts; earnedKobo: number }[];
   commission: { summary: Summary; unrated: { count: number; amountKobo: number }; rates: { organizationId: string; name: string; percent: number | null }[]; ledgerShown: number; ledgerTotal: number; ledger: LedgerRow[] };
@@ -101,7 +101,7 @@ export default function GrowthReport({ isSuper }: { isSuper: boolean }) {
               ))}
             </ol>
             <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4" data-testid="extras">
-              {[["Friend challenges played", data.extras.challenges], ["Squads started", data.extras.squads], ["Follow-up messages sent", data.extras.messagesSent], ["Opted out of messages", data.extras.optedOut]].map(([k, v]) => (
+              {[["Scholarship seats given", data.extras.scholarships], ["Friend challenges played", data.extras.challenges], ["Squads started", data.extras.squads], ["Follow-up messages sent", data.extras.messagesSent], ["Opted out of messages", data.extras.optedOut]].map(([k, v]) => (
                 <div key={k as string} className="rounded-xl bg-brand-surface p-3"><dt className="text-xs text-gray-600">{k}</dt><dd className="font-display text-xl font-bold text-brand-ink">{v}</dd></div>
               ))}
             </dl>

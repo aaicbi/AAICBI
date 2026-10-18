@@ -55,6 +55,7 @@ export async function setOrganization(actorId: string, organizationId: string, p
   if (patch.enabled === true && !agreementAt) throw new GrowthError("Record the organization's agreement before switching it on.", 409);
   if (patch.enabled !== undefined) data.enabled = patch.enabled;
   if (patch.commissionBps !== undefined) data.commissionBps = patch.commissionBps;
+  if (patch.scholarshipEnabled === true && !agreementAt) throw new GrowthError("Record the organization's agreement before turning scholarship seats on.", 409);
   if (patch.scholarshipEnabled !== undefined) data.scholarshipEnabled = patch.scholarshipEnabled;
   await prisma.growthSetting.upsert({
     where: { scopeType_scopeId: { scopeType: "ORGANIZATION", scopeId: organizationId } },
