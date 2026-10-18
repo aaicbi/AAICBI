@@ -79,3 +79,11 @@ Quiz-style games on phones are played in **portrait** (Kahoot, Trivia Crack, Qui
 - Check: `scripts/device-checks/arena-ui.cjs`, `arena-matching.cjs` and `arena-ordering.cjs` run desktop, landscape phone and portrait phone.
 
 - Sized for an iPhone 7 (375 x 553 visible): thin top strip, one-line progress, a 52 px scoreboard row, a question card that takes the rest, and a 34 px dock. `arena-ui.cjs` checks a 375x553 viewport: all four answers and the dock fit with nothing cut or wider than the screen.
+
+## Release 5: drag and drop, leaving and quitting, a faster lobby
+
+- **Ordering is drag and drop.** Hold the ⠿ handle (finger or mouse) and drag a step; the others make room, the card scrolls when you reach its edge, and the arrow keys work from the handle for keyboard users.
+- **Leave the game and come back.** The 🏠 button (and Back) leaves the game screen for the normal app; if the player has a pause left the game is paused first. Anywhere else in the app, a gold pill (`ArenaReturnPill`, fed by `GET /api/arena/active`) says "Your game with X is paused/on · Return". The arena lobby no longer pushes you back into a running game; it shows a "Game on" card instead. A pause lasts the instructor's pause limit (default 60 s); after that the clock runs, three missed turns in a row forfeit, and a game nobody touches for 30 minutes is abandoned.
+- **Quit from the pause screen.** Pause shows Quit game, Visit the app and Resume. Quit asks first, then the match ends, the quitter sees "You quit the game", the opponent sees "X quit the game, so you win automatically" and a message is added to the match chat.
+- **Lobby list.** The topic list now uses the smallest playable pool (4) rather than the full match length, and is computed with three queries and cached for a minute instead of two queries per module on every refresh. Someone arriving is announced to the others at once, someone leaving the page drops off at once (`sendBeacon`), match screens keep a player "in the arena" so they show as busy, and online lasts 60 s instead of 45.
+- Checks: `arena-lobby.cjs`, `arena-quit.cjs`, and the drag steps in `arena-ordering.cjs`.

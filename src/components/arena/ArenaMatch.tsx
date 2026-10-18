@@ -176,6 +176,12 @@ export default function ArenaMatch({ matchId }: { matchId: string }) {
     else if (v.result.winner === "draw") play(sfx.draw); else play(sfx.defeat);
   }, [v?.result, play]);
 
+  // Leaving the game screen for the rest of the app pauses the game first (if the player has a pause left), so nothing is lost.
+  const exit = useCallback(async (href: string) => {
+    if (v && v.status === "ACTIVE" && !v.paused && v.me.pausesLeft > 0) await act("pause");
+    router.push(href);
+  }, [v, act, router]);
+
   const pausedNow = !!v?.paused;
   const phase = v?.phase ?? null;
   // Picking a number has no visible clock; only answering, the bonus chance and the short wait between questions do.
@@ -204,7 +210,7 @@ export default function ArenaMatch({ matchId }: { matchId: string }) {
   const over = v.status === "COMPLETED" || v.status === "FORFEITED";
 
   return (
-    <ArenaFrame title={title} backHref={`/trainee/arena/${v.courseId}`} sound={!!sound} onSound={setSoundPref}>
+    <ArenaFrame title={title} backHref={`/trainee/arena/${v.courseId}`} sound={!!sound} onSound={setSoundPref} onExit={exit}>
       <div className={`ar-stage${flash ? ` ar-flash-${flash}` : ""}`}>
         <div className="ar-orbs" aria-hidden><i /><i /><i /></div>
         <div className="ar-in">
@@ -509,21 +515,68 @@ function Ordering({ s, canAnswer, reveal, locked, onSubmit }: { s: Extract<Serve
   const truth = reveal?.correctOrder;
   const show = truth ?? order;
   const mine = locked ? order : null; // only this player's own tries are ever shown to them
-  const move = (i: number, d: number) => { const n = [...order]; const j = i + d; if (j < 0 || j >= n.length) return; [n[i], n[j]] = [n[j]!, n[i]!]; setOrder(n); };
+  const listRef = useRef<HTMLOListElement>(null);
+  const drag = useRef<{ key: string; startY: number; pid: number } | null>(null);
+  const [dragging, setDragging] = useState<{ key: string; dy: number } | null>(null);
+  const editable = canAnswer && !locked;
+
+  const moveTo = (key: string, to: number) => setOrder((o) => { const from = o.indexOf(key); if (from < 0 || to < 0 || to >= o.length || from === to) return o; const n = [...o]; n.splice(to, 0, n.splice(from, 1)[0]!); return n; });
+
+  // Drag by the grip with a finger or a mouse: the row follows the pointer and the others make room.
+  const onDown = (e: React.PointerEvent<HTMLElement>, key: string) => {
+    if (!editable) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    drag.current = { key, startY: e.clientY, pid: e.pointerId };
+    setDragging({ key, dy: 0 });
+  };
+  const onMove = (e: React.PointerEvent<HTMLElement>) => {
+    const d = drag.current; const list = listRef.current;
+    if (!d || !list || e.pointerId !== d.pid) return;
+    const rows = Array.from(list.children) as HTMLElement[];
+    const i = order.indexOf(d.key);
+    const me = rows[i];
+    if (!me) return;
+    // Keep the row under the finger when the card has to scroll.
+    const card = list.closest(".ar-qcard") as HTMLElement | null;
+    if (card) { const cr = card.getBoundingClientRect(); if (e.clientY < cr.top + 36) card.scrollBy(0, -10); else if (e.clientY > cr.bottom - 36) card.scrollBy(0, 10); }
+    const rect = me.getBoundingClientRect();
+    const centre = rect.top + rect.height / 2;
+    const prev = rows[i - 1]; const next = rows[i + 1];
+    if (prev && centre < prev.getBoundingClientRect().top + prev.offsetHeight / 2) {
+      d.startY -= me.offsetTop - prev.offsetTop;
+      moveTo(d.key, i - 1);
+    } else if (next && centre > next.getBoundingClientRect().top + next.offsetHeight / 2) {
+      d.startY += next.offsetTop + next.offsetHeight - (me.offsetTop + me.offsetHeight);
+      moveTo(d.key, i + 1);
+    }
+    setDragging({ key: d.key, dy: e.clientY - d.startY });
+  };
+  const onUp = () => { drag.current = null; setDragging(null); };
+  const onKey = (e: React.KeyboardEvent, key: string, i: number) => {
+    if (!editable) return;
+    if (e.key === "ArrowUp") { e.preventDefault(); moveTo(key, i - 1); } else if (e.key === "ArrowDown") { e.preventDefault(); moveTo(key, i + 1); }
+  };
+
   return (
     <>
       <p className="ar-q">{s.prompt}</p>
-      {truth && <p className="ar-hint ar-hintok">✔ The correct order{mine ? ", with where you put each step" : ""}</p>}
-      <ol className="ar-ord">
+      {truth ? <p className="ar-hint ar-hintok">✔ The correct order{mine ? ", with where you put each step" : ""}</p> : editable ? <p className="ar-hint">Hold the ⠿ handle and drag each step into place. Keyboard: arrow keys.</p> : null}
+      <ol className="ar-ord" ref={listRef}>
         {show.map((t, i) => {
           const myPos = truth && mine ? mine.indexOf(t) : -1;
           const off = myPos >= 0 && myPos !== i;
+          const isDrag = dragging?.key === t;
           return (
-            <li key={t} className={truth ? "ar-ok" : ""}>
+            <li key={t} className={`${truth ? "ar-ok" : ""}${isDrag ? " ar-dragging" : ""}`} style={isDrag ? { transform: `translateY(${dragging!.dy}px)` } : undefined}>
+              <span className="ar-n">{i + 1}</span>
               {truth && <span className="ar-tick" aria-hidden>✔</span>}
               <span className="ar-t">{t}</span>
               {off && <span className="ar-chip-no" title="Where you put it">you put it {myPos + 1}</span>}
-              {canAnswer && !locked && <span className="ar-mv"><button type="button" onClick={() => move(i, -1)} aria-label="Move up">↑</button><button type="button" onClick={() => move(i, 1)} aria-label="Move down">↓</button></span>}
+              {editable && (
+                <span className="ar-grip" role="button" tabIndex={0} aria-label={`Move “${t}”. Drag, or use the up and down arrow keys.`}
+                  onPointerDown={(e) => onDown(e, t)} onPointerMove={(e) => onMove(e)} onPointerUp={onUp} onPointerCancel={onUp} onKeyDown={(e) => onKey(e, t, i)}>⠿</span>
+              )}
             </li>
           );
         })}
@@ -535,12 +588,27 @@ function Ordering({ s, canAnswer, reveal, locked, onSubmit }: { s: Extract<Serve
 
 function PauseOverlay({ v, act, serverNow }: { v: MatchView; act: Act; serverNow: () => number }) {
   const left = useCountdown(v.paused?.resumesAt ?? null, serverNow);
+  const [quitting, setQuitting] = useState(false);
   return (
     <div className="ar-pause" role="dialog" aria-label="Game paused">
       <div className="ar-pbox">
         <div className="ar-ph"><strong>⏸ Game paused {v.paused?.by === "me" ? "by you" : `by ${v.opponent.name}`}</strong><span className="ar-pill">Resumes by itself in {left === null ? "…" : Math.ceil(left / 1000)}s</span></div>
         <div style={{ display: "grid", gridTemplateRows: "minmax(0,1fr) auto auto", gap: ".4em", minHeight: 0 }}><Chat v={v} act={act} quick /></div>
-        <div className="ar-pf"><span className="ar-muted">The question is hidden while paused.</span><button type="button" className="ar-btn" onClick={() => void act("resume")}>Resume game</button></div>
+        {quitting ? (
+          <div className="ar-quit" role="alertdialog" aria-label="Quit the game">
+            <p><strong>Quit this game?</strong> {v.opponent.name} is told you left and wins automatically.</p>
+            <div className="ar-row" style={{ justifyContent: "flex-end", flexWrap: "wrap" }}>
+              <button type="button" className="ar-btn ar-ghost ar-sm" onClick={() => setQuitting(false)}>Keep playing</button>
+              <button type="button" className="ar-btn ar-danger ar-sm" onClick={() => void act("leave")}>Yes, quit</button>
+            </div>
+          </div>
+        ) : (
+          <div className="ar-pf">
+            <button type="button" className="ar-btn ar-ghost ar-sm" onClick={() => setQuitting(true)}>Quit game</button>
+            <a className="ar-btn ar-ghost ar-sm" href="/feed" style={{ textDecoration: "none" }}>Visit the app</a>
+            <button type="button" className="ar-btn" onClick={() => void act("resume")}>Resume game</button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -551,9 +619,10 @@ function Result({ v, act }: { v: MatchView; act: Act }) {
   const router = useRouter();
   const [onlyMissed, setOnlyMissed] = useState(false);
   if (!r) return null;
-  const head = r.winner === "me" ? "Victory! 🏆" : r.winner === "draw" ? "It's a draw 🤝" : `${v.opponent.name} takes it`;
-  const sub = r.winner === "me" ? "Brilliant. You earned it." : r.winner === "draw" ? "Evenly matched. Time for the decider?" : "Great effort. Every question you missed is now one you know.";
-  const early = r.reason === "left" || r.reason === "forfeit" || r.reason === "inactive";
+  const quit = r.reason === "left";
+  const head = quit ? (r.winner === "me" ? "You win! 🏆" : "You quit the game") : r.winner === "me" ? "Victory! 🏆" : r.winner === "draw" ? "It's a draw 🤝" : `${v.opponent.name} takes it`;
+  const sub = quit ? (r.winner === "me" ? `${v.opponent.name} quit the game, so you win automatically.` : `You left the match, so ${v.opponent.name} wins.`) : r.winner === "me" ? "Brilliant. You earned it." : r.winner === "draw" ? "Evenly matched. Time for the decider?" : "Great effort. Every question you missed is now one you know.";
+  const early = !quit && (r.reason === "forfeit" || r.reason === "inactive");
   const missed = r.recap.filter((x) => x.mine !== "correct");
   const rm = v.rematch;
   const rec = r.record;
