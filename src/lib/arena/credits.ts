@@ -10,7 +10,7 @@ export async function creditsOf(traineeId: string, courseId?: string): Promise<n
 }
 
 /** Awards credits once per (trainee, reason, ref): asking again for the same thing changes nothing. */
-export async function awardCredits(input: { traineeId: string; courseId: string; points: number; reason: string; refId: string }): Promise<boolean> {
+export async function awardCredits(input: { traineeId: string; courseId: string; points: number; reason: string; refId: string; note?: string }): Promise<boolean> {
   try {
     await prisma.arenaCredit.create({ data: input });
     return true;

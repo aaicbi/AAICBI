@@ -50,7 +50,7 @@ export default function ArenaLobby({ courseId, traineeId }: { courseId: string; 
     <ArenaFrame title={`${v.course.title} · Arena`} backHref="/trainee/arena">
       <div className="ar-stage">
         <div className="ar-in">
-          <div className="ar-top"><div className="ar-t">Ayakbi Arena</div><span className="ar-pill ar-gold">{v.rules.questionsPerMatch} questions · {v.rules.questionSeconds}s each</span></div>
+          <div className="ar-top"><div className="ar-t">Ayakbi Arena</div><span className="ar-row" style={{ gap: ".4em", flex: "none" }}>{v.ladder.enabled && <a href={`/trainee/arena/${courseId}/ladder`} className="ar-pill" data-testid="ladder-link" style={{ textDecoration: "none", color: "inherit" }}>🏆 <span className={`ar-tier ar-t-${v.ladder.tierKey.toLowerCase()}`}>{v.ladder.tier}</span> {v.ladder.rating.toLocaleString()}{v.ladder.rank ? ` · #${v.ladder.rank}` : ""}</a>}<span className="ar-pill ar-gold">{v.rules.questionsPerMatch} questions · {v.rules.questionSeconds}s each</span></span></div>
           <div className={`ar-main ar-two${v.chat.enabled ? " ar-lobby3" : ""}`}>
             <div className="ar-col">
               {sus && !v.chat.enabled && <p className="ar-note ar-miss" role="status">{sus}</p>}
@@ -66,7 +66,7 @@ export default function ArenaLobby({ courseId, traineeId }: { courseId: string; 
                   <div key={p.id} className="ar-row">
                     <span className={`ar-dot${p.status === "BUSY" ? " ar-busy" : ""}`} aria-hidden />
                     <div className="ar-av" aria-hidden>{p.initials}</div>
-                    <div className="ar-grow"><div className="ar-name">{p.name}</div><div className="ar-sub">{p.status === "BUSY" ? "In a match" : "Available"}</div></div>
+                    <div className="ar-grow"><div className="ar-name">{p.champion ? "👑 " : ""}{p.name}</div><div className="ar-sub">{p.tier && p.tierKey && <><span className={`ar-tier ar-t-${p.tierKey.toLowerCase()}`}>{p.tier}</span> · </>}{p.status === "BUSY" ? "In a match" : "Available"}</div></div>
                     <button type="button" className="ar-btn ar-sm" disabled={busy || p.status === "BUSY"} onClick={() => void challenge(p.id)}>Challenge</button>
                   </div>
                 ))}

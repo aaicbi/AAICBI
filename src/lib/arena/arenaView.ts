@@ -7,6 +7,7 @@ import { availabilityForCourse, resolveForCourse } from "@/lib/arena/config";
 import { RULE_LIMITS, type ArenaRules } from "@/lib/arena/configCore";
 import { STEAL_MS, boardSize, isPlayer, reactionsOpen, rulesFrom, stealPoints, type MatchStatus, type Phase } from "@/lib/arena/arenaCore";
 import { ONLINE_SECONDS, ArenaError, mutate } from "@/lib/arena/arena";
+import { matchLadderResult, ratingsFor, ensureChampion, rankOf } from "@/lib/arena/ladder";
 import { chatFor, type ChatView } from "@/lib/arena/chat";
 import { activeSuspension } from "@/lib/arena/suspension";
 import { modulesWithPool, type Reveal, type ServedRound } from "@/lib/arena/arenaPool";
@@ -65,6 +66,8 @@ export interface MatchView {
     correct: number;
     bestStreak: number;
     stars: 1 | 2 | 3;
+    /** What this match did to the champion ladder for this player (null when the ladder is off or it has not been counted yet). */
+    ladder: Awaited<ReturnType<typeof matchLadderResult>>;
     topics: { topic: string; correct: number; total: number }[];
     /** Every question with the answer and the reason, for learning from the match. */
     recap: { n: number; topic: string; prompt: string; answer: string; explanation: string | null; mine: "correct" | "missed" | "skipped"; winner: "me" | "opponent" | null }[];
@@ -177,7 +180,9 @@ export async function viewMatch(matchId: string, viewerId: string): Promise<Matc
     });
     const record = { wins: history.filter((h) => h.winnerId === viewerId).length, losses: history.filter((h) => h.winnerId && h.winnerId !== viewerId).length, draws: history.filter((h) => !h.winnerId).length };
     const accuracy = answered ? correct / answered : 0;
+    const ladder = await matchLadderResult(m.id, viewerId, m.courseId);
     result = {
+      ladder,
       winner: m.winnerId === null ? "draw" : side(m.winnerId), reason: m.endReason, myScore: me.score, opponentScore: opp.score, answered, correct,
       bestStreak: streaks.bestMe, stars: accuracy >= 0.8 ? 3 : accuracy >= 0.5 ? 2 : 1, recap, record,
       topics: Array.from(topics, ([topic, v]) => ({ topic, ...v })).sort((a, b) => a.correct / a.total - b.correct / b.total),
@@ -207,7 +212,9 @@ export interface CourseArenaView {
   course: { id: string; title: string };
   me: { id: string; name: string };
   rules: ArenaRules;
-  online: { id: string; name: string; initials: string; avatarUrl: string | null; status: "AVAILABLE" | "BUSY" }[];
+  online: { id: string; name: string; initials: string; avatarUrl: string | null; status: "AVAILABLE" | "BUSY"; tier: string | null; tierKey: string | null; champion: boolean }[];
+  /** The champion ladder: whether it is on, this player's rating and place, and last week's champion. */
+  ladder: { enabled: boolean; rating: number; tier: string; tierKey: string; rank: number | null; champion: { id: string; name: string } | null };
   incoming: { id: string; from: { id: string; name: string; initials: string }; topic: string | null; expiresAt: number }[];
   outgoing: { id: string; to: { id: string; name: string }; topic: string | null; expiresAt: number }[];
   active: { id: string; status: MatchStatus; opponentName: string } | null;
@@ -240,9 +247,13 @@ export async function courseArenaView(traineeId: string, courseId: string): Prom
   const outgoing = await Promise.all(mine.filter((x) => x.status === "PENDING" && x.challengerId === traineeId).map(async (x) => ({ id: x.id, to: { id: x.opponent.id, name: x.opponent.name }, topic: await topicTitle(x.moduleId), expiresAt: x.expiresAt.getTime() })));
   const act = mine.find((x) => x.status === "LOBBY" || x.status === "ACTIVE");
   const [chat, suspended] = await Promise.all([chatFor(courseId, traineeId), activeSuspension(traineeId, courseId)]);
+  const ids = [traineeId, ...present.map((p) => p.trainee.id)];
+  const [ratings, champion, myRank] = avail.ladder ? await Promise.all([ratingsFor(courseId, ids), ensureChampion(courseId), rankOf(courseId, traineeId)]) : [null, null, null];
+  const myRating = ratings?.get(traineeId);
   return {
-    course, me, rules, chat, suspension: suspended ? { until: suspended.expiresAt ? suspended.expiresAt.getTime() : null, reason: suspended.reason } : null,
-    online: present.map((p) => ({ id: p.trainee.id, name: p.trainee.name, initials: initialsOf(p.trainee.name), avatarUrl: p.trainee.avatarUrl, status: busyIds.has(p.trainee.id) ? ("BUSY" as const) : ("AVAILABLE" as const) })),
+    course, me, rules, chat,
+    ladder: { enabled: avail.ladder, rating: myRating?.rating ?? 1000, tier: myRating?.tier ?? "Silver", tierKey: myRating?.tierKey ?? "SILVER", rank: myRank, champion }, suspension: suspended ? { until: suspended.expiresAt ? suspended.expiresAt.getTime() : null, reason: suspended.reason } : null,
+    online: present.map((p) => ({ id: p.trainee.id, name: p.trainee.name, initials: initialsOf(p.trainee.name), avatarUrl: p.trainee.avatarUrl, status: busyIds.has(p.trainee.id) ? ("BUSY" as const) : ("AVAILABLE" as const), tier: ratings?.get(p.trainee.id)?.tier ?? null, tierKey: ratings?.get(p.trainee.id)?.tierKey ?? null, champion: champion?.id === p.trainee.id })),
     incoming, outgoing,
     active: act ? { id: act.id, status: act.status as MatchStatus, opponentName: act.challengerId === traineeId ? act.opponent.name : act.challenger.name } : null,
     recent: recent.map((x) => {

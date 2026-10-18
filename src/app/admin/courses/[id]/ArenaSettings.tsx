@@ -159,6 +159,39 @@ function FastestFingers({ courseId, showToast }: { courseId: string; showToast: 
   );
 }
 
+interface LadderAdmin { on: boolean; players: { id: string; name: string; rating: number; tier: string; matches: number; hidden: boolean }[] }
+
+/** The champion ladder: see the players and take one off the ladder (or put them back). Their rating is kept. */
+function LadderPlayers({ courseId, showToast }: { courseId: string; showToast: (message: string, variant?: "success" | "error") => void }) {
+  const url = `/api/admin/courses/${courseId}/arena/ladder`;
+  const [d, setD] = useState<LadderAdmin | null>(null);
+  const load = useCallback(async () => { const res = await fetch(url); if (res.ok) setD(await res.json()); }, [url]);
+  useEffect(() => { void load(); }, [load]);
+  async function act(traineeId: string, action: "hide" | "show") {
+    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, traineeId }) });
+    const j = await res.json().catch(() => null);
+    if (!res.ok) return showToast(j?.error ?? "That didn't work.", "error");
+    setD(j); showToast(action === "hide" ? "Taken off the ladder." : "Back on the ladder.");
+  }
+  if (!d) return null;
+  return (
+    <div className="border-t border-brand-gray py-3" id="arena-ladder-players">
+      <h3 className="text-sm font-semibold text-brand-ink">Champion ladder</h3>
+      {!d.on && <p className="text-sm text-gray-600">The ladder is off. A Super Admin switches it on in the Ayakbi Arena settings.</p>}
+      {d.players.length === 0 ? <p className="text-sm text-gray-600">No one has played a counted match yet.</p> : (
+        <div className="mt-2 max-h-72 space-y-1 overflow-auto">
+          {d.players.map((p) => (
+            <div key={p.id} className="flex items-center justify-between gap-3 rounded-lg bg-brand-gray/40 px-3 py-2 text-sm">
+              <span className="min-w-0"><b className="text-brand-ink">{p.name}</b> <span className="text-xs text-gray-600">{p.tier} · {p.rating} · {p.matches} match{p.matches === 1 ? "" : "es"}{p.hidden ? " · off the ladder" : ""}</span></span>
+              <button type="button" className="shrink-0 text-xs font-semibold text-brand-teal underline" onClick={() => act(p.id, p.hidden ? "show" : "hide")}>{p.hidden ? "Put back" : "Take off"}</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** The rules of play for this course's Ayakbi Arena. A Super Admin turns the arena itself on; the course owner sets how it plays. */
 export default function ArenaSettings({ courseId, showToast }: { courseId: string; showToast: (message: string, variant?: "success" | "error") => void }) {
   const [data, setData] = useState<Payload | null>(null);
@@ -219,6 +252,7 @@ export default function ArenaSettings({ courseId, showToast }: { courseId: strin
       </div>
       <ChatModeration courseId={courseId} showToast={showToast} />
       <FastestFingers courseId={courseId} showToast={showToast} />
+      <LadderPlayers courseId={courseId} showToast={showToast} />
     </Card>
   );
 }

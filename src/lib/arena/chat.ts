@@ -29,7 +29,7 @@ export interface ChatMessageView {
   challenge?: ChallengeCard;
   sprint?: SprintView;
 }
-export interface ChatView { enabled: boolean; fastest: boolean; credits: number; messages: ChatMessageView[] }
+export interface ChatView { enabled: boolean; fastest: boolean; wallet: boolean; credits: number; messages: ChatMessageView[] }
 
 const initialsOf = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || "?";
 const SYSTEM_NAME = "Ayakbi Arena";
@@ -37,7 +37,7 @@ const SYSTEM_NAME = "Ayakbi Arena";
 /** What a player sees: the latest messages that have not been removed. */
 export async function chatFor(courseId: string, viewerId: string): Promise<ChatView> {
   const avail = await availabilityForCourse(courseId);
-  if (!avail.chat) return { enabled: false, fastest: false, credits: 0, messages: [] };
+  if (!avail.chat) return { enabled: false, fastest: false, wallet: false, credits: 0, messages: [] };
   const rows = await prisma.arenaChatMessage.findMany({
     where: { courseId, deletedAt: null, createdAt: { gte: new Date(Date.now() - CHAT_KEEP_DAYS * 86_400_000) } },
     orderBy: { createdAt: "desc" },
@@ -61,6 +61,7 @@ export async function chatFor(courseId: string, viewerId: string): Promise<ChatV
   return {
     enabled: true,
     fastest: avail.fastest,
+    wallet: avail.wallet,
     credits,
     messages: rows.map((m): ChatMessageView => {
       const name = m.sender?.name ?? SYSTEM_NAME;
