@@ -6191,9 +6191,14 @@ model GrowthGuestPlay {
   score       Int            @default(0)
   startedAt   DateTime       @default(now())
   completedAt DateTime?
+  // Set when the newcomer creates an account and continues into module 1.
+  traineeId   String?
+  claimedAt   DateTime?
+  lead        GrowthLead?
 
   @@index([campaignId, startedAt])
   @@index([campaignId, completedAt])
+  @@index([traineeId])
 }
 
 // Who changed a growth switch, and when.
@@ -6207,4 +6212,38 @@ model GrowthAudit {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+// A newcomer who saved their score: a way to reach them, with the consent they gave.
+model GrowthLead {
+  id           String          @id @default(cuid())
+  playId       String          @unique
+  play         GrowthGuestPlay @relation(fields: [playId], references: [id], onDelete: Cascade)
+  campaignId   String
+  // Always E.164 (+234...) when given.
+  phone        String?
+  email        String?
+  consentAt    DateTime
+  consentText  String
+  // Opening /growth/optout/<optOutToken> stops all contact.
+  optOutToken  String          @unique
+  optedOutAt   DateTime?
+  traineeId    String?
+  createdAt    DateTime        @default(now())
+
+  @@index([campaignId, createdAt])
+  @@index([phone])
+}
+
+// Module 1 stays open to a trainee who came through a campaign, even if the campaign is switched off later.
+model GrowthGrant {
+  id         String   @id @default(cuid())
+  traineeId  String
+  courseId   String
+  campaignId String
+  modules    Int      @default(1)
+  createdAt  DateTime @default(now())
+
+  @@unique([traineeId, courseId])
+  @@index([campaignId])
 }

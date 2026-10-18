@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { WHATSAPP_TEXT, answerGrid } from "@/lib/growth/growthCore";
+import { CONSENT_TEXT, WHATSAPP_TEXT, answerGrid } from "@/lib/growth/growthCore";
 
 type Q = { id: string; text: string; options: { key: string; text: string }[] };
 type State =
@@ -17,6 +17,11 @@ export default function GrowthPlay({ slug, courseId, courseTitle, organizationNa
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [ended, setEnded] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [saved, setSaved] = useState<string | null>(null);
+  const [phone, setPhone] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const token = useRef<string | null>(null);
   const key = `aaicbi.growth.${slug}`;
   const heading = useRef<HTMLHeadingElement>(null);
@@ -54,9 +59,19 @@ export default function GrowthPlay({ slug, courseId, courseTitle, organizationNa
     setFb({ correct: json.correct, correctKey: json.correctKey, explanation: json.explanation, chosen: choice, next: json.state });
   }
 
+  async function save() {
+    if (!token.current || busy) return;
+    setBusy(true); setSaveError(null);
+    const res = await fetch(`/api/public/growth/${slug}/save`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: token.current, phone: phone.trim() || null, consent }) });
+    const json = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (!res.ok) { setSaveError(json.error ?? "That didn't work. Please try again."); return; }
+    setSaved(json.phone ?? "your number");
+  }
+
   function playAgain() {
     try { window.localStorage.removeItem(key); } catch {}
-    token.current = null; setState(null); setStarted(false); setFb(null);
+    token.current = null; setState(null); setStarted(false); setFb(null); setSaved(null); setSaveOpen(false); setConsent(false);
   }
 
   if (ended) return <Panel><h1 ref={heading} tabIndex={-1} className="outline-none font-display text-2xl font-bold text-brand-ink">This campaign has ended</h1><p className="mt-2 text-brand-ink">The free game is closed, but you can still look at the course.</p><Cta href={`/courses/${courseId}`}>See {courseTitle}</Cta></Panel>;
@@ -118,6 +133,20 @@ export default function GrowthPlay({ slug, courseId, courseTitle, organizationNa
         <div className="mt-3 rounded-2xl bg-brand-goldLight p-4 text-brand-goldText"><p className="text-sm font-bold">You missed a question on: {r.weakSpot}</p><p className="mt-1 text-sm">That is part of Module 1 of {courseTitle}.</p></div>
       )}
       <a href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener noreferrer" className="mt-4 flex min-h-[52px] items-center justify-center rounded-full bg-brand-action px-6 text-base font-bold text-brand-onAccent hover:bg-brand-actionHover" data-testid="growth-share">Challenge a friend on WhatsApp</a>
+      {saved ? (
+        <p className="mt-3 rounded-2xl bg-brand-mint p-3 text-center text-sm font-semibold text-brand-tealDeep" role="status" data-testid="growth-saved">Saved. We will keep your {r.rank.label} rank for you.</p>
+      ) : saveOpen ? (
+        <form className="mt-3 rounded-2xl bg-brand-surface p-4" onSubmit={(e) => { e.preventDefault(); void save(); }} data-testid="growth-save-form">
+          <label htmlFor="growth-phone" className="block text-sm font-semibold text-brand-ink">WhatsApp number</label>
+          <input id="growth-phone" inputMode="tel" autoComplete="tel" placeholder="0803 000 0000" value={phone} onChange={(e) => setPhone(e.target.value)} className="mt-1 min-h-[48px] w-full rounded-xl border border-brand-gray bg-brand-surface px-3 text-base text-brand-ink" />
+          <label className="mt-3 flex cursor-pointer items-start gap-2 text-sm text-brand-ink"><input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0" checked={consent} onChange={(e) => setConsent(e.target.checked)} data-testid="growth-consent" /><span>{CONSENT_TEXT}</span></label>
+          {saveError && <p className="mt-2 text-sm text-brand-rose" role="alert">{saveError}</p>}
+          <button type="submit" disabled={busy} className="mt-3 min-h-[48px] w-full rounded-full bg-brand-action px-6 text-base font-bold text-brand-onAccent hover:bg-brand-actionHover disabled:opacity-60" data-testid="growth-save-submit">Save my score</button>
+        </form>
+      ) : (
+        <button type="button" onClick={() => setSaveOpen(true)} className="mt-3 flex min-h-[52px] w-full items-center justify-center rounded-full border border-brand-action px-6 text-base font-semibold text-brand-action hover:bg-brand-mint" data-testid="growth-save-open">Save my score and rank</button>
+      )}
+      <Link href={`/play/${slug}/continue`} className="mt-3 flex min-h-[52px] items-center justify-center rounded-full bg-brand-gold px-6 text-base font-bold text-brand-onGold hover:opacity-90" data-testid="growth-continue">Start Module 1, free</Link>
       <Cta href={`/courses/${courseId}`}>See {courseTitle}</Cta>
       <button type="button" onClick={playAgain} className="mt-3 w-full text-center text-sm font-semibold text-brand-teal underline">Play again</button>
     </Panel>
