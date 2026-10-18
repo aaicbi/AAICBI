@@ -1,5 +1,5 @@
 /**
- * Gaming Arena: the match, kept by the server.
+ * Ayakbi Arena: the match, kept by the server.
  *
  * Every request loads the match, moves it past any deadline that has already passed (a player who ran out of time,
  * a pause that ran too long, an invitation nobody answered), applies what the player asked for if the rules allow it, and saves
@@ -284,7 +284,7 @@ export async function isEnrolled(traineeId: string, courseId: string): Promise<b
 
 export async function requireArena(traineeId: string, courseId: string): Promise<ArenaRules> {
   const avail = await availabilityForCourse(courseId);
-  if (!avail.game) throw new ArenaError("The Gaming Arena isn't open for this course right now.", 403);
+  if (!avail.game) throw new ArenaError("The Ayakbi Arena isn't open for this course right now.", 403);
   if (!(await isEnrolled(traineeId, courseId))) throw new ArenaError("You can play in the arenas of courses you are enrolled in.", 403);
   return rulesFrom(await resolveForCourse(courseId));
 }

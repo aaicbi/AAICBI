@@ -1,5 +1,5 @@
 /**
- * Gaming Arena: the switches and rules, as pure functions (no database).
+ * Ayakbi Arena: the switches and rules, as pure functions (no database).
  *
  * A Super Admin turns features on or off for the whole platform, for one organization or for one course.
  * Instructors set the rules of play for their own course. Each scope is one row with every field optional:
@@ -13,6 +13,8 @@ export interface ArenaSwitches {
   gameEnabled: boolean;
   chatEnabled: boolean;
   ladderEnabled: boolean;
+  /** Fastest Fingers: instructor questions in the course chat, first right answer wins credits. */
+  fastestEnabled: boolean;
   spectators: ArenaSpectatorMode;
   /** Most spectators allowed to watch one match. */
   spectatorCap: number;
@@ -43,6 +45,7 @@ export const ARENA_DEFAULTS: ArenaSettings = {
   gameEnabled: true,
   chatEnabled: false,
   ladderEnabled: false,
+  fastestEnabled: false,
   spectators: "OFF",
   spectatorCap: 50,
   questionSeconds: 60,
@@ -64,7 +67,7 @@ export const RULE_LIMITS = {
   spectatorCap: { min: 0, max: 500 },
 } as const;
 
-export const SWITCH_KEYS = ["enabled", "gameEnabled", "chatEnabled", "ladderEnabled", "spectators", "spectatorCap"] as const;
+export const SWITCH_KEYS = ["enabled", "gameEnabled", "chatEnabled", "ladderEnabled", "fastestEnabled", "spectators", "spectatorCap"] as const;
 export const RULE_KEYS = ["questionSeconds", "pickSeconds", "bonusPercent", "pausesPerPlayer", "pauseSeconds", "questionsPerMatch", "tickingSound"] as const;
 
 type NumKey = keyof typeof RULE_LIMITS;
@@ -119,6 +122,7 @@ export interface ArenaAvailable {
   game: boolean;
   chat: boolean;
   ladder: boolean;
+  fastest: boolean;
   spectators: ArenaSpectatorMode;
 }
 
@@ -126,13 +130,14 @@ export interface ArenaAvailable {
 export function availability(s: ArenaSettings): ArenaAvailable {
   const arena = s.enabled;
   const game = arena && s.gameEnabled;
-  return { arena, game, chat: arena && s.chatEnabled, ladder: game && s.ladderEnabled, spectators: game ? s.spectators : "OFF" };
+  return { arena, game, chat: arena && s.chatEnabled, ladder: game && s.ladderEnabled, fastest: arena && s.chatEnabled && s.fastestEnabled, spectators: game ? s.spectators : "OFF" };
 }
 
 /** The same settings with every dependent switch forced into line (used when saving, so the stored row never contradicts itself). */
 export function normalizeSwitches(s: ArenaSettings): ArenaSettings {
   const out = { ...s };
-  if (!out.enabled) { out.gameEnabled = false; out.chatEnabled = false; out.ladderEnabled = false; out.spectators = "OFF"; }
+  if (!out.enabled) { out.gameEnabled = false; out.chatEnabled = false; out.fastestEnabled = false; out.ladderEnabled = false; out.spectators = "OFF"; }
+  if (!out.chatEnabled) out.fastestEnabled = false;
   if (!out.gameEnabled) { out.ladderEnabled = false; out.spectators = "OFF"; }
   return out;
 }
@@ -143,10 +148,11 @@ export function bonusPoints(base: number, bonusPercent: number): number {
 }
 
 export const ARENA_SETTING_LABELS: Record<keyof ArenaSettings, string> = {
-  enabled: "Gaming Arena",
+  enabled: "Ayakbi Arena",
   gameEnabled: "Two-player Interview game",
   chatEnabled: "Course chat",
   ladderEnabled: "Champion ladder",
+  fastestEnabled: "Fastest Fingers",
   spectators: "Spectators",
   spectatorCap: "Most spectators per match",
   questionSeconds: "Seconds per question",

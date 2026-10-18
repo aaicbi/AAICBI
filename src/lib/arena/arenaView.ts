@@ -1,5 +1,5 @@
 /**
- * Gaming Arena: what a player is allowed to see. The browser never receives the answer key, the other player's wrong answer, or the
+ * Ayakbi Arena: what a player is allowed to see. The browser never receives the answer key, the other player's wrong answer, or the
  * question while the game is paused; it gets this view, rebuilt on the server for each player, every time something changes.
  */
 import { prisma } from "@/lib/prisma";
@@ -222,7 +222,7 @@ export interface CourseArenaView {
 
 export async function courseArenaView(traineeId: string, courseId: string): Promise<CourseArenaView> {
   const avail = await availabilityForCourse(courseId);
-  if (!avail.game) throw new ArenaError("The Gaming Arena isn't open for this course right now.", 403);
+  if (!avail.game) throw new ArenaError("The Ayakbi Arena isn't open for this course right now.", 403);
   const rules = rulesFrom(await resolveForCourse(courseId));
   const [course, me, present, matches, recent, topics] = await Promise.all([
     prisma.course.findUnique({ where: { id: courseId }, select: { id: true, title: true } }),

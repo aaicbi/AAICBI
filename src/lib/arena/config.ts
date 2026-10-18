@@ -2,12 +2,12 @@ import { prisma } from "@/lib/prisma";
 import { availability, normalizeSwitches, resolveArena, type ArenaAvailable, type ArenaRow, type ArenaSettings } from "@/lib/arena/configCore";
 
 /**
- * Gaming Arena switches and rules from the database. The rows are read widest to narrowest
+ * Ayakbi Arena switches and rules from the database. The rows are read widest to narrowest
  * (platform, the course's organization, the course) and merged by resolveArena.
  */
 type ScopeType = "PLATFORM" | "ORGANIZATION" | "COURSE";
 
-const ROW_FIELDS = ["enabled", "gameEnabled", "chatEnabled", "ladderEnabled", "spectators", "spectatorCap", "questionSeconds", "pickSeconds", "bonusPercent", "pausesPerPlayer", "pauseSeconds", "questionsPerMatch", "tickingSound"] as const;
+const ROW_FIELDS = ["enabled", "gameEnabled", "chatEnabled", "ladderEnabled", "fastestEnabled", "spectators", "spectatorCap", "questionSeconds", "pickSeconds", "bonusPercent", "pausesPerPlayer", "pauseSeconds", "questionsPerMatch", "tickingSound"] as const;
 
 function toRow(r: Record<string, unknown> | null | undefined): ArenaRow | null {
   if (!r) return null;
@@ -55,8 +55,9 @@ export async function saveScope(scopeType: ScopeType, scopeId: string, patch: Ar
   const existing = toRow((await prisma.arenaConfig.findUnique({ where: { scopeType_scopeId: key } })) as unknown as Record<string, unknown> | null) ?? {};
   const merged: ArenaRow = { ...existing, ...patch };
   // When a switch in this row is turned off, the switches that depend on it are turned off in the same row.
-  if (merged.enabled === false) Object.assign(merged, { gameEnabled: false, chatEnabled: false, ladderEnabled: false, spectators: "OFF" });
+  if (merged.enabled === false) Object.assign(merged, { gameEnabled: false, chatEnabled: false, fastestEnabled: false, ladderEnabled: false, spectators: "OFF" });
   if (merged.gameEnabled === false) Object.assign(merged, { ladderEnabled: false, spectators: "OFF" });
+  if (merged.chatEnabled === false) Object.assign(merged, { fastestEnabled: false });
   const data = { ...merged, updatedById } as Record<string, unknown>;
   await prisma.arenaConfig.upsert({ where: { scopeType_scopeId: key }, create: { ...key, ...data } as never, update: data as never });
   return merged;

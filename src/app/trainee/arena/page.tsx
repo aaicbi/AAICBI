@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { availabilityForCourse } from "@/lib/arena/config";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Gaming Arena" };
+export const metadata = { title: "Ayakbi Arena" };
 
 /** Courses where the Arena is open for this trainee. */
 export default async function ArenaIndex() {
@@ -20,8 +20,8 @@ export default async function ArenaIndex() {
   for (const r of rows) if ((await availabilityForCourse(r.course.id)).game) open.push(r.course);
   return (
     <main className="mx-auto max-w-2xl p-4">
-      <h1 className="mb-1 text-2xl font-bold">Gaming Arena</h1>
-      <p className="mb-4 text-sm opacity-80">Challenge a coursemate to The Interview, a two-player question game.</p>
+      <h1 className="mb-1 text-2xl font-bold">Ayakbi Arena</h1>
+      <p className="mb-4 text-sm opacity-80">Challenge a coursemate to Ayakbi Arena, a two-player question game.</p>
       {open.length === 0 ? (
         <p className="rounded-xl border p-4 text-sm">The Arena isn&apos;t open for any of your courses right now. It opens when your platform, organization or instructor turns it on.</p>
       ) : (

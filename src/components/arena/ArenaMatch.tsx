@@ -197,8 +197,8 @@ export default function ArenaMatch({ matchId }: { matchId: string }) {
     else if (v.rules.tickingSound) sfx.tick(secs <= 10);
   }, [secs, sound, phase, v, pausedNow]);
 
-  if (error && !v) return <ArenaFrame title="Gaming Arena" backHref="/trainee/arena"><div className="ar-stage"><div className="ar-in" style={{ placeItems: "center", display: "grid" }}><p>{error.message}</p></div></div></ArenaFrame>;
-  if (!v) return <ArenaFrame title="Gaming Arena" backHref="/trainee/arena"><div className="ar-stage"><div className="ar-in" style={{ display: "grid", placeItems: "center" }}>Loading the arena…</div></div></ArenaFrame>;
+  if (error && !v) return <ArenaFrame title="Ayakbi Arena" backHref="/trainee/arena"><div className="ar-stage"><div className="ar-in" style={{ placeItems: "center", display: "grid" }}><p>{error.message}</p></div></div></ArenaFrame>;
+  if (!v) return <ArenaFrame title="Ayakbi Arena" backHref="/trainee/arena"><div className="ar-stage"><div className="ar-in" style={{ display: "grid", placeItems: "center" }}>Loading the arena…</div></div></ArenaFrame>;
 
   const title = `${v.courseTitle}${v.topic ? ` · ${v.topic}` : ""}`;
   const urgent = secs !== null && secs <= 10;

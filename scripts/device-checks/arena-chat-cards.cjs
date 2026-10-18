@@ -1,0 +1,59 @@
+const { B, log, launch, device, signedIn, clearThrottle } = require('./lib.cjs');
+const psql = (q) => require('child_process').execFileSync('/usr/lib/postgresql/16/bin/psql', ['-h','127.0.0.1','-p','5544','-U','dev','-d','aaicbi_dev','-At','-c',q]).toString().trim();
+(async () => {
+  clearThrottle();
+  psql(`update "ArenaConfig" set "chatEnabled"=true,"fastestEnabled"=true where "scopeType"='PLATFORM'`);
+  psql(`update "ArenaMatch" set status='CANCELLED' where status in ('PENDING','LOBBY','ACTIVE')`);
+  psql(`delete from "ArenaChatMessage" where "courseId"='arena_play'`);
+  psql(`delete from "ArenaSprint" where "courseId"='arena_play'`);
+  psql(`delete from "ArenaCredit" where "courseId"='arena_play'`);
+  const br = await launch();
+  const dev = device('iPhone 7', { viewport: { width: 375, height: 553 } });
+  const ca = await signedIn(br, dev, '/api/auth/trainee-login', 't0@dev.test'); const cb = await signedIn(br, dev, '/api/auth/trainee-login', 't1@dev.test');
+  const cs = await signedIn(br, device('Desktop Chrome'), '/api/auth/login', 'staff@dev.test');
+  const pa = await ca.newPage(); const pb = await cb.newPage(); pa.setDefaultTimeout(9000); pb.setDefaultTimeout(9000);
+  // the chat is reachable from the course page
+  await pa.goto(`${B}/trainee/courses/arena_play`, { waitUntil: 'load' });
+  await pa.getByTestId('course-chat-link').waitFor();
+  log(true, 'the course page has a Course chat button');
+  await pa.getByTestId('course-chat-link').click();
+  await pa.locator('.ar-chatin').waitFor();
+  await pb.goto(`${B}/trainee/arena/arena_play/chat`, { waitUntil: 'load' });
+  await pb.locator('.ar-chatin').waitFor();
+  await pa.waitForTimeout(1500);
+  // A challenges B from the chat; B sees the card and declines it there
+  await pa.getByRole('button', { name: /Challenge/ }).first().click();
+  await pa.locator('.ar-pickrow', { hasText: 'Tunde' }).first().click().catch(async () => { await pa.locator('.ar-pickrow:not([disabled])').first().click(); });
+  await pa.waitForURL(/arena\/match\//, { timeout: 8000 });
+  log(true, 'a challenge sent from the chat opens the match for the challenger');
+  await pb.locator('.ar-cchallenge', { hasText: 'wants to play you' }).waitFor({ timeout: 8000 });
+  log(true, 'the challenged player sees the invitation as a card in the chat');
+  await pb.getByRole('button', { name: 'Decline' }).click();
+  await pb.locator('.ar-cchallenge', { hasText: 'Declined' }).waitFor({ timeout: 8000 });
+  log(true, 'declining in the chat marks the card Declined');
+  // Fastest Fingers: instructor posts, both answer, the first right answer wins
+  const posted = await cs.request.post(`${B}/api/admin/courses/arena_play/arena/sprint`, { data: { action: 'start', points: 15, custom: { text: 'Which one is a fruit?', options: ['Carrot', 'Mango', 'Onion'], correctIndex: 1 } } });
+  log(posted.ok(), 'an instructor posts a Fastest Fingers question (' + posted.status() + ')');
+  await pb.locator('.ar-cfast').waitFor({ timeout: 8000 });
+  const wrong = await pb.evaluate(async () => { const id = (await (await fetch('/api/arena/courses/arena_play')).json()).chat.messages.find((m) => m.kind === 'FASTEST').sprint.id; return id; });
+  await pb.locator('.ar-fopt', { hasText: 'Mango' }).click();
+  await pb.locator('.ar-fopt.ar-fright, .ar-sysmsg').first().waitFor({ timeout: 8000 });
+  await pb.locator('.ar-sysmsg', { hasText: 'got it first' }).waitFor({ timeout: 8000 });
+  log(true, 'the first right answer wins and the chat announces it');
+  const credits = psql(`select coalesce(sum(points),0) from "ArenaCredit" where "courseId"='arena_play'`);
+  log(credits === '15', 'the winner is credited 15 (' + credits + ')');
+  const again = await pb.evaluate(async (id) => (await fetch(`/api/arena/courses/arena_play/sprint/${id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ choice: 'B' }) })).status, wrong);
+  log(again === 200 || again === 409, 'a second try after the question closed does not pay again (' + again + ')');
+  const credits2 = psql(`select coalesce(sum(points),0) from "ArenaCredit" where "courseId"='arena_play'`);
+  log(credits2 === '15', 'credits are still 15 after a repeat answer');
+  // the key is never sent while open: open a second question and look at what trainee A gets
+  await cs.request.post(`${B}/api/admin/courses/arena_play/arena/sprint`, { data: { action: 'start', custom: { text: 'Pick B', options: ['x', 'y'], correctIndex: 1 } } });
+  const payload = await pa.evaluate(async () => JSON.stringify(await (await fetch('/api/arena/courses/arena_play')).json()));
+  log(!/correctKey":"[A-F]/.test(payload.split('Pick B')[1]?.slice(0, 600) ?? 'x'), 'an open question is sent without its answer key');
+  await pb.screenshot({ path: '/tmp/dev/chat-cards-phone.png' });
+  psql(`update "ArenaMatch" set status='CANCELLED' where status in ('PENDING','LOBBY','ACTIVE')`);
+  psql(`update "ArenaSprint" set status='CLOSED' where "courseId"='arena_play'`);
+  await br.close();
+  const bad = require('./lib.cjs').results.filter((x) => !x[0]);
+  console.log(bad.length ? `\n${bad.length} FAILED` : '\nALL PASSED'); process.exit(bad.length ? 1 : 0);
+})().catch((e) => { console.error(e); process.exit(1); });

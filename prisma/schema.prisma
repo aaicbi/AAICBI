@@ -744,6 +744,9 @@ model Trainee {
   arenaPresence   ArenaPresence[]
   arenaChat       ArenaChatMessage[]
   arenaSuspensions ArenaSuspension[]
+  arenaSprintAnswers ArenaSprintAnswer[]
+  arenaSprintsWon ArenaSprint[]
+  arenaCredits    ArenaCredit[]
 }
 
 model Skill {
@@ -1398,6 +1401,8 @@ model Course {
   arenaPresence ArenaPresence[]
   arenaChat     ArenaChatMessage[]
   arenaSuspensions ArenaSuspension[]
+  arenaSprints  ArenaSprint[]
+  arenaCredits  ArenaCredit[]
 }
 
 enum PayoutType {
@@ -5638,6 +5643,8 @@ model ArenaConfig {
   gameEnabled   Boolean?
   chatEnabled   Boolean?
   ladderEnabled Boolean?
+  /// Fastest Fingers in the course chat. Off until it is switched on here.
+  fastestEnabled Boolean?
   spectators    ArenaSpectators?
   spectatorCap  Int?
 
@@ -5815,9 +5822,13 @@ model ArenaChatMessage {
   id            String    @id @default(cuid())
   courseId      String
   course        Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  senderId      String
-  sender        Trainee   @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  /// Null for the arena's own notices (a Fastest Fingers question or winner).
+  senderId      String?
+  sender        Trainee?  @relation(fields: [senderId], references: [id], onDelete: Cascade)
   body          String
+  /// TEXT (a person's words), CHALLENGE (a game invitation, refId is the match) or FASTEST (a Fastest Fingers question, refId is the sprint) or SYSTEM (a notice from the arena).
+  kind          String    @default("TEXT")
+  refId         String?
   createdAt     DateTime  @default(now())
   /// Set when a moderator removes the message (a staff user id, kept as plain text so deleting that account never erases the record).
   deletedAt     DateTime?
@@ -5845,4 +5856,62 @@ model ArenaSuspension {
 
   @@index([courseId, traineeId])
   @@index([courseId, liftedAt])
+}
+
+/// Fastest Fingers: an instructor posts a question in a course's chat and the first trainee with the right answer wins credits.
+model ArenaSprint {
+  id             String    @id @default(cuid())
+  courseId       String
+  course         Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  /// The staff user who posted it (plain text so deleting that account never erases the record).
+  createdById    String
+  questionText   String
+  /// [{ key, text }]. The answer key never leaves the server while the sprint is open.
+  options        Json
+  correctKey     String
+  explanation    String?
+  sourceQuestionId String?
+  points         Int       @default(10)
+  /// OPEN or CLOSED.
+  status         String    @default("OPEN")
+  winnerId       String?
+  winner         Trainee?  @relation(fields: [winnerId], references: [id], onDelete: SetNull)
+  wonAt          DateTime?
+  createdAt      DateTime  @default(now())
+  closedAt       DateTime?
+  answers        ArenaSprintAnswer[]
+
+  @@index([courseId, createdAt])
+  @@index([courseId, status])
+}
+
+/// One try per trainee per question.
+model ArenaSprintAnswer {
+  id         String      @id @default(cuid())
+  sprintId   String
+  sprint     ArenaSprint @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  traineeId  String
+  trainee    Trainee     @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  choice     String
+  correct    Boolean
+  answeredAt DateTime    @default(now())
+
+  @@unique([sprintId, traineeId])
+}
+
+/// Credit scores earned in the arena. A ledger: the total is the sum. Kept so features can be unlocked with credits later.
+model ArenaCredit {
+  id        String   @id @default(cuid())
+  traineeId String
+  trainee   Trainee  @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  points    Int
+  reason    String
+  refId     String?
+  createdAt DateTime @default(now())
+
+  @@unique([traineeId, reason, refId])
+  @@index([traineeId, createdAt])
+  @@index([courseId, traineeId])
 }

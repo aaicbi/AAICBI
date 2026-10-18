@@ -1,4 +1,4 @@
-# Gaming Arena
+# Ayakbi Arena
 
 Two trainees challenge each other on a course, live. This page describes what is built; the full plan is in the product brief.
 
@@ -9,7 +9,7 @@ Everything is **off** until a Super Admin switches it on. Settings are kept per 
 
 | Switch | What it does |
 |---|---|
-| Gaming Arena | Master switch. Nothing works while it is off. |
+| Ayakbi Arena | Master switch. Nothing works while it is off. |
 | Two-player Interview game | Challenges, lobby, match, results, rematch. Needs the master switch. |
 | Course chat | Built in a later release (the switch is shown but disabled). |
 | Champion ladder | Built in a later release. Needs the game. |
@@ -18,7 +18,7 @@ Everything is **off** until a Super Admin switches it on. Settings are kept per 
 A feature needs the master switch, and spectators and the ladder need the game. Turning a switch off turns off what depends on it in the same row.
 
 ### Rules of play (instructors for their own course, or a Super Admin anywhere)
-Set on the course page (Gaming Arena rules) or in `/admin/arena`.
+Set on the course page (Ayakbi Arena rules) or in `/admin/arena`.
 
 | Rule | Default | Limits |
 |---|---|---|
@@ -93,6 +93,6 @@ Quiz-style games on phones are played in **portrait** (Kahoot, Trivia Crack, Qui
 ## Release 6: course chat and moderation
 
 - **One group chat per course**, for trainees enrolled in it, shown in the arena lobby. A Super Admin turns it on with the "Course chat" switch (it needs the arena itself to be on). Messages are up to 500 characters, rate limited, a repeat of the same text within 10 s is ignored, the latest 60 from the last 7 days are shown, older ones are deleted. A new message pokes `channels.course`, so everyone's list updates at once.
-- **Moderation.** Instructors and admins who own the course get a "Chat moderation" panel under the Gaming Arena rules: recent messages with **Remove**, **Suspend** (1 hour to 90 days, hides the player's last 24 hours of messages) and a list of active suspensions with **Lift**. API: `GET/POST /api/admin/courses/[id]/arena/chat` (`action: remove | suspend | lift`).
+- **Moderation.** Instructors and admins who own the course get a "Chat moderation" panel under the Ayakbi Arena rules: recent messages with **Remove**, **Suspend** (1 hour to 90 days, hides the player's last 24 hours of messages) and a list of active suspensions with **Lift**. API: `GET/POST /api/admin/courses/[id]/arena/chat` (`action: remove | suspend | lift`).
 - **Suspension** (`ArenaSuspension`) stops a trainee from posting, challenging and accepting challenges in that course; the lobby tells them why and until when. Removals keep the row (`deletedAt`, `deletedById`) as a record.
 - Check: `scripts/device-checks/arena-chat.cjs` (post, live delivery, removal, suspension).
