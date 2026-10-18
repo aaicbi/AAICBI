@@ -4,6 +4,7 @@ import { shuffle } from "@/lib/shuffle";
 import { organizationOfCourse } from "@/lib/arena/config";
 import { hasAvailableTrainingSeat } from "@/lib/trainingOrgSeatCap";
 import { appUrl } from "@/lib/appUrl";
+import { queueForLead } from "@/lib/growth/messaging";
 import {
   CONSENT_TEXT, SHARE_CODE_ALPHABET, SHARE_CODE_LENGTH, TASTER_SIZE, beatPercent, challengeText, checkLead, cleanNickname, cleanSource, displayName, duelHeadline, duelOutcome, duelPath, isShareCode, rankSquads, rankStandings, SQUAD_BOARD_RIVALS, SQUAD_MAX_MEMBERS, cleanSquadName, rivalPath, squadJoinText, squadPath, squadRivalText, squadStanding, squadTotals, type SquadStanding, readinessIssues, slugify, switchBlockers, tasterRank,
   type GrowthScope, type SwitchRow,
@@ -467,6 +468,8 @@ export async function saveLead(slug: string, token: string, input: { phone?: unk
     create: { playId: play.id, campaignId: campaign.id, optOutToken: randomBytes(20).toString("hex"), ...data },
     update: data,
   });
+  // The welcome can go out at once. This does nothing while messaging is switched off.
+  queueForLead(lead.id);
   return { saved: true, phone: lead.phone, email: lead.email };
 }
 

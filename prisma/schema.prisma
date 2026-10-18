@@ -6139,6 +6139,8 @@ model GrowthSetting {
   commissionBps      Int?
   // Scholarship seat pool for this organization's courses. Off until the organization agrees.
   scholarshipEnabled Boolean   @default(false)
+  // Free-form settings for the row. The MESSAGING row keeps its channel, daily cap, quiet hours and message texts here.
+  config             Json?
   updatedById        String?
   updatedAt          DateTime  @updatedAt
 
@@ -6243,6 +6245,7 @@ model GrowthLead {
   optedOutAt   DateTime?
   traineeId    String?
   createdAt    DateTime        @default(now())
+  messages     GrowthMessage[]
 
   @@index([campaignId, createdAt])
   @@index([phone])
@@ -6278,4 +6281,32 @@ model GrowthSquad {
 
   @@index([campaignId])
   @@index([rivalOfId])
+}
+
+// One follow-up message to one person: the outbox. A person gets each kind at most once.
+model GrowthMessage {
+  id                String      @id @default(cuid())
+  leadId            String
+  lead              GrowthLead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  // WELCOME, REMINDER_1, REMINDER_2, FINISH_MODULE_1
+  kind              String
+  // MANUAL, WHATSAPP, EMAIL
+  channel           String
+  toPhone           String?
+  toEmail           String?
+  // The finished text, with the person's name, link and stop link filled in.
+  body              String
+  // QUEUED, SENT, DELIVERED, READ, FAILED, SKIPPED, MANUAL_PENDING, MANUAL_SENT
+  status            String      @default("QUEUED")
+  providerMessageId String?
+  error             String?
+  scheduledFor      DateTime    @default(now())
+  sentAt            DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@unique([leadId, kind])
+  @@index([status, scheduledFor])
+  @@index([providerMessageId])
+  @@index([sentAt])
 }
