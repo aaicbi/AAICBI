@@ -59,13 +59,13 @@ export default function GrowthPlay({ slug, courseId, courseTitle, organizationNa
     token.current = null; setState(null); setStarted(false); setFb(null);
   }
 
-  if (ended) return <Panel><h1 ref={heading} tabIndex={-1} className="font-display text-2xl font-bold text-brand-ink">This campaign has ended</h1><p className="mt-2 text-brand-ink">The free game is closed, but you can still look at the course.</p><Cta href={`/courses/${courseId}`}>See {courseTitle}</Cta></Panel>;
+  if (ended) return <Panel><h1 ref={heading} tabIndex={-1} className="outline-none font-display text-2xl font-bold text-brand-ink">This campaign has ended</h1><p className="mt-2 text-brand-ink">The free game is closed, but you can still look at the course.</p><Cta href={`/courses/${courseId}`}>See {courseTitle}</Cta></Panel>;
 
   if (!started || !state) {
     return (
       <Panel>
         {organizationName && <span className="inline-block rounded-full bg-brand-mint px-3 py-1 text-xs font-bold text-brand-tealDeep">{organizationName}</span>}
-        <h1 ref={heading} tabIndex={-1} className="mt-3 font-display text-3xl font-extrabold leading-tight text-brand-ink [text-wrap:balance]">Do you think like an AI automation builder?</h1>
+        <h1 ref={heading} tabIndex={-1} className="outline-none mt-3 font-display text-3xl font-extrabold leading-tight text-brand-ink [text-wrap:balance]">Do you think like an AI automation builder?</h1>
         <p className="mt-3 text-base text-brand-ink">5 questions from {courseTitle}. About 90 seconds. See your rank and what to learn next. No account needed.</p>
         <button type="button" disabled={busy} onClick={() => begin(false)} className="mt-5 min-h-[52px] w-full rounded-full bg-brand-action px-6 text-base font-bold text-brand-onAccent hover:bg-brand-actionHover disabled:opacity-60" data-testid="growth-start">Start the 5 questions</button>
         {error && <p className="mt-3 text-sm text-brand-rose" role="alert">{error}</p>}
@@ -82,7 +82,7 @@ export default function GrowthPlay({ slug, courseId, courseTitle, organizationNa
         <Panel>
           <div className="flex items-center justify-between text-sm font-semibold text-gray-600"><span>Question {showing.index + 1} of {showing.total}</span></div>
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-brand-gray/50" role="progressbar" aria-valuemin={0} aria-valuemax={showing.total} aria-valuenow={showing.index + (fb ? 1 : 0)}><div className="h-full bg-brand-action" style={{ width: `${((showing.index + (fb ? 1 : 0)) / showing.total) * 100}%` }} /></div>
-          <h1 ref={heading} tabIndex={-1} className="mt-4 font-display text-xl font-bold text-brand-ink [text-wrap:balance]" data-testid="growth-question">{q.text}</h1>
+          <h1 ref={heading} tabIndex={-1} className="outline-none mt-4 font-display text-xl font-bold text-brand-ink [text-wrap:balance]" data-testid="growth-question">{q.text}</h1>
           <div className="mt-4 space-y-2" role="group" aria-label="Answers">
             {q.options.map((o) => {
               const picked = fb?.chosen === o.key;
@@ -110,7 +110,7 @@ export default function GrowthPlay({ slug, courseId, courseTitle, organizationNa
     <Panel>
       <div className="rounded-2xl bg-brand-surface p-5 text-center">
         <span className="inline-block rounded-full bg-brand-goldLight px-3 py-1 text-xs font-bold text-brand-goldText" data-testid="growth-rank">{r.rank.label}</span>
-        <h1 ref={heading} tabIndex={-1} className="mt-2 font-display text-5xl font-extrabold text-brand-ink" data-testid="growth-score">{r.score}/{r.total}</h1>
+        <h1 ref={heading} tabIndex={-1} className="outline-none mt-2 font-display text-5xl font-extrabold text-brand-ink" data-testid="growth-score">{r.score}/{r.total}</h1>
         <p className="mt-2 text-2xl" aria-label={`${r.grid.filter(Boolean).length} correct out of ${r.total}`}>{answerGrid(r.grid)}</p>
         {r.beatPercent !== null && <p className="mt-2 text-sm text-brand-ink">You beat {r.beatPercent}% of players.</p>}
       </div>
