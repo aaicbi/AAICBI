@@ -331,3 +331,12 @@
 .ar-rtopic span{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .ar-rtopic{align-items:flex-start}
 .ar-rprompt,.ar-rans,.ar-rwhy,.ar-bartopic{overflow-wrap:anywhere}
+
+/* Reveal: the right answer is always highlighted, in every game */
+.ar-hintok{color:#0b5a32;font-weight:800;background:#d8f5e3;border-radius:.5em;padding:.2em .6em;display:inline-block;align-self:flex-start}
+.ar-ord li.ar-ok{background:#c9f0d8;border-color:#2d9d5f;box-shadow:0 0 0 .12em rgba(45,157,95,.25);animation:ar-settle .35s}
+.ar-ord li.ar-ok::before{background:#2d9d5f}
+.ar-tick{flex:none;color:#2d9d5f;font-weight:800}
+.ar-chip-no{flex:none;max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#ffdfe2;color:#8a1f2c;border:1px solid #d4505e;border-radius:999px;padding:.05em .6em;font-size:.72em;font-weight:800}
+.ar-mt button .ar-chip-no{margin-left:auto}
+.ar-mt button.ar-paired.ar-m{cursor:default}

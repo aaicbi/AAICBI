@@ -274,7 +274,7 @@ function center(v: MatchView, act: Act, secs: number | null, play: (fn: () => vo
   switch (v.status) {
     case "PENDING": return <Pending v={v} act={act} />;
     case "LOBBY": return <Lobby v={v} act={act} />;
-    case "ACTIVE": return v.phase === "PICK" ? <Board v={v} act={act} play={play} /> : <Question key={`${v.round?.idx}-${v.round?.stage === "STEAL" ? "s" : "a"}`} v={v} act={act} secs={secs} />;
+    case "ACTIVE": return v.phase === "PICK" ? <Board v={v} act={act} play={play} /> : <Question key={v.round?.idx ?? "q"} v={v} act={act} secs={secs} />;
     case "COMPLETED": case "FORFEITED": return <Result v={v} act={act} />;
     default: return <div className="ar-glass" style={{ textAlign: "center" }}><p className="ar-name">{statusLabel(v)}</p><p className="ar-muted">Head back to the arena to start another match.</p></div>;
   }
@@ -431,14 +431,14 @@ function Body({ s, canAnswer, reveal, chosen, locked, onSubmit }: { s: ServedRou
       </>
     );
   }
-  if (s.format === "MATCHING") return <Matching s={s} canAnswer={canAnswer} reveal={reveal} onSubmit={onSubmit} />;
+  if (s.format === "MATCHING") return <Matching s={s} canAnswer={canAnswer} reveal={reveal} locked={locked} onSubmit={onSubmit} />;
   return <Ordering s={s} canAnswer={canAnswer} reveal={reveal} locked={locked} onSubmit={onSubmit} />;
 }
 
 const PAIR_COLORS = ["#00564d", "#d99a34", "#e0566a", "#2d9d5f", "#3b6fd4", "#8a5cc7"];
 
 /** Matching works like the platform's practice game: tap a term, tap its meaning, and both cards get the same number and colour. */
-function Matching({ s, canAnswer, reveal, onSubmit }: { s: Extract<ServedRound, { format: "MATCHING" }>; canAnswer: boolean; reveal: Reveal | null; onSubmit: (r: Record<string, unknown>) => void }) {
+function Matching({ s, canAnswer, reveal, locked, onSubmit }: { s: Extract<ServedRound, { format: "MATCHING" }>; canAnswer: boolean; reveal: Reveal | null; locked: boolean; onSubmit: (r: Record<string, unknown>) => void }) {
   const [pairs, setPairs] = useState<Record<number, string>>({});
   const [active, setActive] = useState<number | null>(0);
   const total = s.lefts.length;
@@ -469,7 +469,7 @@ function Matching({ s, canAnswer, reveal, onSubmit }: { s: Extract<ServedRound, 
   return (
     <>
       <p className="ar-q">{s.prompt}</p>
-      <p className="ar-hint">{truth ? "The right matches are numbered." : canAnswer ? "Tap a term, then its meaning. Matched cards share a number and colour. Tap a matched card to undo." : "Waiting for the answer…"}</p>
+      <p className={`ar-hint${truth ? " ar-hintok" : ""}`}>{truth ? `✔ The correct matches are numbered${locked ? ". Wrong ones of yours are marked" : ""}.` : canAnswer ? "Tap a term, then its meaning. Matched cards share a number and colour. Tap a matched card to undo." : "Waiting for the answer…"}</p>
       <div className="ar-mt">
         <div>{s.lefts.map((l, i) => {
           const mine = pairs[i];
@@ -479,6 +479,7 @@ function Matching({ s, canAnswer, reveal, onSubmit }: { s: Extract<ServedRound, 
               className={`${active === i && canAnswer ? "ar-p" : ""}${n >= 0 ? " ar-paired" : ""}`} style={n >= 0 ? { ["--pc" as string]: PAIR_COLORS[n % 6] } : undefined}
               onClick={() => pickLeft(i)}>
               {n >= 0 && badge(n)}<span className="ar-mtext">{l}</span>
+              {truth && locked && pairs[i] !== undefined && truth[i] && pairs[i] !== truth.find((p) => p.left === l)?.right && <span className="ar-chip-no" title="What you chose">you chose “{pairs[i]}”</span>}
             </button>
           );
         })}</div>
@@ -499,15 +500,27 @@ function Matching({ s, canAnswer, reveal, onSubmit }: { s: Extract<ServedRound, 
 
 function Ordering({ s, canAnswer, reveal, locked, onSubmit }: { s: Extract<ServedRound, { format: "ORDERING" }>; canAnswer: boolean; reveal: Reveal | null; locked: boolean; onSubmit: (r: Record<string, unknown>) => void }) {
   const [order, setOrder] = useState<string[]>(s.steps);
-  const show = reveal?.correctOrder ?? order;
+  const truth = reveal?.correctOrder;
+  const show = truth ?? order;
+  const mine = locked ? order : null; // only this player's own tries are ever shown to them
   const move = (i: number, d: number) => { const n = [...order]; const j = i + d; if (j < 0 || j >= n.length) return; [n[i], n[j]] = [n[j]!, n[i]!]; setOrder(n); };
   return (
     <>
       <p className="ar-q">{s.prompt}</p>
+      {truth && <p className="ar-hint ar-hintok">✔ The correct order{mine ? ", with where you put each step" : ""}</p>}
       <ol className="ar-ord">
-        {show.map((t, i) => (
-          <li key={t}><span className="ar-t">{t}</span>{canAnswer && !locked && <span className="ar-mv"><button type="button" onClick={() => move(i, -1)} aria-label="Move up">↑</button><button type="button" onClick={() => move(i, 1)} aria-label="Move down">↓</button></span>}</li>
-        ))}
+        {show.map((t, i) => {
+          const myPos = truth && mine ? mine.indexOf(t) : -1;
+          const off = myPos >= 0 && myPos !== i;
+          return (
+            <li key={t} className={truth ? "ar-ok" : ""}>
+              {truth && <span className="ar-tick" aria-hidden>✔</span>}
+              <span className="ar-t">{t}</span>
+              {off && <span className="ar-chip-no" title="Where you put it">you put it {myPos + 1}</span>}
+              {canAnswer && !locked && <span className="ar-mv"><button type="button" onClick={() => move(i, -1)} aria-label="Move up">↑</button><button type="button" onClick={() => move(i, 1)} aria-label="Move down">↓</button></span>}
+            </li>
+          );
+        })}
       </ol>
       {canAnswer && <button type="button" className="ar-btn ar-go" onClick={() => onSubmit({ order })}>Lock in</button>}
     </>
