@@ -463,3 +463,5 @@
 .ar-quit{border-radius:.9em;padding:.6em .8em;background:rgba(255,122,133,.14);border:1px solid rgba(255,122,133,.5);display:grid;gap:.5em;font-size:.9em}
 .ar-quit p{margin:0}
 .ar-danger{background:var(--rose);color:#2a0509;box-shadow:0 .25em 0 #c94a56}
+
+.ar-bar .ar-home{border-color:var(--gold-deep);color:var(--gold)}

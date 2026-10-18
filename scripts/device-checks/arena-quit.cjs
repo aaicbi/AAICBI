@@ -27,7 +27,7 @@ const call = async (cookie, method, path, body) => { const r = await fetch(B + p
     await p1.locator('.ar-qcard').waitFor();
 
     // 1. leave for the app: the game pauses itself and the player can come back to it
-    await p1.getByRole('link', { name: /Leave the game screen/ }).click();
+    await p1.getByRole('link', { name: /Home: leave the game/ }).click();
     await p1.waitForURL(/\/feed/, { timeout: 15000 });
     log(true, name + ': the player can leave the game for the normal app feed');
     const st = psql(`select "pausedById" is not null from "ArenaMatch" where id='${mid}'`);

@@ -35,7 +35,7 @@ export default function ArenaFrame({ title, backHref, sound, onSound, onExit, ch
       <div className="ar-bar">
         <Link href={backHref} aria-label="Back" onClick={go(backHref)}>←<span className="ar-btxt"> Back</span></Link>
         <h1>{title}</h1>
-        <Link href="/feed" aria-label="Leave the game screen and use the app" onClick={go("/feed")}>🏠<span className="ar-btxt"> App</span></Link>
+        <Link href="/feed" className="ar-home" aria-label="Home: leave the game for the feed" onClick={go("/feed")}>🏠<span className="ar-btxt"> Home</span></Link>
         {onSound && <button type="button" aria-pressed={!!sound} aria-label={sound ? "Sound on" : "Sound off"} onClick={() => onSound(!sound)}>{sound ? "🔊" : "🔇"}<span className="ar-btxt">{sound ? " Sound on" : " Sound off"}</span></button>}
         <button type="button" className="ar-fsbtn" aria-pressed={full} onClick={toggleFull}>{full ? "Exit full screen" : "Full screen"}</button>
       </div>
