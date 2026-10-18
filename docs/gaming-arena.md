@@ -158,3 +158,12 @@ The floating Messages button (trainee pages with the sidebar) is now one inbox (
 - When a challenge runs out unanswered (10 minutes if the other player was online, 60 if they were away), the **challenger** gets a bell entry and a push: "X didn't answer your challenge. Challenge again, or message them in the course chat." The invitation is also taken off the other player's bell (`notifyChallengeExpired`). Live event pairings are not invitations and send nothing.
 - Nothing runs the instant an invitation lapses, so whoever is using the app settles lapsed invitations (`sweepExpiredChallenges`, at most every 30 seconds per server, called from `/api/arena/active`), and a daily job `/api/cron/arena-sweep` (`CRON_SECRET`, in `vercel.json`) is the backstop. In practice the notice arrives within about a minute while anyone is in the app, and by the next morning at the latest on a quiet day.
 - Check: `scripts/device-checks/arena-challenge-notify.cjs` (expiry, told once, cleared from the other bell).
+
+## Release 15: mute challenge alerts
+
+- A trainee can mute **phone alerts for new challenges** for 1 hour, 8 hours, or until they turn them back on, from the "🔔 Challenge alerts" control at the top of the arena lobby (`ChallengeMute`, `GET/PUT /api/arena/prefs`, stored in `ArenaPreference`; the one-hour and eight-hour mutes end by themselves).
+- While muted: no phone push for a new challenge, no gold challenge bar on other pages and no count on the app icon. The challenge is **not hidden**: it still waits in the player's bell and in the arena lobby, and they can accept or decline it there.
+- The challenger is told "X won't get a phone alert, so they'll see it next time they open the app", without saying why.
+- Not muted on purpose: replies to your own challenge ("accepted", "declined", "didn't answer"), and match calls in a live event you joined.
+- Also fixed: small and ghost buttons in the arena (`ar-sm`, `ar-ghost`) had no styles, so every one of them looked like a full gold button; they now look as designed.
+- Check: `scripts/device-checks/arena-mute.cjs`.
