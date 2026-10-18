@@ -151,3 +151,31 @@ export async function liftSuspension(courseId: string, suspensionId: string, sta
   const row = await prisma.arenaSuspension.findUnique({ where: { id: suspensionId }, select: { traineeId: true } });
   if (row) void pokeMany([{ channel: channels.user(row.traineeId), message: { v: 0, k: "lobby" } }]);
 }
+
+/* --------------------- the Messages button: group chat list --------------------- */
+
+export interface ChatSummary { courseId: string; title: string; preview: string | null; at: number | null; unread: number }
+
+/** One line per course the trainee can chat in, with what is new since they last looked. */
+export async function chatSummaries(traineeId: string): Promise<ChatSummary[]> {
+  const enrollments = await prisma.courseEnrollment.findMany({ where: { traineeId, unlockedAt: { not: null }, accessRevokedAt: null }, select: { course: { select: { id: true, title: true } } }, take: 20 });
+  const open: { id: string; title: string }[] = [];
+  for (const e of enrollments) if ((await availabilityForCourse(e.course.id)).chat) open.push(e.course);
+  if (open.length === 0) return [];
+  const since = new Date(Date.now() - CHAT_KEEP_DAYS * 86_400_000);
+  const reads = await prisma.arenaChatRead.findMany({ where: { traineeId, courseId: { in: open.map((c) => c.id) } } });
+  const readAt = new Map(reads.map((r) => [r.courseId, r.lastReadAt]));
+  return Promise.all(open.map(async (c) => {
+    const base = { courseId: c.id, deletedAt: null, createdAt: { gte: since } };
+    const [last, unread] = await Promise.all([
+      prisma.arenaChatMessage.findFirst({ where: base, orderBy: { createdAt: "desc" }, include: { sender: { select: { name: true } } } }),
+      prisma.arenaChatMessage.count({ where: { ...base, createdAt: { gt: readAt.get(c.id) ?? since }, NOT: { senderId: traineeId } } }),
+    ]);
+    const preview = !last ? null : last.kind === "FASTEST" ? "⚡ Fastest Fingers question" : last.kind === "TEXT" ? `${last.sender?.name.split(" ")[0] ?? ""}: ${last.body}` : last.body;
+    return { courseId: c.id, title: c.title, preview, at: last ? last.createdAt.getTime() : null, unread };
+  }));
+}
+
+export async function markChatRead(traineeId: string, courseId: string): Promise<void> {
+  await prisma.arenaChatRead.upsert({ where: { traineeId_courseId: { traineeId, courseId } }, create: { traineeId, courseId }, update: { lastReadAt: new Date() } });
+}

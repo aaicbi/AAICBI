@@ -745,6 +745,7 @@ model Trainee {
   arenaChat       ArenaChatMessage[]
   arenaSuspensions ArenaSuspension[]
   arenaSprintAnswers ArenaSprintAnswer[]
+  arenaChatReads  ArenaChatRead[]
   arenaSprintsWon ArenaSprint[]
   arenaCredits    ArenaCredit[]
 }
@@ -1402,6 +1403,7 @@ model Course {
   arenaChat     ArenaChatMessage[]
   arenaSuspensions ArenaSuspension[]
   arenaSprints  ArenaSprint[]
+  arenaChatReads ArenaChatRead[]
   arenaCredits  ArenaCredit[]
 }
 
@@ -5914,4 +5916,15 @@ model ArenaCredit {
   @@unique([traineeId, reason, refId])
   @@index([traineeId, createdAt])
   @@index([courseId, traineeId])
+}
+
+/// When a trainee last looked at a course's chat, so the Messages button can show what is new.
+model ArenaChatRead {
+  traineeId  String
+  trainee    Trainee  @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  courseId   String
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lastReadAt DateTime @default(now())
+
+  @@id([traineeId, courseId])
 }

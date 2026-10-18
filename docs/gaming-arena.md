@@ -108,3 +108,7 @@ Quiz-style games on phones are played in **portrait** (Kahoot, Trivia Crack, Qui
 - **Credit scores.** `ArenaCredit` is a ledger (one row per award, unique per trainee, reason and reference). The chat shows the trainee's total for the course. Nothing spends credits yet.
 - Checks: `scripts/device-checks/arena-chat-cards.cjs`.
 - On small phones (portrait, under 700 px tall) the chat is compact: the reaction row folds into one 😀 button that opens a tray, challenge cards are one line and Fastest Fingers answers sit in two columns.
+
+## Release 8: one Messages button
+
+The floating Messages button (trainee pages with the sidebar) is now one inbox (`MessagesPanel`): **course group chats** (the Ayakbi Arena course chat, opened inside the button with its challenge and Fastest Fingers cards, plus a "Full chat" link), the existing **cohort chats**, and **direct messages** with instructors, admins and coursemates, with a ＋ New message picker (the existing `/api/conversations/contacts` and `/direct` rules apply: only people from your own courses and cohorts). The button's badge adds up unread direct, cohort and group messages. Unread group messages are tracked per trainee in `ArenaChatRead` (`/api/arena/chats`, `/api/arena/courses/[courseId]/chat/read` and `/thread`). "Share to Showcase" stays as the second tab. Check: `scripts/device-checks/messages-inbox.cjs`.

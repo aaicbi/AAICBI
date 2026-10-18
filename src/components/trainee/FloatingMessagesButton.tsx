@@ -1,20 +1,15 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { MessageSquare, X } from "lucide-react";
 import Icon from "@/components/ui/Icon";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 
-import { Input, Select, Textarea } from "@/components/ui/Field";
+import { Input, Textarea } from "@/components/ui/Field";
+import MessagesPanel, { type ConversationRow } from "@/components/trainee/MessagesPanel";
+import type { ChatSummary } from "@/lib/arena/chat";
 import { ABOVE_BANNER, FAB_FOOTPRINT_PX, setFloatingOffset } from "@/lib/floatingLayers";
-interface ConversationRow {
-  id: string;
-  type: "DIRECT" | "COHORT";
-  title: string;
-  unreadCount: number;
-}
-
 const ACCEPT = "image/jpeg,image/png,image/webp,video/mp4,video/webm";
 const MAX_FILES = 5;
 
@@ -53,11 +48,7 @@ export default function FloatingMessagesButton() {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"message" | "showcase">("message");
   const [conversations, setConversations] = useState<ConversationRow[]>([]);
-
-  // Message tab state
-  const [target, setTarget] = useState<string>("ADMIN");
-  const [messageBody, setMessageBody] = useState("");
-  const [sending, setSending] = useState(false);
+  const [chats, setChats] = useState<ChatSummary[]>([]);
 
   // Showcase tab state
   const [title, setTitle] = useState("");
@@ -67,17 +58,22 @@ export default function FloatingMessagesButton() {
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    function load() {
-      fetch("/api/conversations")
-        .then((r) => (r.ok ? r.json() : Promise.reject()))
-        .then((rows: ConversationRow[]) => setConversations(rows))
-        .catch(() => {});
-    }
-    load();
-    const interval = setInterval(load, 60000);
-    return () => clearInterval(interval);
+  // The inbox: direct and cohort conversations plus the course group chats. Quick while the panel is open, slow otherwise.
+  const load = useCallback(() => {
+    fetch("/api/conversations")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((rows: ConversationRow[]) => setConversations(rows))
+      .catch(() => {});
+    fetch("/api/arena/chats", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((j: { chats: ChatSummary[] }) => setChats(j.chats))
+      .catch(() => {});
   }, []);
+  useEffect(() => {
+    load();
+    const interval = setInterval(() => { if (!document.hidden) load(); }, open ? 10000 : 60000);
+    return () => clearInterval(interval);
+  }, [load, open]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -89,34 +85,7 @@ export default function FloatingMessagesButton() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const unreadCount = conversations.reduce((sum, row) => sum + row.unreadCount, 0);
-  const cohortConversations = conversations.filter((c) => c.type === "COHORT");
-
-  async function sendMessage() {
-    if (!messageBody.trim() || sending) return;
-    setSending(true);
-    const res =
-      target === "ADMIN"
-        ? await fetch("/api/messages/to-admin", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ subject: "Quick message", body: messageBody.trim() }),
-          })
-        : await fetch(`/api/conversations/${target}/messages`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ body: messageBody.trim() }),
-          });
-    setSending(false);
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      showToast(typeof data.error === "string" ? data.error : "Couldn't send that message. Try again.", "error");
-      return;
-    }
-    showToast("Message sent.", "success");
-    setMessageBody("");
-    setOpen(false);
-  }
+  const unreadCount = conversations.reduce((sum, row) => sum + row.unreadCount, 0) + chats.reduce((sum, c) => sum + c.unread, 0);
 
   function addFiles(selected: FileList | null) {
     if (!selected) return;
@@ -187,7 +156,7 @@ export default function FloatingMessagesButton() {
   if (isLiveExamOrAssessment) return null;
 
   return (
-    <div ref={containerRef} className="fixed right-6 z-40" style={{ bottom: ABOVE_BANNER }}>
+    <div ref={containerRef} className={`fixed right-6 ${open ? "z-50" : "z-40"}`} style={{ bottom: ABOVE_BANNER }}>
       {open && (
         <div className="absolute bottom-14 right-0 w-80 max-w-[90vw] rounded-xl border border-brand-gray bg-brand-surface shadow-lg animate-[modal-in_0.15s_ease-out] sm:w-96">
           <div className="flex items-center justify-between border-b border-brand-gray px-4 py-3">
@@ -198,7 +167,7 @@ export default function FloatingMessagesButton() {
                   tab === "message" ? "bg-brand-mint text-brand-teal" : "text-gray-500 hover:text-brand-teal"
                 }`}
               >
-                Message
+                Messages
               </button>
               <button
                 onClick={() => setTab("showcase")}
@@ -219,21 +188,8 @@ export default function FloatingMessagesButton() {
           </div>
 
           {tab === "message" ? (
-            <div className="space-y-3 p-4">
-              <Select label="Send to" compact id="composer-target" value={target} onChange={(e) => setTarget(e.target.value)}>
-                  <option value="ADMIN">Admin</option>
-                  {cohortConversations.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.title}
-                    </option>
-                  ))}
-                </Select>
-              <Textarea label="Type your message…" hideLabel controlClassName="resize-none" value={messageBody} onChange={(e) => setMessageBody(e.target.value)} placeholder="Type your message…" rows={4} maxLength={5000} />
-              <div className="flex justify-end">
-                <Button size="sm" onClick={sendMessage} disabled={sending || !messageBody.trim()}>
-                  {sending ? "Sending…" : "Send"}
-                </Button>
-              </div>
+            <div className="h-[min(30rem,68vh)]">
+              <MessagesPanel conversations={conversations} chats={chats} reload={load} onClose={() => setOpen(false)} toast={(m, k) => showToast(m, k ?? "success")} />
             </div>
           ) : (
             <div className="space-y-3 p-4">
