@@ -447,3 +447,19 @@
 .ar-recap h3{margin:0;font-size:.85em;letter-spacing:.06em;text-transform:uppercase;color:var(--gold)}
 .ar-recap>p{margin:.2em 0 .5em;font-size:.8em}
 .ar-recap li{scroll-margin-top:.5em}
+
+/* Ordering by drag and drop */
+.ar-ord li::before{content:none}
+.ar-ord .ar-n{flex:none;width:1.8em;height:1.8em;border-radius:.5em;background:var(--s2);color:var(--white);display:grid;place-items:center;font-size:.8em}
+.ar-ord li.ar-ok .ar-n{background:#2d9d5f}
+.ar-grip{flex:none;width:2.6em;height:2.6em;margin:-.2em -.3em -.2em 0;display:grid;place-items:center;border-radius:.6em;background:rgba(10,74,65,.1);color:#3d6a5c;font-size:1.25em;line-height:1;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.ar-grip:active,.ar-dragging .ar-grip{cursor:grabbing;background:rgba(10,74,65,.2)}
+.ar-grip:focus-visible{outline:3px solid var(--gold-deep);outline-offset:1px}
+.ar-ord li{position:relative;touch-action:pan-y}
+.ar-ord li.ar-dragging{z-index:5;transform-origin:center;background:#fff;border-color:var(--gold-deep);box-shadow:0 .6em 1.4em rgba(0,0,0,.28);scale:1.02;transition:none}
+.ar-ord li:not(.ar-dragging){transition:background .15s,border-color .15s}
+
+/* Quit from the pause screen */
+.ar-quit{border-radius:.9em;padding:.6em .8em;background:rgba(255,122,133,.14);border:1px solid rgba(255,122,133,.5);display:grid;gap:.5em;font-size:.9em}
+.ar-quit p{margin:0}
+.ar-danger{background:var(--rose);color:#2a0509;box-shadow:0 .25em 0 #c94a56}

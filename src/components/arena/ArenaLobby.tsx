@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import ArenaFrame from "./ArenaFrame";
 import { useArenaLive, channels } from "./useArenaLive";
@@ -10,22 +10,30 @@ export default function ArenaLobby({ courseId, traineeId }: { courseId: string; 
   const router = useRouter();
   const [topic, setTopic] = useState("");
   const [toast, setToast] = useState<string | null>(null);
-  const { data: v, error, setData, reload } = useArenaLive<CourseArenaView>(`/api/arena/courses/${courseId}`, { listen: [channels.course(courseId), channels.user(traineeId)], pollMs: 2500 });
+  const { data: v, error, setData, reload } = useArenaLive<CourseArenaView>(`/api/arena/courses/${courseId}`, { listen: [channels.course(courseId), channels.user(traineeId)], pollMs: 2000 });
 
   const flash = useCallback((m: string) => { setToast(m); setTimeout(() => setToast((t) => (t === m ? null : t)), 3500); }, []);
-  useEffect(() => { if (v?.active && v.active.status === "ACTIVE") router.push(`/trainee/arena/match/${v.active.id}`); }, [v?.active, router]);
+
+  // Leaving the arena page (closing the tab, going back) takes you off the others' lists straight away.
+  // Going to a match is not leaving: you stay in the arena while you play.
+  const leaving = useRef(true);
+  useEffect(() => {
+    const bye = () => { if (leaving.current) navigator.sendBeacon?.(`/api/arena/courses/${courseId}/presence`); };
+    window.addEventListener("pagehide", bye);
+    return () => { window.removeEventListener("pagehide", bye); };
+  }, [courseId]);
 
   async function challenge(opponentId: string) {
     const res = await fetch(`/api/arena/courses/${courseId}/challenge`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ opponentId, moduleId: topic || null }) });
     const j = await res.json().catch(() => ({}));
     if (!res.ok) return flash(j.error ?? "That didn't work.");
-    router.push(`/trainee/arena/match/${j.id}`);
+    { leaving.current = false; router.push(`/trainee/arena/match/${j.id}`); }
   }
   async function respond(id: string, accept: boolean) {
     const res = await fetch(`/api/arena/matches/${id}/${accept ? "accept" : "decline"}`, { method: "POST" });
     const j = await res.json().catch(() => ({}));
     if (!res.ok) return flash(j.error ?? "That didn't work.");
-    if (accept) router.push(`/trainee/arena/match/${id}`); else { setData((d) => d); void reload(); }
+    if (accept) { leaving.current = false; router.push(`/trainee/arena/match/${id}`); } else { setData((d) => d); void reload(); }
   }
 
   if (!v) {
@@ -73,7 +81,7 @@ export default function ArenaLobby({ courseId, traineeId }: { courseId: string; 
                 <div key={c.id} className="ar-glass"><p className="ar-name">Waiting for {c.to.name}…</p><button type="button" className="ar-btn ar-ghost ar-sm" onClick={() => router.push(`/trainee/arena/match/${c.id}`)}>Open</button></div>
               ))}
               {v.active && v.active.status !== "PENDING" && (
-                <div className="ar-glass"><p className="ar-name">Your match with {v.active.opponentName}</p><button type="button" className="ar-btn ar-sm" onClick={() => router.push(`/trainee/arena/match/${v.active!.id}`)}>Go to match</button></div>
+                <div className="ar-glass ar-champ"><div className="ar-crown">Game on</div><p className="ar-name">Your match with {v.active.opponentName} is waiting</p><button type="button" className="ar-btn ar-sm" onClick={() => router.push(`/trainee/arena/match/${v.active!.id}`)}>Go to match</button></div>
               )}
               <div className="ar-glass ar-fill ar-lobbylist">
                 <strong>Recent matches</strong>

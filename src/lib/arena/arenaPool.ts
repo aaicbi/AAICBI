@@ -55,15 +55,30 @@ export async function poolFor(courseId: string, moduleId: string | null): Promis
   return out;
 }
 
-/** Modules of a course that have enough to play, for the topic choice. */
+const topicCache = new Map<string, { at: number; value: { id: string; title: string; count: number }[] }>();
+
+/**
+ * Modules of a course that have enough to play, for the topic choice. The lobby asks every couple of seconds, so this is
+ * three queries in total (not two per module) and the answer is kept for a minute.
+ */
 export async function modulesWithPool(courseId: string, minimum: number): Promise<{ id: string; title: string; count: number }[]> {
-  const mods = await prisma.module.findMany({ where: { courseId }, orderBy: { order: "asc" }, select: { id: true, title: true } });
-  const out: { id: string; title: string; count: number }[] = [];
-  for (const m of mods) {
-    const count = (await poolFor(courseId, m.id)).length;
-    if (count >= minimum) out.push({ ...m, count });
+  const key = `${courseId}:${minimum}`;
+  const hit = topicCache.get(key);
+  if (hit && Date.now() - hit.at < 60_000) return hit.value;
+  const [mods, qs, items] = await Promise.all([
+    prisma.module.findMany({ where: { courseId }, orderBy: { order: "asc" }, select: { id: true, title: true } }),
+    prisma.question.findMany({ where: { exam: { courseModule: { courseId } }, bankStatus: "APPROVED", bankPool: "PRACTICE", bankObjectiveId: { not: null }, needsReview: false }, select: { exam: { select: { moduleId: true } }, options: { select: { isCorrect: true } } } }),
+    prisma.gameItem.groupBy({ by: ["moduleId"], where: { status: "APPROVED", module: { courseId } }, _count: { _all: true } }),
+  ]);
+  const counts = new Map<string, number>();
+  for (const q of qs) {
+    const m = q.exam.moduleId;
+    if (m && q.options.length >= 2 && q.options.filter((o) => o.isCorrect).length === 1) counts.set(m, (counts.get(m) ?? 0) + 1);
   }
-  return out;
+  for (const g of items) counts.set(g.moduleId, (counts.get(g.moduleId) ?? 0) + g._count._all);
+  const value = mods.map((m) => ({ ...m, count: counts.get(m.id) ?? 0 })).filter((m) => m.count >= minimum);
+  topicCache.set(key, { at: Date.now(), value });
+  return value;
 }
 
 /** "A) text" and "B. text" prefixes would clash with the letters the game draws, so they are removed. */

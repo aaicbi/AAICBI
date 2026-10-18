@@ -4,7 +4,7 @@
  */
 import { prisma } from "@/lib/prisma";
 import { availabilityForCourse, resolveForCourse } from "@/lib/arena/config";
-import { type ArenaRules } from "@/lib/arena/configCore";
+import { RULE_LIMITS, type ArenaRules } from "@/lib/arena/configCore";
 import { STEAL_MS, boardSize, isPlayer, reactionsOpen, rulesFrom, stealPoints, type MatchStatus, type Phase } from "@/lib/arena/arenaCore";
 import { ONLINE_SECONDS, ArenaError, mutate } from "@/lib/arena/arena";
 import { modulesWithPool, type Reveal, type ServedRound } from "@/lib/arena/arenaPool";
@@ -224,7 +224,7 @@ export async function courseArenaView(traineeId: string, courseId: string): Prom
     prisma.arenaPresence.findMany({ where: { courseId, lastSeenAt: { gte: new Date(Date.now() - ONLINE_SECONDS * 1000) }, traineeId: { not: traineeId } }, include: { trainee: { select: { id: true, name: true, avatarUrl: true } } }, take: 60 }),
     prisma.arenaMatch.findMany({ where: { status: { in: ["PENDING", "LOBBY", "ACTIVE"] }, OR: [{ challengerId: traineeId }, { opponentId: traineeId }, { courseId }] }, include: { challenger: { select: { id: true, name: true } }, opponent: { select: { id: true, name: true } } } }),
     prisma.arenaMatch.findMany({ where: { courseId, status: { in: ["COMPLETED", "FORFEITED"] }, OR: [{ challengerId: traineeId }, { opponentId: traineeId }] }, orderBy: { endedAt: "desc" }, take: 5, include: { challenger: { select: { id: true, name: true } }, opponent: { select: { id: true, name: true } } } }),
-    modulesWithPool(courseId, rules.questionsPerMatch),
+    modulesWithPool(courseId, RULE_LIMITS.questionsPerMatch.min),
   ]);
   if (!course || !me) throw new ArenaError("That course could not be found.", 404);
   const busyIds = new Set(matches.flatMap((x) => [x.challengerId, x.opponentId]));

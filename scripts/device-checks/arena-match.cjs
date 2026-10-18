@@ -204,6 +204,9 @@ const pastDeadline = (id) => psql(`update "ArenaMatch" set "phaseEndsAt"=now()-i
   await call(a, 'POST', `/api/arena/matches/${m4}/ready`, { ready: true }); await call(b, 'POST', `/api/arena/matches/${m4}/ready`, { ready: true });
   r = await call(a, 'POST', `/api/arena/matches/${m4}/leave`);
   log(r.j.status === 'FORFEITED' && r.j.result.winner === 'opponent', 'leaving an active match forfeits it to the other player');
+  r = await call(b, 'GET', '/api/arena/matches/' + m4);
+  log(r.j.status === 'FORFEITED' && r.j.result.winner === 'me' && r.j.result.reason === 'left', 'the other player sees they won because their opponent quit');
+  log(r.j.messages.some((x) => x.from === 'opponent' && /quit the game/i.test(x.body)), 'and is told so with a message');
 
   const bad = results();
   function results() { return require('./lib.cjs').results.filter((x) => !x[0]); }

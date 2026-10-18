@@ -275,7 +275,7 @@ async function pokeMatch(m: ArenaMatch, kind?: string) {
 /* Challenges and the lobby                                           */
 /* ------------------------------------------------------------------ */
 
-export const ONLINE_SECONDS = 45;
+export const ONLINE_SECONDS = 60;
 
 export async function isEnrolled(traineeId: string, courseId: string): Promise<boolean> {
   return !!(await prisma.courseEnrollment.findFirst({ where: { traineeId, courseId, unlockedAt: { not: null }, accessRevokedAt: null }, select: { id: true } }));
@@ -293,7 +293,26 @@ export async function activeMatchOf(traineeId: string) {
 }
 
 export async function touchPresence(traineeId: string, courseId: string): Promise<void> {
+  const before = await prisma.arenaPresence.findUnique({ where: { traineeId_courseId: { traineeId, courseId } }, select: { lastSeenAt: true } });
   await prisma.arenaPresence.upsert({ where: { traineeId_courseId: { traineeId, courseId } }, create: { traineeId, courseId }, update: { lastSeenAt: new Date() } });
+  // Someone who just arrived appears on everyone else's list at once, not at their next check.
+  if (!before || Date.now() - before.lastSeenAt.getTime() > ONLINE_SECONDS * 1000) void pokeMany([{ channel: channels.course(courseId), message: { v: 0, k: "lobby" } }]);
+}
+
+const lastTouch = new Map<string, number>();
+/** Match screens keep a player "in the arena" (shown as busy) without a database write on every refresh. */
+export async function touchPresenceSoon(traineeId: string, courseId: string): Promise<void> {
+  const key = `${traineeId}:${courseId}`;
+  const now = Date.now();
+  if (now - (lastTouch.get(key) ?? 0) < 20_000) return;
+  lastTouch.set(key, now);
+  await touchPresence(traineeId, courseId);
+}
+
+/** Someone leaves the arena page: they drop off the others' lists straight away. */
+export async function clearPresence(traineeId: string, courseId: string): Promise<void> {
+  await prisma.arenaPresence.deleteMany({ where: { traineeId, courseId } });
+  void pokeMany([{ channel: channels.course(courseId), message: { v: 0, k: "lobby" } }]);
 }
 
 export async function createChallenge(input: { challengerId: string; opponentId: string; courseId: string; moduleId?: string | null; rematchOfId?: string | null }) {
@@ -340,7 +359,7 @@ export async function respondToChallenge(matchId: string, traineeId: string, acc
 }
 
 export async function leaveMatch(matchId: string, traineeId: string) {
-  return mutate(matchId, (d, now) => {
+  const res = await mutate(matchId, (d, now) => {
     requirePlayer(d, traineeId);
     if (d.m.status === "PENDING" || d.m.status === "LOBBY") {
       d.m.status = "CANCELLED"; d.m.endedAt = new Date(now); d.m.endReason = "cancelled"; return;
@@ -348,6 +367,11 @@ export async function leaveMatch(matchId: string, traineeId: string) {
     if (d.m.status !== "ACTIVE") throw new ArenaError("That match is already over.", 409);
     finish(d, now, "FORFEITED", "left", otherPlayer(d.m, traineeId));
   });
+  // Quitting an active game is never silent: the other player gets a plain message and the win.
+  if (res.match.status === "FORFEITED" && res.match.endReason === "left") {
+    await prisma.arenaMessage.create({ data: { matchId, senderId: traineeId, body: "I quit the game. You win!" } });
+  }
+  return res;
 }
 
 export async function setReady(matchId: string, traineeId: string, ready: boolean) {
