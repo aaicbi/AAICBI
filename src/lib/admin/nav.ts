@@ -276,6 +276,7 @@ const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
       { label: "Ecosystem", href: "/admin/ecosystem", audience: "superadmin" },
       { label: "Ayakbi Arena", href: "/admin/arena", audience: "superadmin" },
       { label: "Growth", href: "/admin/growth", audience: "superadmin" },
+      { label: "Squads and challenges", href: "/admin/growth/groups", audience: "superadmin" },
       { label: "Loop guide", href: "/admin/command/guide", audience: "superadmin" },
       { label: "Design System", href: "/admin/design-system", audience: "admins" },
       { label: "Settings", href: "/admin/settings", audience: "staffAndOrg" },

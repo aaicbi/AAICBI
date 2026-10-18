@@ -85,3 +85,28 @@ A free seat for the rest of the course, earned by passing module 1 while seats l
 - **Taking one back.** The Super Admin can take a seat back from the Growth page. The person returns to the free preview (module 1 open, the rest behind payment), is never re-awarded, and the seat goes to the next person who has passed.
 - **Switching off.** Nobody new is given a seat; people who already hold one keep it. Seats cannot be set below the number already given.
 - **Report.** The campaign report shows "Scholarship seats given".
+
+## Squads and challenges (Super Admin)
+
+`/admin/growth/groups`, linked from the Growth page and the sidebar. Two tabs, filterable by course and paged 25 at a time:
+
+- **Squads:** name, course, captain, members out of 50, how many finished, points out of what they could earn, the squad it answered, how many squads answered it, and its join link. Search by name.
+- **Challenges:** each friend duel: the challenger and the person who answered, their scores, and the outcome (beat, lost to, tied) once finished.
+
+Because newcomers type their own squad names and nicknames with no account, the screen has **Rename** and **Remove** for squads and **Clear name** for nicknames. Scores are never changed. Removing a squad keeps its members' plays but they stop counting for a squad, and any squad that answered it loses the link and stays. Every change is written to the Growth "Recent changes" log. Super Admin only.
+
+## WhatsApp connection (Super Admin)
+
+Automatic WhatsApp follow-ups need a Meta WhatsApp Business account. Everything on our side is built and **off until a Super Admin switches it on**, from the "WhatsApp connection" section of the Growth page:
+
+1. Paste the **access token**, **phone number ID** and **app secret** from Meta (the template language is optional, default `en`) and press Save. Blank boxes never overwrite what is saved, so one value can be changed alone.
+2. Press **Test connection**. It asks Meta who owns the number and sends nothing.
+3. Give Meta the **callback URL** and **verify token** shown on the page (the token is made for you when you switch on, or press "Make one") and subscribe to the `messages` field. This is how delivery receipts and STOP replies reach us.
+4. Switch **WhatsApp sending** on. It will not switch on until the token, phone number ID and app secret are all saved.
+5. In Messaging, choose WhatsApp as the channel. With WhatsApp off, messages for that channel stay queued and go when it is switched back on.
+
+How it is kept safe: the token, app secret and verify token are encrypted (AES-256-GCM, key derived from `AUTH_SECRET`) before they reach the database; the screen only ever shows the last four characters (the verify token is shown in full, because you paste it into Meta); nothing secret goes in the audit log, only which fields changed. The Meta API address comes from the environment only (`WHATSAPP_API_BASE`, for tests), never from the database, so a saved value cannot send the token to another host. If `AUTH_SECRET` is ever changed, saved credentials can no longer be read and must be pasted again.
+
+The switch covers every WhatsApp message the platform sends (including the existing trainee verification and notification messages), not only the growth follow-ups. The old environment variables (`WHATSAPP_ENABLED`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET`, `WHATSAPP_TEMPLATE_LANG`) still work as a fallback; once the page has saved anything, its on/off switch decides.
+
+Honest limit: this has been run against a stand-in that answers like Meta, not against Meta itself. The first real use is "Test connection", then one message to your own number.

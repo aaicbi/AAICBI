@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
-import { whatsAppEnabled } from "@/lib/notifications/whatsapp";
+import { whatsAppConfigured } from "@/lib/notifications/whatsapp";
 
 type IntegrationStatus = "connected" | "not_configured" | "coming_soon";
 
@@ -70,8 +70,8 @@ export async function GET() {
         id: "whatsapp",
         label: "WhatsApp Notifications",
         description:
-          "A second delivery channel for time-sensitive codes (payment OTP, verification). Pending Meta/BSP business approval — not something this app's own configuration can complete alone.",
-        status: whatsAppEnabled() ? "connected" : "coming_soon",
+          "A second delivery channel for time-sensitive codes (payment OTP, verification) and the growth follow-ups. A Super Admin saves the Meta credentials and switches it on from the Growth page.",
+        status: (await whatsAppConfigured()) ? "connected" : "coming_soon",
       },
       {
         id: "google_signin",
