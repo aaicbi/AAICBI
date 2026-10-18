@@ -15,7 +15,7 @@ export function pushIsConfigured(): boolean {
 export async function sendPushForNotification(
   recipientType: string,
   recipientId: string,
-  n: { type: string; title: string; body: string; url?: string | null },
+  n: { type: string; title: string; body: string; url?: string | null; badge?: number },
 ): Promise<void> {
   if (!pushIsConfigured()) return;
   try {

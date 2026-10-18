@@ -7,6 +7,8 @@ export interface PushPayload {
   body: string;
   url: string;
   tag?: string;
+  /** The number to show on the app icon (unread count), when the sender knows it. */
+  badge?: number;
 }
 
 /** Notification types whose text is private (a person's own words): the push says only that something arrived. */
@@ -24,7 +26,7 @@ function clip(text: string, max: number): string {
  * a page address, nothing else, and never the text of a private message. The
  * address must be a path on this site so a push can never open another site.
  */
-export function buildPushPayload(n: { type: string; title: string; body: string; url?: string | null }): PushPayload {
+export function buildPushPayload(n: { type: string; title: string; body: string; url?: string | null; badge?: number }): PushPayload {
   const isPrivate = PRIVATE_TYPES.has(n.type) || /MESSAGE|CHAT/.test(n.type);
   const safeUrl = typeof n.url === "string" && n.url.startsWith("/") && !n.url.startsWith("//") ? n.url : "/notifications";
   return {
@@ -32,6 +34,7 @@ export function buildPushPayload(n: { type: string; title: string; body: string;
     body: isPrivate ? "Open the app to read it." : clip(n.body, MAX_BODY),
     url: safeUrl,
     tag: n.type,
+    ...(typeof n.badge === "number" && n.badge >= 0 ? { badge: Math.min(999, Math.floor(n.badge)) } : {}),
   };
 }
 

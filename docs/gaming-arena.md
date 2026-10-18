@@ -119,3 +119,10 @@ The floating Messages button (trainee pages with the sidebar) is now one inbox (
 - **On screen.** The gold challenge bar that shows on every page now has **Accept** and **Decline** on it (`ArenaReturnPill`), so a challenge can be answered without opening the game first. It checks every 25 seconds.
 - **Challenger.** When the other player accepts or declines, the challenger gets a bell entry and a push ("X accepted your challenge", "X declined your challenge"). Answering clears the invitation from the other player's bell.
 - Check: `scripts/device-checks/arena-challenge-notify.cjs`. Not covered: a "no answer" notice when an invitation expires, and a per-person mute for these alerts.
+
+## Release 10: chat alerts on the home page and the app icon
+
+- **Home page card.** On the feed and the dashboard, each course group chat with unread messages shows a "Chat is live" card (up to two, then "and N more") with the course, a preview and a "N new" pill, **Open chat** and **Later** (`ChatAlerts`, mounted once in the root layout). It asks `/api/arena/alerts` every 20 seconds while the page is visible and when the tab comes back.
+- **App icon number.** The installed app's icon (Badging API) and the browser tab title (`(3) …`) carry the total of unread group messages, unread direct and cohort messages, and a waiting challenge. Reading the chat counts it down. When a push arrives with the app closed, the service worker sets the icon number from the push (`badge`, the course's unread count; the app corrects it to the full total next time it opens).
+- iPhones show the icon number only for an app added to the home screen with notifications allowed (iOS 16.4+).
+- Check: `scripts/device-checks/chat-alerts.cjs`.
