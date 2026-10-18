@@ -89,3 +89,10 @@ Quiz-style games on phones are played in **portrait** (Kahoot, Trivia Crack, Qui
 - Checks: `arena-lobby.cjs`, `arena-quit.cjs`, and the drag steps in `arena-ordering.cjs`.
 
 - The practice games' **ordering** question (`GamePlayer`) is drag and drop too, using the shared `useDragReorder` hook (handle on the right, scrolls the page near its edges, arrow keys on the handle). Check: `scripts/device-checks/game-ordering-drag.cjs`.
+
+## Release 6: course chat and moderation
+
+- **One group chat per course**, for trainees enrolled in it, shown in the arena lobby. A Super Admin turns it on with the "Course chat" switch (it needs the arena itself to be on). Messages are up to 500 characters, rate limited, a repeat of the same text within 10 s is ignored, the latest 60 from the last 7 days are shown, older ones are deleted. A new message pokes `channels.course`, so everyone's list updates at once.
+- **Moderation.** Instructors and admins who own the course get a "Chat moderation" panel under the Gaming Arena rules: recent messages with **Remove**, **Suspend** (1 hour to 90 days, hides the player's last 24 hours of messages) and a list of active suspensions with **Lift**. API: `GET/POST /api/admin/courses/[id]/arena/chat` (`action: remove | suspend | lift`).
+- **Suspension** (`ArenaSuspension`) stops a trainee from posting, challenging and accepting challenges in that course; the lobby tells them why and until when. Removals keep the row (`deletedAt`, `deletedById`) as a record.
+- Check: `scripts/device-checks/arena-chat.cjs` (post, live delivery, removal, suspension).

@@ -155,8 +155,8 @@ export default function ArenaAdmin() {
             <h2 className="font-display text-lg font-semibold text-brand-ink">Switches</h2>
             <SwitchRow k="enabled" title="Gaming Arena" hint="The master switch. Nothing in the arena works while it is off." />
             <SwitchRow k="gameEnabled" title="Two-player Interview game" hint="Challenges, the lobby, the match, results and rematch." disabled={!s.enabled} />
-            <SwitchRow k="chatEnabled" title="Course chat" hint="A group chat for each course." disabled note="Built in a later release." />
-            <SwitchRow k="ladderEnabled" title="Champion ladder" hint="Rankings, and challenging the champion." disabled note="Built in a later release." />
+            <SwitchRow k="chatEnabled" title="Course chat" hint="A group chat for each course." />
+            <SwitchRow k="ladderEnabled" title="Champion ladder" hint="Rankings, and challenging the champion." />
             <div className="flex items-start justify-between gap-4 border-t border-brand-gray py-3">
               <div className="min-w-0">
                 <h3 className="text-sm font-semibold text-brand-ink">Spectators</h3>

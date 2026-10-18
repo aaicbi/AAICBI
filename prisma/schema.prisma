@@ -742,6 +742,8 @@ model Trainee {
   arenaChallenges ArenaMatch[] @relation("ArenaChallenger")
   arenaInvites    ArenaMatch[] @relation("ArenaOpponent")
   arenaPresence   ArenaPresence[]
+  arenaChat       ArenaChatMessage[]
+  arenaSuspensions ArenaSuspension[]
 }
 
 model Skill {
@@ -1394,6 +1396,8 @@ model Course {
   @@index([startDate])
   arenaMatches  ArenaMatch[]
   arenaPresence ArenaPresence[]
+  arenaChat     ArenaChatMessage[]
+  arenaSuspensions ArenaSuspension[]
 }
 
 enum PayoutType {
@@ -5804,4 +5808,41 @@ model ArenaPresence {
 
   @@id([traineeId, courseId])
   @@index([courseId, lastSeenAt])
+}
+
+/// One message in a course's Gaming Arena group chat. Removed messages stay as a record for moderators but are never shown to players.
+model ArenaChatMessage {
+  id            String    @id @default(cuid())
+  courseId      String
+  course        Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  senderId      String
+  sender        Trainee   @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  body          String
+  createdAt     DateTime  @default(now())
+  /// Set when a moderator removes the message (a staff user id, kept as plain text so deleting that account never erases the record).
+  deletedAt     DateTime?
+  deletedById   String?
+  deletedReason String?
+
+  @@index([courseId, createdAt])
+  @@index([senderId, createdAt])
+}
+
+/// A moderator stopped a player from chatting, challenging or accepting challenges in a course's arena, for a time or until lifted.
+model ArenaSuspension {
+  id            String    @id @default(cuid())
+  courseId      String
+  course        Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  traineeId     String
+  trainee       Trainee   @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  reason        String?
+  suspendedById String
+  createdAt     DateTime  @default(now())
+  /// Null means until a moderator lifts it.
+  expiresAt     DateTime?
+  liftedAt      DateTime?
+  liftedById    String?
+
+  @@index([courseId, traineeId])
+  @@index([courseId, liftedAt])
 }

@@ -16,6 +16,66 @@ const FIELDS: { key: Exclude<keyof ArenaRules, "tickingSound">; title: string; h
   { key: "questionsPerMatch", title: "Questions per match", hint: "How many questions make a full match." },
 ];
 
+interface Mod {
+  chatOn: boolean;
+  messages: { id: string; traineeId: string; name: string; body: string; at: number; removed: boolean }[];
+  suspensions: { id: string; traineeId: string; name: string; reason: string | null; since: number; until: number | null; lifted: boolean; active: boolean }[];
+}
+
+/** Moderation of the course chat: remove a message, suspend a player from the arena, lift a suspension. */
+function ChatModeration({ courseId, showToast }: { courseId: string; showToast: (message: string, variant?: "success" | "error") => void }) {
+  const [mod, setMod] = useState<Mod | null>(null);
+  const [hours, setHours] = useState(24);
+  const url = `/api/admin/courses/${courseId}/arena/chat`;
+  const load = useCallback(async () => { const res = await fetch(url); if (res.ok) setMod(await res.json()); }, [url]);
+  useEffect(() => { void load(); const t = setInterval(() => void load(), 15000); return () => clearInterval(t); }, [load]);
+
+  async function act(body: Record<string, unknown>, done: string) {
+    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const j = await res.json().catch(() => null);
+    if (!res.ok) return showToast(j?.error ?? "That didn't work.", "error");
+    showToast(done);
+    void load();
+  }
+  if (!mod) return null;
+  const active = mod.suspensions.filter((x) => x.active);
+  return (
+    <div className="border-t border-brand-gray py-3" id="arena-chat-moderation">
+      <h3 className="text-sm font-semibold text-brand-ink">Chat moderation</h3>
+      {!mod.chatOn && <p className="text-sm text-gray-600">The course chat is off. A Super Admin switches it on.</p>}
+      {active.length > 0 && (
+        <div className="mt-2 space-y-1">
+          <p className="text-xs font-semibold uppercase text-gray-700">Suspended</p>
+          {active.map((x) => (
+            <div key={x.id} className="flex items-center justify-between gap-3 text-sm">
+              <span className="min-w-0">{x.name}{x.until ? ` until ${new Date(x.until).toLocaleString()}` : ""}{x.reason ? ` · ${x.reason}` : ""}</span>
+              <button type="button" className="shrink-0 text-xs font-semibold text-brand-teal underline" onClick={() => act({ action: "lift", suspensionId: x.id }, "Suspension lifted.")}>Lift</button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="mt-2 flex items-center gap-2 text-xs text-gray-600">
+        <label>Suspend for <input type="number" min={1} max={2160} value={hours} onChange={(e) => setHours(Number(e.target.value) || 1)} aria-label="Suspension hours" className="mx-1 w-16 rounded-lg border border-brand-gray bg-brand-surface px-2 py-1 text-sm text-brand-ink" />hours</label>
+      </div>
+      <div className="mt-2 max-h-72 space-y-1 overflow-auto">
+        {mod.messages.length === 0 && <p className="text-sm text-gray-600">No chat messages yet.</p>}
+        {mod.messages.map((m) => (
+          <div key={m.id} className="flex items-start justify-between gap-3 rounded-lg bg-brand-gray/40 px-3 py-2 text-sm">
+            <div className="min-w-0">
+              <span className="font-semibold text-brand-ink">{m.name}</span> <span className="text-xs text-gray-600">{new Date(m.at).toLocaleString()}</span>
+              <p className={m.removed ? "italic text-gray-500" : "text-gray-800"} style={{ overflowWrap: "anywhere" }}>{m.removed ? "Removed" : m.body}</p>
+            </div>
+            <div className="flex shrink-0 flex-col items-end gap-1 text-xs font-semibold">
+              {!m.removed && <button type="button" className="text-brand-teal underline" onClick={() => act({ action: "remove", messageId: m.id }, "Message removed.")}>Remove</button>}
+              <button type="button" className="text-red-700 underline" onClick={() => { if (confirm(`Suspend ${m.name} from this course's arena for ${hours} hour(s)? Their last day of messages will be hidden.`)) void act({ action: "suspend", traineeId: m.traineeId, hours, removeRecent: true }, `${m.name} suspended.`); }}>Suspend</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** The rules of play for this course's Gaming Arena. A Super Admin turns the arena itself on; the course owner sets how it plays. */
 export default function ArenaSettings({ courseId, showToast }: { courseId: string; showToast: (message: string, variant?: "success" | "error") => void }) {
   const [data, setData] = useState<Payload | null>(null);
@@ -74,6 +134,7 @@ export default function ArenaSettings({ courseId, showToast }: { courseId: strin
         <div><h3 className="text-sm font-semibold text-brand-ink">Ticking sound</h3><p className="text-sm text-gray-600">A soft tick each second on every question. Players can turn it off.</p></div>
         <Toggle checked={!!r.tickingSound.value} disabled={busy} label="Ticking sound" onChange={(next) => save({ tickingSound: next })} />
       </div>
+      <ChatModeration courseId={courseId} showToast={showToast} />
     </Card>
   );
 }
