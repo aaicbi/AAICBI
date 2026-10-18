@@ -2,6 +2,7 @@ const { B, log, launch, device, signedIn, clearThrottle } = require('./lib.cjs')
 const psql = (q) => require('child_process').execFileSync('/usr/lib/postgresql/16/bin/psql', ['-h','127.0.0.1','-p','5544','-U','dev','-d','aaicbi_dev','-At','-c',q]).toString().trim();
 (async () => {
   clearThrottle();
+  psql(`update "Course" set published=true, status='PUBLISHED' where id='arena_play'`);
   psql(`update "ArenaConfig" set "chatEnabled"=true,"fastestEnabled"=true where "scopeType"='PLATFORM'`);
   psql(`update "ArenaMatch" set status='CANCELLED' where status in ('PENDING','LOBBY','ACTIVE')`);
   psql(`delete from "ArenaChatMessage" where "courseId"='arena_play'`);
@@ -10,7 +11,7 @@ const psql = (q) => require('child_process').execFileSync('/usr/lib/postgresql/1
   const br = await launch();
   const dev = device('iPhone 7', { viewport: { width: 375, height: 553 } });
   const ca = await signedIn(br, dev, '/api/auth/trainee-login', 't0@dev.test'); const cb = await signedIn(br, dev, '/api/auth/trainee-login', 't1@dev.test');
-  const cs = await signedIn(br, device('Desktop Chrome'), '/api/auth/login', 'staff@dev.test');
+  const cs = await signedIn(br, device('Desktop Chrome'), '/api/auth/login', 'super@dev.test');
   const pa = await ca.newPage(); const pb = await cb.newPage(); pa.setDefaultTimeout(9000); pb.setDefaultTimeout(9000);
   // the chat is reachable from the course page
   await pa.goto(`${B}/trainee/courses/arena_play`, { waitUntil: 'load' });
