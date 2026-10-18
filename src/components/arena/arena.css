@@ -297,3 +297,37 @@
   .ar-go{padding:.35em 1em;font-size:.85em}
 }
 @keyframes ar-settle{from{transform:scale(.94);opacity:.6}to{transform:none;opacity:1}}
+
+/* Result screen: readable, well-separated text */
+.ar-win{text-align:center}
+.ar-sec{text-align:left;background:rgba(255,255,255,.07);border-radius:.9em;padding:.6em .8em}
+.ar-sec h3,.ar-recap>h3{margin:0 0 .4em;font-size:.8em;letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
+.ar-bars{display:grid;gap:.55em}
+.ar-bars .ar-bar1{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.2em .8em;align-items:center}
+.ar-bars div{grid-template-columns:minmax(0,1fr) auto}
+.ar-bartopic{grid-column:1/-1;font-size:.9em;font-weight:700;line-height:1.25;text-align:left;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ar-bars .ar-track{height:.8em}
+.ar-barn{font-weight:800;font-variant-numeric:tabular-nums;font-size:.9em}
+.ar-recap ol{gap:.6em}
+.ar-recap li{padding:.6em .8em;display:grid;gap:.35em;border-left-width:.35em}
+.ar-rtopic{display:flex;gap:.6em;align-items:baseline;font-size:.72em;letter-spacing:.04em;text-transform:uppercase;color:rgba(244,251,247,.75)}
+.ar-rtopic b{flex:none;color:var(--white)}
+.ar-recap li.ar-got .ar-rtopic b{color:var(--green)}.ar-recap li.ar-lost .ar-rtopic b{color:var(--rose)}
+.ar-rtopic span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ar-rprompt{font-weight:700;font-size:1em;line-height:1.3}
+.ar-rans,.ar-rwhy{font-size:.9em;line-height:1.35;border-radius:.6em;padding:.35em .7em}
+.ar-rans{background:rgba(127,214,160,.18);border:1px solid rgba(127,214,160,.45);color:#eafff1}
+.ar-rwhy{background:rgba(242,184,75,.15);border:1px solid rgba(242,184,75,.4)}
+.ar-rans small,.ar-rwhy small{display:block;font-size:.7em;letter-spacing:.08em;text-transform:uppercase;font-weight:800;opacity:.8;margin-bottom:.1em}
+.ar-rans small{color:var(--green)}.ar-rwhy small{color:var(--gold)}
+.ar-meta{min-width:0}
+.ar-meta .ar-tag{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.ar-meta .ar-tag:first-child{flex:0 1 auto;min-width:0}
+.ar-col{min-width:0}
+.ar-win{min-width:0;max-width:100%;box-sizing:border-box}
+.ar-win>*{min-width:0;max-width:100%}
+.ar-recap,.ar-recap ol,.ar-sec{min-width:0}
+.ar-recap li{grid-template-columns:minmax(0,1fr)}
+.ar-rtopic span{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.ar-rtopic{align-items:flex-start}
+.ar-rprompt,.ar-rans,.ar-rwhy,.ar-bartopic{overflow-wrap:anywhere}

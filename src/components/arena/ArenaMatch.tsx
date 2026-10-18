@@ -555,7 +555,18 @@ function Result({ v, act }: { v: MatchView; act: Act }) {
         {rm && rm.status === "PENDING" && rm.from === "opponent" && <><span className="ar-pill ar-gold">{v.opponent.name} wants a rematch!</span><button type="button" className="ar-btn ar-big-btn" onClick={() => void fetch(`/api/arena/matches/${rm.id}/accept`, { method: "POST" }).then(() => router.push(`/trainee/arena/match/${rm.id}`))}>Accept rematch</button><button type="button" className="ar-btn ar-ghost ar-sm" onClick={() => void fetch(`/api/arena/matches/${rm.id}/decline`, { method: "POST" })}>Not now</button></>}
         <a className="ar-btn ar-ghost" href={`/trainee/arena/${v.courseId}`} style={{ textDecoration: "none", display: "inline-block" }}>Back to the arena</a>
       </div>
-      {r.topics.length > 0 && <div className="ar-bars">{r.topics.map((t) => <div key={t.topic}><span>{t.topic}</span><span className="ar-track"><i className={t.correct / t.total < 0.5 ? "ar-low" : ""} style={{ width: `${Math.round((t.correct / t.total) * 100)}%`, display: "block" }} /></span><span>{t.correct}/{t.total}</span></div>)}</div>}
+      {r.topics.length > 0 && (
+        <section className="ar-sec" aria-label="How you did by topic">
+          <h3>How you did by topic</h3>
+          <div className="ar-bars">{r.topics.map((t) => (
+            <div key={t.topic} className="ar-bar1">
+              <span className="ar-bartopic" title={t.topic}>{t.topic}</span>
+              <span className="ar-track"><i className={t.correct / t.total < 0.5 ? "ar-low" : ""} style={{ width: `${Math.round((t.correct / t.total) * 100)}%`, display: "block" }} /></span>
+              <span className="ar-barn">{t.correct}/{t.total}</span>
+            </div>
+          ))}</div>
+        </section>
+      )}
       {r.recap.length > 0 && (
         <div className="ar-recap">
           <button type="button" className="ar-btn ar-ghost ar-sm" aria-expanded={open} onClick={() => setOpen((x) => !x)}>{open ? "Hide" : "Review"} the {missed.length ? `${missed.length} to learn from` : "answers"}</button>
@@ -563,10 +574,10 @@ function Result({ v, act }: { v: MatchView; act: Act }) {
             <ol>
               {[...missed, ...r.recap.filter((x) => x.mine === "correct")].map((x, i) => (
                 <li key={i} className={x.mine === "correct" ? "ar-got" : "ar-lost"}>
-                  <div className="ar-rtopic">{x.mine === "correct" ? "✔ You got this" : x.mine === "missed" ? "✗ Missed" : "– Not answered"} · {x.topic}</div>
+                  <div className="ar-rtopic"><b>{x.mine === "correct" ? "✔ You got this" : x.mine === "missed" ? "✗ Missed" : "– Not answered"}</b><span title={x.topic}>{x.topic}</span></div>
                   <div className="ar-rprompt">{x.prompt}</div>
-                  <div className="ar-rans">Answer: <b>{x.answer}</b></div>
-                  {x.explanation && <div className="ar-rwhy">💡 {x.explanation}</div>}
+                  <div className="ar-rans"><small>Answer</small>{x.answer}</div>
+                  {x.explanation && <div className="ar-rwhy"><small>Why</small>{x.explanation}</div>}
                 </li>
               ))}
             </ol>
