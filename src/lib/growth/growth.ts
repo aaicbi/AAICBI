@@ -5,7 +5,7 @@ import { organizationOfCourse } from "@/lib/arena/config";
 import { hasAvailableTrainingSeat } from "@/lib/trainingOrgSeatCap";
 import { appUrl } from "@/lib/appUrl";
 import {
-  CONSENT_TEXT, SHARE_CODE_ALPHABET, SHARE_CODE_LENGTH, TASTER_SIZE, beatPercent, challengeText, checkLead, cleanNickname, cleanSource, displayName, duelHeadline, duelOutcome, duelPath, isShareCode, rankStandings, readinessIssues, slugify, switchBlockers, tasterRank,
+  CONSENT_TEXT, SHARE_CODE_ALPHABET, SHARE_CODE_LENGTH, TASTER_SIZE, beatPercent, challengeText, checkLead, cleanNickname, cleanSource, displayName, duelHeadline, duelOutcome, duelPath, isShareCode, rankSquads, rankStandings, SQUAD_BOARD_RIVALS, SQUAD_MAX_MEMBERS, cleanSquadName, rivalPath, squadJoinText, squadPath, squadRivalText, squadStanding, squadTotals, type SquadStanding, readinessIssues, slugify, switchBlockers, tasterRank,
   type GrowthScope, type SwitchRow,
 } from "@/lib/growth/growthCore";
 
@@ -245,8 +245,20 @@ type Choice = { questionId: string; choice: string; correct: boolean };
 export interface Standing { name: string; score: number; total: number; durationMs: number | null; rank: { key: string; label: string }; you: boolean }
 export interface DuelResult { outcome: "WIN" | "LOSE" | "TIE"; headline: string; opponentName: string; opponentScore: number; opponentTotal: number }
 
+export interface SquadMember { name: string; score: number; you: boolean }
+export interface SquadRival { name: string; members: number; total: number; standing: SquadStanding }
+export interface SquadView {
+  name: string; code: string; members: number; maxMembers: number; total: number; max: number; average: number;
+  /** This squad's place among the campaign's squads, by total points. */
+  rank: number; of: number;
+  board: SquadMember[];
+  /** The squad whose challenge this one answered, and the squads that answered this one's. */
+  rivalOf: SquadRival | null; rivals: SquadRival[];
+  joinUrl: string; rivalUrl: string; joinText: string; rivalText: string; isCaptain: boolean;
+}
+
 export type PlayState =
-  | { status: "question"; index: number; total: number; question: { id: string; text: string; options: { key: string; text: string }[] }; duelAgainst: string | null }
+  | { status: "question"; index: number; total: number; question: { id: string; text: string; options: { key: string; text: string }[] }; duelAgainst: string | null; squadName: string | null }
   | {
       status: "done"; score: number; total: number; rank: { key: string; label: string }; grid: boolean[]; weakSpot: string | null; beatPercent: number | null;
       shareCode: string | null; nickname: string | null; durationMs: number | null;
@@ -254,6 +266,10 @@ export type PlayState =
       duel: DuelResult | null;
       /** The challenger and the friends who took the challenge, best first. Empty until someone has. */
       standings: Standing[];
+      /** The squad this play counts for, with its board and rivals. */
+      squad: SquadView | null;
+      /** Set when this play answered a squad's challenge but has not started a squad of its own yet. */
+      rivalSquadName: string | null;
     };
 
 async function servedQuestion(id: string) {
@@ -262,7 +278,7 @@ async function servedQuestion(id: string) {
   return { id: q.id, text: q.text, options: shuffle(q.options) };
 }
 
-type PlayRow = { id: string; campaignId: string; questionIds: unknown; answers: unknown; score: number; completedAt: Date | null; nickname: string | null; shareCode: string | null; duelOfId: string | null; durationMs: number | null };
+type PlayRow = { id: string; campaignId: string; questionIds: unknown; answers: unknown; score: number; completedAt: Date | null; nickname: string | null; shareCode: string | null; duelOfId: string | null; durationMs: number | null; squadId: string | null; rivalSquadId: string | null };
 
 async function standingsFor(play: PlayRow, total: number) {
   const rootId = play.duelOfId ?? play.id;
@@ -275,14 +291,48 @@ async function standingsFor(play: PlayRow, total: number) {
   };
 }
 
-async function stateOf(play: PlayRow): Promise<PlayState> {
+/** Totals for every squad in a campaign: finished plays only, so an unfinished member adds nothing yet. */
+async function squadTotalsByCampaign(campaignId: string) {
+  const groups = await prisma.growthGuestPlay.groupBy({ by: ["squadId"], where: { campaignId, squadId: { not: null }, completedAt: { not: null } }, _sum: { score: true }, _count: { _all: true } });
+  return new Map(groups.map((g) => [g.squadId as string, { total: g._sum.score ?? 0, members: g._count._all }]));
+}
+
+async function squadView(squadId: string, playId: string, slug: string): Promise<SquadView | null> {
+  const squad = await prisma.growthSquad.findUnique({ where: { id: squadId } });
+  if (!squad) return null;
+  const perPlay = (squad.questionIds as string[]).length;
+  const [plays, joined, all, byId] = await Promise.all([
+    prisma.growthGuestPlay.findMany({ where: { squadId, completedAt: { not: null } }, select: { id: true, nickname: true, score: true, durationMs: true } }),
+    prisma.growthGuestPlay.count({ where: { squadId } }),
+    prisma.growthSquad.findMany({ where: { campaignId: squad.campaignId }, select: { id: true, name: true, rivalOfId: true, createdAt: true }, take: 300 }),
+    squadTotalsByCampaign(squad.campaignId),
+  ]);
+  const mine = squadTotals(plays.map((p) => p.score), perPlay);
+  const totalOf = (id: string) => byId.get(id) ?? { total: 0, members: 0 };
+  const ranked = rankSquads(all.map((q) => ({ id: q.id, ...totalOf(q.id) })));
+  const view = (q: { id: string; name: string }): SquadRival => ({ name: q.name, members: totalOf(q.id).members, total: totalOf(q.id).total, standing: squadStanding(mine.total, totalOf(q.id).total) });
+  const rivalOf = squad.rivalOfId ? all.find((q) => q.id === squad.rivalOfId) : null;
+  const rivals = all.filter((q) => q.rivalOfId === squad.id).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, SQUAD_BOARD_RIVALS);
+  const joinUrl = appUrl(squadPath(slug, squad.code));
+  const rivalUrl = appUrl(rivalPath(slug, squad.code));
+  return {
+    name: squad.name, code: squad.code, members: joined, maxMembers: SQUAD_MAX_MEMBERS, total: mine.total, max: mine.max, average: mine.average,
+    rank: Math.max(1, ranked.findIndex((r) => r.id === squad.id) + 1), of: ranked.length,
+    board: rankStandings(plays).map((p) => ({ name: p.id === playId ? "You" : p.nickname ?? "A member", score: p.score, you: p.id === playId })),
+    rivalOf: rivalOf ? view(rivalOf) : null, rivals: rivals.map(view),
+    joinUrl, rivalUrl, joinText: squadJoinText(squad.name, joinUrl), rivalText: squadRivalText(squad.name, rivalUrl), isCaptain: squad.captainPlayId === playId,
+  };
+}
+
+async function stateOf(play: PlayRow, slug: string): Promise<PlayState> {
   const ids = play.questionIds as string[];
   const answers = play.answers as Choice[];
   if (answers.length < ids.length) {
     const q = await servedQuestion(ids[answers.length]);
     if (q) {
       const against = play.duelOfId ? await prisma.growthGuestPlay.findUnique({ where: { id: play.duelOfId }, select: { nickname: true } }) : null;
-      return { status: "question", index: answers.length, total: ids.length, question: q, duelAgainst: play.duelOfId ? displayName(against?.nickname) : null };
+      const sq = play.squadId ? await prisma.growthSquad.findUnique({ where: { id: play.squadId }, select: { name: true } }) : null;
+      return { status: "question", index: answers.length, total: ids.length, question: q, duelAgainst: play.duelOfId ? displayName(against?.nickname) : null, squadName: sq?.name ?? null };
     }
   }
   const grid = answers.map((a) => a.correct);
@@ -296,9 +346,11 @@ async function stateOf(play: PlayRow): Promise<PlayState> {
     const opponentName = displayName(root.nickname);
     duel = { outcome, headline: duelHeadline(outcome, opponentName), opponentName, opponentScore: root.score, opponentTotal: ids.length };
   }
+  const squad = play.squadId ? await squadView(play.squadId, play.id, slug) : null;
+  const rivalSquad = !play.squadId && play.rivalSquadId ? await prisma.growthSquad.findUnique({ where: { id: play.rivalSquadId }, select: { name: true } }) : null;
   return {
     status: "done", score: play.score, total: ids.length, rank: tasterRank(play.score, ids.length), grid, weakSpot: weak?.bankObjective?.text ?? null,
-    beatPercent: beatPercent(play.score, finished.map((f) => f.score)), shareCode: play.shareCode, nickname: play.nickname, durationMs: play.durationMs, duel, standings,
+    beatPercent: beatPercent(play.score, finished.map((f) => f.score)), shareCode: play.shareCode, nickname: play.nickname, durationMs: play.durationMs, duel, standings, squad, rivalSquadName: rivalSquad?.name ?? null,
   };
 }
 
@@ -324,7 +376,7 @@ async function ensureShareCode(playId: string): Promise<string> {
   throw new GrowthError("Could not make a share link. Please try again.", 500);
 }
 
-export interface StartOptions { duel?: unknown; nickname?: unknown }
+export interface StartOptions { duel?: unknown; squad?: unknown; rival?: unknown; nickname?: unknown }
 
 /** Starts a taster (or resumes one by its token). Starting needs the link to be live; a run already under way may finish. With a duel code the newcomer plays the same five questions in the same order as the person who shared it. */
 export async function playStart(slug: string, token: string | null, source: unknown, opts: StartOptions = {}): Promise<{ token: string; state: PlayState }> {
@@ -332,19 +384,32 @@ export async function playStart(slug: string, token: string | null, source: unkn
   if (!campaign) throw new GrowthError("This link isn't available.", 404);
   if (token) {
     const play = await prisma.growthGuestPlay.findUnique({ where: { token } });
-    if (play && play.campaignId === campaign.id) return { token, state: await stateOf(play) };
+    if (play && play.campaignId === campaign.id) return { token, state: await stateOf(play, slug) };
   }
   const g = await courseGrowth(campaign.courseId);
   if (!g.live) throw new GrowthError("This campaign has ended.", 410);
 
   let questionIds: string[] | null = null;
   let duelOfId: string | null = null;
-  if (isShareCode(opts.duel)) {
+  let squadId: string | null = null;
+  let rivalSquadId: string | null = null;
+  let kind: "squad" | "rival" | "duel" | null = null;
+  // Reusing someone else's five questions only works while every one of them still exists; otherwise it quietly becomes an ordinary play.
+  const reusable = async (ids: string[]) => (await prisma.question.count({ where: { id: { in: ids } } })) === ids.length;
+  if (isShareCode(opts.squad) || isShareCode(opts.rival)) {
+    const joining = isShareCode(opts.squad);
+    const code = (joining ? opts.squad : opts.rival) as string;
+    const sq = await prisma.growthSquad.findUnique({ where: { code } });
+    if (sq && sq.campaignId === campaign.id) {
+      if (joining && (await prisma.growthGuestPlay.count({ where: { squadId: sq.id } })) >= SQUAD_MAX_MEMBERS) throw new GrowthError("That squad is full.", 409);
+      const ids = sq.questionIds as string[];
+      if (await reusable(ids)) { questionIds = ids; kind = joining ? "squad" : "rival"; if (joining) squadId = sq.id; else rivalSquadId = sq.id; }
+    }
+  } else if (isShareCode(opts.duel)) {
     const root = await prisma.growthGuestPlay.findUnique({ where: { shareCode: opts.duel }, select: { id: true, campaignId: true, completedAt: true, questionIds: true } });
     if (root && root.campaignId === campaign.id && root.completedAt) {
       const ids = root.questionIds as string[];
-      // The duel only works while every one of its questions still exists; otherwise it quietly becomes an ordinary play.
-      if ((await prisma.question.count({ where: { id: { in: ids } } })) === ids.length) { questionIds = ids; duelOfId = root.id; }
+      if (await reusable(ids)) { questionIds = ids; duelOfId = root.id; kind = "duel"; }
     }
   }
   if (!questionIds) {
@@ -352,9 +417,9 @@ export async function playStart(slug: string, token: string | null, source: unkn
     questionIds = taster.map((t) => t.questionId);
   }
   const play = await prisma.growthGuestPlay.create({
-    data: { token: randomBytes(24).toString("hex"), campaignId: campaign.id, source: cleanSource(source) ?? (duelOfId ? "duel" : null), questionIds, duelOfId, nickname: cleanNickname(opts.nickname) },
+    data: { token: randomBytes(24).toString("hex"), campaignId: campaign.id, source: cleanSource(source) ?? kind, questionIds, duelOfId, squadId, rivalSquadId, nickname: cleanNickname(opts.nickname) },
   });
-  return { token: play.token, state: await stateOf(play) };
+  return { token: play.token, state: await stateOf(play, slug) };
 }
 
 /** Grades the answer to the question the play is on. The key is revealed only now, and only for that question. */
@@ -383,7 +448,7 @@ export async function playAnswer(slug: string, token: string, choice: unknown) {
   // Everyone who finishes gets a public code, so any result can be shared or challenged.
   if (done) await ensureShareCode(play.id);
   const fresh = await prisma.growthGuestPlay.findUniqueOrThrow({ where: { id: play.id } });
-  return { correct, correctKey, explanation: q.explanation, state: await stateOf(fresh) };
+  return { correct, correctKey, explanation: q.explanation, state: await stateOf(fresh, slug) };
 }
 
 // ---------------------------------------------------------------- saving a score
@@ -507,4 +572,46 @@ export async function cardData(slug: string, code: string) {
     name: play.nickname, score: play.score, total, rank: tasterRank(play.score, total), grid: (play.answers as Choice[]).map((a) => a.correct),
     courseTitle: campaign.courseTitle, organizationName: campaign.organizationName, link: appUrl(`/play/${slug}`).replace(/^https?:\/\//, ""),
   };
+}
+
+// ---------------------------------------------------------------- squads
+
+async function newSquadCode(): Promise<string> {
+  for (let n = 0; n < 6; n++) {
+    const code = newShareCode();
+    if (!(await prisma.growthSquad.findUnique({ where: { code }, select: { id: true } }))) return code;
+  }
+  throw new GrowthError("Could not make a squad link. Please try again.", 500);
+}
+
+/** A finished play starts a squad: it becomes the captain and every member plays the same questions. A play that answered another squad's challenge makes this squad that squad's rival. */
+export async function createSquad(slug: string, token: string, name: unknown, nickname: unknown) {
+  const campaign = await campaignBySlug(slug);
+  if (!campaign) throw new GrowthError("This link isn't available.", 404);
+  const play = await prisma.growthGuestPlay.findUnique({ where: { token } });
+  if (!play || play.campaignId !== campaign.id) throw new GrowthError("Start again to play.", 404);
+  if (!play.completedAt) throw new GrowthError("Finish the five questions first.", 409);
+  if (play.squadId) throw new GrowthError("You are already in a squad.", 409);
+  const squadName = cleanSquadName(name);
+  if (!squadName) throw new GrowthError("Give your squad a name of 3 to 24 letters or numbers.");
+  const g = await courseGrowth(campaign.courseId);
+  if (!g.live) throw new GrowthError("This campaign has ended.", 410);
+  const squad = await prisma.growthSquad.create({
+    data: { campaignId: campaign.id, code: await newSquadCode(), name: squadName, questionIds: play.questionIds as string[], rivalOfId: play.rivalSquadId, captainPlayId: play.id },
+  });
+  await prisma.growthGuestPlay.update({ where: { id: play.id }, data: { squadId: squad.id, nickname: nickname === undefined ? play.nickname : cleanNickname(nickname) } });
+  return { squad: await squadView(squad.id, play.id, slug) };
+}
+
+/** What someone sees before joining or answering a squad's challenge: its name and standing, never anyone's answers. */
+export async function squadPreview(slug: string, code: string) {
+  if (!isShareCode(code)) return null;
+  const campaign = await campaignBySlug(slug);
+  if (!campaign) return null;
+  const squad = await prisma.growthSquad.findUnique({ where: { code } });
+  if (!squad || squad.campaignId !== campaign.id) return null;
+  const byId = await squadTotalsByCampaign(campaign.id);
+  const t = byId.get(squad.id) ?? { total: 0, members: 0 };
+  const joined = await prisma.growthGuestPlay.count({ where: { squadId: squad.id } });
+  return { name: squad.name, members: joined, total: t.total, full: joined >= SQUAD_MAX_MEMBERS };
 }

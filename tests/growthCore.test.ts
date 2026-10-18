@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TASTER_SIZE, answerGrid, cardFormat, challengeText, cleanNickname, displayName, duelHeadline, duelOutcome, duelPath, isShareCode, rankStandings, beatPercent, bpsToPercent, checkLead, cleanEmail, cleanSource, effectivePreviewCount, isCampaignSlug, normalizePhone, percentToBps, readinessIssues, slugify, switchBlockers, tasterRank } from "@/lib/growth/growthCore";
+import { SQUAD_MAX_MEMBERS, TASTER_SIZE, answerGrid, cleanSquadName, rankSquads, rivalPath, squadJoinText, squadPath, squadRivalText, squadStanding, squadTotals, cardFormat, challengeText, cleanNickname, displayName, duelHeadline, duelOutcome, duelPath, isShareCode, rankStandings, beatPercent, bpsToPercent, checkLead, cleanEmail, cleanSource, effectivePreviewCount, isCampaignSlug, normalizePhone, percentToBps, readinessIssues, slugify, switchBlockers, tasterRank } from "@/lib/growth/growthCore";
 
 const on = { enabled: true, agreementAt: new Date() };
 const base = { platform: on, own: on, orgs: on, organization: on, organizationId: null as string | null, campaignEnabled: true };
@@ -183,5 +183,39 @@ describe("duels", () => {
     expect(duelPath("orbit-ai", "abcd2345")).toBe("/play/orbit-ai?duel=abcd2345");
     expect(challengeText("Ada", 4, 5, "u")).toMatch(/^Ada here\. I got 4\/5/);
     expect(challengeText(null, 4, 5, "u")).toMatch(/^I got 4\/5/);
+  });
+});
+
+describe("squads", () => {
+  it("cleans a squad name to 3 to 24 safe characters", () => {
+    expect(cleanSquadName("  Lagos   Tech Women! ")).toBe("Lagos Tech Women");
+    expect(cleanSquadName("ab")).toBeNull();
+    expect(cleanSquadName("😀😀😀")).toBeNull();
+    expect(cleanSquadName("http://spam.co/join")).toBe("httpspamcojoin");
+    expect(cleanSquadName("x".repeat(60))!.length).toBe(24);
+    expect(cleanSquadName(5)).toBeNull();
+    expect(cleanSquadName("Team_Alpha-1")).toBe("Team_Alpha-1");
+  });
+  it("totals a squad's scores", () => {
+    expect(squadTotals([4, 3, 5], 5)).toEqual({ members: 3, total: 12, max: 15, average: 4 });
+    expect(squadTotals([1, 2], 5)).toEqual({ members: 2, total: 3, max: 10, average: 1.5 });
+    expect(squadTotals([], 5)).toEqual({ members: 0, total: 0, max: 0, average: 0 });
+    expect(squadTotals([2, 2, 3], 5).average).toBe(2.3);
+  });
+  it("says who is ahead", () => {
+    expect(squadStanding(10, 8)).toBe("AHEAD");
+    expect(squadStanding(8, 10)).toBe("BEHIND");
+    expect(squadStanding(8, 8)).toBe("LEVEL");
+  });
+  it("ranks squads by total, then size", () => {
+    const rows = [{ id: "a", total: 10, members: 4 }, { id: "b", total: 12, members: 3 }, { id: "c", total: 10, members: 5 }];
+    expect(rankSquads(rows).map((r) => r.id)).toEqual(["b", "c", "a"]);
+  });
+  it("builds links and messages", () => {
+    expect(squadPath("orbit-ai", "abcd2345")).toBe("/play/orbit-ai?squad=abcd2345");
+    expect(rivalPath("orbit-ai", "abcd2345")).toBe("/play/orbit-ai?rival=abcd2345");
+    expect(squadJoinText("Lagos Tech", "u")).toMatch(/^Join Lagos Tech!/);
+    expect(squadRivalText("Lagos Tech", "u")).toMatch(/^Lagos Tech challenges your squad/);
+    expect(SQUAD_MAX_MEMBERS).toBe(50);
   });
 });

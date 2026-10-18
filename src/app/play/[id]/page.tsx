@@ -13,14 +13,22 @@ import { FORMAT_INFO, type GameFormat } from "@/lib/quest/games";
 import PlayClient from "./PlayClient";
 import Logo from "@/components/Logo";
 import GrowthPlay from "@/components/growth/GrowthPlay";
-import { duelPreview, publicCampaign } from "@/lib/growth/growth";
+import { duelPreview, publicCampaign, squadPreview } from "@/lib/growth/growth";
 import { appUrl } from "@/lib/appUrl";
 import { cleanSource } from "@/lib/growth/growthCore";
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({ params, searchParams }: { params: { id: string }; searchParams: { duel?: string } }): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: { params: { id: string }; searchParams: { duel?: string; squad?: string; rival?: string } }): Promise<Metadata> {
   const campaign = await publicCampaign(params.id);
+  if (campaign && campaign.live && (typeof searchParams.squad === "string" || typeof searchParams.rival === "string")) {
+    const code = (typeof searchParams.squad === "string" ? searchParams.squad : searchParams.rival) as string;
+    const sq = await squadPreview(params.id, code);
+    if (sq) {
+      const title = typeof searchParams.squad === "string" ? `Join ${sq.name}` : `${sq.name} challenges your squad`;
+      return { title, description: "A 90-second AI automation quiz. Every score counts for the squad. No signup.", openGraph: { title, description: "A 90-second AI automation quiz. Every score counts for the squad. No signup." } };
+    }
+  }
   if (campaign && campaign.live && typeof searchParams.duel === "string") {
     // A challenge link previews as the challenger's result card, so it looks good pasted into WhatsApp.
     const d = await duelPreview(params.id, searchParams.duel);
@@ -38,17 +46,20 @@ export async function generateMetadata({ params, searchParams }: { params: { id:
 }
 
 /** /play/[id] — a round of a game that staff opened to the feed. Needs a signed-in account (anyone), saves nothing, and points at the course when it goes badly. */
-export default async function PlayPage({ params, searchParams }: { params: { id: string }; searchParams: { src?: string; duel?: string } }) {
+export default async function PlayPage({ params, searchParams }: { params: { id: string }; searchParams: { src?: string; duel?: string; squad?: string; rival?: string } }) {
   // A course campaign link (/play/<slug>) takes priority: it needs no account and no feed.
   const campaign = await publicCampaign(params.id);
   if (campaign) {
-    const duel = campaign.live && typeof searchParams.duel === "string" ? await duelPreview(params.id, searchParams.duel) : null;
+    const squadCode = typeof searchParams.squad === "string" ? searchParams.squad : typeof searchParams.rival === "string" ? searchParams.rival : null;
+    const sq = campaign.live && squadCode ? await squadPreview(params.id, squadCode) : null;
+    // A squad or rival link takes priority over a duel link on the same address.
+    const duel = campaign.live && !sq && typeof searchParams.duel === "string" ? await duelPreview(params.id, searchParams.duel) : null;
     return (
       <>
         <header className="mx-auto flex w-full max-w-md items-center justify-center px-4 pt-5"><Logo compact /></header>
         <main className="mx-auto w-full max-w-md px-4 py-5">
           {campaign.live ? (
-            <GrowthPlay slug={campaign.slug} courseId={campaign.courseId} courseTitle={campaign.courseTitle} organizationName={campaign.organizationName} source={cleanSource(searchParams.src)} duel={duel ? { code: searchParams.duel as string, name: duel.name, score: duel.score, total: duel.total, rankLabel: duel.rank.label } : null} />
+            <GrowthPlay slug={campaign.slug} courseId={campaign.courseId} courseTitle={campaign.courseTitle} organizationName={campaign.organizationName} source={cleanSource(searchParams.src)} duel={duel ? { code: searchParams.duel as string, name: duel.name, score: duel.score, total: duel.total, rankLabel: duel.rank.label } : null} squadIntro={sq && squadCode ? { kind: typeof searchParams.squad === "string" ? "join" : "rival", code: squadCode, name: sq.name, members: sq.members, total: sq.total, full: sq.full } : null} />
           ) : (
             <Card>
               <h1 className="font-display text-2xl font-bold text-brand-ink">This campaign has ended</h1>
