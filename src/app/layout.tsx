@@ -9,6 +9,7 @@ import { Suspense } from "react";
 import PwaRegister from "@/components/pwa/PwaRegister";
 import GlobalBottomNav from "@/components/pwa/GlobalBottomNav";
 import ArenaReturnPill from "@/components/arena/ArenaReturnPill";
+import ChatAlerts from "@/components/arena/ChatAlerts";
 import ResponsiveTables from "@/components/pwa/ResponsiveTables";
 import "./globals.css";
 
@@ -104,6 +105,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <PwaRegister />
         <GlobalBottomNav />
         <ArenaReturnPill />
+        <ChatAlerts />
         <ResponsiveTables />
       </body>
     </html>

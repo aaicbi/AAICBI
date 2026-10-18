@@ -93,7 +93,12 @@ self.addEventListener("push", (event) => {
     tag: typeof data.tag === "string" ? data.tag : undefined,
     data: { url: typeof data.url === "string" && data.url.startsWith("/") ? data.url : "/notifications" },
   };
-  event.waitUntil(self.registration.showNotification(title, options));
+  // The app icon carries the number of unread messages when the sender knows it (installed apps only; ignored elsewhere).
+  const count = typeof data.badge === "number" ? data.badge : null;
+  const setBadge = count !== null && self.navigator && "setAppBadge" in self.navigator
+    ? (count > 0 ? self.navigator.setAppBadge(count) : self.navigator.clearAppBadge()).catch(() => undefined)
+    : Promise.resolve();
+  event.waitUntil(Promise.all([self.registration.showNotification(title, options), setBadge]));
 });
 
 self.addEventListener("notificationclick", (event) => {

@@ -17,6 +17,7 @@ import {
 import { basePointsFor, chooseEntry, gradeEntry, poolFor, revealEntry, serveEntry, type PoolEntry } from "@/lib/arena/arenaPool";
 import { channels } from "@/lib/arena/realtimeCore";
 import { pokeMany } from "@/lib/arena/realtime";
+import { notifyChallenge, notifyChallengeReply } from "@/lib/arena/challengeNotify";
 import { activeSuspension, suspensionText } from "@/lib/arena/suspension";
 
 export class ArenaError extends Error {
@@ -344,6 +345,7 @@ export async function createChallenge(input: { challengerId: string; opponentId:
     data: { courseId, moduleId, challengerId, opponentId, rematchOfId: input.rematchOfId ?? null, rules: { ...rules, questionsPerMatch: length } as never, expiresAt: new Date(Date.now() + INVITE_MINUTES * 60_000) },
   });
   void pokeMany([{ channel: channels.user(opponentId), message: { v: m.version, k: "challenge" } }, { channel: channels.course(courseId), message: { v: 0, k: "lobby" } }]);
+  void notifyChallenge(m);
   return m;
 }
 
@@ -357,7 +359,7 @@ export async function respondToChallenge(matchId: string, traineeId: string, acc
     const s = m ? await activeSuspension(traineeId, m.courseId) : null;
     if (s) throw new ArenaError(suspensionText(s), 403);
   }
-  return mutate(matchId, (d, now) => {
+  const res = await mutate(matchId, (d, now) => {
     requirePlayer(d, traineeId);
     if (d.m.opponentId !== traineeId) throw new ArenaError("Only the player who was challenged can answer.", 403);
     if (d.m.status !== "PENDING") throw new ArenaError(d.m.status === "EXPIRED" ? "That challenge has expired." : "That challenge was already answered.", 409);
@@ -365,6 +367,9 @@ export async function respondToChallenge(matchId: string, traineeId: string, acc
     else { d.m.status = "DECLINED"; d.m.endedAt = new Date(now); d.m.endReason = "declined"; }
     d.m.lastActivityAt = new Date(now);
   });
+  const row = await prisma.arenaMatch.findUnique({ where: { id: matchId }, select: { id: true, courseId: true, challengerId: true, opponentId: true, moduleId: true, rematchOfId: true } });
+  if (row) void notifyChallengeReply(row, accept);
+  return res;
 }
 
 export async function leaveMatch(matchId: string, traineeId: string) {

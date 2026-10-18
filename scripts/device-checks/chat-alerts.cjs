@@ -1,0 +1,42 @@
+const { B, log, launch, device, signedIn, clearThrottle } = require('./lib.cjs');
+const psql = (q) => require('child_process').execFileSync('/usr/lib/postgresql/16/bin/psql', ['-h','127.0.0.1','-p','5544','-U','dev','-d','aaicbi_dev','-At','-c',q]).toString().trim();
+(async () => {
+  clearThrottle();
+  psql(`update "Course" set published=true, status='PUBLISHED' where id='arena_play'`);
+  psql(`update "ArenaConfig" set enabled=true,"chatEnabled"=true where "scopeType"='PLATFORM'`);
+  psql(`delete from "ArenaChatMessage" where "courseId"='arena_play'`);
+  psql(`delete from "ArenaChatRead" where "courseId"='arena_play'`);
+  const br = await launch();
+  const dev = device('iPhone 7', { viewport: { width: 375, height: 667 } });
+  const ca = await signedIn(br, dev, '/api/auth/trainee-login', 't0@dev.test'); const cb = await signedIn(br, dev, '/api/auth/trainee-login', 't1@dev.test');
+  await ca.addInitScript(() => { window.__badge = []; navigator.setAppBadge = (n) => { window.__badge.push(n); return Promise.resolve(); }; navigator.clearAppBadge = () => { window.__badge.push(0); return Promise.resolve(); }; });
+  const pa = await ca.newPage(); const pb = await cb.newPage(); pa.setDefaultTimeout(15000);
+  // B talks in the group; A is on the dashboard
+  await pb.goto(`${B}/trainee/arena/arena_play/chat`, { waitUntil: 'load' });
+  await pb.locator('.ar-chatin').fill('Anyone up for a game?'); await pb.getByRole('button', { name: 'Send' }).click();
+  await pb.locator('.ar-mine', { hasText: 'Anyone up for a game?' }).waitFor();
+  await pa.goto(`${B}/trainee/dashboard`, { waitUntil: 'load' });
+  await pa.getByTestId('chat-live').waitFor({ timeout: 20000 });
+  const card = await pa.getByTestId('chat-live').innerText();
+  log(/Chat is live/.test(card) && /1 new/.test(card), 'the home page shows a live-chat card with the new count: ' + card.replace(/\n/g, ' | '));
+  const oneLine = await pa.getByText(/^1 new$/).evaluate((e) => e.getBoundingClientRect().height < 30);
+  log(oneLine, 'the "1 new" pill sits on one line');
+  const api = await pa.evaluate(async () => (await (await fetch('/api/arena/alerts')).json()));
+  const title = await pa.title();
+  log(title.startsWith('(' + api.total + ')') && api.total >= 1, 'the tab title carries the total unread (' + api.total + ' = group + direct + challenge): ' + title);
+  const badge = await pa.evaluate(() => window.__badge.slice(-1)[0]);
+  log(badge === api.total, 'the app icon badge is set to the same number (' + badge + ')');
+  await pa.screenshot({ path: '/tmp/dev/chat-alerts-phone.png' });
+  // reading it clears everything
+  await pa.getByRole('link', { name: 'Open chat' }).click();
+  await pa.locator('.ar-chatin').waitFor();
+  await pa.waitForTimeout(500);
+  await pa.goto(`${B}/trainee/dashboard`, { waitUntil: 'load' });
+  await pa.waitForTimeout(4000);
+  const gone = await pa.getByTestId('chat-live').count();
+  const b2 = await pa.evaluate(() => window.__badge.slice(-1)[0]);
+  log(gone === 0 && b2 === api.total - 1, 'after reading the group chat, the card is gone and the icon number drops by one (' + gone + ', ' + b2 + ')');
+  await br.close();
+  const bad = require('./lib.cjs').results.filter((x) => !x[0]);
+  console.log(bad.length ? `\n${bad.length} FAILED` : '\nALL PASSED'); process.exit(bad.length ? 1 : 0);
+})().catch((e) => { console.error(e); process.exit(1); });

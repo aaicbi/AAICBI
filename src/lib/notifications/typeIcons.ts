@@ -16,6 +16,7 @@ import {
   BarChart3,
   Sparkles,
   UserPlus,
+  Swords,
   type LucideIcon,
 } from "lucide-react";
 
@@ -31,6 +32,8 @@ import {
  */
 const TYPE_ICON: Record<string, LucideIcon> = {
   WELCOME: Sparkles,
+  ARENA_CHALLENGE: Swords,
+  ARENA_CHALLENGE_REPLY: Swords,
   MODULE_UNLOCKED: Unlock,
   COURSE_ACCESS_GRANTED: Unlock,
   EXAM_ACCESS_GRANTED: Unlock,

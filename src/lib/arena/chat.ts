@@ -100,7 +100,7 @@ export async function challengeInChat(input: { challengerId: string; opponentId:
     const [a, b] = await Promise.all([prisma.trainee.findUnique({ where: { id: input.challengerId }, select: { name: true } }), prisma.trainee.findUnique({ where: { id: input.opponentId }, select: { name: true } })]);
     await prisma.arenaChatMessage.create({ data: { courseId: input.courseId, senderId: input.challengerId, kind: "CHALLENGE", refId: m.id, body: `${a?.name ?? "Someone"} challenged ${b?.name ?? "a coursemate"} to Ayakbi Arena` } });
     void pokeMany([{ channel: channels.course(input.courseId), message: { v: 0, k: "chat" } }]);
-    void pushToCourse(input.courseId, input.challengerId, { title: `${a?.name ?? "A coursemate"} challenged you`, body: "Open the chat to accept or decline.", url: `/trainee/arena/${input.courseId}/chat` }, [input.opponentId]);
+    // The challenged player's phone is notified by createChallenge (notifyChallenge), so the chat does not push a second time.
   }
   return m;
 }
