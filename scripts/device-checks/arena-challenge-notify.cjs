@@ -44,6 +44,27 @@ const psql = (q) => require('child_process').execFileSync('/usr/lib/postgresql/1
   log(n2 === '1', 'they get the notification while away (' + n2 + ')');
   const mins = psql(`select round(extract(epoch from ("expiresAt" - now()))/60) from "ArenaMatch" where id='${off.j.id}'`);
   log(Number(mins) >= 55, 'the invitation waits about an hour for someone who is away (' + mins + ' min)');
+  // nobody answers: when the invitation runs out the challenger is told, once
+  psql(`delete from "UserNotification" where type in ('ARENA_CHALLENGE_EXPIRED')`);
+  psql(`update "ArenaMatch" set "expiresAt" = now() - interval '1 minute' where id='${off.j.id}'`);
+  let got = '0';
+  for (let i = 0; i < 14 && got === '0'; i++) {
+    await pa.evaluate(() => fetch('/api/arena/active').then((r) => r.status));
+    got = psql(`select count(*) from "UserNotification" where "recipientId"='${aId}' and type='ARENA_CHALLENGE_EXPIRED'`);
+    if (got === '0') await new Promise((x) => setTimeout(x, 3000));
+  }
+  log(got === '1', 'the challenger is told when nobody answered in time (' + got + ')');
+  const title3 = psql(`select title from "UserNotification" where "recipientId"='${aId}' and type='ARENA_CHALLENGE_EXPIRED' limit 1`);
+  log(/didn't answer your challenge/.test(title3), 'it says who did not answer: ' + title3);
+  const st = psql(`select status from "ArenaMatch" where id='${off.j.id}'`);
+  log(st === 'EXPIRED', 'the invitation is marked expired (' + st + ')');
+  const open2 = psql(`select count(*) from "UserNotification" where "recipientId"='${bId}' and type='ARENA_CHALLENGE' and "readAt" is null`);
+  log(open2 === '0', 'the lapsed invitation is cleared from the other player\'s bell (' + open2 + ' unread)');
+  await new Promise((x) => setTimeout(x, 32000));
+  await pa.evaluate(() => fetch('/api/arena/active').then((r) => r.status));
+  await new Promise((x) => setTimeout(x, 1000));
+  const again = psql(`select count(*) from "UserNotification" where "recipientId"='${aId}' and type='ARENA_CHALLENGE_EXPIRED'`);
+  log(again === '1', 'a later sweep does not tell them twice (' + again + ')');
   psql(`update "ArenaMatch" set status='CANCELLED' where status in ('PENDING','LOBBY','ACTIVE')`);
   await br.close();
   const bad = require('./lib.cjs').results.filter((x) => !x[0]);

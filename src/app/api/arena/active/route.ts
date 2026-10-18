@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { arenaJson, arenaTrainee } from "@/lib/arena/arenaApi";
-import { activeMatchOf, touchPresence } from "@/lib/arena/arena";
+import { activeMatchOf, touchPresence, sweepExpiredChallenges } from "@/lib/arena/arena";
 import { availabilityForCourse } from "@/lib/arena/config";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +14,7 @@ export async function GET() {
     for (const c of courses) {
       if ((await availabilityForCourse(c.courseId)).game) await touchPresence(me, c.courseId).catch(() => undefined);
     }
+    void sweepExpiredChallenges().catch(() => undefined);
     const m = await activeMatchOf(me);
     if (!m) return { match: null };
     const other = await prisma.trainee.findUnique({ where: { id: m.challengerId === me ? m.opponentId : m.challengerId }, select: { name: true } });

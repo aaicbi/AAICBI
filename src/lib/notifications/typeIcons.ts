@@ -36,6 +36,7 @@ const TYPE_ICON: Record<string, LucideIcon> = {
   ARENA_EVENT_MATCH: Swords,
   ARENA_CREDITS: Sparkles,
   ARENA_CHALLENGE_REPLY: Swords,
+  ARENA_CHALLENGE_EXPIRED: Swords,
   MODULE_UNLOCKED: Unlock,
   COURSE_ACCESS_GRANTED: Unlock,
   EXAM_ACCESS_GRANTED: Unlock,

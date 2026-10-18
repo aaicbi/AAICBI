@@ -23,3 +23,13 @@ describe("challenge notifications", () => {
     for (const n of [challengeNotice(f), replyNotice(f, true), replyNotice(f, false)]) expect(n.url.startsWith("/") && !n.url.startsWith("//")).toBe(true);
   });
 });
+
+import { expiredNotice } from "@/lib/arena/challengeNotifyCore";
+describe("expired challenge notice", () => {
+  it("tells the challenger nobody answered and where to go next", () => {
+    const n = expiredNotice({ matchId: "m1", courseId: "c1", courseTitle: "Intro to Cybersecurity", fromName: "Amaka Okafor", toName: "Tunde Bello", topic: null, rematch: false });
+    expect(n.title).toBe("Tunde didn't answer your challenge");
+    expect(n.body).toContain("Intro to Cybersecurity");
+    expect(n.url).toBe("/trainee/arena/c1");
+  });
+});
