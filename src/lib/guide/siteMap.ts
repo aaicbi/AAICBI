@@ -73,6 +73,7 @@ export const PAGES: Array<SitePage & { group: Group }> = [
   { group: "Member (trainee)", href: "/trainee/certificates", label: "My certificates", who: ["trainee"], what: "Certificates you earned, to download and share with a verification link.", aliases: ["certificate", "download certificate", "share certificate"] },
   { group: "Member (trainee)", href: "/trainee/progress", label: "My progress", who: ["trainee"], what: "How far you are in each program.", aliases: ["progress", "how am i doing"] },
   { group: "Member (trainee)", href: "/trainee/my-activity", label: "Analytics and reports", who: ["trainee"], what: "Your learning activity over time.", aliases: ["analytics", "reports", "my activity", "stats"] },
+  { group: "Member (trainee)", href: "/trainee/arena", label: "Gaming Arena", who: ["trainee"], what: "Challenge an online coursemate to The Interview, a two-player question game, when it is switched on for your course.", aliases: ["game", "arena", "play a game", "challenge a friend", "the interview"] },
   { group: "Member (trainee)", href: "/trainee/messages", label: "Messages", who: ["trainee"], what: "Conversations with instructors, organizations and employers.", aliases: ["chat", "inbox", "dm"] },
   { group: "Member (trainee)", href: "/trainee/explore", label: "Explore", who: ["trainee"], what: "Organizations, jobs and events in one place.", aliases: ["explore", "discover"] },
   { group: "Member (trainee)", href: "/trainee/profile", label: "My profile", who: ["trainee"], what: "Your name, photo, skills, education, experience and projects; choose who can see your profile (public by default, or narrower).", aliases: ["profile", "edit profile", "profile visibility", "make my profile private", "privacy", "who can see my profile", "avatar", "profile picture"] },
@@ -180,6 +181,8 @@ export interface DynamicPage {
 }
 
 export const DYNAMIC: DynamicPage[] = [
+  { route: "/trainee/arena/[courseId]", what: "A course's arena: who is online, challenges and recent matches.", from: "/trainee/arena", how: "Pick a course on the Gaming Arena page." },
+  { route: "/trainee/arena/match/[id]", what: "A live match of The Interview, full screen and landscape.", from: "/trainee/arena", how: "Open a course, then challenge a coursemate or accept a challenge." },
   { route: "/post/[id]", what: "One post with all its comments.", from: "/feed", how: "Open a post from the feed." },
   { route: "/tags/[tag]", what: "Posts that use one #topic.", from: "/feed", how: "Tap a #topic on a post or in Topics this week." },
   { route: "/courses/[id]", what: "A program's page with its outline, requirements and enrol button.", from: "/courses", how: "Open a program from the list." },

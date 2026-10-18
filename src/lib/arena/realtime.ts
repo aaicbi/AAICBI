@@ -35,15 +35,16 @@ export async function pokeMany(list: { channel: string; message: PokeMessage }[]
   await Promise.all(list.map((p) => poke(p.channel, p.message)));
 }
 
-/** A token request for one trainee. The browser exchanges it with Ably for a connection; the key never leaves the server. */
-export async function tokenRequestFor(input: { traineeId: string; courseIds: string[]; matchIds: string[]; watchIds?: string[] }) {
+/**
+ * A short-lived Ably token for one trainee: subscribe-only, on their own channel, their courses' arenas and their current match.
+ * The browser listens over a plain event stream (no Ably library shipped to phones); the key never leaves the server.
+ */
+export async function tokenFor(input: { traineeId: string; courseIds: string[]; matchIds: string[]; watchIds?: string[] }) {
   const c = client();
   if (!c) return null;
-  return c.auth.createTokenRequest({
-    clientId: input.traineeId,
-    capability: JSON.stringify(capabilityFor(input)),
-    ttl: TOKEN_TTL_MS,
-  });
+  const capability = capabilityFor(input);
+  const details = await c.auth.requestToken({ clientId: input.traineeId, capability: JSON.stringify(capability), ttl: TOKEN_TTL_MS });
+  return { token: details.token, expires: details.expires, channels: Object.keys(capability) };
 }
 
 /** Super Admin connection test: send a message and read it back from Ably's history. */

@@ -739,6 +739,9 @@ model Trainee {
   assignmentRemindersSent   AssignmentReminderSent[]
 
   @@index([email])
+  arenaChallenges ArenaMatch[] @relation("ArenaChallenger")
+  arenaInvites    ArenaMatch[] @relation("ArenaOpponent")
+  arenaPresence   ArenaPresence[]
 }
 
 model Skill {
@@ -1389,6 +1392,8 @@ model Course {
   @@index([published])
   @@index([status])
   @@index([startDate])
+  arenaMatches  ArenaMatch[]
+  arenaPresence ArenaPresence[]
 }
 
 enum PayoutType {
@@ -5645,4 +5650,155 @@ model ArenaConfig {
   updatedAt   DateTime @updatedAt
 
   @@unique([scopeType, scopeId])
+}
+
+// ---------------------------------------------------------------------------
+// Gaming Arena: matches. The server owns the match: whose turn it is, the
+// deadline for the current step, the questions, the scoring and the result.
+// Browsers only send what a player did and fetch what they may see.
+// ---------------------------------------------------------------------------
+enum ArenaMatchStatus {
+  PENDING
+  LOBBY
+  ACTIVE
+  COMPLETED
+  DECLINED
+  EXPIRED
+  CANCELLED
+  FORFEITED
+}
+
+enum ArenaPhase {
+  PICK
+  ANSWER
+  STEAL
+  REVEAL
+}
+
+model ArenaMatch {
+  id           String           @id @default(cuid())
+  courseId     String
+  course       Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  moduleId     String?
+  challengerId String
+  challenger   Trainee          @relation("ArenaChallenger", fields: [challengerId], references: [id], onDelete: Cascade)
+  opponentId   String
+  opponent     Trainee          @relation("ArenaOpponent", fields: [opponentId], references: [id], onDelete: Cascade)
+  status       ArenaMatchStatus @default(PENDING)
+  /// When an unanswered invitation, or a lobby nobody starts, lapses.
+  expiresAt    DateTime
+  /// The rules of play as they were when the challenge was sent (seconds, bonus, pauses, rounds).
+  rules        Json
+
+  readyChallenger Boolean @default(false)
+  readyOpponent   Boolean @default(false)
+
+  phase       ArenaPhase?
+  phaseEndsAt DateTime?
+  /// Rounds started so far (1 while the first question is being played).
+  roundNo     Int          @default(0)
+  /// Whose turn it is to pick and answer.
+  turnId      String?
+
+  scoreChallenger Int @default(0)
+  scoreOpponent   Int @default(0)
+  /// Turns missed in a row (ran out of time): three in a row forfeits.
+  missChallenger  Int @default(0)
+  missOpponent    Int @default(0)
+
+  pausedById           String?
+  pausedAt             DateTime?
+  pauseRemainingMs     Int?
+  pausesUsedChallenger Int       @default(0)
+  pausesUsedOpponent   Int       @default(0)
+
+  winnerId       String?
+  endReason      String?
+  version        Int       @default(0)
+  createdAt      DateTime  @default(now())
+  startedAt      DateTime?
+  endedAt        DateTime?
+  lastActivityAt DateTime  @default(now())
+
+  rounds    ArenaRound[]
+  messages  ArenaMessage[]
+  reactions ArenaReaction[]
+
+  @@index([courseId, status])
+  @@index([challengerId, status])
+  @@index([opponentId, status])
+}
+
+model ArenaRound {
+  id         String     @id @default(cuid())
+  matchId    String
+  match      ArenaMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  idx        Int
+  pickerId   String
+  /// The number the player chose on the board.
+  number     Int
+  format     GameFormat
+  /// "QUESTION" (a practice question) or "ITEM" (a game item).
+  itemKind   String
+  itemId     String
+  basePoints Int
+  /// What the players see: shuffled once when picked, never the answer key.
+  served     Json
+  servedAt   DateTime   @default(now())
+
+  firstResponse Json?
+  firstCorrect  Boolean?
+  firstTimedOut Boolean   @default(false)
+  firstAt       DateTime?
+  stealerId     String?
+  stealResponse Json?
+  stealCorrect  Boolean?
+  stealTimedOut Boolean   @default(false)
+  stealAt       DateTime?
+
+  /// FIRST (the picker got it), STOLEN (the other player got it), NONE (nobody did).
+  outcome     String?
+  awardedToId String?
+  points      Int     @default(0)
+  /// The correct answer and the explanation, filled in when the round is over.
+  reveal      Json?
+
+  @@unique([matchId, idx])
+  @@unique([matchId, number])
+}
+
+/// What the two players say while the game is paused (or in the lobby). Short, rate limited.
+model ArenaMessage {
+  id        String     @id @default(cuid())
+  matchId   String
+  match     ArenaMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  senderId  String
+  body      String
+  createdAt DateTime   @default(now())
+
+  @@index([matchId, createdAt])
+}
+
+/// Reactions between questions. Kept briefly so a page that is only polling can still show them.
+model ArenaReaction {
+  id        String     @id @default(cuid())
+  matchId   String
+  match     ArenaMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  senderId  String
+  kind      String
+  createdAt DateTime   @default(now())
+
+  @@index([matchId, createdAt])
+}
+
+/// Who is in a course's arena right now: a heartbeat every few seconds from the arena page.
+model ArenaPresence {
+  traineeId  String
+  trainee    Trainee  @relation(fields: [traineeId], references: [id], onDelete: Cascade)
+  courseId   String
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lastSeenAt DateTime @default(now())
+
+  @@id([traineeId, courseId])
+  @@index([courseId, lastSeenAt])
 }

@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
+import { activeMatchOf } from "@/lib/arena/arena";
 import { availabilityForCourse } from "@/lib/arena/config";
-import { tokenRequestFor, realtimeMode } from "@/lib/arena/realtime";
+import { tokenFor, realtimeMode } from "@/lib/arena/realtime";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,8 @@ export async function GET() {
     const enrolments = await prisma.courseEnrollment.findMany({ where: { traineeId: session.userId, unlockedAt: { not: null }, accessRevokedAt: null }, select: { courseId: true }, take: 50 });
     const open: string[] = [];
     for (const e of enrolments) if ((await availabilityForCourse(e.courseId)).game) open.push(e.courseId);
-    const request = await tokenRequestFor({ traineeId: session.userId, courseIds: open, matchIds: [] });
-    return NextResponse.json({ mode: "ably", request });
+    const active = await activeMatchOf(session.userId);
+    const grant = await tokenFor({ traineeId: session.userId, courseIds: open, matchIds: active ? [active.id] : [] });
+    return NextResponse.json({ mode: "ably", ...grant });
   });
 }

@@ -48,3 +48,15 @@ One table, `ArenaConfig` (migration `20261112090000_arena_config`, additive). Ro
 
 ### Checks
 `tests/arenaConfig.test.ts`, `tests/arenaRealtime.test.ts`, and `scripts/device-checks/arena-settings.cjs` (switches, scopes, clamping, who may change what, token endpoint, the Super Admin page).
+
+## Release 2: the match and the game screens
+
+**What players do.** `/trainee/arena` lists the courses where the Arena is open; `/trainee/arena/[courseId]` shows who is online, challenges and recent matches; `/trainee/arena/match/[id]` is the full-screen landscape game (works on desktop and on a phone turned sideways, with "Flip screen" and "Full screen" buttons for locked rotation).
+
+**Rules as built.** 15 s per question (instructor 5-120), a separate 10 s pick-a-number timer with its own message and tone (the system picks a random number on timeout), a miss passes the question to the other player for 5 s for normal points plus the bonus (default +50%), the first player's wrong pick is never sent to the other player, only the correct answer and explanation appear at the reveal, speed bonus up to 20% on a first correct answer, 2 pauses per player (60 s auto-resume, question hidden while paused, chat open), reactions only between questions (lobby, pick, reveal, end), forfeit after 3 missed turns in a row, invites expire after 10 min, lobbies after 15 min, abandoned matches after 30 min.
+
+**How it stays honest.** The database is the source of truth. Every request loads the match, settles any deadline that has passed, applies the action and saves with a version check. Browsers receive a per-player view (`src/lib/arena/arenaView.ts`) with no answer key.
+
+**Real time.** Ably only says "something changed". Browsers listen over a plain event stream with a short-lived subscribe-only token from `/api/arena/realtime/token` (no Ably library is shipped to phones); the page then refetches its own view. With no key, or if the stream drops, pages poll every 1-2 s.
+
+**Checks.** `tests/arenaCore.test.ts` (rules), `scripts/device-checks/arena-match.cjs` (two trainees play a complete match through the API: challenge, lobby, pick, answer, bonus, pause, reactions, timeouts, forfeit, expiry, rate limit) and `scripts/device-checks/arena-ui.cjs` (two browsers on desktop and a landscape phone, no scrolling, no console errors).
