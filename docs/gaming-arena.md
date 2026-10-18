@@ -167,3 +167,9 @@ The floating Messages button (trainee pages with the sidebar) is now one inbox (
 - Not muted on purpose: replies to your own challenge ("accepted", "declined", "didn't answer"), and match calls in a live event you joined.
 - Also fixed: small and ghost buttons in the arena (`ar-sm`, `ar-ghost`) had no styles, so every one of them looked like a full gold button; they now look as designed.
 - Check: `scripts/device-checks/arena-mute.cjs`.
+
+## Release 16: game moderation
+
+- **Reporting.** On the result screen of a match and on the watch screen there is a "🚩 Report this match" button (`ReportMatch`, `POST /api/arena/matches/[id]/report`). Reasons: cheating or working together, rude or abusive messages, something else (needs a few words). A player reports the other player; a watcher says which of the two. You can report a match you played or watched, one open report per match, at most 5 reports an hour. The course's owner (instructor or admin) is notified in their bell and by push.
+- **Moderator panel** ("Game moderation" in the course's arena settings, `GET/POST /api/admin/courses/[id]/arena/moderation`): the reports (open first), live and recent matches, and the chat inside any match (players' match messages). A moderator can: **end a live match** (it does not count, both players are told), **take a finished match off the ladder** (both ratings are put back and the match no longer counts on the weekly, monthly or champion boards; `ArenaMatch.voidedAt`, `ArenaRatingChange.voided`), **remove a message** from a match chat (it disappears for the players), **dismiss** a report, or **resolve** it with any of: end the match, take it off the ladder, suspend the reported player for 24 hours (the existing arena suspension). The reporter is told it was reviewed. Who did what is recorded (`handledById`, `voidedById`, `deletedById`).
+- Check: `scripts/device-checks/arena-moderation.cjs`.

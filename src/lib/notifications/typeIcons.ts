@@ -33,6 +33,8 @@ import {
 const TYPE_ICON: Record<string, LucideIcon> = {
   WELCOME: Sparkles,
   ARENA_CHALLENGE: Swords,
+  ARENA_REPORT: AlertTriangle,
+  ARENA_MODERATION: AlertTriangle,
   ARENA_EVENT_MATCH: Swords,
   ARENA_CREDITS: Sparkles,
   ARENA_CHALLENGE_REPLY: Swords,

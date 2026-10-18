@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { EMOJI } from "./reactions";
+import ReportMatch from "./ReportMatch";
 import { useRouter } from "next/navigation";
 import ArenaFrame from "./ArenaFrame";
 import { useArenaLive, channels } from "./useArenaLive";
@@ -668,6 +669,7 @@ function Result({ v, act }: { v: MatchView; act: Act }) {
         {rm && rm.status === "PENDING" && rm.from === "opponent" && <><span className="ar-pill ar-gold">{v.opponent.name} wants a rematch!</span><button type="button" className="ar-btn ar-big-btn" onClick={() => void fetch(`/api/arena/matches/${rm.id}/accept`, { method: "POST" }).then(() => router.push(`/trainee/arena/match/${rm.id}`))}>Accept rematch</button><button type="button" className="ar-btn ar-ghost ar-sm" onClick={() => void fetch(`/api/arena/matches/${rm.id}/decline`, { method: "POST" })}>Not now</button></>}
         <a className="ar-btn ar-ghost" href={`/trainee/arena/${v.courseId}`} style={{ textDecoration: "none", display: "inline-block" }}>Back to the arena</a>
       </div>
+      <ReportMatch matchId={v.id} />
       {r.topics.length > 0 && (
         <section className="ar-sec" aria-label="How you did by topic">
           <h3>How you did by topic</h3>

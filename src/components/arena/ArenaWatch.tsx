@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import ArenaFrame from "./ArenaFrame";
 import { useArenaLive } from "./useArenaLive";
 import { CHEER_EMOJI } from "@/lib/arena/spectateCore";
+import ReportMatch from "./ReportMatch";
 import type { SpectateView } from "@/lib/arena/spectate";
 
 type Served = NonNullable<SpectateView["round"]>["served"];
@@ -82,6 +83,7 @@ export default function ArenaWatch({ matchId }: { matchId: string }) {
             )}
             {!over && !v.round && <div className="ar-card"><p className="ar-muted">Waiting for the next question…</p></div>}
             <div className="ar-floaty" aria-hidden>{flying.map((f) => <span key={f.id} style={{ left: `${f.x}%` }}>{f.e}</span>)}</div>
+            <ReportMatch matchId={matchId} watcherOf={[{ id: v.a.id, name: v.a.name }, { id: v.b.id, name: v.b.name }]} />
             <div className="ar-glass">
               <span className="ar-muted">Cheer them on. Cheers are emoji only; nothing you do changes the match.</span>
               <div className="ar-cheers">{Object.entries(CHEER_EMOJI).map(([k, e]) => <button key={k} type="button" aria-label={k} onClick={() => void cheer(k)}>{e}</button>)}</div>

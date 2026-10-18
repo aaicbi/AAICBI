@@ -1411,6 +1411,7 @@ model Course {
   arenaChatReads ArenaChatRead[]
   arenaRatings  ArenaRating[]
   arenaEvents   ArenaEvent[]
+  arenaReports  ArenaReport[]
   arenaRatingChanges ArenaRatingChange[]
   arenaChampions ArenaChampion[]
   arenaCredits  ArenaCredit[]
@@ -5745,6 +5746,9 @@ model ArenaMatch {
   /// Set when the match is part of a live event (the tie it settles).
   eventId        String?
   eventTieId     String?
+  /// Set when a moderator takes the result off the ladder.
+  voidedAt       DateTime?
+  voidedById     String?
   version        Int       @default(0)
   createdAt      DateTime  @default(now())
   startedAt      DateTime?
@@ -5807,6 +5811,9 @@ model ArenaMessage {
   senderId  String
   body      String
   createdAt DateTime   @default(now())
+  /// Set when a moderator removes the message (a staff user id as plain text).
+  deletedAt DateTime?
+  deletedById String?
 
   @@index([matchId, createdAt])
 }
@@ -5979,6 +5986,8 @@ model ArenaRatingChange {
   delta     Int
   /// false when the match did not move the ladder (the same pair has already played the daily limit).
   counted   Boolean  @default(true)
+  /// A moderator took this match off the ladder: the rating was put back and the change no longer counts.
+  voided    Boolean  @default(false)
   result    String
   createdAt DateTime @default(now())
 
@@ -6086,4 +6095,26 @@ model ArenaPreference {
   challengeMutedUntil DateTime?
   challengeMuted      Boolean   @default(false)
   updatedAt           DateTime  @updatedAt
+}
+
+/// A player or spectator reporting a match, or a player in it, to the course's moderators.
+model ArenaReport {
+  id          String    @id @default(cuid())
+  courseId    String
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  matchId     String
+  reporterId  String
+  reportedId  String?
+  /// CHEATING, ABUSE or OTHER.
+  reason      String
+  note        String?
+  /// OPEN, RESOLVED or DISMISSED.
+  status      String    @default("OPEN")
+  handledById String?
+  handledNote String?
+  createdAt   DateTime  @default(now())
+  resolvedAt  DateTime?
+
+  @@index([courseId, status, createdAt])
+  @@index([reporterId, createdAt])
 }
