@@ -1415,6 +1415,7 @@ model Course {
   arenaRatingChanges ArenaRatingChange[]
   arenaChampions ArenaChampion[]
   arenaCredits  ArenaCredit[]
+  growthCampaign GrowthCampaign?
 }
 
 enum PayoutType {
@@ -6117,4 +6118,93 @@ model ArenaReport {
 
   @@index([courseId, status, createdAt])
   @@index([reporterId, createdAt])
+}
+
+// ---------------------------------------------------------------------
+// Ayakbi Arena growth funnel: a public, no-account taster game per course that leads to module 1 and then to payment.
+// Off everywhere until the Super Admin switches it on (platform, then AAICBI or organization courses, then each course).
+// ---------------------------------------------------------------------
+
+// One row per switch. scopeType PLATFORM (master), OWN (AAICBI's own courses), ORGS (all organization courses),
+// ORGANIZATION (one organization, scopeId = its id). A missing row means off.
+model GrowthSetting {
+  id                 String    @id @default(cuid())
+  scopeType          String
+  scopeId            String    @default("")
+  enabled            Boolean   @default(false)
+  // The organization agreed to give module 1 free and to the campaign; recorded when the switch is first turned on.
+  agreementAt        DateTime?
+  agreementById      String?
+  // Share of each attributed payment owed to AAICBI, in basis points (1500 = 15%). Used by the commission ledger.
+  commissionBps      Int?
+  // Scholarship seat pool for this organization's courses. Off until the organization agrees.
+  scholarshipEnabled Boolean   @default(false)
+  updatedById        String?
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([scopeType, scopeId])
+}
+
+// A course's campaign: its public link and its own on/off opt-in.
+model GrowthCampaign {
+  id               String    @id @default(cuid())
+  courseId         String    @unique
+  course           Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  slug             String    @unique
+  enabled          Boolean   @default(false)
+  tasterApprovedAt DateTime?
+  tasterApprovedById String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  taster  GrowthTasterQuestion[]
+  plays   GrowthGuestPlay[]
+}
+
+// The five questions newcomers play for free. The course's instructor approves each one.
+model GrowthTasterQuestion {
+  id          String         @id @default(cuid())
+  campaignId  String
+  campaign    GrowthCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  questionId  String
+  position    Int
+  // PENDING until the instructor approves it.
+  status      String         @default("PENDING")
+  decidedById String?
+  decidedAt   DateTime?
+
+  @@unique([campaignId, questionId])
+  @@index([campaignId, position])
+}
+
+// One newcomer's run of the taster. No account: the browser holds the random token.
+model GrowthGuestPlay {
+  id          String         @id @default(cuid())
+  token       String         @unique
+  campaignId  String
+  campaign    GrowthCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  // Where the link was shared from, for the campaign report (?src=...).
+  source      String?
+  // The five question ids in the order they are served, and the choices made so far.
+  questionIds Json
+  answers     Json           @default("[]")
+  score       Int            @default(0)
+  startedAt   DateTime       @default(now())
+  completedAt DateTime?
+
+  @@index([campaignId, startedAt])
+  @@index([campaignId, completedAt])
+}
+
+// Who changed a growth switch, and when.
+model GrowthAudit {
+  id        String   @id @default(cuid())
+  actorId   String
+  action    String
+  scopeType String
+  scopeId   String   @default("")
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }

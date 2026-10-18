@@ -32,6 +32,7 @@ import CourseMarketingSettings, { type CourseMarketingFields } from "./CourseMar
 import CourseScheduleSettings, { type CourseScheduleFields } from "./CourseScheduleSettings";
 import MoveCourse from "./MoveCourse";
 import ArenaSettings from "./ArenaSettings";
+import GrowthTaster from "@/components/growth/GrowthTaster";
 import ShareCard from "@/components/collab/ShareCard";
 
 import { Checkbox, Input, Select } from "@/components/ui/Field";
@@ -571,6 +572,8 @@ export default function CourseBuilderPage({ params }: { params: { id: string } }
         <CourseScheduleSettings course={course} onSave={updateSchedule} showToast={showToast} />
 
         <ArenaSettings courseId={course.id} showToast={showToast} />
+
+        <GrowthTaster courseId={course.id} showToast={showToast} />
 
         <CourseMarketingSettings
           courseId={course.id}

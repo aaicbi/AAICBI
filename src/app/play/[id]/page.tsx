@@ -11,16 +11,45 @@ import { prisma } from "@/lib/prisma";
 import LoopFace from "@/components/guide/LoopFace";
 import { FORMAT_INFO, type GameFormat } from "@/lib/quest/games";
 import PlayClient from "./PlayClient";
+import Logo from "@/components/Logo";
+import GrowthPlay from "@/components/growth/GrowthPlay";
+import { publicCampaign } from "@/lib/growth/growth";
+import { appUrl } from "@/lib/appUrl";
+import { cleanSource } from "@/lib/growth/growthCore";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const campaign = await publicCampaign(params.id);
+  if (campaign) return campaign.live
+    ? { title: `Do you think like an AI automation builder? ${campaign.courseTitle}`, description: "5 questions, 90 seconds, no signup. See your rank and challenge a friend.", openGraph: { title: "Can you beat my score?", description: `A 5-question taster from ${campaign.courseTitle}. No signup.` } }
+    : { title: "Campaign ended" };
   const g = await visitorGame(params.id);
   return g ? { title: `Try: ${g.title}`, description: `A short free round from ${g.courseTitle}. No account needed.` } : { title: "Game not available" };
 }
 
 /** /play/[id] — a round of a game that staff opened to the feed. Needs a signed-in account (anyone), saves nothing, and points at the course when it goes badly. */
-export default async function PlayPage({ params }: { params: { id: string } }) {
+export default async function PlayPage({ params, searchParams }: { params: { id: string }; searchParams: { src?: string } }) {
+  // A course campaign link (/play/<slug>) takes priority: it needs no account and no feed.
+  const campaign = await publicCampaign(params.id);
+  if (campaign) {
+    return (
+      <>
+        <header className="mx-auto flex w-full max-w-md items-center justify-center px-4 pt-5"><Logo compact /></header>
+        <main className="mx-auto w-full max-w-md px-4 py-5">
+          {campaign.live ? (
+            <GrowthPlay slug={campaign.slug} courseId={campaign.courseId} courseTitle={campaign.courseTitle} organizationName={campaign.organizationName} source={cleanSource(searchParams.src)} shareUrl={appUrl(`/play/${campaign.slug}?src=share`)} />
+          ) : (
+            <Card>
+              <h1 className="font-display text-2xl font-bold text-brand-ink">This campaign has ended</h1>
+              <p className="mt-2 text-brand-ink">The free game is closed, but you can still look at the course.</p>
+              <Link href={`/courses/${campaign.courseId}`} className="mt-4 flex min-h-[52px] items-center justify-center rounded-full bg-brand-action px-6 text-base font-bold text-brand-onAccent hover:bg-brand-actionHover">See {campaign.courseTitle}</Link>
+            </Card>
+          )}
+        </main>
+      </>
+    );
+  }
   const flags = await getEcosystemFlags();
   if (!flags.feed) notFound();
   const [game, session] = await Promise.all([visitorGame(params.id), getSession()]);
