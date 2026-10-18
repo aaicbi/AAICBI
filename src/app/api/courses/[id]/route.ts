@@ -355,7 +355,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       daysRemaining,
       enrollmentStatus,
       enrollmentSource: myEnrollment?.source ?? null,
-      isPaid: myEnrollment?.source === "PAID" || !course.isFree,
+      // A trainee still on the free preview has not paid, even though the course is a paid one.
+      isPaid: (myEnrollment?.source === "PAID" || !course.isFree) && !previewing,
       // Free preview modules — lets the trainee page show "Pay to
       // continue" messaging referencing the actual boundary without
       // having to re-derive it by counting locked modules itself.

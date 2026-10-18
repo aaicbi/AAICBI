@@ -106,6 +106,7 @@ const call = async (cookie, method, path, body) => { const r = await fetch(B + p
   await page.getByTestId('growth-score').waitFor();
   await page.getByTestId('growth-save-open').click();
   await page.getByTestId('growth-save-submit').click();
+  await page.getByTestId('growth-save-form').getByRole('alert').waitFor();
   log(/tick/i.test(await page.getByTestId('growth-save-form').innerText()), 'on a phone: saving without the tick shows why');
   await page.locator('#growth-phone').fill('0912 345 6789');
   await page.getByTestId('growth-consent').check();
@@ -132,6 +133,7 @@ const call = async (cookie, method, path, body) => { const r = await fetch(B + p
   const op = await (await signedIn(br, device('iPhone 13'), '/api/auth/trainee-login', 't6@dev.test')).newPage();
   await op.goto(`${B}/growth/optout/${ot}`);
   await op.getByTestId('optout').click();
+  await op.getByRole('heading', { name: /hear from us again/i }).waitFor();
   log(/won.t hear from us again/i.test(await op.locator('main').innerText()), 'the opt-out page confirms');
   await br.close();
 
