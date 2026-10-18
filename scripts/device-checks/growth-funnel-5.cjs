@@ -52,7 +52,7 @@ const stub = http.createServer((req, res) => {
     const leadId = psql(`select l.id from "GrowthLead" l join "GrowthGuestPlay" p on p.id=l."playId" where p.token='${st.token}'`);
     return { token: st.token, leadId, save: sv };
   };
-  const msgs = (leadId) => psql(`select string_agg(kind||':'||status, ',' order by "createdAt") from "GrowthMessage" where "leadId"='${leadId}'`);
+  const msgs = (leadId) => psql(`select string_agg(kind||':'||status, ',' order by case kind when 'WELCOME' then 0 when 'REMINDER_1' then 1 when 'REMINDER_2' then 2 else 3 end) from "GrowthMessage" where "leadId"='${leadId}'`);
   const waitFor = async (fn, ms = 6000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await fn()) return true; await sleep(150); } return false; };
   const age = (leadId, hours) => { psql(`update "GrowthLead" set "createdAt" = now() - interval '${hours} hours' where id='${leadId}'`); psql(`update "GrowthMessage" set "createdAt" = now() - interval '${hours} hours', "sentAt" = case when "sentAt" is null then null else now() - interval '${hours} hours' end where "leadId"='${leadId}'`); };
   const signed = (obj, secret = APP_SECRET) => { const raw = JSON.stringify(obj); return { raw, sig: 'sha256=' + crypto.createHmac('sha256', secret).update(raw).digest('hex') }; };
@@ -67,6 +67,7 @@ const stub = http.createServer((req, res) => {
   let r = await msg({ action: 'run' });
   log(r.s === 200 && r.j.run.enabled === false && psql(`select count(*) from "GrowthMessage"`) === '0', 'sending now does nothing while it is off');
   log(received.length === 0, 'and nothing reached WhatsApp');
+  psql(`update "GrowthLead" set "createdAt" = now() - interval '5 days' where id='${a0.leadId}'`);
 
   // ---- settings
   r = await msg({ action: 'settings', channel: 'EMAIL', enabled: true });
@@ -94,6 +95,9 @@ const stub = http.createServer((req, res) => {
   const b = await person({ email: 'bola@example.com' });
   await sleep(1200);
   log(msgs(b.leadId) === 'WELCOME:SKIPPED' && /No phone/.test(psql(`select error from "GrowthMessage" where "leadId"='${b.leadId}'`)), 'someone who left only an email is skipped on a WhatsApp send, with the reason');
+
+  r = await msg({ action: 'run' });
+  log(msgs(a0.leadId) === '' || msgs(a0.leadId) === 'null', 'a score saved days ago, while messaging was off, is not messaged when it is switched on');
 
   // ---- reminders
   age(a.leadId, 25);

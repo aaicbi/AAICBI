@@ -1,7 +1,7 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
-  BODY_MAX, DEFAULT_TEMPLATES, LEAD_WINDOW_DAYS, MESSAGE_KINDS, cleanQuiet, checkTemplate, dueKind, greetingName, inQuietHours, isStopWord, metaTemplateText, nextStatus,
+  BODY_MAX, DEFAULT_TEMPLATES, LEAD_WINDOW_DAYS, WELCOME_WINDOW_HOURS, MESSAGE_KINDS, cleanQuiet, checkTemplate, dueKind, greetingName, inQuietHours, isStopWord, metaTemplateText, nextStatus,
   parseWhatsAppWebhook, renderMessage, signatureValid, waMeLink, whatsAppVariables, type LeadState, type SentRecord,
 } from "@/lib/growth/messagingCore";
 
@@ -33,6 +33,11 @@ describe("which message is due", () => {
   it("needs a way to reach them", () => {
     expect(dueKind(lead({ hasPhone: false, hasEmail: false }), [], at(0))).toBeNull();
     expect(dueKind(lead({ hasPhone: false, hasEmail: true }), [], at(0))).toBe("WELCOME");
+  });
+  it("does not greet someone days late: a score saved while messaging was off gets nothing", () => {
+    expect(dueKind(lead(), [], at(WELCOME_WINDOW_HOURS - 1))).toBe("WELCOME");
+    expect(dueKind(lead(), [], at(WELCOME_WINDOW_HOURS + 1))).toBeNull();
+    expect(dueKind(lead(), [], at(80))).toBeNull();
   });
   it("sends nothing to an old lead", () => {
     expect(dueKind(lead(), [], at(LEAD_WINDOW_DAYS * 24 + 1))).toBeNull();

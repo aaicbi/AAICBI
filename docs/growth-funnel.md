@@ -24,7 +24,7 @@ Module 1 comes from a `GrowthGrant` row (trainee + course), checked in `getModul
 
 People who save their score (with the consent box ticked) can be messaged. It is a separate switch under **Growth > Follow-up messages** and is off until a Super Admin turns it on.
 
-- **The four messages**, each sent at most once to a person: a **welcome** straight after saving; **reminder 1** a day later and **reminder 2** (the last) three days later, both only while they have not started Module 1; and a **finish Module 1** nudge two days after they started it, if they have not finished. At least 20 hours between messages. Nothing after 14 days.
+- **The four messages**, each sent at most once to a person: a **welcome** straight after saving (only within 48 hours of saving, so a score saved while messaging was off is never greeted days late); **reminder 1** a day later and **reminder 2** (the last) three days later, both only while they have not started Module 1; and a **finish Module 1** nudge two days after they started it, if they have not finished. At least 20 hours between messages. Nothing after 14 days.
 - **It stops** for anyone who opted out (the stop link in every message, or replying STOP on WhatsApp) or who has paid. Nothing is sent between **21:00 and 07:00 in Nigeria** (editable), and not more than the daily limit (default 200).
 - **How it sends**, chosen by the Super Admin:
   - **By hand** works today with nothing to set up. Each message waits in the outbox with a "Send on WhatsApp" button that opens the chat with the text filled in, then "Mark as sent".

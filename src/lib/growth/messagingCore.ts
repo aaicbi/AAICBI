@@ -25,6 +25,8 @@ export type MessageStatus = "QUEUED" | "SENT" | "DELIVERED" | "READ" | "FAILED" 
 export const DELAY_HOURS: Record<MessageKind, number> = { WELCOME: 0, REMINDER_1: 24, REMINDER_2: 72, FINISH_MODULE_1: 48 };
 /** Never two messages to one person closer together than this (the welcome is exempt as the first). */
 export const MIN_GAP_HOURS = 20;
+/** A welcome goes out within this many hours of saving, or not at all. */
+export const WELCOME_WINDOW_HOURS = 48;
 /** Leads older than this get nothing more. */
 export const LEAD_WINDOW_DAYS = 14;
 export const DEFAULT_DAILY_CAP = 200;
@@ -59,7 +61,8 @@ export function dueKind(lead: LeadState, sent: SentRecord[], now: Date): Message
   const gapOk = !last || hours(now.getTime() - last.getTime()) >= MIN_GAP_HOURS;
   const age = hours(now.getTime() - lead.createdAt.getTime());
 
-  if (!has.has("WELCOME")) return "WELCOME";
+  // A welcome is only worth sending soon after they saved. Someone who saved while messaging was off is never greeted days later.
+  if (!has.has("WELCOME")) return age <= WELCOME_WINDOW_HOURS ? "WELCOME" : null;
   if (!gapOk) return null;
   if (lead.claimedAt) {
     if (!lead.module1Done && !has.has("FINISH_MODULE_1") && hours(now.getTime() - lead.claimedAt.getTime()) >= DELAY_HOURS.FINISH_MODULE_1) return "FINISH_MODULE_1";
