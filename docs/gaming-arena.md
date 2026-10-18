@@ -152,3 +152,9 @@ The floating Messages button (trainee pages with the sidebar) is now one inbox (
 - **Pages.** `/trainee/arena/[courseId]/event/[eventId]` (bracket, now playing, your place, Join/Leave, Watch links) and the instructor's big screen `/admin/courses/[id]/arena-event/[eventId]` (the same view, larger type, for a projector).
 - Not included: round-robin or Swiss pairings, ending an event early with a winner by rating, a spectator delay, and cheers shown on the big screen.
 - Check: `scripts/device-checks/arena-spectate.cjs`.
+
+## Release 14: "nobody answered" notice
+
+- When a challenge runs out unanswered (10 minutes if the other player was online, 60 if they were away), the **challenger** gets a bell entry and a push: "X didn't answer your challenge. Challenge again, or message them in the course chat." The invitation is also taken off the other player's bell (`notifyChallengeExpired`). Live event pairings are not invitations and send nothing.
+- Nothing runs the instant an invitation lapses, so whoever is using the app settles lapsed invitations (`sweepExpiredChallenges`, at most every 30 seconds per server, called from `/api/arena/active`), and a daily job `/api/cron/arena-sweep` (`CRON_SECRET`, in `vercel.json`) is the backstop. In practice the notice arrives within about a minute while anyone is in the app, and by the next morning at the latest on a quiet day.
+- Check: `scripts/device-checks/arena-challenge-notify.cjs` (expiry, told once, cleared from the other bell).

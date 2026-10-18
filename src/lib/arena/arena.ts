@@ -17,7 +17,7 @@ import {
 import { basePointsFor, chooseEntry, gradeEntry, poolFor, revealEntry, serveEntry, type PoolEntry } from "@/lib/arena/arenaPool";
 import { channels } from "@/lib/arena/realtimeCore";
 import { pokeMany } from "@/lib/arena/realtime";
-import { notifyChallenge, notifyChallengeReply } from "@/lib/arena/challengeNotify";
+import { notifyChallenge, notifyChallengeReply, notifyChallengeExpired } from "@/lib/arena/challengeNotify";
 import { activeSuspension, suspensionText } from "@/lib/arena/suspension";
 
 export class ArenaError extends Error {
@@ -259,6 +259,8 @@ export async function mutate<T>(matchId: string, fn?: (d: Draft, now: number) =>
       d.m.version = before.version + 1;
       void pokeMatch(d.m);
       if (before.status !== d.m.status && (d.m.status === "COMPLETED" || d.m.status === "FORFEITED")) void import("@/lib/arena/ladder").then((l) => l.settleLadder(d.m.id)).catch(() => undefined);
+      // An invitation nobody answered in time: tell the person who sent it (event pairings are not invitations).
+      if (before.status === "PENDING" && d.m.status === "EXPIRED" && !d.m.eventId) void notifyChallengeExpired(d.m);
       if (before.status !== d.m.status && d.m.eventTieId && (d.m.status === "COMPLETED" || d.m.status === "FORFEITED" || d.m.status === "CANCELLED" || d.m.status === "EXPIRED")) void import("@/lib/arena/event").then((e) => e.onEventMatchEnd(d.m.id)).catch(() => undefined);
     }
     if (refusal) throw refusal;
@@ -526,4 +528,18 @@ export async function requestRematch(matchId: string, traineeId: string): Promis
   }
   const m = await createChallenge({ challengerId: traineeId, opponentId: other, courseId: prev.courseId, moduleId: prev.moduleId, rematchOfId: matchId });
   return { id: m.id };
+}
+
+
+let lastSweep = 0;
+/**
+ * Invitations lapse by themselves, but nothing runs the moment they do. Whoever is in the app settles the ones that have run out
+ * (at most every 30 seconds per server), which also tells the people who sent them. A daily job is the backstop.
+ */
+export async function sweepExpiredChallenges(force = false): Promise<number> {
+  if (!force && Date.now() - lastSweep < 30_000) return 0;
+  lastSweep = Date.now();
+  const lapsed = await prisma.arenaMatch.findMany({ where: { status: "PENDING", expiresAt: { lt: new Date() } }, select: { id: true }, take: 25 });
+  for (const x of lapsed) await mutate(x.id).catch(() => undefined);
+  return lapsed.length;
 }

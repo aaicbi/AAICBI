@@ -4,7 +4,7 @@
  */
 import { prisma } from "@/lib/prisma";
 import { sendPushForNotification } from "@/lib/push/send";
-import { challengeNotice, replyNotice, CHALLENGE_TYPE, type ChallengeFacts } from "@/lib/arena/challengeNotifyCore";
+import { challengeNotice, replyNotice, expiredNotice, CHALLENGE_TYPE, type ChallengeFacts } from "@/lib/arena/challengeNotifyCore";
 
 async function facts(m: { id: string; courseId: string; challengerId: string; opponentId: string; moduleId: string | null; rematchOfId: string | null }): Promise<ChallengeFacts> {
   const [course, from, to, mod] = await Promise.all([
@@ -33,4 +33,12 @@ export async function notifyChallengeReply(m: MatchRow, accepted: boolean): Prom
     // The invitation is answered: it should not keep nagging from the bell.
     await prisma.userNotification.updateMany({ where: { recipientType: "TRAINEE", recipientId: m.opponentId, type: CHALLENGE_TYPE, url: `/trainee/arena/match/${m.id}`, readAt: null }, data: { readAt: new Date() } });
   } catch (e) { console.error("Challenge reply notification failed:", e); }
+}
+
+/** Nobody answered in time: tell the challenger, and take the invitation off the other player's bell. */
+export async function notifyChallengeExpired(m: MatchRow): Promise<void> {
+  try {
+    await deliver(m.challengerId, expiredNotice(await facts(m)));
+    await prisma.userNotification.updateMany({ where: { recipientType: "TRAINEE", recipientId: m.opponentId, type: CHALLENGE_TYPE, url: `/trainee/arena/match/${m.id}`, readAt: null }, data: { readAt: new Date() } });
+  } catch (e) { console.error("Challenge expiry notification failed:", e); }
 }

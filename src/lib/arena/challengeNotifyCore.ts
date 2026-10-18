@@ -3,6 +3,7 @@ export interface ChallengeFacts { matchId: string; courseId: string; courseTitle
 
 export const CHALLENGE_TYPE = "ARENA_CHALLENGE";
 export const CHALLENGE_REPLY_TYPE = "ARENA_CHALLENGE_REPLY";
+export const CHALLENGE_EXPIRED_TYPE = "ARENA_CHALLENGE_EXPIRED";
 
 /** What the challenged player gets. Tapping it opens the match, where they accept or decline. */
 export function challengeNotice(f: ChallengeFacts) {
@@ -21,4 +22,15 @@ export function replyNotice(f: ChallengeFacts, accepted: boolean) {
   return accepted
     ? { type: CHALLENGE_REPLY_TYPE, title: `${first} accepted your challenge`, body: `${f.courseTitle}. Join the match.`, url: `/trainee/arena/match/${f.matchId}` }
     : { type: CHALLENGE_REPLY_TYPE, title: `${first} declined your challenge`, body: `${f.courseTitle}. Try someone else or ask again later.`, url: `/trainee/arena/${f.courseId}` };
+}
+
+/** What the challenger gets when nobody answered in time. */
+export function expiredNotice(f: ChallengeFacts) {
+  const first = f.toName.split(" ")[0] || "Your coursemate";
+  return {
+    type: CHALLENGE_EXPIRED_TYPE,
+    title: `${first} didn't answer your challenge`,
+    body: `${f.courseTitle}. The invitation ran out. Challenge again, or message them in the course chat.`,
+    url: `/trainee/arena/${f.courseId}`,
+  };
 }
