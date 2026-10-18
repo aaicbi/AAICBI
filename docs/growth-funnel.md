@@ -85,3 +85,12 @@ A free seat for the rest of the course, earned by passing module 1 while seats l
 - **Taking one back.** The Super Admin can take a seat back from the Growth page. The person returns to the free preview (module 1 open, the rest behind payment), is never re-awarded, and the seat goes to the next person who has passed.
 - **Switching off.** Nobody new is given a seat; people who already hold one keep it. Seats cannot be set below the number already given.
 - **Report.** The campaign report shows "Scholarship seats given".
+
+## Squads and challenges (Super Admin)
+
+`/admin/growth/groups`, linked from the Growth page and the sidebar. Two tabs, filterable by course and paged 25 at a time:
+
+- **Squads:** name, course, captain, members out of 50, how many finished, points out of what they could earn, the squad it answered, how many squads answered it, and its join link. Search by name.
+- **Challenges:** each friend duel: the challenger and the person who answered, their scores, and the outcome (beat, lost to, tied) once finished.
+
+Because newcomers type their own squad names and nicknames with no account, the screen has **Rename** and **Remove** for squads and **Clear name** for nicknames. Scores are never changed. Removing a squad keeps its members' plays but they stop counting for a squad, and any squad that answered it loses the link and stays. Every change is written to the Growth "Recent changes" log. Super Admin only.
