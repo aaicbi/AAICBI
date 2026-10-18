@@ -28,7 +28,8 @@ export interface MatchView {
   turn: "me" | "opponent" | null;
   roundNo: number;
   totalRounds: number;
-  board: { size: number; used: number[] };
+  /** Numbers already played, and who took the points for each ("none" when nobody did). */
+  board: { size: number; used: number[]; owners: Record<number, "me" | "opponent" | "none"> };
   round: null | {
     idx: number;
     number: number;
@@ -49,7 +50,38 @@ export interface MatchView {
   reactionsOpen: boolean;
   ready: { me: boolean; opponent: boolean };
   expiresAt: number;
-  result: null | { winner: "me" | "opponent" | "draw"; reason: string | null; myScore: number; opponentScore: number; answered: number; correct: number; topics: { topic: string; correct: number; total: number }[] };
+  /** Answers in a row, per player, for the flame badge. */
+  streak: { me: number; opponent: number };
+  /** After a match: a rematch someone has asked for (or that is already in its lobby). */
+  rematch: null | { id: string; status: MatchStatus; from: "me" | "opponent" };
+  result: null | {
+    winner: "me" | "opponent" | "draw";
+    reason: string | null;
+    myScore: number;
+    opponentScore: number;
+    answered: number;
+    correct: number;
+    bestStreak: number;
+    stars: 1 | 2 | 3;
+    topics: { topic: string; correct: number; total: number }[];
+    /** Every question with the answer and the reason, for learning from the match. */
+    recap: { topic: string; prompt: string; answer: string; explanation: string | null; mine: "correct" | "missed" | "skipped"; winner: "me" | "opponent" | null }[];
+    /** Wins, losses and draws between these two players in this course. */
+    record: { wins: number; losses: number; draws: number };
+  };
+}
+
+const promptOf = (s: ServedRound): string => (s.format === "QUIZ" ? s.question : s.format === "SCENARIO" ? s.situation : s.prompt);
+
+function answerText(r: Reveal): string {
+  if (r.format === "QUIZ") return r.correctText ?? "";
+  if (r.format === "MATCHING") return (r.pairs ?? []).map((p) => `${p.left} → ${p.right}`).join("; ");
+  if (r.format === "ORDERING") return (r.correctOrder ?? []).map((t, i) => `${i + 1}. ${t}`).join("  ");
+  return r.best ?? "";
+}
+
+function explanationOf(r: Reveal): string | null {
+  return r.format === "SCENARIO" ? r.bestOutcome ?? null : r.explanation;
 }
 
 const initialsOf = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || "?";
@@ -103,10 +135,32 @@ export async function viewMatch(matchId: string, viewerId: string): Promise<Matc
     return r.awardedToId === viewerId ? "won" : r.outcome ? "lost" : "now";
   });
 
+  // Answers in a row, in the order they happened.
+  const streaks = { me: 0, opponent: 0, bestMe: 0 };
+  for (const r of rounds) {
+    const results: [string, boolean][] = [];
+    if (r.firstAt && !r.firstTimedOut) results.push([r.pickerId, r.firstCorrect === true]); else if (r.firstTimedOut) results.push([r.pickerId, false]);
+    if (r.stealerId) results.push([r.stealerId, r.stealCorrect === true && !r.stealTimedOut]);
+    for (const [who, ok] of results) {
+      const k = side(who);
+      streaks[k] = ok ? streaks[k] + 1 : 0;
+      if (k === "me") streaks.bestMe = Math.max(streaks.bestMe, streaks.me);
+    }
+  }
+  const over = m.status === "COMPLETED" || m.status === "FORFEITED";
+  const rematchRow = over ? await prisma.arenaMatch.findFirst({ where: { rematchOfId: m.id, status: { in: ["PENDING", "LOBBY", "ACTIVE"] } }, orderBy: { createdAt: "desc" }, select: { id: true, status: true, challengerId: true } }) : null;
+
   let result: MatchView["result"] = null;
-  if (m.status === "COMPLETED" || m.status === "FORFEITED") {
+  if (over) {
     let answered = 0; let correct = 0; const topics = new Map<string, { correct: number; total: number }>();
+    const recap: NonNullable<MatchView["result"]>["recap"] = [];
     for (const r of rounds) {
+      const served = r.served as unknown as ServedRound;
+      const reveal = r.reveal as unknown as Reveal | null;
+      if (reveal) {
+        const tried = r.pickerId === viewerId ? (r.firstAt !== null && !r.firstTimedOut ? (r.firstCorrect ? "correct" : "missed") : "skipped") : r.stealerId === viewerId ? (r.stealAt !== null && !r.stealTimedOut ? (r.stealCorrect ? "correct" : "missed") : "skipped") : "skipped";
+        recap.push({ topic: served.topic, prompt: promptOf(served), answer: answerText(reveal), explanation: explanationOf(reveal), mine: tried, winner: r.awardedToId ? side(r.awardedToId) : null });
+      }
       const mine = r.pickerId === viewerId ? { answered: !r.firstTimedOut && r.firstAt !== null, ok: r.firstCorrect === true } : r.stealerId === viewerId ? { answered: !r.stealTimedOut && r.stealAt !== null, ok: r.stealCorrect === true } : null;
       if (!mine || !mine.answered) continue;
       answered++; if (mine.ok) correct++;
@@ -115,8 +169,15 @@ export async function viewMatch(matchId: string, viewerId: string): Promise<Matc
       t.total++; if (mine.ok) t.correct++;
       topics.set(topic, t);
     }
+    const history = await prisma.arenaMatch.findMany({
+      where: { courseId: m.courseId, status: { in: ["COMPLETED", "FORFEITED"] }, OR: [{ challengerId: m.challengerId, opponentId: m.opponentId }, { challengerId: m.opponentId, opponentId: m.challengerId }] },
+      select: { winnerId: true }, take: 200,
+    });
+    const record = { wins: history.filter((h) => h.winnerId === viewerId).length, losses: history.filter((h) => h.winnerId && h.winnerId !== viewerId).length, draws: history.filter((h) => !h.winnerId).length };
+    const accuracy = answered ? correct / answered : 0;
     result = {
       winner: m.winnerId === null ? "draw" : side(m.winnerId), reason: m.endReason, myScore: me.score, opponentScore: opp.score, answered, correct,
+      bestStreak: streaks.bestMe, stars: accuracy >= 0.8 ? 3 : accuracy >= 0.5 ? 2 : 1, recap, record,
       topics: Array.from(topics, ([topic, v]) => ({ topic, ...v })).sort((a, b) => a.correct / a.total - b.correct / b.total),
     };
   }
@@ -126,8 +187,9 @@ export async function viewMatch(matchId: string, viewerId: string): Promise<Matc
     youAre: iAmChallenger ? "challenger" : "opponent", phase: m.phase, phaseEndsAt: m.phaseEndsAt ? m.phaseEndsAt.getTime() : null,
     paused: paused ? { by: side(m.pausedById!), resumesAt: (m.pausedAt?.getTime() ?? Date.now()) + rules.pauseSeconds * 1000 } : null,
     turn: m.turnId ? side(m.turnId) : null, roundNo: m.roundNo, totalRounds: rules.questionsPerMatch,
-    board: { size: boardSize(rules.questionsPerMatch), used: rounds.map((r) => r.number) },
-    round, reveal, progress,
+    board: { size: boardSize(rules.questionsPerMatch), used: rounds.map((r) => r.number), owners: Object.fromEntries(rounds.filter((r) => r.outcome).map((r) => [r.number, r.awardedToId ? side(r.awardedToId) : "none"])) },
+    round, reveal, progress, streak: { me: streaks.me, opponent: streaks.opponent },
+    rematch: rematchRow ? { id: rematchRow.id, status: rematchRow.status as MatchStatus, from: side(rematchRow.challengerId) } : null,
     messages: messages.map((x) => ({ id: x.id, from: side(x.senderId), body: x.body, at: x.createdAt.getTime() })),
     reactions: reactions.map((x) => ({ id: x.id, from: side(x.senderId), kind: x.kind, at: x.createdAt.getTime() })),
     reactionsOpen: reactionsOpen(m.status, m.phase, paused),

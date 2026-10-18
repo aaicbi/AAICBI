@@ -47,12 +47,29 @@ const SHOTS = process.env.SHOTS || '/tmp/dev/arena-shots';
       const o = await p.evaluate(() => ({ sx: document.documentElement.scrollWidth > innerWidth + 1, sy: document.documentElement.scrollHeight > innerHeight + 1, bodyOverflow: getComputedStyle(document.body).overflow, cut: [...document.querySelectorAll('.ar-qcard,.ar-main,.ar-stage')].some((e) => e.scrollHeight > e.clientHeight + 2) }));
       log(!o.sx && !o.sy && !o.cut, name + ': the stage fits the screen with no scrolling ' + JSON.stringify(o));
     }
-    // answer wrong -> steal visible to the other player
-    await picker.locator('.ar-opt').first().click();
-    await other.getByText(/bonus chance|Bonus question/).first().waitFor({ timeout: 8000 }).catch(() => {});
-    await other.screenshot({ path: `${SHOTS}/${name}-steal.png` });
-    // pause from the other player
-    await other.getByRole('button', { name: /Resume|⏸/ }).count();
+    // answer correctly: the reveal shows the right answer clearly and the points
+    const qtext = (await picker.locator('.ar-q').innerText()).trim();
+    const right = psql(`select o.text from "Option" o join "Question" q on q.id=o."questionId" where q.text='${qtext.replace(/'/g, "''")}' and o."isCorrect"`);
+    await picker.locator('.ar-opt', { hasText: right }).first().click();
+    await picker.locator('.ar-rva').waitFor({ timeout: 8000 });
+    await other.locator('.ar-rva').waitFor({ timeout: 8000 });
+    log((await other.locator('.ar-rva').innerText()).includes(right), name + ': both players see the correct answer in words');
+    log((await picker.locator('.ar-opt.ar-ok').count()) === 1, name + ': exactly the right option is marked');
+    await picker.screenshot({ path: `${SHOTS}/${name}-reveal.png` });
+    const fits = await picker.evaluate(() => { const c = document.querySelector('.ar-qcard'); return !!c && c.scrollHeight <= c.clientHeight + 2; });
+    log(fits, name + ': the reveal fits the card without scrolling');
+    // finish the match and check the result screen and play again
+    psql(`update "ArenaMatch" set status='COMPLETED', phase=null, "phaseEndsAt"=null, "winnerId"="turnId", "endedAt"=now() where "courseId"='arena_play' and status='ACTIVE'`);
+    await pa.reload(); await pb.reload();
+    await pa.getByRole('button', { name: /Play again/ }).waitFor({ timeout: 10000 });
+    log(await pa.locator('.ar-stars').isVisible() && (await pa.locator('.ar-recap').count()) === 1, name + ': the result shows stars and a review of the answers');
+    await pa.screenshot({ path: `${SHOTS}/${name}-result.png` });
+    await pa.getByRole('button', { name: /Play again/ }).click();
+    await pb.getByText(/wants a rematch/).waitFor({ timeout: 10000 });
+    await pb.getByRole('button', { name: 'Accept rematch' }).click();
+    await Promise.all([pa.waitForURL(/arena\/match\//, { timeout: 15000 }), pb.waitForURL(/arena\/match\//, { timeout: 15000 })]);
+    await pa.getByRole('button', { name: "I'm ready" }).waitFor({ timeout: 10000 });
+    log(true, name + ': accepting the rematch puts both players in a new lobby');
     log(errs.length === 0, name + ': no console errors ' + errs.slice(0, 2).join(' | '));
     await ca.close(); await cb.close();
   }

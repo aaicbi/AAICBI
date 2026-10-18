@@ -88,8 +88,8 @@ export function dueAction(s: Snapshot, now: number): DueAction | null {
 export function rulesFrom(raw: unknown): ArenaRules {
   const r = (raw ?? {}) as Partial<ArenaRules>;
   return {
-    questionSeconds: r.questionSeconds ?? 15, pickSeconds: r.pickSeconds ?? 10, bonusPercent: r.bonusPercent ?? 50,
-    pausesPerPlayer: r.pausesPerPlayer ?? 2, pauseSeconds: r.pauseSeconds ?? 60, questionsPerMatch: r.questionsPerMatch ?? 10, tickingSound: r.tickingSound ?? true,
+    questionSeconds: r.questionSeconds ?? 60, pickSeconds: r.pickSeconds ?? 180, bonusPercent: r.bonusPercent ?? 50,
+    pausesPerPlayer: r.pausesPerPlayer ?? 2, pauseSeconds: r.pauseSeconds ?? 60, questionsPerMatch: r.questionsPerMatch ?? 20, tickingSound: r.tickingSound ?? true,
   };
 }
 

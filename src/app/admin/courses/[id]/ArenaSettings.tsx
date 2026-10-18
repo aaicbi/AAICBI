@@ -8,8 +8,8 @@ interface RuleView { value: number | boolean; own: number | boolean | null; inhe
 interface Payload { available: ArenaAvailable; rules: Record<keyof ArenaRules, RuleView> }
 
 const FIELDS: { key: Exclude<keyof ArenaRules, "tickingSound">; title: string; hint: string; unit?: string }[] = [
-  { key: "questionSeconds", title: "Seconds per question", hint: "Default 15. Every question counts down from this.", unit: "seconds" },
-  { key: "pickSeconds", title: "Seconds to pick a number", hint: "Default 10. If it runs out, the system picks a question for the player.", unit: "seconds" },
+  { key: "questionSeconds", title: "Seconds per question", hint: "Default 60. Every question counts down from this.", unit: "seconds" },
+  { key: "pickSeconds", title: "Longest wait for a number pick", hint: "Default 180. Players see no timer when picking; this only stops a match from stalling if someone walks away.", unit: "seconds" },
   { key: "bonusPercent", title: "Bonus for a stolen question", hint: "When one player misses, the other gets 5 seconds to answer for the normal points plus this extra share.", unit: "% extra" },
   { key: "pausesPerPlayer", title: "Pauses per player", hint: "Each player can pause and chat with the other." },
   { key: "pauseSeconds", title: "Longest pause", hint: "The game resumes by itself after this long.", unit: "seconds" },

@@ -21,7 +21,7 @@ export interface ArenaSwitches {
 export interface ArenaRules {
   /** Seconds to answer a question. */
   questionSeconds: number;
-  /** Seconds to pick a number. */
+  /** Safety net, not a visible timer: if a player never picks a number, the system picks one after this many seconds. */
   pickSeconds: number;
   /** Extra points, as a percentage of the question's normal points, for answering a question the other player missed. */
   bonusPercent: number;
@@ -36,7 +36,7 @@ export type ArenaSettings = ArenaSwitches & ArenaRules;
 export type ArenaRow = { [K in keyof ArenaSettings]?: ArenaSettings[K] | null };
 
 /** The seconds the other player gets to answer a missed question. Fixed by the game's design. */
-export const STEAL_SECONDS = 5;
+export const STEAL_SECONDS = 20;
 
 export const ARENA_DEFAULTS: ArenaSettings = {
   enabled: false,
@@ -45,22 +45,22 @@ export const ARENA_DEFAULTS: ArenaSettings = {
   ladderEnabled: false,
   spectators: "OFF",
   spectatorCap: 50,
-  questionSeconds: 15,
-  pickSeconds: 10,
+  questionSeconds: 60,
+  pickSeconds: 180,
   bonusPercent: 50,
   pausesPerPlayer: 2,
   pauseSeconds: 60,
-  questionsPerMatch: 10,
+  questionsPerMatch: 20,
   tickingSound: true,
 };
 
 export const RULE_LIMITS = {
-  questionSeconds: { min: 5, max: 120 },
-  pickSeconds: { min: 5, max: 60 },
+  questionSeconds: { min: 10, max: 180 },
+  pickSeconds: { min: 30, max: 600 },
   bonusPercent: { min: 0, max: 200 },
   pausesPerPlayer: { min: 0, max: 3 },
   pauseSeconds: { min: 15, max: 300 },
-  questionsPerMatch: { min: 4, max: 20 },
+  questionsPerMatch: { min: 4, max: 30 },
   spectatorCap: { min: 0, max: 500 },
 } as const;
 
@@ -150,7 +150,7 @@ export const ARENA_SETTING_LABELS: Record<keyof ArenaSettings, string> = {
   spectators: "Spectators",
   spectatorCap: "Most spectators per match",
   questionSeconds: "Seconds per question",
-  pickSeconds: "Seconds to pick a number",
+  pickSeconds: "Longest wait for a number pick (seconds)",
   bonusPercent: "Bonus for a stolen question",
   pausesPerPlayer: "Pauses per player",
   pauseSeconds: "Longest pause",

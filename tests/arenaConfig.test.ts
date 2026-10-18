@@ -6,8 +6,8 @@ describe("arena settings", () => {
     const s = resolveArena([]);
     expect(s.enabled).toBe(false);
     expect(s.spectators).toBe("OFF");
-    expect(s.questionSeconds).toBe(15);
-    expect(s.pickSeconds).toBe(10);
+    expect(s.questionSeconds).toBe(60);
+    expect(s.pickSeconds).toBe(180);
     expect(s.bonusPercent).toBe(50);
     expect(availability(s)).toEqual({ arena: false, game: false, chat: false, ladder: false, spectators: "OFF" });
   });

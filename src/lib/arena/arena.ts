@@ -9,7 +9,7 @@
 import type { ArenaMatch, ArenaRound } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { availabilityForCourse, resolveForCourse } from "@/lib/arena/config";
-import type { ArenaRules } from "@/lib/arena/configCore";
+import { RULE_LIMITS, type ArenaRules } from "@/lib/arena/configCore";
 import {
   FORFEIT_AFTER, INVITE_MINUTES, LOBBY_MINUTES, REVEAL_SECONDS, STEAL_MS, boardSize, cleanMessage, dueAction, firstPoints, isPlayer, otherPlayer,
   reactionsOpen, rulesFrom, stealPoints, winnerOf, type DueAction, type Phase, type Snapshot,
@@ -24,7 +24,7 @@ export class ArenaError extends Error {
   }
 }
 
-export const REACTION_KINDS = ["applause", "cheer", "wow", "fire", "love", "strong", "nervous", "sad", "laugh", "thumbs"] as const;
+export const REACTION_KINDS = ["applause", "cheer", "wow", "fire", "love", "strong", "nervous", "sad", "laugh", "thumbs", "gg", "think"] as const;
 export type ReactionKind = (typeof REACTION_KINDS)[number];
 
 interface Draft {
@@ -72,15 +72,20 @@ function forfeitIfMissedTooMany(d: Draft, who: string, at: number): boolean {
   return false;
 }
 
-async function usedEntries(d: Draft): Promise<Set<string>> {
-  return new Set(d.rounds.map((r) => r.itemId));
+async function usedEntries(d: Draft): Promise<{ now: Set<string>; before: Set<string> }> {
+  const now = new Set(d.rounds.map((r) => r.itemId));
+  const before = new Set<string>();
+  // A rematch avoids the previous match's questions while there are fresh ones.
+  if (d.m.rematchOfId) for (const r of await prisma.arenaRound.findMany({ where: { matchId: d.m.rematchOfId }, select: { itemId: true } })) before.add(r.itemId);
+  return { now, before };
 }
 
 /** Creates the round for a number: the server picks the question behind it. */
 async function startRound(d: Draft, pickerId: string, number: number, at: number): Promise<void> {
   const rules = rulesFrom(d.m.rules);
   const pool = await poolFor(d.m.courseId, d.m.moduleId);
-  const entry = chooseEntry(pool, await usedEntries(d));
+  const used = await usedEntries(d);
+  const entry = chooseEntry(pool, new Set([...used.now, ...used.before])) ?? chooseEntry(pool, used.now);
   if (!entry) { finish(d, at, "COMPLETED", "no-more-questions"); return; }
   const served = await serveEntry(entry);
   if (!served) { finish(d, at, "COMPLETED", "no-more-questions"); return; }
@@ -283,13 +288,16 @@ export async function touchPresence(traineeId: string, courseId: string): Promis
   await prisma.arenaPresence.upsert({ where: { traineeId_courseId: { traineeId, courseId } }, create: { traineeId, courseId }, update: { lastSeenAt: new Date() } });
 }
 
-export async function createChallenge(input: { challengerId: string; opponentId: string; courseId: string; moduleId?: string | null }) {
+export async function createChallenge(input: { challengerId: string; opponentId: string; courseId: string; moduleId?: string | null; rematchOfId?: string | null }) {
   const { challengerId, opponentId, courseId } = input;
   if (challengerId === opponentId) throw new ArenaError("Choose a coursemate to challenge.");
   const rules = await requireArena(challengerId, courseId);
   if (!(await isEnrolled(opponentId, courseId))) throw new ArenaError("That person isn't in this course's arena.", 404);
-  const presence = await prisma.arenaPresence.findUnique({ where: { traineeId_courseId: { traineeId: opponentId, courseId } } });
-  if (!presence || Date.now() - presence.lastSeenAt.getTime() > ONLINE_SECONDS * 1000) throw new ArenaError("That person isn't online in the arena right now.");
+  // A rematch goes to someone who has just been playing, so the "online in the arena" check is only for fresh challenges.
+  if (!input.rematchOfId) {
+    const presence = await prisma.arenaPresence.findUnique({ where: { traineeId_courseId: { traineeId: opponentId, courseId } } });
+    if (!presence || Date.now() - presence.lastSeenAt.getTime() > ONLINE_SECONDS * 1000) throw new ArenaError("That person isn't online in the arena right now.");
+  }
   if (await activeMatchOf(challengerId)) throw new ArenaError("Finish or leave your current match before starting another.", 409);
   if (await activeMatchOf(opponentId)) throw new ArenaError("That person is busy in another match.", 409);
   let moduleId: string | null = input.moduleId ?? null;
@@ -298,9 +306,11 @@ export async function createChallenge(input: { challengerId: string; opponentId:
     if (!mod) throw new ArenaError("That topic isn't part of this course.", 404);
   } else moduleId = null;
   const pool = await poolFor(courseId, moduleId);
-  if (pool.length < rules.questionsPerMatch) throw new ArenaError(`This ${moduleId ? "topic" : "course"} doesn't have enough approved questions for a ${rules.questionsPerMatch}-question match yet.`, 409);
+  // A match is as long as the instructor's rule, or as many questions as the course has when that is fewer (never below 4).
+  if (pool.length < RULE_LIMITS.questionsPerMatch.min) throw new ArenaError(`This ${moduleId ? "topic" : "course"} doesn't have enough approved questions to play yet (it needs at least ${RULE_LIMITS.questionsPerMatch.min}).`, 409);
+  const length = Math.min(rules.questionsPerMatch, pool.length);
   const m = await prisma.arenaMatch.create({
-    data: { courseId, moduleId, challengerId, opponentId, rules: rules as never, expiresAt: new Date(Date.now() + INVITE_MINUTES * 60_000) },
+    data: { courseId, moduleId, challengerId, opponentId, rematchOfId: input.rematchOfId ?? null, rules: { ...rules, questionsPerMatch: length } as never, expiresAt: new Date(Date.now() + INVITE_MINUTES * 60_000) },
   });
   void pokeMany([{ channel: channels.user(opponentId), message: { v: m.version, k: "challenge" } }, { channel: channels.course(courseId), message: { v: 0, k: "lobby" } }]);
   return m;
@@ -450,4 +460,22 @@ export async function react(matchId: string, traineeId: string, kind: string) {
   await prisma.arenaReaction.create({ data: { matchId, senderId: traineeId, kind } });
   void prisma.arenaReaction.deleteMany({ where: { createdAt: { lt: new Date(Date.now() - 15 * 60_000) } } }).catch(() => undefined);
   void pokeMatch(match, "react");
+}
+
+/**
+ * "Play again": asks the other player for a rematch with new questions. If they already asked, this accepts instead,
+ * so two players pressing the button at the same moment end up in one lobby.
+ */
+export async function requestRematch(matchId: string, traineeId: string): Promise<{ id: string }> {
+  const prev = await prisma.arenaMatch.findUnique({ where: { id: matchId } });
+  if (!prev || !isPlayer(prev, traineeId)) throw new ArenaError("That match could not be found.", 404);
+  if (prev.status !== "COMPLETED" && prev.status !== "FORFEITED") throw new ArenaError("You can play again once the match is over.", 409);
+  const other = otherPlayer(prev, traineeId);
+  const open = await prisma.arenaMatch.findFirst({ where: { rematchOfId: matchId, status: { in: ["PENDING", "LOBBY", "ACTIVE"] } }, orderBy: { createdAt: "desc" } });
+  if (open) {
+    if (open.status === "PENDING" && open.challengerId === other) await respondToChallenge(open.id, traineeId, true);
+    return { id: open.id };
+  }
+  const m = await createChallenge({ challengerId: traineeId, opponentId: other, courseId: prev.courseId, moduleId: prev.moduleId, rematchOfId: matchId });
+  return { id: m.id };
 }

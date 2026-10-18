@@ -1,16 +1,21 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import ArenaFrame from "./ArenaFrame";
 import { useArenaLive, channels } from "./useArenaLive";
-import { chime, pickTick, tick } from "./sound";
+import * as sfx from "./sound";
+import { burst, floatText } from "./confetti";
+import { STEAL_SECONDS } from "@/lib/arena/configCore";
 import type { MatchView } from "@/lib/arena/arenaView";
 import type { Reveal, ServedRound } from "@/lib/arena/arenaPool";
 
 const EMOJI: Record<string, { e: string; l: string }> = {
   applause: { e: "👏", l: "Applause" }, cheer: { e: "🎉", l: "Cheer" }, wow: { e: "😮", l: "Wow" }, fire: { e: "🔥", l: "On fire" }, love: { e: "❤️", l: "Love" },
   strong: { e: "💪", l: "Strong" }, nervous: { e: "😬", l: "Nervous" }, sad: { e: "😢", l: "Sad" }, laugh: { e: "😂", l: "Funny" }, thumbs: { e: "👍", l: "Nice" },
+  gg: { e: "🤝", l: "Good game" }, think: { e: "🤔", l: "Hmm" },
 };
 const QUICK = ["Good luck!", "Back in a minute", "Ready when you are", "Well played"];
+type Act = (action: string, body?: Record<string, unknown>) => Promise<boolean>;
 
 function useCountdown(endsAt: number | null, serverNow: () => number) {
   const [left, setLeft] = useState<number | null>(null);
@@ -28,37 +33,80 @@ const Avatar = ({ p, big }: { p: MatchView["me"]; big?: boolean }) => (
   <div className={`ar-av${big ? " ar-lg" : ""}`} aria-hidden>{p.avatarUrl ? <img src={p.avatarUrl} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} /> : p.initials}</div>
 );
 
+/** Numbers that count up to a new value, so a score change is something you see. */
+function CountUp({ value }: { value: number }) {
+  const [shown, setShown] = useState(value);
+  const from = useRef(value);
+  useEffect(() => {
+    const start = from.current; const t0 = performance.now(); const dur = 700;
+    if (start === value) return;
+    let raf = 0;
+    const step = (t: number) => {
+      const k = Math.min(1, (t - t0) / dur);
+      setShown(Math.round(start + (value - start) * (1 - Math.pow(1 - k, 3))));
+      if (k < 1) raf = requestAnimationFrame(step); else from.current = value;
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  return <>{shown}</>;
+}
+
 export default function ArenaMatch({ matchId }: { matchId: string }) {
+  const router = useRouter();
   const [sound, setSound] = useState<boolean | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [heroes, setHeroes] = useState<{ id: string; e: string; who: string }[]>([]);
+  const [intro, setIntro] = useState<number | null>(null);
+  const [flash, setFlash] = useState<"good" | "bad" | null>(null);
   const seen = useRef<Set<string> | null>(null);
   const lastScore = useRef<{ me: number; opp: number } | null>(null);
-  const [bump, setBump] = useState<"me" | "opp" | null>(null);
+  const introDone = useRef(false);
+  const fx = useRef<HTMLDivElement>(null);
+  const soundOn = useRef(false);
 
   const { data: v, setData, error, serverNow } = useArenaLive<MatchView>(`/api/arena/matches/${matchId}`, { listen: [channels.match(matchId)] });
 
-  // Sound preference: the player's own choice, otherwise the instructor's rule.
   useEffect(() => {
     if (!v || sound !== null) return;
     let stored: string | null = null;
-    try { stored = localStorage.getItem("arena-ticking"); } catch { /* private mode */ }
-    setSound(stored === null ? v.rules.tickingSound : stored === "1");
+    try { stored = localStorage.getItem("arena-sound"); } catch { /* private mode */ }
+    setSound(stored === null ? true : stored === "1");
   }, [v, sound]);
-  const setSoundPref = (on: boolean) => { setSound(on); try { localStorage.setItem("arena-ticking", on ? "1" : "0"); } catch { /* ignore */ } };
+  soundOn.current = !!sound;
+  const play = useCallback((fn: () => void) => { if (soundOn.current) fn(); }, []);
+  const setSoundPref = (on: boolean) => { setSound(on); soundOn.current = on; try { localStorage.setItem("arena-sound", on ? "1" : "0"); } catch { /* ignore */ } if (on) sfx.tap(); };
 
-  const flash = useCallback((m: string) => { setToast(m); setTimeout(() => setToast((t) => (t === m ? null : t)), 3500); }, []);
-  const act = useCallback(async (action: string, body: Record<string, unknown> = {}) => {
+  const note = useCallback((m: string) => { setToast(m); setTimeout(() => setToast((t) => (t === m ? null : t)), 3500); }, []);
+  const act = useCallback<Act>(async (action, body = {}) => {
     try {
       const res = await fetch(`/api/arena/matches/${matchId}/${action}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) { flash(j.error ?? "That didn't work."); return false; }
+      if (!res.ok) { note(j.error ?? "That didn't work."); return false; }
       setData(j as MatchView);
       return true;
-    } catch { flash("You seem to be offline."); return false; }
-  }, [matchId, setData, flash]);
+    } catch { note("You seem to be offline."); return false; }
+  }, [matchId, setData, note]);
 
-  // Reactions from either player appear large across the stage, once each.
+  // 3-2-1-GO when a match begins.
+  useEffect(() => {
+    if (!v || introDone.current) return;
+    if (v.status === "ACTIVE" && v.roundNo === 0 && v.board.used.length === 0) {
+      introDone.current = true;
+      let n = 3; setIntro(n); play(() => sfx.countHit(3));
+      const id = setInterval(() => {
+        n -= 1;
+        if (n > 0) { setIntro(n); play(() => sfx.countHit(n)); }
+        else if (n === 0) { setIntro(0); play(sfx.go); burst(fx.current, { count: 30, y: 55, power: 0.8 }); }
+        else { setIntro(null); clearInterval(id); }
+      }, 800);
+    } else if (v.status !== "LOBBY" && v.status !== "PENDING") introDone.current = true;
+  }, [v, play]);
+
+  // A rematch both players are in: go to its lobby.
+  useEffect(() => { if (v?.rematch && (v.rematch.status === "LOBBY" || v.rematch.status === "ACTIVE")) router.push(`/trainee/arena/match/${v.rematch.id}`); }, [v?.rematch, router]);
+
+  // Reactions from either player.
   useEffect(() => {
     if (!v) return;
     if (seen.current === null) { seen.current = new Set(v.reactions.map((r) => r.id)); return; }
@@ -66,87 +114,133 @@ export default function ArenaMatch({ matchId }: { matchId: string }) {
       if (seen.current.has(r.id)) continue;
       seen.current.add(r.id);
       const em = EMOJI[r.kind]; if (!em) continue;
+      play(() => sfx.reactionPop(r.kind));
+      if (r.kind === "cheer" || r.kind === "gg") burst(fx.current, { count: 22, y: 60 });
       const item = { id: r.id, e: em.e, who: r.from === "me" ? "You" : v.opponent.name };
       setHeroes((h) => [...h, item]);
       setTimeout(() => setHeroes((h) => h.filter((x) => x.id !== item.id)), 2700);
     }
-  }, [v]);
+  }, [v, play]);
 
-  // Score pop.
+  // Messages ping.
+  const msgCount = useRef<number | null>(null);
+  useEffect(() => {
+    if (!v) return;
+    if (msgCount.current !== null && v.messages.length > msgCount.current && v.messages[v.messages.length - 1]?.from === "opponent") play(sfx.message);
+    msgCount.current = v.messages.length;
+  }, [v, play]);
+
+  // Round outcomes: sound, confetti, flashes and flying points.
+  const lastReveal = useRef<string | null>(null);
   useEffect(() => {
     if (!v) return;
     const prev = lastScore.current;
     lastScore.current = { me: v.me.score, opp: v.opponent.score };
-    if (prev && v.me.score > prev.me) { setBump("me"); chime(); setTimeout(() => setBump(null), 600); }
-    else if (prev && v.opponent.score > prev.opp) { setBump("opp"); setTimeout(() => setBump(null), 600); }
-  }, [v]);
+    const key = v.reveal && v.round ? `${v.round.idx}` : null;
+    if (key && key !== lastReveal.current && prev) {
+      lastReveal.current = key;
+      const gained = v.me.score - prev.me;
+      if (gained > 0) {
+        play(() => sfx.correct(v.streak.me)); play(() => setTimeout(sfx.coin, 260));
+        burst(fx.current, { count: 36 + Math.min(40, v.streak.me * 8), y: 55 });
+        floatText(fx.current, `+${gained}`, { x: 50, y: 40 });
+        setFlash("good"); setTimeout(() => setFlash(null), 700);
+      } else if (v.reveal?.awardedTo === "opponent") {
+        play(sfx.wrong); setFlash("bad"); setTimeout(() => setFlash(null), 700);
+      } else play(sfx.wrong);
+    }
+    if (v.round?.stage === "ANSWER") lastReveal.current = null;
+  }, [v, play]);
+
+  // A new question arrives, or a bonus chance opens.
+  const lastStage = useRef<string | null>(null);
+  useEffect(() => {
+    if (!v) return;
+    const st = v.round ? `${v.round.idx}-${v.round.stage}` : v.phase ? `pick-${v.board.used.length}` : null;
+    if (st && st !== lastStage.current) {
+      if (lastStage.current !== null) {
+        if (v.round?.stage === "STEAL") { if (v.round.iCanAnswer) play(sfx.stealAlert); }
+        else if (v.round?.stage === "ANSWER") play(sfx.whoosh);
+      }
+      lastStage.current = st;
+    }
+  }, [v, play]);
+
+  // Final result.
+  const resultSound = useRef(false);
+  useEffect(() => {
+    if (!v?.result || resultSound.current) return;
+    resultSound.current = true;
+    if (v.result.winner === "me") { play(sfx.victory); setTimeout(() => { burst(fx.current, { count: 90, y: 40, power: 1.3 }); burst(fx.current, { count: 60, x: 20, y: 60 }); burst(fx.current, { count: 60, x: 80, y: 60 }); }, 150); }
+    else if (v.result.winner === "draw") play(sfx.draw); else play(sfx.defeat);
+  }, [v?.result, play]);
 
   const pausedNow = !!v?.paused;
-  const endsAt = v && !pausedNow ? v.phaseEndsAt : null;
-  const left = useCountdown(v?.status === "ACTIVE" ? endsAt : null, serverNow);
-  const secs = left === null ? null : Math.ceil(left / 1000);
   const phase = v?.phase ?? null;
-  const total = v ? (phase === "PICK" ? v.rules.pickSeconds : phase === "STEAL" ? 5 : phase === "ANSWER" ? v.rules.questionSeconds : 6) * 1000 : 1;
+  // Picking a number has no visible clock; only answering, the bonus chance and the short wait between questions do.
+  const timed = phase === "ANSWER" || phase === "STEAL" || phase === "REVEAL";
+  const endsAt = v && !pausedNow && v.status === "ACTIVE" && timed ? v.phaseEndsAt : null;
+  const left = useCountdown(endsAt, serverNow);
+  const secs = left === null ? null : Math.ceil(left / 1000);
+  const total = v ? (phase === "STEAL" ? STEAL_SECONDS : phase === "ANSWER" ? v.rules.questionSeconds : 6) * 1000 : 1;
 
-  // Ticking.
   const lastTick = useRef<number | null>(null);
   useEffect(() => {
-    if (!sound || secs === null || !v || v.status !== "ACTIVE" || pausedNow) return;
-    if (phase !== "ANSWER" && phase !== "STEAL" && phase !== "PICK") return;
+    if (!sound || secs === null || !v || pausedNow || (phase !== "ANSWER" && phase !== "STEAL")) return;
     if (lastTick.current === secs) return;
     lastTick.current = secs;
-    if (secs > 0) (phase === "PICK" ? pickTick : tick)(secs <= 5);
+    if (secs <= 0) return;
+    if (secs <= 5) sfx.countdownBeep(secs);
+    else if (v.rules.tickingSound) sfx.tick(secs <= 10);
   }, [secs, sound, phase, v, pausedNow]);
 
-  if (error && !v) {
-    return (
-      <ArenaFrame title="Gaming Arena" backHref="/trainee/arena">
-        <div className="ar-stage"><div className="ar-in" style={{ placeItems: "center", display: "grid" }}><p>{error.message}</p></div></div>
-      </ArenaFrame>
-    );
-  }
+  if (error && !v) return <ArenaFrame title="Gaming Arena" backHref="/trainee/arena"><div className="ar-stage"><div className="ar-in" style={{ placeItems: "center", display: "grid" }}><p>{error.message}</p></div></div></ArenaFrame>;
   if (!v) return <ArenaFrame title="Gaming Arena" backHref="/trainee/arena"><div className="ar-stage"><div className="ar-in" style={{ display: "grid", placeItems: "center" }}>Loading the arena…</div></div></ArenaFrame>;
 
   const title = `${v.courseTitle}${v.topic ? ` · ${v.topic}` : ""}`;
-  const back = `/trainee/arena/${v.courseId}`;
-  const hot = secs !== null && secs <= 5;
+  const urgent = secs !== null && secs <= 10;
   const pct = left === null ? 100 : Math.max(0, Math.min(100, (left / total) * 100));
+  const over = v.status === "COMPLETED" || v.status === "FORFEITED";
 
   return (
-    <ArenaFrame title={title} backHref={back} sound={!!sound} onSound={setSoundPref}>
-      <div className="ar-stage">
+    <ArenaFrame title={title} backHref={`/trainee/arena/${v.courseId}`} sound={!!sound} onSound={setSoundPref}>
+      <div className={`ar-stage${flash ? ` ar-flash-${flash}` : ""}`}>
+        <div className="ar-orbs" aria-hidden><i /><i /><i /></div>
         <div className="ar-in">
           <div className="ar-top">
-            <div className="ar-t">{v.status === "ACTIVE" ? `Question ${Math.min(v.roundNo || 1, v.totalRounds)} of ${v.totalRounds}` : statusLabel(v)}</div>
+            <div className="ar-t">{v.status === "ACTIVE" ? `Question ${Math.min(Math.max(v.roundNo, 1), v.totalRounds)} of ${v.totalRounds}` : statusLabel(v)}</div>
             <div className="ar-prog" aria-hidden>{v.progress.map((p, i) => <i key={i} className={p === "won" ? "ar-d" : p === "lost" ? "ar-w" : p === "now" ? "ar-n" : ""} />)}</div>
-            {v.status === "ACTIVE" && <span className="ar-pill">{v.me.pausesLeft} pause{v.me.pausesLeft === 1 ? "" : "s"} left</span>}
+            {v.status === "ACTIVE" && <span className="ar-pill">⏸ {v.me.pausesLeft} left</span>}
           </div>
           <div className="ar-main">
             <div className="ar-col">
-              <PlayerCard p={v.me} you active={v.turn === "me"} pop={bump === "me"} phase={v.phase} />
-              {v.status === "ACTIVE" && !pausedNow && secs !== null && (
-                <>
-                  <div className={`ar-timer${phase === "PICK" ? " ar-pick" : ""}${hot ? " ar-hot" : ""}`} style={{ ["--t" as string]: `${pct}%` }} role="timer" aria-label={`${secs} seconds left`}><span className="ar-tnum">{secs}</span></div>
-                  <div className="ar-lbl">{phase === "PICK" ? "pick a number" : phase === "STEAL" ? "bonus question" : phase === "REVEAL" ? "next question" : "seconds left"}</div>
-                </>
+              <PlayerCard p={v.me} you active={v.turn === "me"} streak={v.streak.me} phase={v.phase} live={v.status === "ACTIVE"} />
+              {v.status === "ACTIVE" && !pausedNow && (
+                phase === "PICK" ? <div className="ar-lbl" style={{ margin: "auto 0" }}>no rush,<br />choose a number</div> : secs !== null && (
+                  <>
+                    <div className={`ar-timer${urgent ? " ar-hot" : ""}${phase === "STEAL" ? " ar-pick" : ""}`} style={{ ["--t" as string]: `${pct}%` }} role="timer" aria-label={`${secs} seconds left`}><span className="ar-tnum">{secs}</span></div>
+                    <div className="ar-lbl">{phase === "STEAL" ? "bonus chance" : phase === "REVEAL" ? "next question" : "seconds left"}</div>
+                  </>
+                )
               )}
-              <PlayerCard p={v.opponent} active={v.turn === "opponent"} pop={bump === "opp"} phase={v.phase} />
+              <PlayerCard p={v.opponent} active={v.turn === "opponent"} streak={v.streak.opponent} phase={v.phase} live={v.status === "ACTIVE"} />
             </div>
-            <div className="ar-col ar-mid">{center(v, act, secs)}</div>
+            <div className="ar-col ar-mid">{center(v, act, secs, play)}</div>
             <div className="ar-col">
               <div className="ar-lbl">Reactions</div>
-              <div className={`ar-tray${v.reactionsOpen ? "" : " ar-locked"}`}>
+              <div className={`ar-tray ar-t3${v.reactionsOpen ? "" : " ar-locked"}`}>
                 {Object.entries(EMOJI).map(([k, x]) => (
-                  <button key={k} type="button" className="ar-rx" disabled={!v.reactionsOpen} onClick={() => void act("react", { kind: k })} aria-label={x.l}><span className="ar-e">{x.e}</span><span className="ar-l">{x.l}</span></button>
+                  <button key={k} type="button" className="ar-rx" disabled={!v.reactionsOpen} onClick={() => { play(() => sfx.reactionPop(k)); void act("react", { kind: k }); }} aria-label={x.l}><span className="ar-e">{x.e}</span><span className="ar-l">{x.l}</span></button>
                 ))}
               </div>
-              <div className="ar-rxnote">{v.reactionsOpen ? "Send a reaction" : "Reactions open between questions"}</div>
+              <div className="ar-rxnote">{v.reactionsOpen ? (over ? "Say good game!" : "Send a reaction") : "Reactions open between questions"}</div>
             </div>
           </div>
         </div>
-        <div className="ar-fx" aria-hidden>
+        <div className="ar-fx" ref={fx} aria-hidden>
           {heroes.map((h) => <div key={h.id} className="ar-hero"><div className="ar-big">{h.e}</div><span className="ar-who">{h.who}</span></div>)}
         </div>
+        {intro !== null && <div className="ar-intro" aria-live="assertive"><div className="ar-introvs"><span>{v.me.name === "You" ? "You" : v.me.name.split(" ")[0]}</span><b>VS</b><span>{v.opponent.name.split(" ")[0]}</span></div><div key={intro} className="ar-countnum">{intro === 0 ? "GO!" : intro}</div></div>}
         {v.paused && v.status === "ACTIVE" && <PauseOverlay v={v} act={act} serverNow={serverNow} />}
         {toast && <div className="ar-toast" role="alert">{toast}</div>}
       </div>
@@ -158,33 +252,30 @@ function statusLabel(v: MatchView): string {
   switch (v.status) {
     case "PENDING": return "Challenge sent";
     case "LOBBY": return "Lobby";
-    case "COMPLETED": return "Match over";
-    case "FORFEITED": return "Match over";
+    case "COMPLETED": case "FORFEITED": return "Match over";
     case "DECLINED": return "Challenge declined";
     case "EXPIRED": return "Expired";
     default: return "Cancelled";
   }
 }
 
-function PlayerCard({ p, you, active, pop, phase }: { p: MatchView["me"]; you?: boolean; active: boolean; pop: boolean; phase: MatchView["phase"] }) {
+function PlayerCard({ p, you, active, streak, phase, live }: { p: MatchView["me"]; you?: boolean; active: boolean; streak: number; phase: MatchView["phase"]; live: boolean }) {
   return (
-    <div className="ar-glass ar-pc" style={active ? { borderColor: "var(--gold)" } : undefined}>
-      <Avatar p={p} />
+    <div className={`ar-glass ar-pc${active && live ? " ar-active" : ""}`}>
+      <div className="ar-avwrap"><Avatar p={p} />{streak >= 2 && <span className="ar-streak" title={`${streak} right in a row`}>🔥{streak}</span>}</div>
       <div className="ar-name">{you ? "You" : p.name}</div>
-      <div className="ar-sub">{active ? "their turn to pick" : " "}</div>
-      <div className={`ar-score${pop ? " ar-up" : ""}`} aria-label={`${p.score} points`}>{p.score}</div>
+      <div className="ar-sub">{active && live ? (phase === "PICK" ? "choosing a number" : "in the hot seat") : " "}</div>
+      <div className="ar-score" aria-label={`${p.score} points`}><CountUp value={p.score} /></div>
     </div>
   );
 }
 
-type Act = (action: string, body?: Record<string, unknown>) => Promise<boolean>;
-
-function center(v: MatchView, act: Act, secs: number | null) {
+function center(v: MatchView, act: Act, secs: number | null, play: (fn: () => void) => void) {
   switch (v.status) {
     case "PENDING": return <Pending v={v} act={act} />;
     case "LOBBY": return <Lobby v={v} act={act} />;
-    case "ACTIVE": return v.phase === "PICK" ? <Board v={v} act={act} /> : <Question key={`${v.round?.idx}-${v.round?.stage}`} v={v} act={act} secs={secs} />;
-    case "COMPLETED": case "FORFEITED": return <Result v={v} />;
+    case "ACTIVE": return v.phase === "PICK" ? <Board v={v} act={act} play={play} /> : <Question key={`${v.round?.idx}-${v.round?.stage === "STEAL" ? "s" : "a"}`} v={v} act={act} secs={secs} />;
+    case "COMPLETED": case "FORFEITED": return <Result v={v} act={act} />;
     default: return <div className="ar-glass" style={{ textAlign: "center" }}><p className="ar-name">{statusLabel(v)}</p><p className="ar-muted">Head back to the arena to start another match.</p></div>;
   }
 }
@@ -239,18 +330,23 @@ function Lobby({ v, act }: { v: MatchView; act: Act }) {
   );
 }
 
-function Board({ v, act }: { v: MatchView; act: Act }) {
+function Board({ v, act, play }: { v: MatchView; act: Act; play: (fn: () => void) => void }) {
   const mine = v.turn === "me";
+  const [picked, setPicked] = useState<number | null>(null);
   return (
     <>
       <div className={`ar-pickmsg${mine ? "" : " ar-opp"}`}>
-        <strong>{mine ? "Pick a number" : `${v.opponent.name} is picking a number…`}</strong>
-        <span>{mine ? `Each number hides a question. If you don't choose, one is picked for you.` : "Get ready: a question is coming."}</span>
+        <strong>{mine ? "Your turn: pick a number" : `${v.opponent.name} is choosing a number…`}</strong>
+        <span>{mine ? "Every number hides a question. Take your time." : "Get ready, a question is coming."}</span>
       </div>
       <div className="ar-picker" role="group" aria-label="Numbers">
         {Array.from({ length: v.board.size }, (_, i) => i + 1).map((n) => {
+          const owner = v.board.owners[n];
           const used = v.board.used.includes(n);
-          return <button key={n} type="button" className={`ar-num${used ? " ar-used" : ""}`} disabled={used || !mine} onClick={() => void act("pick", { number: n })} aria-label={`Number ${n}${used ? " (used)" : ""}`}>{n}</button>;
+          return (
+            <button key={n} type="button" className={`ar-num${used ? ` ar-used ar-own-${owner ?? "none"}` : ""}${picked === n ? " ar-sel" : ""}${mine && !used ? " ar-ready-num" : ""}`} disabled={used || !mine || picked !== null}
+              onClick={() => { setPicked(n); play(sfx.select); void act("pick", { number: n }).then((ok) => { if (!ok) setPicked(null); }); }} aria-label={`Number ${n}${used ? " (used)" : ""}`}>{used ? (owner === "me" ? "✓" : owner === "opponent" ? "✗" : "–") : n}</button>
+          );
         })}
       </div>
     </>
@@ -260,35 +356,49 @@ function Board({ v, act }: { v: MatchView; act: Act }) {
 function Question({ v, act, secs }: { v: MatchView; act: Act; secs: number | null }) {
   const r = v.round;
   const [locked, setLocked] = useState(false);
+  const [chosen, setChosen] = useState<string | null>(null);
   if (!r) return <div className="ar-glass">Getting the next question…</div>;
   const stealing = r.stage === "STEAL";
   const reveal = r.stage === "REVEAL" ? v.reveal : null;
   const canAnswer = r.iCanAnswer && !locked && secs !== 0;
-  const submit = async (response: Record<string, unknown>) => { setLocked(true); if (!(await act("answer", { response }))) setLocked(false); };
-  let note: { cls: string; text: string } | null = null;
-  if (stealing) note = r.answerer === "me" ? { cls: "", text: `Bonus question! ${v.opponent.name} missed it. Get it right for ${r.bonusPoints} points.` } : { cls: "ar-info", text: `${v.opponent.name} has a bonus chance on this question.` };
-  else if (r.stage === "ANSWER" && r.answerer === "opponent") note = { cls: "ar-info", text: `${v.opponent.name} is answering. If they miss, you get a bonus chance.` };
-  if (reveal) {
-    const who = reveal.awardedTo === "me" ? "You" : reveal.awardedTo === "opponent" ? v.opponent.name : null;
-    note = who ? { cls: "ar-ok", text: `${who} earned ${reveal.points} points${reveal.outcome === "STOLEN" ? " (bonus)" : ""}.` } : { cls: "ar-miss", text: "Nobody got this one. Here is the answer." };
-  }
+  const submit = async (response: Record<string, unknown>, label?: string) => { setLocked(true); if (label) setChosen(label); if (!(await act("answer", { response }))) { setLocked(false); setChosen(null); } };
+  let banner: { cls: string; text: string } | null = null;
+  if (stealing) banner = r.answerer === "me" ? { cls: "ar-steal", text: `⚡ Bonus chance! ${v.opponent.name} missed it. Get it right for ${r.bonusPoints} points.` } : { cls: "ar-info", text: `${v.opponent.name} has a bonus chance on this one.` };
+  else if (r.stage === "ANSWER" && r.answerer === "opponent") banner = { cls: "ar-info", text: `${v.opponent.name} is answering. If they miss, you get a bonus chance.` };
   const s = r.served;
+  const who = reveal?.awardedTo === "me" ? "You" : reveal?.awardedTo === "opponent" ? v.opponent.name : null;
   return (
-    <div className="ar-qcard">
+    <div className={`ar-qcard${reveal ? " ar-revealed" : ""}`}>
       <div className="ar-meta">
         <span className="ar-tag">{s?.topic ?? "Question"}</span>
         {s && <span className={`ar-tag${s.level === "Hard" ? " ar-hard" : ""}`}>{s.level}</span>}
         <span className="ar-tag">{r.points} pts</span>
         {stealing && <span className="ar-tag ar-bonus">Bonus +{v.rules.bonusPercent}%</span>}
       </div>
-      {s ? <Body s={s} canAnswer={canAnswer} reveal={reveal?.answer ?? null} locked={locked} onSubmit={submit} /> : <div className="ar-hiddenq">Question hidden</div>}
-      {reveal?.answer.explanation && <div className="ar-note ar-info">{reveal.answer.explanation}</div>}
-      <div className="ar-fbw">{note && <div className={`ar-note ${note.cls}`}>{note.text}</div>}{!note && locked && <div className="ar-note ar-info">Answer locked in…</div>}</div>
+      {s ? <Body s={s} canAnswer={canAnswer} reveal={reveal?.answer ?? null} chosen={chosen} locked={locked} onSubmit={submit} /> : <div className="ar-hiddenq">Question hidden</div>}
+      {reveal && <RevealPanel reveal={reveal} who={who} />}
+      <div className="ar-fbw">
+        {banner && <div className={`ar-note ${banner.cls}`}>{banner.text}</div>}
+        {!banner && !reveal && locked && <div className="ar-note ar-info">Answer locked in…</div>}
+      </div>
     </div>
   );
 }
 
-function Body({ s, canAnswer, reveal, locked, onSubmit }: { s: ServedRound; canAnswer: boolean; reveal: Reveal | null; locked: boolean; onSubmit: (r: Record<string, unknown>) => void }) {
+function RevealPanel({ reveal, who }: { reveal: NonNullable<MatchView["reveal"]>; who: string | null }) {
+  const a = reveal.answer;
+  const expl = a.format === "SCENARIO" ? a.bestOutcome ?? null : a.explanation;
+  return (
+    <div className={`ar-rv ${who ? "ar-ok" : "ar-miss"}`}>
+      <div className="ar-rvh">{who ? `${who} earned ${reveal.points} points${reveal.outcome === "STOLEN" ? " (bonus)" : ""}` : "Nobody got this one, so here it is"}</div>
+      {a.format === "QUIZ" && a.correctText && <div className="ar-rva">✔ Correct answer: <b>{a.correctText}</b></div>}
+      {a.format === "SCENARIO" && a.best && <div className="ar-rva">✔ Best choice: <b>{a.best}</b></div>}
+      {expl && <div className="ar-rvx">💡 {expl}</div>}
+    </div>
+  );
+}
+
+function Body({ s, canAnswer, reveal, chosen, locked, onSubmit }: { s: ServedRound; canAnswer: boolean; reveal: Reveal | null; chosen: string | null; locked: boolean; onSubmit: (r: Record<string, unknown>, label?: string) => void }) {
   if (s.format === "QUIZ") {
     return (
       <>
@@ -296,9 +406,10 @@ function Body({ s, canAnswer, reveal, locked, onSubmit }: { s: ServedRound; canA
         <div className="ar-opts">
           {s.options.map((o, i) => {
             const right = reveal?.correctKey === o.key;
+            const mineWrong = !!reveal && chosen === o.key && !right;
             return (
-              <button key={o.key} type="button" className={`ar-opt${right ? " ar-ok" : ""}${!canAnswer && !reveal ? " ar-wait" : ""}`} disabled={!canAnswer} onClick={() => onSubmit({ choice: o.key })}>
-                <b>{String.fromCharCode(65 + i)}</b>{o.text}
+              <button key={o.key} type="button" className={`ar-opt${right ? " ar-ok" : ""}${mineWrong ? " ar-no" : ""}${chosen === o.key && !reveal ? " ar-picked" : ""}${!canAnswer && !reveal && chosen !== o.key ? " ar-wait" : ""}`} disabled={!canAnswer} onClick={() => onSubmit({ choice: o.key }, o.key)}>
+                <b>{right ? "✔" : mineWrong ? "✗" : String.fromCharCode(65 + i)}</b><span>{o.text}</span>
               </button>
             );
           })}
@@ -311,11 +422,12 @@ function Body({ s, canAnswer, reveal, locked, onSubmit }: { s: ServedRound; canA
       <>
         <div className="ar-scn">{s.situation}</div>
         <div className="ar-opts ar-one">
-          {s.options.map((o, i) => (
-            <button key={o} type="button" className={`ar-opt${reveal?.best === o ? " ar-ok" : ""}`} disabled={!canAnswer} onClick={() => onSubmit({ choice: o })}><b>{String.fromCharCode(65 + i)}</b>{o}</button>
-          ))}
+          {s.options.map((o, i) => {
+            const right = reveal?.best === o;
+            const mineWrong = !!reveal && chosen === o && !right;
+            return <button key={o} type="button" className={`ar-opt${right ? " ar-ok" : ""}${mineWrong ? " ar-no" : ""}${chosen === o && !reveal ? " ar-picked" : ""}`} disabled={!canAnswer} onClick={() => onSubmit({ choice: o }, o)}><b>{right ? "✔" : mineWrong ? "✗" : String.fromCharCode(65 + i)}</b><span>{o}</span></button>;
+          })}
         </div>
-        {reveal?.bestOutcome && <div className="ar-note ar-info">{reveal.bestOutcome}</div>}
       </>
     );
   }
@@ -328,14 +440,21 @@ function Matching({ s, canAnswer, reveal, onSubmit }: { s: Extract<ServedRound, 
   const [map, setMap] = useState<Record<string, string>>({});
   const used = new Set(Object.values(map));
   const done = Object.keys(map).length === s.lefts.length;
+  if (reveal?.pairs) {
+    return (
+      <>
+        <p className="ar-q">{s.prompt}</p>
+        <div className="ar-mt ar-one">{reveal.pairs.map((p) => <div key={p.left} className="ar-pair"><span>{p.left}</span><b>→</b><span>{p.right}</span></div>)}</div>
+      </>
+    );
+  }
   return (
     <>
       <p className="ar-q">{s.prompt}</p>
       <div className="ar-mt">
-        <div>{s.lefts.map((l, i) => {
-          const right = reveal?.pairs?.[i]?.right;
-          return <button key={l} type="button" disabled={!canAnswer} className={`${sel === i ? "ar-p" : ""}${map[i] ? " ar-m" : ""}`} onClick={() => { if (map[i]) { const n = { ...map }; delete n[i]; setMap(n); } else setSel(i); }}>{l}{map[i] ? ` → ${map[i]}` : right ? ` → ${right}` : ""}</button>;
-        })}</div>
+        <div>{s.lefts.map((l, i) => (
+          <button key={l} type="button" disabled={!canAnswer} className={`${sel === i ? "ar-p" : ""}${map[i] ? " ar-m" : ""}`} onClick={() => { if (map[i]) { const n = { ...map }; delete n[i]; setMap(n); } else setSel(i); }}>{l}{map[i] ? ` → ${map[i]}` : ""}</button>
+        ))}</div>
         <div>{s.rights.map((r) => (
           <button key={r} type="button" disabled={!canAnswer || used.has(r)} className={used.has(r) ? "ar-m" : ""} onClick={() => { if (sel === null) return; setMap({ ...map, [sel]: r }); setSel(null); }}>{r}</button>
         ))}</div>
@@ -375,21 +494,52 @@ function PauseOverlay({ v, act, serverNow }: { v: MatchView; act: Act; serverNow
   );
 }
 
-function Result({ v }: { v: MatchView }) {
+function Result({ v, act }: { v: MatchView; act: Act }) {
   const r = v.result;
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
   if (!r) return null;
-  const head = r.winner === "me" ? "You won! 🏆" : r.winner === "draw" ? "It's a draw" : `${v.opponent.name} won`;
-  const sub = r.reason === "left" || r.reason === "forfeit" ? "The match ended early." : r.reason === "inactive" ? "The match ended because a player stopped responding." : null;
+  const head = r.winner === "me" ? "Victory! 🏆" : r.winner === "draw" ? "It's a draw 🤝" : `${v.opponent.name} takes it`;
+  const sub = r.winner === "me" ? "Brilliant. You earned it." : r.winner === "draw" ? "Evenly matched. Time for the decider?" : "Great effort. Every question you missed is now one you know.";
+  const early = r.reason === "left" || r.reason === "forfeit" || r.reason === "inactive";
+  const missed = r.recap.filter((x) => x.mine !== "correct");
+  const rm = v.rematch;
+  const rec = r.record;
   return (
-    <div className="ar-glass ar-win" style={{ width: "100%", textAlign: "center", display: "grid", gap: ".6em", overflow: "auto", maxHeight: "100%" }}>
+    <div className="ar-glass ar-win">
+      <div className="ar-stars" aria-label={`${r.stars} of 3 stars`}>{[1, 2, 3].map((n) => <span key={n} className={n <= r.stars ? "ar-on" : ""} style={{ animationDelay: `${n * 0.25}s` }}>★</span>)}</div>
       <div className="ar-big">{head}</div>
-      <div className="ar-name">{r.myScore} – {r.opponentScore}</div>
-      {sub && <div className="ar-muted">{sub}</div>}
-      <div className="ar-muted">You answered {r.answered}, got {r.correct} right.</div>
-      <div className="ar-bars">
-        {r.topics.map((t) => <div key={t.topic}><span>{t.topic}</span><span className="ar-track"><i className={t.correct / t.total < 0.5 ? "ar-low" : ""} style={{ width: `${Math.round((t.correct / t.total) * 100)}%`, display: "block" }} /></span><span>{t.correct}/{t.total}</span></div>)}
+      <div className="ar-final">{r.myScore} <span>–</span> {r.opponentScore}</div>
+      <div className="ar-muted">{early ? "The match ended early. " : ""}{sub}</div>
+      <div className="ar-chips">
+        <span className="ar-pill">✔ {r.correct} of {r.answered} right</span>
+        {r.bestStreak >= 2 && <span className="ar-pill ar-gold">🔥 Best streak {r.bestStreak}</span>}
+        {rec.wins + rec.losses + rec.draws > 1 && <span className="ar-pill">🤝 You {rec.wins} · {rec.losses} {v.opponent.name.split(" ")[0]}{rec.draws ? ` · ${rec.draws} draw${rec.draws > 1 ? "s" : ""}` : ""}</span>}
       </div>
-      <div><a className="ar-btn" href={`/trainee/arena/${v.courseId}`} style={{ textDecoration: "none", display: "inline-block" }}>Back to the arena</a></div>
+      <div className="ar-actions">
+        {!rm && <button type="button" className="ar-btn ar-big-btn" onClick={() => void act("rematch")}>🔁 Play again, new questions</button>}
+        {rm && rm.status === "PENDING" && rm.from === "me" && <><span className="ar-pill ar-gold">Waiting for {v.opponent.name} to say yes…</span><button type="button" className="ar-btn ar-ghost ar-sm" onClick={() => void fetch(`/api/arena/matches/${rm.id}/leave`, { method: "POST" })}>Cancel</button></>}
+        {rm && rm.status === "PENDING" && rm.from === "opponent" && <><span className="ar-pill ar-gold">{v.opponent.name} wants a rematch!</span><button type="button" className="ar-btn ar-big-btn" onClick={() => void fetch(`/api/arena/matches/${rm.id}/accept`, { method: "POST" }).then(() => router.push(`/trainee/arena/match/${rm.id}`))}>Accept rematch</button><button type="button" className="ar-btn ar-ghost ar-sm" onClick={() => void fetch(`/api/arena/matches/${rm.id}/decline`, { method: "POST" })}>Not now</button></>}
+        <a className="ar-btn ar-ghost" href={`/trainee/arena/${v.courseId}`} style={{ textDecoration: "none", display: "inline-block" }}>Back to the arena</a>
+      </div>
+      {r.topics.length > 0 && <div className="ar-bars">{r.topics.map((t) => <div key={t.topic}><span>{t.topic}</span><span className="ar-track"><i className={t.correct / t.total < 0.5 ? "ar-low" : ""} style={{ width: `${Math.round((t.correct / t.total) * 100)}%`, display: "block" }} /></span><span>{t.correct}/{t.total}</span></div>)}</div>}
+      {r.recap.length > 0 && (
+        <div className="ar-recap">
+          <button type="button" className="ar-btn ar-ghost ar-sm" aria-expanded={open} onClick={() => setOpen((x) => !x)}>{open ? "Hide" : "Review"} the {missed.length ? `${missed.length} to learn from` : "answers"}</button>
+          {open && (
+            <ol>
+              {[...missed, ...r.recap.filter((x) => x.mine === "correct")].map((x, i) => (
+                <li key={i} className={x.mine === "correct" ? "ar-got" : "ar-lost"}>
+                  <div className="ar-rtopic">{x.mine === "correct" ? "✔ You got this" : x.mine === "missed" ? "✗ Missed" : "– Not answered"} · {x.topic}</div>
+                  <div className="ar-rprompt">{x.prompt}</div>
+                  <div className="ar-rans">Answer: <b>{x.answer}</b></div>
+                  {x.explanation && <div className="ar-rwhy">💡 {x.explanation}</div>}
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      )}
     </div>
   );
 }
