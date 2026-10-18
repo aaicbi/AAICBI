@@ -11,7 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { availabilityForCourse, resolveForCourse } from "@/lib/arena/config";
 import { RULE_LIMITS, type ArenaRules } from "@/lib/arena/configCore";
 import {
-  FORFEIT_AFTER, INVITE_MINUTES, LOBBY_MINUTES, REVEAL_SECONDS, STEAL_MS, boardSize, cleanMessage, dueAction, firstPoints, isPlayer, otherPlayer,
+  FORFEIT_AFTER, INVITE_MINUTES, OFFLINE_INVITE_MINUTES, LOBBY_MINUTES, REVEAL_SECONDS, STEAL_MS, boardSize, cleanMessage, dueAction, firstPoints, isPlayer, otherPlayer,
   reactionsOpen, rulesFrom, stealPoints, winnerOf, type DueAction, type Phase, type Snapshot,
 } from "@/lib/arena/arenaCore";
 import { basePointsFor, chooseEntry, gradeEntry, poolFor, revealEntry, serveEntry, type PoolEntry } from "@/lib/arena/arenaPool";
@@ -326,11 +326,9 @@ export async function createChallenge(input: { challengerId: string; opponentId:
   if (mine) throw new ArenaError(suspensionText(mine), 403);
   if (await activeSuspension(opponentId, courseId)) throw new ArenaError("That person can't play in this arena right now.", 409);
   if (!(await isEnrolled(opponentId, courseId))) throw new ArenaError("That person isn't in this course's arena.", 404);
-  // A rematch goes to someone who has just been playing, so the "online in the arena" check is only for fresh challenges.
-  if (!input.rematchOfId) {
-    const presence = await prisma.arenaPresence.findUnique({ where: { traineeId_courseId: { traineeId: opponentId, courseId } } });
-    if (!presence || Date.now() - presence.lastSeenAt.getTime() > ONLINE_SECONDS * 1000) throw new ArenaError("That person isn't online in the arena right now.");
-  }
+  // Anyone in the course can be challenged. Someone who is not in the arena gets a notification on their phone instead.
+  const presence = await prisma.arenaPresence.findUnique({ where: { traineeId_courseId: { traineeId: opponentId, courseId } } });
+  const online = !!presence && Date.now() - presence.lastSeenAt.getTime() <= ONLINE_SECONDS * 1000;
   if (await activeMatchOf(challengerId)) throw new ArenaError("Finish or leave your current match before starting another.", 409);
   if (await activeMatchOf(opponentId)) throw new ArenaError("That person is busy in another match.", 409);
   let moduleId: string | null = input.moduleId ?? null;
@@ -343,11 +341,13 @@ export async function createChallenge(input: { challengerId: string; opponentId:
   if (pool.length < RULE_LIMITS.questionsPerMatch.min) throw new ArenaError(`This ${moduleId ? "topic" : "course"} doesn't have enough approved questions to play yet (it needs at least ${RULE_LIMITS.questionsPerMatch.min}).`, 409);
   const length = Math.min(rules.questionsPerMatch, pool.length);
   const m = await prisma.arenaMatch.create({
-    data: { courseId, moduleId, challengerId, opponentId, rematchOfId: input.rematchOfId ?? null, rules: { ...rules, questionsPerMatch: length } as never, expiresAt: new Date(Date.now() + INVITE_MINUTES * 60_000) },
+    data: { courseId, moduleId, challengerId, opponentId, rematchOfId: input.rematchOfId ?? null, rules: { ...rules, questionsPerMatch: length } as never, expiresAt: new Date(Date.now() + (online ? INVITE_MINUTES : OFFLINE_INVITE_MINUTES) * 60_000) },
   });
   void pokeMany([{ channel: channels.user(opponentId), message: { v: m.version, k: "challenge" } }, { channel: channels.course(courseId), message: { v: 0, k: "lobby" } }]);
   void notifyChallenge(m);
-  return m;
+  // How the challenge will reach them: they are here now, it goes to their phone, or they will only see it next time they open the app.
+  const reach: "online" | "push" | "none" = online ? "online" : (await prisma.pushSubscription.count({ where: { recipientType: "TRAINEE", recipientId: opponentId } })) > 0 ? "push" : "none";
+  return Object.assign(m, { reach });
 }
 
 function requirePlayer(d: Draft, id: string) {

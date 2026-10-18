@@ -17,6 +17,6 @@ export async function POST(req: NextRequest, { params }: { params: { courseId: s
     if (!parsed.success) throw new ArenaError("Choose a coursemate to challenge.");
     await limit(`arena:challenge:${me}`, PICK_RATE.challenges, PICK_RATE.challengesPer);
     const m = await challengeInChat({ challengerId: me, opponentId: parsed.data.opponentId, courseId: params.courseId, moduleId: parsed.data.moduleId });
-    return { id: m.id };
+    return { id: m.id, reach: m.reach };
   });
 }

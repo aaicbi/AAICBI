@@ -35,6 +35,16 @@ const psql = (q) => require('child_process').execFileSync('/usr/lib/postgresql/1
   const open = psql(`select count(*) from "UserNotification" where "recipientId"='${bId}' and type='ARENA_CHALLENGE' and "readAt" is null`);
   log(open === '0', 'the answered invitation no longer nags from the bell (' + open + ' unread)');
   psql(`update "ArenaMatch" set status='CANCELLED' where status in ('PENDING','LOBBY','ACTIVE')`);
+  // someone who is not in the arena at all can still be challenged, and is notified
+  psql(`delete from "ArenaPresence" where "traineeId"='${bId}'`);
+  psql(`delete from "UserNotification" where "recipientId"='${bId}' and type='ARENA_CHALLENGE'`);
+  const off = await pa.evaluate(async (id) => { const r = await fetch('/api/arena/courses/arena_play/challenge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ opponentId: id, moduleId: null }) }); return { s: r.status, j: await r.json() }; }, bId);
+  log(off.s === 200 && off.j.reach === 'none', 'a coursemate who is not in the arena can still be challenged (reach: ' + off.j.reach + ')');
+  const n2 = psql(`select count(*) from "UserNotification" where "recipientId"='${bId}' and type='ARENA_CHALLENGE' and "readAt" is null`);
+  log(n2 === '1', 'they get the notification while away (' + n2 + ')');
+  const mins = psql(`select round(extract(epoch from ("expiresAt" - now()))/60) from "ArenaMatch" where id='${off.j.id}'`);
+  log(Number(mins) >= 55, 'the invitation waits about an hour for someone who is away (' + mins + ' min)');
+  psql(`update "ArenaMatch" set status='CANCELLED' where status in ('PENDING','LOBBY','ACTIVE')`);
   await br.close();
   const bad = require('./lib.cjs').results.filter((x) => !x[0]);
   console.log(bad.length ? `\n${bad.length} FAILED` : '\nALL PASSED'); process.exit(bad.length ? 1 : 0);

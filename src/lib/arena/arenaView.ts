@@ -213,6 +213,8 @@ export interface CourseArenaView {
   me: { id: string; name: string };
   rules: ArenaRules;
   online: { id: string; name: string; initials: string; avatarUrl: string | null; status: "AVAILABLE" | "BUSY"; tier: string | null; tierKey: string | null; champion: boolean }[];
+  /** Coursemates who are not in the arena right now: they can still be challenged and are notified on their phone. */
+  offline: { id: string; name: string; initials: string; tier: string | null; tierKey: string | null }[];
   /** The champion ladder: whether it is on, this player's rating and place, and last week's champion. */
   ladder: { enabled: boolean; rating: number; tier: string; tierKey: string; rank: number | null; champion: { id: string; name: string } | null };
   incoming: { id: string; from: { id: string; name: string; initials: string }; topic: string | null; expiresAt: number }[];
@@ -247,11 +249,14 @@ export async function courseArenaView(traineeId: string, courseId: string): Prom
   const outgoing = await Promise.all(mine.filter((x) => x.status === "PENDING" && x.challengerId === traineeId).map(async (x) => ({ id: x.id, to: { id: x.opponent.id, name: x.opponent.name }, topic: await topicTitle(x.moduleId), expiresAt: x.expiresAt.getTime() })));
   const act = mine.find((x) => x.status === "LOBBY" || x.status === "ACTIVE");
   const [chat, suspended] = await Promise.all([chatFor(courseId, traineeId), activeSuspension(traineeId, courseId)]);
-  const ids = [traineeId, ...present.map((p) => p.trainee.id)];
+  const onlineIds = new Set(present.map((p) => p.trainee.id));
+  const mates = await prisma.courseEnrollment.findMany({ where: { courseId, traineeId: { notIn: [traineeId, ...onlineIds] }, unlockedAt: { not: null }, accessRevokedAt: null }, select: { trainee: { select: { id: true, name: true } } }, take: 120 });
+  const ids = [traineeId, ...present.map((p) => p.trainee.id), ...mates.map((m) => m.trainee.id)];
   const [ratings, champion, myRank] = avail.ladder ? await Promise.all([ratingsFor(courseId, ids), ensureChampion(courseId), rankOf(courseId, traineeId)]) : [null, null, null];
   const myRating = ratings?.get(traineeId);
   return {
     course, me, rules, chat,
+    offline: mates.map((m) => m.trainee).sort((a, b) => a.name.localeCompare(b.name)).map((t) => ({ id: t.id, name: t.name, initials: initialsOf(t.name), tier: ratings?.get(t.id)?.tier ?? null, tierKey: ratings?.get(t.id)?.tierKey ?? null })),
     ladder: { enabled: avail.ladder, rating: myRating?.rating ?? 1000, tier: myRating?.tier ?? "Silver", tierKey: myRating?.tierKey ?? "SILVER", rank: myRank, champion }, suspension: suspended ? { until: suspended.expiresAt ? suspended.expiresAt.getTime() : null, reason: suspended.reason } : null,
     online: present.map((p) => ({ id: p.trainee.id, name: p.trainee.name, initials: initialsOf(p.trainee.name), avatarUrl: p.trainee.avatarUrl, status: busyIds.has(p.trainee.id) ? ("BUSY" as const) : ("AVAILABLE" as const), tier: ratings?.get(p.trainee.id)?.tier ?? null, tierKey: ratings?.get(p.trainee.id)?.tierKey ?? null, champion: champion?.id === p.trainee.id })),
     incoming, outgoing,

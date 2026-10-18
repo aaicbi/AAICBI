@@ -11,10 +11,11 @@ const clock = (t: number) => new Date(t).toLocaleTimeString([], { hour: "numeric
 const post = (url: string, body?: unknown) => fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
 
 interface Mate { id: string; name: string; initials: string; status: "AVAILABLE" | "BUSY" }
+interface Away { id: string; name: string; initials: string }
 
 /** The course chat: the running conversation of the trainees in a course, with game challenges and Fastest Fingers questions as cards. */
-export default function ArenaChat({ courseId, chat, suspended, online, busy, onChanged, flash, big }: {
-  courseId: string; chat: ChatView; suspended: string | null; online: Mate[]; busy: boolean; onChanged: () => void; flash: (m: string) => void; big?: boolean;
+export default function ArenaChat({ courseId, chat, suspended, online, offline, busy, onChanged, flash, big }: {
+  courseId: string; chat: ChatView; suspended: string | null; online: Mate[]; offline: Away[]; busy: boolean; onChanged: () => void; flash: (m: string) => void; big?: boolean;
 }) {
   const router = useRouter();
   const [text, setText] = useState("");
@@ -44,6 +45,12 @@ export default function ArenaChat({ courseId, chat, suspended, online, busy, onC
     const res = await post(`/api/arena/courses/${courseId}/challenge`, { opponentId: id, moduleId: null });
     const j = await res.json().catch(() => ({}));
     if (!res.ok) return flash(j.error ?? "That didn't work.");
+    if (j.reach && j.reach !== "online") {
+      const who = [...online, ...offline].find((p) => p.id === id)?.name.split(" ")[0] ?? "They";
+      flash(j.reach === "push" ? `Challenge sent. ${who} gets a notification on their phone.` : `Challenge sent. ${who} hasn't turned on phone alerts, so they'll see it next time they open the app.`);
+      onChanged();
+      return;
+    }
     router.push(`/trainee/arena/match/${j.id}`);
   }
   async function respond(matchId: string, accept: boolean) {
@@ -108,6 +115,8 @@ export default function ArenaChat({ courseId, chat, suspended, online, busy, onC
         <div className="ar-picker" role="menu">
           {online.length === 0 && <p className="ar-muted">Nobody else is online right now.</p>}
           {online.map((p) => <button key={p.id} type="button" role="menuitem" className="ar-pickrow" disabled={p.status === "BUSY"} onClick={() => void challenge(p.id)}><span className="ar-av" aria-hidden>{p.initials}</span><span className="ar-grow">{p.name}</span><span className="ar-sub">{p.status === "BUSY" ? "In a match" : "Challenge"}</span></button>)}
+          {offline.length > 0 && <p className="ar-sub" style={{ margin: ".3em .3em 0" }}>Not online · they get a notification on their phone</p>}
+          {offline.map((p) => <button key={p.id} type="button" role="menuitem" className="ar-pickrow" onClick={() => void challenge(p.id)}><span className="ar-av" aria-hidden>{p.initials}</span><span className="ar-grow">{p.name}</span><span className="ar-sub">Challenge</span></button>)}
         </div>
       )}
       <div className="ar-chatlist" ref={list} role="log" aria-live="polite" aria-label="Course chat messages">

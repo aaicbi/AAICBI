@@ -175,7 +175,7 @@
 
 .ar-hero{animation:ar-hero 2.6s ease-out forwards}
 @keyframes ar-hero{0%{opacity:0;transform:translate(-50%,-30%) scale(.3)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}30%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-90%) scale(1.05)}}
-.ar-toast{position:absolute;left:50%;bottom:4%;transform:translateX(-50%);z-index:90;background:#ffe9eb;color:#5b1018;font-weight:700;border-radius:999px;padding:.4em 1em;font-size:13px;max-width:90%}
+.ar-toast{position:absolute;left:50%;bottom:4%;transform:translateX(-50%);z-index:90;background:#ffe9eb;color:#5b1018;font-weight:700;border-radius:1.1em;padding:.5em 1em;font-size:13px;max-width:90%;text-align:center;line-height:1.35}
 .ar-share{display:grid;gap:.5em;overflow:auto;min-height:0;align-content:start}
 @media (prefers-reduced-motion:reduce){.ar-hero{animation-duration:.01s}}
 @container (max-height:440px){.ar-vs .ar-pc .ar-name{display:block;font-size:.8em}}
@@ -562,3 +562,6 @@
 .ar-ladderres{display:grid;gap:.4em;justify-items:center;text-align:center;border-radius:1em;padding:.7em .9em;background:rgba(0,0,0,.25);border:1px solid var(--glass-line);width:100%;max-width:26em}
 .ar-ldelta{font:800 1.4em var(--f-display)}
 .ar-ladderres .ar-meter{width:100%}
+.ar-offline{border-top:1px solid var(--glass-line);padding-top:.5em;display:grid;gap:.5em}
+.ar-offline summary{cursor:pointer;font-size:.9em}
+.ar-dot.ar-away{background:#8aa39b;box-shadow:none}

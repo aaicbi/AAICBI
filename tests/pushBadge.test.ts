@@ -12,4 +12,9 @@ describe("push badge number", () => {
   it("caps a huge count", () => {
     expect(buildPushPayload({ type: "X", title: "t", body: "b", badge: 100000 }).badge).toBe(999);
   });
+
+  it("marks a challenge push as urgent so it stays on the home screen until tapped", () => {
+    expect(buildPushPayload({ type: "ARENA_CHALLENGE", title: "t", body: "b", url: "/trainee/arena/match/m1" }).urgent).toBe(true);
+    expect("urgent" in buildPushPayload({ type: "ARENA_TALK_c1", title: "t", body: "b" })).toBe(false);
+  });
 });

@@ -9,10 +9,14 @@ export interface PushPayload {
   tag?: string;
   /** The number to show on the app icon (unread count), when the sender knows it. */
   badge?: number;
+  /** Stays on the screen until tapped and buzzes the phone (a challenge someone is waiting on). */
+  urgent?: boolean;
 }
 
 /** Notification types whose text is private (a person's own words): the push says only that something arrived. */
 const PRIVATE_TYPES = new Set(["MESSAGE_TO_ADMIN"]);
+/** Notification types a person is waiting on: the push stays on screen until they tap it. */
+const URGENT_TYPES = new Set(["ARENA_CHALLENGE"]);
 const MAX_TITLE = 80;
 const MAX_BODY = 120;
 
@@ -34,6 +38,7 @@ export function buildPushPayload(n: { type: string; title: string; body: string;
     body: isPrivate ? "Open the app to read it." : clip(n.body, MAX_BODY),
     url: safeUrl,
     tag: n.type,
+    ...(URGENT_TYPES.has(n.type) ? { urgent: true } : {}),
     ...(typeof n.badge === "number" && n.badge >= 0 ? { badge: Math.min(999, Math.floor(n.badge)) } : {}),
   };
 }

@@ -91,6 +91,8 @@ self.addEventListener("push", (event) => {
     icon: "/icons/icon-192.png",
     badge: "/icons/icon-32.png",
     tag: typeof data.tag === "string" ? data.tag : undefined,
+    // A challenge someone is waiting on stays on the home screen until tapped, and buzzes the phone.
+    ...(data.urgent ? { requireInteraction: true, vibrate: [200, 100, 200], renotify: typeof data.tag === "string" } : {}),
     data: { url: typeof data.url === "string" && data.url.startsWith("/") ? data.url : "/notifications" },
   };
   // The app icon carries the number of unread messages when the sender knows it (installed apps only; ignored elsewhere).
