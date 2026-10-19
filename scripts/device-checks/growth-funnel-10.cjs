@@ -148,6 +148,13 @@ const FAKE_AUDIO = `(() => {
   const logoFills = await cta.locator('svg[aria-label="AAICBI"] polygon, svg[aria-label="AAICBI"] path').evaluateAll((els) => els.map((e) => e.getAttribute('fill')));
   log(logoFills.every((f) => f && f !== 'none' && !/^#0/.test(f)), 'in light colours, so it shows on the green stage (' + [...new Set(logoFills)].join(' ') + ')');
   log((await pg.getByTestId('growth-about').getAttribute('href')) === '/about', 'and a link to the About page');
+  const vivid = await cta.evaluate((el) => {
+    const q = (sel) => el.querySelector(sel);
+    const cs = (n) => getComputedStyle(n);
+    let op = 1; for (let e = el; e; e = e.parentElement) op *= Number(cs(e).opacity);
+    return { op, head: cs(q('h2')).color, headW: cs(q('h2')).fontWeight, body: cs(q('.ga-cta-body')).color, bodyW: cs(q('.ga-cta-body')).fontWeight, kick: cs(q('.ga-cta-kicker')).color, chipW: cs(q('.ga-cta-beat span')).fontWeight, logo: q('svg polygon').getAttribute('fill') };
+  });
+  log(vivid.op === 1 && vivid.head === 'rgb(255, 255, 255)' && vivid.body === 'rgb(255, 255, 255)' && Number(vivid.headW) >= 800 && Number(vivid.bodyW) >= 600 && Number(vivid.chipW) >= 800, 'the message is fully opaque, pure white and bold, from the first moment (' + JSON.stringify(vivid) + ')');
   log((await pg.getByTestId('growth-continue').count()) === 1, 'Start Module 1, free sits in the same message (once)');
   log(!(await pg.getByTestId('growth-arena').innerText()).includes('See Quest check'), 'the "See <course name>" button is gone from the result');
   const cardBg = await pg.getByTestId('growth-challenge-name').evaluate((el) => { for (let e = el.parentElement; e; e = e.parentElement) { const b = getComputedStyle(e).backgroundColor; const m = b.match(/[\d.]+/g); if (m && !(m.length === 4 && Number(m[3]) < 0.5)) return b; } return ''; });

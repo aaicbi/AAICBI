@@ -313,7 +313,7 @@ export default function GrowthPlay({ slug, courseId, courseTitle, organizationNa
         <p className="ga-cta-kicker">Africa&apos;s AI Capacity Building Initiative</p>
         <h2 id="ga-cta-h" className="ga-cta-h">Africa is building with AI. Your seat is open.</h2>
         <p className="ga-cta-beat" aria-label="Learn it. Build it. Prove it."><span>Learn it.</span><span>Build it.</span><span>Prove it.</span></p>
-        <p className="ga-lead">Join the movement to put millions of Africans to work with AI. Practical AI automation, real projects and proof of your skills, on one platform built for us.</p>
+        <p className="ga-cta-body">Join the movement to put millions of Africans to work with AI. Practical AI automation, real projects and proof of your skills, on one platform built for us.</p>
         <Link href={`/play/${slug}/continue`} className="ga-btn" data-testid="growth-continue">Start Module 1, free</Link>
         <Link href="/about" className="ga-btn ghost" data-testid="growth-about">Discover AAICBI</Link>
       </section>
