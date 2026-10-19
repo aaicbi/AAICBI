@@ -7,6 +7,8 @@
  */
 
 export const TASTER_SIZE = 5;
+/** Seconds on the clock for each taster question, so a whole run is about 90 seconds. Running out counts as a miss. */
+export const QUESTION_SECONDS = 18;
 /** A percentile is only shown once this many people have finished, so a small crowd never produces a made-up claim. */
 export const MIN_PLAYS_FOR_PERCENT = 30;
 export const SOURCE_MAX = 40;

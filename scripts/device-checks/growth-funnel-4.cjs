@@ -119,7 +119,7 @@ const call = async (cookie, method, path, body) => { const r = await fetch(B + p
   await pf.getByTestId('growth-squad-intro-name').fill('Tola');
   await pf.getByTestId('growth-start').click();
   await pf.getByTestId('growth-squad-label').waitFor();
-  log(/Squad: Ibadan Coders/.test(await pf.getByTestId('growth-squad-label').innerText()), 'questions are labelled with the squad');
+  log(/Squad: Ibadan Coders/i.test(await pf.getByTestId('growth-squad-label').innerText()), 'questions are labelled with the squad');
   await play5(pf, 1);
   await pf.getByTestId('growth-squad-card').waitFor();
   log(/2\/50 members/.test(await pf.getByTestId('growth-squad-totals').innerText()) && /You/.test(await pf.getByTestId('growth-squad-board').innerText()), 'the friend lands on the squad card with 2/50 members and themselves marked');

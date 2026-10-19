@@ -44,6 +44,8 @@ const C5 = 523.25, E5 = 659.25, G5 = 783.99, C6 = 1046.5, E6 = 1318.5, G6 = 1568
 
 /** The answer clock: a crisp woodblock tick that gets higher and sharper as time runs out. */
 export const tick = (urgent: boolean) => { note(urgent ? 1500 : 980, 0, 0.05, urgent ? 0.1 : 0.06, "square"); noise(0, 0.02, 0.03, 2500, 5000); };
+/** The other half of the clock: a lower, rounder "tock", so ticks and tocks alternate like a real clock. */
+export const tock = (urgent: boolean) => { note(urgent ? 1150 : 700, 0, 0.07, urgent ? 0.1 : 0.06, "triangle"); noise(0, 0.02, 0.025, 1500, 3000); };
 /** The last five seconds: a rising beep for each. */
 export const countdownBeep = (left: number) => note(600 + (6 - Math.min(left, 5)) * 120, 0, 0.14, 0.11, "square");
 export const tap = () => note(520, 0, 0.06, 0.07, "sine", 780);

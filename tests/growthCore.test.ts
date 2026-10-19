@@ -219,3 +219,11 @@ describe("squads", () => {
     expect(SQUAD_MAX_MEMBERS).toBe(50);
   });
 });
+
+describe("the taster clock", () => {
+  it("keeps a whole run to about 90 seconds, as every message and the start screen promise", async () => {
+    const { QUESTION_SECONDS, TASTER_SIZE } = await import("@/lib/growth/growthCore");
+    expect(QUESTION_SECONDS).toBeGreaterThanOrEqual(10);
+    expect(QUESTION_SECONDS * TASTER_SIZE).toBeLessThanOrEqual(90);
+  });
+});

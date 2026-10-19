@@ -1,14 +1,18 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { CONSENT_TEXT, NICK_MAX, SQUAD_NAME_MAX, answerGrid } from "@/lib/growth/growthCore";
+import { CONSENT_TEXT, NICK_MAX, QUESTION_SECONDS, SQUAD_NAME_MAX, answerGrid } from "@/lib/growth/growthCore";
+import * as snd from "@/components/arena/sound";
+import { burst } from "@/components/arena/confetti";
+import "./growthArena.css";
 import type { PlayState } from "@/lib/growth/growth";
 
 type State = PlayState;
 export interface DuelIntro { code: string; name: string; score: number; total: number; rankLabel: string }
 export interface SquadIntro { kind: "join" | "rival"; code: string; name: string; members: number; total: number; full: boolean }
 interface Challenge { duelUrl: string; text: string; cardPath: string }
-interface Feedback { correct: boolean; correctKey: string | null; explanation: string | null; chosen: string; next: State }
+interface Feedback { correct: boolean; correctKey: string | null; explanation: string | null; chosen: string; timedOut: boolean; next: State }
+const SOUND_KEY = "aaicbi.growth.sound";
 
 /** The public taster: five questions, no account. The browser keeps only a random token so a refresh does not lose the run. */
 export default function GrowthPlay({ slug, courseId, courseTitle, organizationName, source, duel, squadIntro }: { slug: string; courseId: string; courseTitle: string; organizationName: string | null; source: string | null; duel: DuelIntro | null; squadIntro: SquadIntro | null }) {
@@ -33,18 +37,29 @@ export default function GrowthPlay({ slug, courseId, courseTitle, organizationNa
   const [squadBusy, setSquadBusy] = useState(false);
   const [squadError, setSquadError] = useState<string | null>(null);
   const [copiedSquad, setCopiedSquad] = useState<string | null>(null);
+  const [sound, setSound] = useState(true);
+  const [left, setLeft] = useState(QUESTION_SECONDS * 1000);
+  const [streak, setStreak] = useState(0);
   const token = useRef<string | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const soundRef = useRef(true);
+  const streakRef = useRef(0);
+  const answering = useRef(false);
+  const chooseRef = useRef<(choice: string | null, timedOut?: boolean) => Promise<void>>(async () => {});
   const baseKey = `aaicbi.growth.${slug}`;
   // A duel link keeps its own run, so opening a friend's challenge never resumes (or overwrites) your own earlier result.
   const key = duel ? `${baseKey}.duel.${duel.code}` : squadIntro ? `${baseKey}.${squadIntro.kind}.${squadIntro.code}` : baseKey;
   const heading = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
+    try { const v = window.localStorage.getItem(SOUND_KEY); if (v === "off") { setSound(false); soundRef.current = false; } } catch {}
     try { token.current = window.localStorage.getItem(key); } catch {}
     if (token.current) void begin(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  useEffect(() => { heading.current?.focus(); }, [state?.status, state && state.status === "question" ? state.index : 0, fb === null]);
+  useEffect(() => { heading.current?.focus({ preventScroll: true }); }, [state?.status, state && state.status === "question" ? state.index : 0, fb === null]);
+  // Each new screen starts at the top, under the Arena bar.
+  useEffect(() => { rootRef.current?.scrollTo?.(0, 0); }, [state?.status, state && state.status === "question" ? state.index : 0, started]);
 
   const begin = useCallback(async (resume = false) => {
     setBusy(true); setError(null);
@@ -60,17 +75,69 @@ export default function GrowthPlay({ slug, courseId, courseTitle, organizationNa
     token.current = json.token;
     try { window.localStorage.setItem(key, json.token); window.localStorage.setItem(baseKey, json.token); } catch {}
     setState(json.state); setStarted(true); setFb(null);
+    if (!resume && soundRef.current) snd.go();
   }, [slug, source, key, baseKey, duel, squadIntro, myName]);
 
-  async function choose(choice: string) {
-    if (!token.current || busy || fb) return;
+  async function choose(choice: string | null, timedOut = false) {
+    // A tap and the clock running out can arrive together: only the first one counts.
+    if (!token.current || busy || fb || answering.current) return;
+    answering.current = true;
     setBusy(true); setError(null);
-    const res = await fetch(`/api/public/growth/${slug}/answer`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: token.current, choice }) });
+    const res = await fetch(`/api/public/growth/${slug}/answer`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(timedOut ? { token: token.current, timedOut: true } : { token: token.current, choice }) });
     const json = await res.json().catch(() => ({}));
     setBusy(false);
-    if (!res.ok) { setError(json.error ?? "That didn't work. Please try again."); return; }
-    setFb({ correct: json.correct, correctKey: json.correctKey, explanation: json.explanation, chosen: choice, next: json.state });
+    if (!res.ok) { answering.current = false; setError(json.error ?? "That didn't work. Please try again."); return; }
+    streakRef.current = json.correct ? streakRef.current + 1 : 0;
+    setStreak(streakRef.current);
+    if (soundRef.current) { if (json.correct) snd.correct(streakRef.current); else snd.wrong(); }
+    setFb({ correct: json.correct, correctKey: json.correctKey, explanation: json.explanation, chosen: choice ?? "", timedOut, next: json.state });
   }
+  chooseRef.current = choose;
+
+  function toggleSound(on: boolean) {
+    setSound(on); soundRef.current = on;
+    try { window.localStorage.setItem(SOUND_KEY, on ? "on" : "off"); } catch {}
+    if (on) snd.select();
+  }
+
+  function goNext() {
+    if (!fb) return;
+    const next = fb.next;
+    answering.current = false;
+    setState(next); setFb(null);
+    if (next.status === "done") {
+      if (soundRef.current) { if (next.score >= 3) snd.victory(); else snd.defeat(); }
+      if (next.score >= 3) setTimeout(() => burst(rootRef.current, { count: 70, y: 28 }), 250);
+    } else if (soundRef.current) snd.whoosh();
+  }
+
+  // The clock for the question on screen. It stops while the answer is showing and while the tab is hidden, and a long stall cannot burn it all at once.
+  const questionIndex = state?.status === "question" ? state.index : -1;
+  useEffect(() => {
+    if (questionIndex < 0 || fb) return;
+    let remain = QUESTION_SECONDS * 1000;
+    let last = performance.now();
+    let lastSec = QUESTION_SECONDS + 1;
+    let fired = false;
+    answering.current = false;
+    setLeft(remain);
+    const id = setInterval(() => {
+      const now = performance.now(); const dt = now - last; last = now;
+      if (document.hidden || fired) return;
+      remain = Math.max(0, remain - Math.min(dt, 500));
+      setLeft(remain);
+      const sec = Math.ceil(remain / 1000);
+      if (sec !== lastSec && sec > 0) {
+        lastSec = sec;
+        if (soundRef.current) {
+          (sec % 2 === 0 ? snd.tick : snd.tock)(sec <= 5);
+          if (sec <= 3) snd.countdownBeep(sec);
+        }
+      }
+      if (remain <= 0) { fired = true; clearInterval(id); void chooseRef.current(null, true); }
+    }, 100);
+    return () => clearInterval(id);
+  }, [questionIndex, fb]);
 
   async function save() {
     if (!token.current || busy) return;
@@ -137,92 +204,110 @@ export default function GrowthPlay({ slug, courseId, courseTitle, organizationNa
 
   function playAgain() {
     try { window.localStorage.removeItem(key); } catch {}
-    token.current = null; setState(null); setStarted(false); setFb(null); setSaved(null); setSaveOpen(false); setConsent(false); setChallenge(null); setSquadOpen(false); setSquadNameInput("");
+    token.current = null; streakRef.current = 0; setStreak(0); answering.current = false; setState(null); setStarted(false); setFb(null); setSaved(null); setSaveOpen(false); setConsent(false); setChallenge(null); setSquadOpen(false); setSquadNameInput("");
   }
 
-  if (ended) return <Panel><h1 ref={heading} tabIndex={-1} className="outline-none focus-visible:outline-none font-display text-2xl font-bold text-brand-ink">This campaign has ended</h1><p className="mt-2 text-brand-ink">The free game is closed, but you can still look at the course.</p><Cta href={`/courses/${courseId}`}>See {courseTitle}</Cta></Panel>;
+  const shell = (children: React.ReactNode) => <Shell rootRef={rootRef} sound={sound} onSound={toggleSound}>{children}</Shell>;
+
+  if (ended) return shell(<div className="ga-light ga-card"><h1 ref={heading} tabIndex={-1} className="outline-none focus-visible:outline-none font-display text-2xl font-bold text-brand-ink">This campaign has ended</h1><p className="mt-2 text-brand-ink">The free game is closed, but you can still look at the course.</p><Cta href={`/courses/${courseId}`}>See {courseTitle}</Cta></div>);
 
   if (!started || !state) {
-    return (
-      <Panel>
-        {organizationName && <span className="inline-block rounded-full bg-brand-mint px-3 py-1 text-xs font-bold text-brand-tealDeep">{organizationName}</span>}
+    return shell(
+      <>
+        {organizationName && <span className="ga-pill gold">{organizationName}</span>}
         {squadIntro ? (
-          <div data-testid="growth-squad-intro">
-            <h1 ref={heading} tabIndex={-1} className="outline-none focus-visible:outline-none mt-3 font-display text-3xl font-extrabold leading-tight text-brand-ink [text-wrap:balance]">{squadIntro.kind === "join" ? `Join ${squadIntro.name}` : `${squadIntro.name} challenged your squad`}</h1>
-            <p className="mt-3 text-base text-brand-ink">
+          <div className="space-y-3" data-testid="growth-squad-intro">
+            <h1 ref={heading} tabIndex={-1} className="ga-h1 outline-none focus-visible:outline-none">{squadIntro.kind === "join" ? `Join ${squadIntro.name}` : `${squadIntro.name} challenged your squad`}</h1>
+            <p className="ga-lead">
               {squadIntro.kind === "join"
                 ? `${squadIntro.members} ${squadIntro.members === 1 ? "player is" : "players are"} in, with ${squadIntro.total} points so far. Play the same 5 questions and your score counts for the squad.`
                 : `They have ${squadIntro.total} points from ${squadIntro.members} ${squadIntro.members === 1 ? "player" : "players"}. Play the same 5 questions, then start your own squad and beat them.`}
             </p>
-            {squadIntro.full && squadIntro.kind === "join" ? <p className="mt-3 text-sm font-semibold text-brand-rose" role="alert">This squad is full. You can still play on your own.</p> : null}
-            <label htmlFor="growth-squad-intro-name" className="mt-4 block text-sm font-semibold text-brand-ink">Your name (optional)</label>
-            <input id="growth-squad-intro-name" maxLength={NICK_MAX} autoComplete="given-name" value={myName} onChange={(e) => setMyName(e.target.value)} placeholder="So the squad knows it was you" className="mt-1 min-h-[48px] w-full rounded-xl border border-brand-gray bg-brand-surface px-3 text-base text-brand-ink" data-testid="growth-squad-intro-name" />
+            {squadIntro.full && squadIntro.kind === "join" ? <p className="ga-err" role="alert">This squad is full. You can still play on your own.</p> : null}
+            <div>
+              <label htmlFor="growth-squad-intro-name" className="ga-label">Your name (optional)</label>
+              <input id="growth-squad-intro-name" maxLength={NICK_MAX} autoComplete="given-name" value={myName} onChange={(e) => setMyName(e.target.value)} placeholder="So the squad knows it was you" className="ga-input" data-testid="growth-squad-intro-name" />
+            </div>
           </div>
         ) : duel ? (
-          <div data-testid="growth-duel-intro">
-            <h1 ref={heading} tabIndex={-1} className="outline-none focus-visible:outline-none mt-3 font-display text-3xl font-extrabold leading-tight text-brand-ink [text-wrap:balance]">{duel.name} challenged you</h1>
-            <p className="mt-3 text-base text-brand-ink">{duel.name} got {duel.score}/{duel.total} ({duel.rankLabel}) on {courseTitle}. You get the same {duel.total} questions. Can you beat them?</p>
-            <label htmlFor="growth-duel-name" className="mt-4 block text-sm font-semibold text-brand-ink">Your name (optional)</label>
-            <input id="growth-duel-name" maxLength={NICK_MAX} autoComplete="given-name" value={myName} onChange={(e) => setMyName(e.target.value)} placeholder="So they know it was you" className="mt-1 min-h-[48px] w-full rounded-xl border border-brand-gray bg-brand-surface px-3 text-base text-brand-ink" data-testid="growth-duel-name" />
+          <div className="space-y-3" data-testid="growth-duel-intro">
+            <h1 ref={heading} tabIndex={-1} className="ga-h1 outline-none focus-visible:outline-none">{duel.name} challenged you</h1>
+            <p className="ga-lead">{duel.name} got {duel.score}/{duel.total} ({duel.rankLabel}) on {courseTitle}. You get the same {duel.total} questions. Can you beat them?</p>
+            <div>
+              <label htmlFor="growth-duel-name" className="ga-label">Your name (optional)</label>
+              <input id="growth-duel-name" maxLength={NICK_MAX} autoComplete="given-name" value={myName} onChange={(e) => setMyName(e.target.value)} placeholder="So they know it was you" className="ga-input" data-testid="growth-duel-name" />
+            </div>
           </div>
         ) : (
-          <>
-            <h1 ref={heading} tabIndex={-1} className="outline-none focus-visible:outline-none mt-3 font-display text-3xl font-extrabold leading-tight text-brand-ink [text-wrap:balance]">Do you think like an AI automation builder?</h1>
-            <p className="mt-3 text-base text-brand-ink">5 questions from {courseTitle}. About 90 seconds. See your rank and what to learn next. No account needed.</p>
-          </>
+          <div className="space-y-3">
+            <h1 ref={heading} tabIndex={-1} className="ga-h1 outline-none focus-visible:outline-none">Do you think like an AI automation builder?</h1>
+            <p className="ga-lead">5 questions from {courseTitle}. About 90 seconds. See your rank and what to learn next. No account needed.</p>
+          </div>
         )}
-        <button type="button" disabled={busy} onClick={() => begin(false)} className="mt-5 min-h-[52px] w-full rounded-full bg-brand-action px-6 text-base font-bold text-brand-onAccent hover:bg-brand-actionHover disabled:opacity-60" data-testid="growth-start">{squadIntro ? (squadIntro.kind === "join" ? "Join the squad" : `Take on ${squadIntro.name}`) : duel ? "Take the challenge" : "Start the 5 questions"}</button>
-        {error && <p className="mt-3 text-sm text-brand-rose" role="alert">{error}</p>}
-        <p className="mt-3 text-center text-sm text-gray-600">Your answers are not tied to your name.</p>
-      </Panel>
+        <div className="ga-chips" aria-label="How it works"><span>⏱ {QUESTION_SECONDS} seconds a question</span><span>{sound ? "🔊 Tick-tock sound on" : "🔇 Sound off"}</span><span>🏆 Get your rank</span></div>
+        <button type="button" disabled={busy} onClick={() => begin(false)} className="ga-btn" data-testid="growth-start">{squadIntro ? (squadIntro.kind === "join" ? "Join the squad" : `Take on ${squadIntro.name}`) : duel ? "Take the challenge" : "Start the 5 questions"}</button>
+        {error && <p className="ga-err" role="alert">{error}</p>}
+        <p className="ga-note">Your answers are not tied to your name. The clock starts when the first question appears.</p>
+      </>
     );
   }
 
   if (state.status === "question") {
     const showing = state;
-    {
-      const q = showing.question;
-      return (
-        <Panel>
-          <div className="flex items-center justify-between text-sm font-semibold text-gray-600"><span>Question {showing.index + 1} of {showing.total}</span>{showing.squadName && <span data-testid="growth-squad-label">Squad: {showing.squadName}</span>}{showing.duelAgainst && <span data-testid="growth-duel-label">Duel vs {showing.duelAgainst}</span>}</div>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-brand-gray/50" role="progressbar" aria-valuemin={0} aria-valuemax={showing.total} aria-valuenow={showing.index + (fb ? 1 : 0)}><div className="h-full bg-brand-action" style={{ width: `${((showing.index + (fb ? 1 : 0)) / showing.total) * 100}%` }} /></div>
-          <h1 ref={heading} tabIndex={-1} className="outline-none focus-visible:outline-none mt-4 font-display text-xl font-bold text-brand-ink [text-wrap:balance]" data-testid="growth-question">{q.text}</h1>
-          <div className="mt-4 space-y-2" role="group" aria-label="Answers">
-            {q.options.map((o) => {
+    const q = showing.question;
+    const secs = Math.ceil(left / 1000);
+    const hot = !fb && secs <= 5;
+    const pct = Math.max(0, Math.min(100, (left / (QUESTION_SECONDS * 1000)) * 100));
+    return shell(
+      <>
+        <div className="ga-top"><span>Question {showing.index + 1} of {showing.total}</span>{showing.squadName && <span className="truncate" data-testid="growth-squad-label">Squad: {showing.squadName}</span>}{showing.duelAgainst && <span className="truncate" data-testid="growth-duel-label">Duel vs {showing.duelAgainst}</span>}{streak >= 2 && !showing.squadName && !showing.duelAgainst && <span data-testid="growth-streak">🔥 {streak} in a row</span>}</div>
+        <div className="ga-prog" role="progressbar" aria-valuemin={0} aria-valuemax={showing.total} aria-valuenow={showing.index + (fb ? 1 : 0)} aria-label="Progress">
+          {Array.from({ length: showing.total }, (_, n) => <i key={n} className={n < showing.index ? "d" : n === showing.index ? (fb ? (fb.correct ? "d" : "w") : "n") : ""} />)}
+        </div>
+        <div className="ga-timerwrap">
+          <div className={`ga-timer ${hot ? "hot" : ""} ${fb ? "done" : ""}`} style={{ "--t": `${fb ? 0 : pct}%` } as React.CSSProperties} role="timer" aria-label={fb ? "Answered" : `${secs} seconds left`} data-testid="growth-timer"><span>{fb ? "✓" : secs}</span></div>
+          <span className="ga-timelbl" aria-hidden="true">{fb ? (fb.timedOut ? "Time's up" : "Locked in") : hot ? "Hurry!" : "Seconds left"}</span>
+        </div>
+        <div className="ga-qcard">
+          <span className="ga-tag">{courseTitle}</span>
+          <h1 ref={heading} tabIndex={-1} className="ga-q outline-none focus-visible:outline-none" data-testid="growth-question">{q.text}</h1>
+          <div className="ga-opts" role="group" aria-label="Answers">
+            {q.options.map((o, n) => {
               const picked = fb?.chosen === o.key;
               const right = fb && o.key === fb.correctKey;
-              const cls = fb ? (right ? "border-brand-green bg-brand-mint text-brand-tealDeep" : picked ? "border-brand-rose bg-brand-roseLight text-brand-rose" : "border-brand-gray/60 bg-brand-surface text-brand-ink opacity-70") : "border-brand-gray bg-brand-surface text-brand-ink hover:border-brand-teal";
-              return <button key={o.key} type="button" disabled={busy || !!fb} onClick={() => choose(o.key)} className={`block min-h-[48px] w-full rounded-2xl border px-4 py-3 text-left text-base ${cls}`} data-testid="growth-option">{fb && right ? "✓ " : fb && picked ? "✗ " : ""}{o.text}</button>;
+              const cls = fb ? (right ? "ok" : picked ? "no" : "dim") : "";
+              return <button key={o.key} type="button" disabled={busy || !!fb} onClick={() => { if (soundRef.current) snd.select(); void choose(o.key); }} className={`ga-opt ${cls}`} data-testid="growth-option"><b aria-hidden="true">{String.fromCharCode(65 + n)}</b><span>{fb && right ? "✓ " : fb && picked ? "✗ " : ""}{o.text}</span></button>;
             })}
           </div>
-          {fb && (
-            <div className="mt-4 rounded-2xl bg-brand-surface p-4" aria-live="polite">
-              <p className={`font-bold ${fb.correct ? "text-brand-tealDeep" : "text-brand-rose"}`}>{fb.correct ? "Correct." : "Not quite."}</p>
-              {fb.explanation && <p className="mt-1 text-sm text-brand-ink">{fb.explanation}</p>}
-              <button type="button" onClick={() => { setState(fb.next); setFb(null); }} className="mt-3 min-h-[48px] w-full rounded-full bg-brand-action px-6 text-base font-bold text-brand-onAccent hover:bg-brand-actionHover" data-testid="growth-next">{fb.next.status === "done" ? "See my result" : "Next question"}</button>
-            </div>
-          )}
-          {error && <p className="mt-3 text-sm text-brand-rose" role="alert">{error}</p>}
-        </Panel>
-      );
-    }
+        </div>
+        {fb && (
+          <div className={`ga-fb ${fb.correct ? "ok" : "no"}`} aria-live="polite">
+            <p className="ga-fbt">{fb.timedOut ? "Time's up." : fb.correct ? "Correct." : "Not quite."}</p>
+            {fb.explanation && <p className="ga-fbx">{fb.explanation}</p>}
+          </div>
+        )}
+        {fb && <button type="button" onClick={goNext} className="ga-btn" data-testid="growth-next">{fb.next.status === "done" ? "See my result" : "Next question"}</button>}
+        {error && <p className="ga-err" role="alert">{error}</p>}
+      </>
+    );
   }
 
   const r = state;
-  return (
-    <Panel>
+  return shell(
+    <>
       {r.duel && (
-        <div className="mb-3 rounded-2xl bg-brand-goldLight p-4 text-center text-brand-goldText" data-testid="growth-duel-headline">
+        <div className="ga-gold" data-testid="growth-duel-headline">
           <p className="font-display text-xl font-extrabold">{r.duel.headline}</p>
           <p className="mt-1 text-sm">You {r.score}/{r.total} · {r.duel.opponentName} {r.duel.opponentScore}/{r.duel.opponentTotal}</p>
         </div>
       )}
-      <div className="rounded-2xl bg-brand-surface p-5 text-center">
-        <span className="inline-block rounded-full bg-brand-goldLight px-3 py-1 text-xs font-bold text-brand-goldText" data-testid="growth-rank">{r.rank.label}</span>
-        <h1 ref={heading} tabIndex={-1} className="outline-none focus-visible:outline-none mt-2 font-display text-5xl font-extrabold text-brand-ink" data-testid="growth-score">{r.score}/{r.total}</h1>
-        <p className="mt-2 text-2xl" aria-label={`${r.grid.filter(Boolean).length} correct out of ${r.total}`}>{answerGrid(r.grid)}</p>
-        {r.beatPercent !== null && <p className="mt-2 text-sm text-brand-ink">You beat {r.beatPercent}% of players.</p>}
+      <div className="ga-herobox">
+        <span className="ga-pill gold" data-testid="growth-rank">{r.rank.label}</span>
+        <h1 ref={heading} tabIndex={-1} className="ga-score outline-none focus-visible:outline-none" data-testid="growth-score">{r.score}/{r.total}</h1>
+        <p className="text-2xl" aria-label={`${r.grid.filter(Boolean).length} correct out of ${r.total}`}>{answerGrid(r.grid)}</p>
+        {r.beatPercent !== null && <p className="ga-lead">You beat {r.beatPercent}% of players.</p>}
       </div>
+      <div className="ga-light ga-card">
       {r.weakSpot && (
         <div className="mt-3 rounded-2xl bg-brand-goldLight p-4 text-brand-goldText"><p className="text-sm font-bold">You missed a question on: {r.weakSpot}</p><p className="mt-1 text-sm">That is part of Module 1 of {courseTitle}.</p></div>
       )}
@@ -303,12 +388,24 @@ export default function GrowthPlay({ slug, courseId, courseTitle, organizationNa
       <Link href={`/play/${slug}/continue`} className="mt-3 flex min-h-[52px] items-center justify-center rounded-full bg-brand-gold px-6 text-base font-bold text-brand-onGold hover:opacity-90" data-testid="growth-continue">Start Module 1, free</Link>
       <Cta href={`/courses/${courseId}`}>See {courseTitle}</Cta>
       <button type="button" onClick={playAgain} className="mt-3 w-full text-center text-sm font-semibold text-brand-teal underline">Play again</button>
-    </Panel>
+      </div>
+    </>
   );
 }
 
-function Panel({ children }: { children: React.ReactNode }) {
-  return <section className="mx-auto w-full max-w-md rounded-3xl border border-brand-gray/60 bg-card-gradient p-5 shadow-sm sm:p-7">{children}</section>;
+/** The Ayakbi Arena frame around every taster screen: the stage, the brand, and the sound switch. */
+function Shell({ children, rootRef, sound, onSound }: { children: React.ReactNode; rootRef: React.RefObject<HTMLDivElement>; sound: boolean; onSound: (on: boolean) => void }) {
+  return (
+    <div className="ga-root" ref={rootRef} onPointerDown={() => snd.wake()} data-testid="growth-arena">
+      <div className="ga-wrap">
+        <div className="ga-bar">
+          <span className="ga-brand">Ayakbi Arena</span>
+          <button type="button" className="ga-soundbtn" aria-pressed={sound} aria-label={sound ? "Sound on. Tap to turn off" : "Sound off. Tap to turn on"} onClick={() => onSound(!sound)} data-testid="growth-sound">{sound ? "🔊 Sound on" : "🔇 Sound off"}</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
 }
 function Cta({ href, children }: { href: string; children: React.ReactNode }) {
   return <Link href={href} className="mt-3 flex min-h-[52px] items-center justify-center rounded-full border border-brand-action px-6 text-base font-semibold text-brand-action hover:bg-brand-mint">{children}</Link>;

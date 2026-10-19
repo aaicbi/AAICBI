@@ -122,7 +122,7 @@ const png = async (path) => { const r = await fetch(B + path); const b = Buffer.
   await pf.getByTestId('growth-duel-name').fill('Tola');
   await pf.getByTestId('growth-start').click();
   await pf.getByTestId('growth-duel-label').waitFor();
-  log(/Duel vs Chidi/.test(await pf.getByTestId('growth-duel-label').innerText()), 'questions are labelled as a duel');
+  log(/Duel vs Chidi/i.test(await pf.getByTestId('growth-duel-label').innerText()), 'questions are labelled as a duel');
   for (let i = 0; i < 5; i++) { await pf.getByTestId('growth-question').waitFor(); await pf.getByTestId('growth-option').last().click(); await pf.getByTestId('growth-next').click(); }
   await pf.getByTestId('growth-duel-headline').waitFor();
   log(/Chidi/.test(await pf.getByTestId('growth-duel-headline').innerText()), 'the friend sees the head-to-head headline');
