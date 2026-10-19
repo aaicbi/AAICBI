@@ -19,7 +19,7 @@ interface Overview {
 }
 
 const ACTION_LABEL: Record<string, string> = {
-  SWITCH_ON: "switched on", SWITCH_OFF: "switched off", AGREEMENT_RECORDED: "recorded the agreement for", COMMISSION_SET: "set commission", SCHOLARSHIPS_ON: "turned scholarships on for", SCHOLARSHIPS_OFF: "turned scholarships off for", SEATS_SET: "set scholarship seats", SEAT_REVOKED: "took back a scholarship seat from", WHATSAPP_ON: "turned WhatsApp on", WHATSAPP_OFF: "turned WhatsApp off", WHATSAPP_SAVED: "saved WhatsApp details:", WHATSAPP_CLEARED: "removed the WhatsApp credentials", SQUAD_RENAMED: "renamed a squad:", SQUAD_REMOVED: "removed the squad", NAME_CLEARED: "cleared the nickname",
+  SWITCH_ON: "switched on", SWITCH_OFF: "switched off", AGREEMENT_RECORDED: "recorded the agreement for", COMMISSION_SET: "set commission", SCHOLARSHIPS_ON: "turned scholarships on for", SCHOLARSHIPS_OFF: "turned scholarships off for", SEATS_SET: "set scholarship seats", SEAT_REVOKED: "took back a scholarship seat from", WHATSAPP_ON: "turned WhatsApp on", WHATSAPP_OFF: "turned WhatsApp off", WHATSAPP_SAVED: "saved WhatsApp details:", WHATSAPP_CLEARED: "removed the WhatsApp credentials", SHARE_CAPTION_SAVED: "saved a share caption:", SHARE_CAPTION_DELETED: "deleted a share caption:", SHARE_CAPTIONS_RESET: "put the share captions back to the defaults", SHARE_FILE_SET: "uploaded a share file for", SHARE_FILE_REMOVED: "removed a share file:", SQUAD_RENAMED: "renamed a squad:", SQUAD_REMOVED: "removed the squad", NAME_CLEARED: "cleared the nickname",
   COURSE_ON: "opted in course", COURSE_OFF: "opted out course", TASTER_APPROVED: "approved the taster for", TASTER_PROPOSED: "proposed a taster for",
 };
 

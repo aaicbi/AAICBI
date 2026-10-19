@@ -124,3 +124,13 @@ The public taster wears the Ayakbi Arena look: the Arena's deep green stage, gol
 ## The result screen
 
 After the five questions the result shows the score and rank, then a call to join: the AAICBI logo, "Africa's AI Capacity Building Initiative", "Africa is building with AI. Your seat is open.", the three beats "Learn it. Build it. Prove it.", a short line about putting millions of Africans to work with AI, a gold **Start Module 1, free** button and a **Discover AAICBI** button that opens the About page (`/about`). It no longer shows which question was missed, and the "See <course>" button was removed (it still appears on the "campaign has ended" screen). The cards below (squad, challenge, save score) use the Arena's green and gold, in both light and dark site themes. The Course chat card on a course page uses the same colours.
+
+## Share kit (Super Admin)
+
+On the Growth page, for any course whose link is live:
+
+- **Link and source label.** Type a label (for example `lagos-church-group`); the course's funnel link gets `?src=<label>` so the Growth report shows which share brought which players. Copy link, or Copy HTML (a clickable animated card for a website or email).
+- **Captions that make people tap.** Five defaults, each with `{link}` (and optionally `{course}`) filled in when you copy. Edit any, add your own (up to 12, 600 characters, each must contain `{link}`), delete any (one must stay), or "Back to the defaults". The list is shared across courses and kept in `GrowthSetting` (`SHARE`).
+- **The animated card (made for you).** Wide and square MP4 (send on WhatsApp, it plays by itself) and GIF (email, web pages), a still PNG, and a **clickable PDF** per course. A PDF cannot animate, so it is the still card: the whole card and the line under it are links to the funnel (the label is `pdf` unless you type one). The files are static in `public/growth/` and are rebuilt with `node scripts/growth-card/build.cjs` (needs ffmpeg and Chromium); the design is `scripts/growth-card/card.html`.
+- **Your own video and PDF.** Per course, upload a video (MP4, MOV or WebM, up to 100 MB) and a PDF (up to 25 MB). They go straight from the browser to the app's file storage (like lesson materials), so large files never pass through a server function. Copy the hosted link, open, replace or remove (the stored file is deleted). A PDF you upload is kept exactly as made, so put the funnel link inside it yourself.
+- Every change is in the Recent changes log. Super Admin only.

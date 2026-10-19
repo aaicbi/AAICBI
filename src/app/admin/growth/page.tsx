@@ -5,6 +5,7 @@ import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import GrowthAdmin from "@/components/growth/GrowthAdmin";
 import GrowthMessaging from "@/components/growth/GrowthMessaging";
 import GrowthWhatsApp from "@/components/growth/GrowthWhatsApp";
+import GrowthShare from "@/components/growth/GrowthShare";
 
 export const metadata = { title: "Growth" };
 
@@ -19,6 +20,7 @@ export default async function AdminGrowthPage() {
       <p className="mt-1 max-w-2xl text-sm text-gray-600">A public link plays a 5-question taster with no account, then leads to module 1 free and payment after it. Off everywhere until you switch it on. Turn it on for an organization only when you are being paid to market its courses.</p>
       <p className="mt-3"><Link href="/admin/growth/report" className="font-semibold text-brand-teal underline" data-testid="to-report">See the campaign report and commission ledger</Link> · <Link href="/admin/growth/groups" className="font-semibold text-brand-teal underline" data-testid="to-groups">Squads and challenges</Link></p>
       <div className="mt-6"><GrowthAdmin /></div>
+      <div className="mt-10 border-t border-brand-gray/60 pt-8"><GrowthShare /></div>
       <div className="mt-10 border-t border-brand-gray/60 pt-8"><GrowthWhatsApp /></div>
       <div className="mt-10 border-t border-brand-gray/60 pt-8"><GrowthMessaging /></div>
     </main>
