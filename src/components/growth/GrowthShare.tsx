@@ -138,8 +138,11 @@ export default function GrowthShare() {
           <Card>
             <h3 className="font-semibold text-brand-ink">The animated card (made for you)</h3>
             <div className="mt-2 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/growth/play-card.gif" alt="The animated play card: Can you beat the clock?" className="w-full rounded-xl border border-brand-gray/60" data-testid="share-gif" />
+              <a href={link} target="_blank" rel="noopener noreferrer" aria-label="Try the free challenge: opens the funnel link" className="block" data-testid="share-gif-link">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/growth/play-card.gif" alt="The animated play card: Can you beat the clock?" className="w-full rounded-xl border border-brand-gray/60" data-testid="share-gif" />
+                <span className="mt-1 block text-xs font-semibold text-brand-teal">Tap the card to try the link</span>
+              </a>
               <ul className="space-y-2 text-sm">
                 <li className="text-gray-600">Send the <strong className="text-brand-ink">video</strong> on WhatsApp (it plays by itself). Use the <strong className="text-brand-ink">GIF</strong> in emails and web pages. The <strong className="text-brand-ink">PDF</strong> is the still card, and tapping it opens the funnel.</li>
                 <li className="flex flex-wrap gap-2">
