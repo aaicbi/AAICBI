@@ -12,14 +12,14 @@ export default function CourseChatLink({ courseId }: { courseId: string }) {
   }, [courseId]);
   if (!s?.open) return null;
   return (
-    <Link href={`/trainee/arena/${courseId}/chat`} className="mt-6 flex items-center gap-3 rounded-2xl border border-brand-gray bg-gradient-to-r from-brand-mint to-white px-4 py-3 shadow-sm transition hover:shadow-md" data-testid="course-chat-link">
+    <Link href={`/trainee/arena/${courseId}/chat`} className="mt-6 flex items-center gap-3 rounded-2xl border border-[#1b7a6a] bg-gradient-to-br from-[#06322d] via-[#0a4a41] to-[#0e5f53] px-4 py-3 shadow-sm transition hover:shadow-md hover:brightness-110" data-testid="course-chat-link">
       <span className="text-2xl" aria-hidden>💬</span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold text-brand-ink">Course chat</span>
-        <span className="block text-xs text-gray-600">Talk with your coursemates, challenge them in Ayakbi Arena{s.fastest ? " and race for credits in Fastest Fingers" : ""}.</span>
+        <span className="block text-sm font-extrabold text-[#f4fbf7]">Course chat</span>
+        <span className="block text-xs text-[#d9ece1]">Talk with your coursemates, challenge them in Ayakbi Arena{s.fastest ? " and race for credits in Fastest Fingers" : ""}.</span>
       </span>
       {s.credits > 0 && <span className="rounded-full bg-[#F2B84B] px-2.5 py-1 text-xs font-extrabold text-[#2A1D00]">⭐ {s.credits}</span>}
-      <span aria-hidden className="text-brand-teal">→</span>
+      <span aria-hidden className="text-lg font-bold text-[#f2b84b]">→</span>
     </Link>
   );
 }

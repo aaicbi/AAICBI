@@ -138,11 +138,30 @@ const FAKE_AUDIO = `(() => {
   await pg.getByTestId('growth-score').waitFor();
   const score = await pg.getByTestId('growth-score').innerText();
   log(/^\d\/5$/.test(score), 'the result shows (' + score + ')');
+  // the call to join, instead of the missed-question box
+  const arena = await pg.getByTestId('growth-arena').innerText();
+  log(!/You missed a question/i.test(arena) && !/That is part of Module 1/i.test(arena), 'the result no longer shows which question was missed');
+  const cta = pg.getByTestId('growth-cta');
+  const ctaText = await cta.innerText();
+  log(/Africa.s AI Capacity Building Initiative/i.test(ctaText) && /Learn it\./.test(ctaText) && /Build it\./.test(ctaText) && /Prove it\./.test(ctaText), 'it calls them to join Africa\'s AI Capacity Building Initiative: learn it, build it, prove it');
+  log((await cta.locator('svg[aria-label="AAICBI"]').count()) === 1, 'with the AAICBI logo in the message');
+  const logoFills = await cta.locator('svg[aria-label="AAICBI"] polygon, svg[aria-label="AAICBI"] path').evaluateAll((els) => els.map((e) => e.getAttribute('fill')));
+  log(logoFills.every((f) => f && f !== 'none' && !/^#0/.test(f)), 'in light colours, so it shows on the green stage (' + [...new Set(logoFills)].join(' ') + ')');
+  log((await pg.getByTestId('growth-about').getAttribute('href')) === '/about', 'and a link to the About page');
+  log((await pg.getByTestId('growth-continue').count()) === 1, 'Start Module 1, free sits in the same message (once)');
+  log(!(await pg.getByTestId('growth-arena').innerText()).includes('See Quest check'), 'the "See <course name>" button is gone from the result');
+  const cardBg = await pg.getByTestId('growth-challenge-name').evaluate((el) => { for (let e = el.parentElement; e; e = e.parentElement) { const b = getComputedStyle(e).backgroundColor; const m = b.match(/[\d.]+/g); if (m && !(m.length === 4 && Number(m[3]) < 0.5)) return b; } return ''; });
+  const dm = cardBg.match(/\d+/g).map(Number);
+  log(dm[0] < 60 && dm[1] < 120, 'the cards below are in the games\' green, not white (' + cardBg + ')');
+  const inputColor = await pg.getByTestId('growth-challenge-name').evaluate((el) => getComputedStyle(el).color);
+  log(/rgb\(24\d, 25\d, 24\d\)/.test(inputColor), 'with light text (' + inputColor + ')');
   log(await pg.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'no sideways scroll on the phone');
   await pg.screenshot({ path: '/tmp/dev/growth10-result-dark.png', fullPage: false });
   await pg.evaluate(() => document.querySelector('[data-testid="growth-arena"]').scrollTo(0, 99999));
   await pg.screenshot({ path: '/tmp/dev/growth10-result-dark-bottom.png' });
 
+  const aboutHref = await pg.getByTestId('growth-about').getAttribute('href');
+  log((await fetch(B + aboutHref)).status === 200, 'the About page it links to opens');
   // text in the light cards stays readable in both themes
   const contrast = async (page) => page.evaluate(() => {
     const lum = (c) => { const m = c.match(/\d+(\.\d+)?/g).map(Number); const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(m[0]) + 0.7152 * f(m[1]) + 0.0722 * f(m[2]); };
@@ -159,7 +178,7 @@ const FAKE_AUDIO = `(() => {
     return { worst: Math.round(worst * 100) / 100, where };
   });
   const cDark = await contrast(pg);
-  log(cDark.worst >= 4.5, 'results, dark theme: lowest text contrast ' + cDark.worst + ' (' + cDark.where + ')');
+  log(cDark.worst >= 4.5, 'results, dark theme (games colours): lowest text contrast ' + cDark.worst + ' (' + cDark.where + ')');
   const lctx = await br.newContext({ ...device('iPhone 13'), serviceWorkers: 'block', colorScheme: 'light' });
   await lctx.addCookies([{ name: 'aaicbi_cookie_consent', value: 'declined', url: B }]);
   await lctx.addInitScript(FAKE_AUDIO);
@@ -171,6 +190,30 @@ const FAKE_AUDIO = `(() => {
   const cLight = await contrast(lp);
   log(cLight.worst >= 4.5, 'results, light theme: lowest text contrast ' + cLight.worst + ' (' + cLight.where + ')');
   await lp.screenshot({ path: '/tmp/dev/growth10-result-light.png' });
+  // the course chat card on the course page takes the games' colours too
+  const T5 = await jar('/api/auth/trainee-login', 't5@dev.test');
+  const t5id = psql(`select id from "Trainee" where email='t5@dev.test'`);
+  psql(`insert into "CourseEnrollment"(id,"traineeId","courseId",source,"unlockedAt","enrolledAt") values ('gfchat1','${t5id}','${own}','ADMIN_GRANTED',now(),now()) on conflict do nothing`);
+  const chatState = await call(T5, 'GET', `/api/arena/courses/${own}/chat`);
+  if (chatState.s === 200 && chatState.j.open) {
+    const cctx = await br.newContext({ ...device('iPhone 13'), serviceWorkers: 'block', colorScheme: 'dark' });
+    await cctx.addCookies([{ name: 'aaicbi_cookie_consent', value: 'declined', url: B }, ...(await cookiesFor('/api/auth/trainee-login', 't5@dev.test'))]);
+    const cp = await cctx.newPage();
+    await cp.goto(`${B}/trainee/courses/${own}`);
+    await cp.getByTestId('course-chat-link').waitFor();
+    const cc = await cp.getByTestId('course-chat-link').evaluate((el) => { const cs = getComputedStyle(el); return cs.backgroundImage + ' | ' + getComputedStyle(el.querySelector('span:nth-of-type(2) span')).color; });
+    log(/rgb\(6, 50, 45\)/.test(cc) && /rgb\(14, 95, 83\)/.test(cc) && !/rgb\(255, 255, 255\)/.test(cc.split('|')[0]), 'course chat card: arena green gradient, no white end (' + cc.split('|')[0].slice(0, 70) + '...)');
+    log(/rgb\(244, 251, 247\)/.test(cc), 'with light title text');
+    await cp.getByTestId('course-chat-link').scrollIntoViewIfNeeded();
+    await cp.getByTestId('course-chat-link').screenshot({ path: '/tmp/dev/growth10-chatcard-dark.png' });
+    const lcc = await br.newContext({ ...device('iPhone 13'), serviceWorkers: 'block', colorScheme: 'light' });
+    await lcc.addCookies([{ name: 'aaicbi_cookie_consent', value: 'declined', url: B }, ...(await cookiesFor('/api/auth/trainee-login', 't5@dev.test'))]);
+    const lp2 = await lcc.newPage();
+    await lp2.goto(`${B}/trainee/courses/${own}`);
+    await lp2.getByTestId('course-chat-link').waitFor();
+    await lp2.getByTestId('course-chat-link').screenshot({ path: '/tmp/dev/growth10-chatcard-light.png' });
+  } else console.log('NOTE the course chat is not open for the test course here; card not checked (' + chatState.s + ')');
+  psql(`delete from "CourseEnrollment" where id='gfchat1'`);
   // a desktop view
   const dctx = await br.newContext({ viewport: { width: 1280, height: 900 }, serviceWorkers: 'block' });
   await dctx.addCookies([{ name: 'aaicbi_cookie_consent', value: 'declined', url: B }]);

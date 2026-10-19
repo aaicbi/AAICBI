@@ -64,3 +64,17 @@
   color:rgb(12 36 31);color-scheme:light}
 .ga-card{background:var(--white);border-radius:1.2rem;padding:1rem;box-shadow:0 .5rem 0 rgba(0,0,0,.22)}
 @media (prefers-reduced-motion:reduce){.ga-timer.hot,.ga-opt.no{animation:none}.ga-btn{transition:none}}
+
+/* the result's detail cards in the Arena's own colours: the site's tokens are set to green-and-gold values inside, so the existing cards, buttons and inputs all follow the games theme. */
+.ga-dark{--brand-teal:127 214 160;--brand-teal-deep:169 232 197;--brand-action:242 184 75;--brand-action-hover:255 217 138;--brand-green:127 214 160;--brand-mint:18 84 73;--brand-gray:70 120 108;--brand-ink:244 251 247;--brand-sand:6 50 45;--brand-surface:13 84 74;--brand-gold:242 184 75;--brand-gold-light:66 52 20;--brand-gold-text:246 214 140;--brand-rose:255 160 168;--brand-rose-light:84 36 42;--brand-on-accent:12 36 31;--brand-on-gold:12 36 31;
+  --gray-50:14 78 68;--gray-100:18 90 79;--gray-300:70 120 108;--gray-400:196 214 208;--gray-500:204 220 214;--gray-600:212 226 221;--gray-700:222 234 230;--gray-800:236 243 241;--gray-900:244 250 248;
+  color:var(--white);color-scheme:dark}
+.ga-cta{border-radius:1.4rem;padding:1.3rem 1.1rem;text-align:center;display:flex;flex-direction:column;align-items:center;gap:.75rem;background:linear-gradient(160deg,rgba(242,184,75,.22),rgba(255,255,255,.06) 60%);border:1px solid rgba(242,184,75,.55);box-shadow:0 0 0 .2rem rgba(242,184,75,.12);animation:ga-in .5s ease-out both}
+.ga-cta .ga-btn{max-width:22rem}
+.ga-cta-logo{width:7rem;height:auto}
+.ga-cta-kicker{margin:0;font-weight:800;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.ga-cta-h{margin:0;font-family:var(--f-display,var(--font-fraunces,Georgia,serif));font-weight:800;font-size:1.6rem;line-height:1.2;color:var(--white);text-wrap:balance}
+.ga-cta-beat{margin:0;display:flex;flex-wrap:wrap;justify-content:center;gap:.45rem}
+.ga-cta-beat span{background:var(--gold);color:var(--ink);font-weight:800;border-radius:999px;padding:.3em .95em;font-size:.95rem}
+@keyframes ga-in{from{opacity:0;transform:translateY(.6rem)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.ga-cta{animation:none}}
