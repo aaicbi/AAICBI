@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CONSENT_TEXT, NICK_MAX, QUESTION_SECONDS, SQUAD_NAME_MAX, answerGrid } from "@/lib/growth/growthCore";
 import * as snd from "@/components/arena/sound";
 import { burst } from "@/components/arena/confetti";
+import ArenaLogo from "./ArenaLogo";
 import "./growthArena.css";
 import type { PlayState } from "@/lib/growth/growth";
 
@@ -307,10 +308,16 @@ export default function GrowthPlay({ slug, courseId, courseTitle, organizationNa
         <p className="text-2xl" aria-label={`${r.grid.filter(Boolean).length} correct out of ${r.total}`}>{answerGrid(r.grid)}</p>
         {r.beatPercent !== null && <p className="ga-lead">You beat {r.beatPercent}% of players.</p>}
       </div>
-      <div className="ga-light ga-card">
-      {r.weakSpot && (
-        <div className="mt-3 rounded-2xl bg-brand-goldLight p-4 text-brand-goldText"><p className="text-sm font-bold">You missed a question on: {r.weakSpot}</p><p className="mt-1 text-sm">That is part of Module 1 of {courseTitle}.</p></div>
-      )}
+      <section className="ga-cta" aria-labelledby="ga-cta-h" data-testid="growth-cta">
+        <ArenaLogo className="ga-cta-logo" />
+        <p className="ga-cta-kicker">Africa&apos;s AI Capacity Building Initiative</p>
+        <h2 id="ga-cta-h" className="ga-cta-h">Africa is building with AI. Your seat is open.</h2>
+        <p className="ga-cta-beat" aria-label="Learn it. Build it. Prove it."><span>Learn it.</span><span>Build it.</span><span>Prove it.</span></p>
+        <p className="ga-cta-body">Join the movement to put millions of Africans to work with AI. Practical AI automation, real projects and proof of your skills, on one platform built for us.</p>
+        <Link href={`/play/${slug}/continue`} className="ga-btn" data-testid="growth-continue">Start Module 1, free</Link>
+        <Link href="/about" className="ga-btn ghost" data-testid="growth-about">Discover AAICBI</Link>
+      </section>
+      <div className="ga-dark">
       {r.standings.length > 0 && (
         <div className="mt-3 rounded-2xl bg-brand-surface p-4" data-testid="growth-standings">
           <p className="text-sm font-bold text-brand-ink">{r.duel ? "Standings in this challenge" : "Friends who took your challenge"}</p>
@@ -385,8 +392,6 @@ export default function GrowthPlay({ slug, courseId, courseTitle, organizationNa
       ) : (
         <button type="button" onClick={() => setSaveOpen(true)} className="mt-3 flex min-h-[52px] w-full items-center justify-center rounded-full border border-brand-action px-6 text-base font-semibold text-brand-action hover:bg-brand-mint" data-testid="growth-save-open">Save my score and rank</button>
       )}
-      <Link href={`/play/${slug}/continue`} className="mt-3 flex min-h-[52px] items-center justify-center rounded-full bg-brand-gold px-6 text-base font-bold text-brand-onGold hover:opacity-90" data-testid="growth-continue">Start Module 1, free</Link>
-      <Cta href={`/courses/${courseId}`}>See {courseTitle}</Cta>
       <button type="button" onClick={playAgain} className="mt-3 w-full text-center text-sm font-semibold text-brand-teal underline">Play again</button>
       </div>
     </>

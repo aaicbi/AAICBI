@@ -120,3 +120,7 @@ The public taster wears the Ayakbi Arena look: the Arena's deep green stage, gol
 - **The clock pauses** while the answer is showing and while the browser tab is hidden, and one long stall cannot burn all the time at once.
 - **Sound:** a tick and a lower tock alternate every second, higher and sharper in the last 5 seconds, with a rising beep in the last 3. Right and wrong answers, a new question, the start and the result each have their own sound (the same kit as the Arena, made in the browser, no files). It starts after the player's first tap, is on by default, and the on/off choice is remembered on that device.
 - **Reduced motion:** the pulsing and shaking animations are switched off for people who ask their device for less motion.
+
+## The result screen
+
+After the five questions the result shows the score and rank, then a call to join: the AAICBI logo, "Africa's AI Capacity Building Initiative", "Africa is building with AI. Your seat is open.", the three beats "Learn it. Build it. Prove it.", a short line about putting millions of Africans to work with AI, a gold **Start Module 1, free** button and a **Discover AAICBI** button that opens the About page (`/about`). It no longer shows which question was missed, and the "See <course>" button was removed (it still appears on the "campaign has ended" screen). The cards below (squad, challenge, save score) use the Arena's green and gold, in both light and dark site themes. The Course chat card on a course page uses the same colours.
