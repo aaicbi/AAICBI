@@ -110,3 +110,13 @@ How it is kept safe: the token, app secret and verify token are encrypted (AES-2
 The switch covers every WhatsApp message the platform sends (including the existing trainee verification and notification messages), not only the growth follow-ups. The old environment variables (`WHATSAPP_ENABLED`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET`, `WHATSAPP_TEMPLATE_LANG`) still work as a fallback; once the page has saved anything, its on/off switch decides.
 
 Honest limit: this has been run against a stand-in that answers like Meta, not against Meta itself. The first real use is "Test connection", then one message to your own number.
+
+## The taster's clock and look
+
+The public taster wears the Ayakbi Arena look: the Arena's deep green stage, gold buttons, white question card with lettered answer tiles, and the Arena ring timer. A "Sound on/off" button sits at the top of every screen.
+
+- **Clock:** each question has 18 seconds (`QUESTION_SECONDS`), so a whole run is at most about 90 seconds. The ring drains and the number turns red and pulses in the last 5 seconds.
+- **Running out of time** counts as a missed question: the right answer and explanation are shown, exactly as for a wrong answer, and the run moves on. It is recorded as a wrong answer with no choice (the answer request carries `timedOut: true`). Scores, ranks, duels and squads are unchanged: still one point per correct answer.
+- **The clock pauses** while the answer is showing and while the browser tab is hidden, and one long stall cannot burn all the time at once.
+- **Sound:** a tick and a lower tock alternate every second, higher and sharper in the last 5 seconds, with a rising beep in the last 3. Right and wrong answers, a new question, the start and the result each have their own sound (the same kit as the Arena, made in the browser, no files). It starts after the player's first tap, is on by default, and the on/off choice is remembered on that device.
+- **Reduced motion:** the pulsing and shaking animations are switched off for people who ask their device for less motion.

@@ -425,7 +425,7 @@ export async function playStart(slug: string, token: string | null, source: unkn
 }
 
 /** Grades the answer to the question the play is on. The key is revealed only now, and only for that question. */
-export async function playAnswer(slug: string, token: string, choice: unknown) {
+export async function playAnswer(slug: string, token: string, choice: unknown, timedOut = false) {
   const campaign = await campaignBySlug(slug);
   if (!campaign) throw new GrowthError("This link isn't available.", 404);
   const play = await prisma.growthGuestPlay.findUnique({ where: { token } });
@@ -433,13 +433,15 @@ export async function playAnswer(slug: string, token: string, choice: unknown) {
   const ids = play.questionIds as string[];
   const answers = play.answers as Choice[];
   if (answers.length >= ids.length) throw new GrowthError("You have already finished.", 409);
-  if (typeof choice !== "string") throw new GrowthError("Choose one of the options.");
+  // Running out of time counts as a wrong answer: the question is marked missed and the answer is shown, like any other.
+  if (!timedOut && typeof choice !== "string") throw new GrowthError("Choose one of the options.");
   const qid = ids[answers.length];
   const q = await prisma.question.findUnique({ where: { id: qid }, select: { explanation: true, options: { select: { key: true, isCorrect: true } } } });
-  if (!q || !q.options.some((o) => o.key === choice)) throw new GrowthError("Choose one of the options.");
+  if (!q || (!timedOut && !q.options.some((o) => o.key === choice))) throw new GrowthError("Choose one of the options.");
+  if (timedOut) choice = "";
   const correctKey = q.options.find((o) => o.isCorrect)?.key ?? null;
-  const correct = choice === correctKey;
-  const nextAnswers = [...answers, { questionId: qid, choice, correct }];
+  const correct = !timedOut && choice === correctKey;
+  const nextAnswers = [...answers, { questionId: qid, choice: choice as string, correct }];
   const done = nextAnswers.length === ids.length;
   const updated = await prisma.growthGuestPlay.updateMany({
     // The length check makes a repeated tap on the same question a no-op instead of a second answer.
