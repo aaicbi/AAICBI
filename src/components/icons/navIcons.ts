@@ -49,6 +49,8 @@ const BY_PATH: Record<string, IconComponent> = {
   "/growth": Megaphone,
   "/growth/report": ReceiptText,
   "/growth/groups": Users,
+  "/ads": Megaphone,
+  "/ads/report": ReceiptText,
   "/requests": MessageSquarePlus,
   "/certificates": CertificateIcon,
   "/certificate-templates": CertificateIcon,

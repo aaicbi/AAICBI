@@ -1,5 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import SponsoredCard from "@/components/ads/SponsoredCard";
+import { INLINE_EVERY, adForSlot } from "@/lib/ads/adsCore";
+import type { PublicAd } from "@/lib/ads/ads";
 import PostItem from "@/components/posts/PostItem";
 import Button from "@/components/ui/Button";
 import type { FeedPost } from "@/lib/posts/interactions";
@@ -10,6 +13,13 @@ export default function FeedList({ initial, next, tab, tag }: { initial: FeedPos
   const [cursor, setCursor] = useState(next);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [ads, setAds] = useState<PublicAd[]>([]);
+  // Sponsored cards between posts, fetched once; none when ads are off or none are live.
+  useEffect(() => {
+    let live = true;
+    fetch("/api/public/ads?placement=inline&count=4").then((r) => (r.ok ? r.json() : null)).then((j) => { if (live && j?.ads) setAds(j.ads); }).catch(() => undefined);
+    return () => { live = false; };
+  }, []);
 
   async function more() {
     setBusy(true); setFailed(false);
@@ -24,7 +34,15 @@ export default function FeedList({ initial, next, tab, tag }: { initial: FeedPos
 
   return (
     <div>
-      <ul className="space-y-4">{posts.map((p) => <li key={p.id}><PostItem post={p} /></li>)}</ul>
+      <ul className="space-y-4">{posts.map((p, i) => {
+        const ad = (i + 1) % INLINE_EVERY === 0 ? adForSlot(ads, (i + 1) / INLINE_EVERY - 1) : null;
+        return (
+          <li key={p.id} className="space-y-4">
+            <PostItem post={p} />
+            {ad && <div data-testid="inline-ad"><SponsoredCard ad={ad} /></div>}
+          </li>
+        );
+      })}</ul>
       {cursor && <div className="mt-6 text-center"><Button variant="secondary" onClick={more} loading={busy}>Show more posts</Button>{failed && <p className="mt-2 text-sm text-brand-rose" role="alert">Could not load more. Try again.</p>}</div>}
     </div>
   );
