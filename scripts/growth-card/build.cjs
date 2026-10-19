@@ -8,7 +8,7 @@ const ROOT = path.resolve(__dirname, '../..');
 const OUT = path.join(ROOT, 'public/growth');
 const LOOP_MS = 6000, FPS = 30, POSTER_MS = 1300;
 const VARIANTS = [
-  { name: 'play-card', cls: 'land', w: 1200, h: 630, gifW: 560 },
+  { name: 'play-card', cls: 'land', w: 1200, h: 630, gifW: 560, webm: true },
   { name: 'play-card-square', cls: 'sq', w: 1080, h: 1080, gifW: 440 },
 ];
 function logoSvg() {
@@ -37,6 +37,8 @@ function logoSvg() {
     await pg.screenshot({ path: path.join(OUT, `${v.name}.png`) });
     const mp4 = path.join(OUT, `${v.name}.mp4`), gif = path.join(OUT, `${v.name}.gif`);
     execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', path.join(tmp, 'f%04d.png'), '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '21', '-preset', 'slow', '-movflags', '+faststart', mp4]);
+    // A WebM copy for browsers that cannot decode H.264 (the About page lists both sources).
+    if (v.webm) execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', mp4, '-c:v', 'libvpx-vp9', '-b:v', '0', '-crf', '36', '-pix_fmt', 'yuv420p', '-an', '-row-mt', '1', path.join(OUT, `${v.name}.webm`)]);
     const pal = path.join(tmp, 'pal.png');
     const vf = `fps=10,scale=${v.gifW}:-1:flags=lanczos`;
     execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', mp4, '-vf', `${vf},palettegen=stats_mode=diff:max_colors=96`, pal]);

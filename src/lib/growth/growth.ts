@@ -5,6 +5,7 @@ import { organizationOfCourse } from "@/lib/arena/config";
 import { hasAvailableTrainingSeat } from "@/lib/trainingOrgSeatCap";
 import { appUrl } from "@/lib/appUrl";
 import { queueForLead } from "@/lib/growth/messaging";
+import { clearFeaturedCache } from "@/lib/growth/featuredCache";
 import {
   CONSENT_TEXT, SHARE_CODE_ALPHABET, SHARE_CODE_LENGTH, TASTER_SIZE, beatPercent, challengeText, checkLead, cleanNickname, cleanSource, displayName, duelHeadline, duelOutcome, duelPath, isShareCode, rankSquads, rankStandings, SQUAD_BOARD_RIVALS, SQUAD_MAX_MEMBERS, cleanSquadName, rivalPath, squadJoinText, squadPath, squadRivalText, squadStanding, squadTotals, type SquadStanding, readinessIssues, slugify, switchBlockers, tasterRank,
   type GrowthScope, type SwitchRow,
@@ -36,6 +37,7 @@ export async function setGlobalSwitch(actorId: string, scope: "PLATFORM" | "OWN"
     update: { enabled, updatedById: actorId },
   });
   await audit(actorId, enabled ? "SWITCH_ON" : "SWITCH_OFF", scope, "");
+  clearFeaturedCache();
 }
 
 export interface OrgPatch { enabled?: boolean; agree?: boolean; commissionBps?: number | null; scholarshipEnabled?: boolean }
@@ -66,6 +68,7 @@ export async function setOrganization(actorId: string, organizationId: string, p
   if (patch.enabled !== undefined) await audit(actorId, patch.enabled ? "SWITCH_ON" : "SWITCH_OFF", "ORGANIZATION", organizationId, org.name);
   if (patch.commissionBps !== undefined) await audit(actorId, "COMMISSION_SET", "ORGANIZATION", organizationId, `${org.name}: ${patch.commissionBps == null ? "cleared" : patch.commissionBps / 100 + "%"}`);
   if (patch.scholarshipEnabled !== undefined) await audit(actorId, patch.scholarshipEnabled ? "SCHOLARSHIPS_ON" : "SCHOLARSHIPS_OFF", "ORGANIZATION", organizationId, org.name);
+  clearFeaturedCache();
 }
 
 // ---------------------------------------------------------------- readiness
@@ -148,6 +151,7 @@ export async function setCourseOptIn(actorId: string, courseId: string, enabled:
   const campaign = await ensureCampaign(courseId);
   await prisma.growthCampaign.update({ where: { id: campaign.id }, data: { enabled } });
   await audit(actorId, enabled ? "COURSE_ON" : "COURSE_OFF", "COURSE", courseId, campaign.slug);
+  clearFeaturedCache();
 }
 
 export async function campaignBySlug(slug: string) {

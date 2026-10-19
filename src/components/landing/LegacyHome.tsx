@@ -19,6 +19,7 @@ import DiscoveryTabs from "@/components/landing/DiscoveryTabs";
 import HowItWorks from "@/components/landing/HowItWorks";
 import JoinChooser from "@/components/landing/JoinChooser";
 import SampleNote from "@/components/landing/SampleNote";
+import PlayCardBanner from "@/components/landing/PlayCardBanner";
 import { getLandingView } from "@/lib/landing/data";
 import type { ProgressSurfaceData } from "@/lib/trainee/progressSurface";
 
@@ -161,6 +162,9 @@ export default async function LegacyHome({ path = "/about" }: { path?: string })
 
           </>
         )}
+
+        {/* The free taster, offered as a glowing animated card. It shows only while a course link is live. */}
+        <PlayCardBanner src={path === "/about" ? "about" : "home"} />
 
         {/* Feature grid */}
         <section className="mx-auto max-w-5xl px-6 pb-20">

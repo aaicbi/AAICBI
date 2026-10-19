@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { appUrl } from "@/lib/appUrl";
 import { deleteLessonMaterialBestEffort } from "@/lib/lessonMaterial";
 import { GrowthError, courseGrowth } from "@/lib/growth/growth";
+import { FEATURED_TTL_MS, featuredCache } from "@/lib/growth/featuredCache";
 import { DEFAULT_CAPTIONS, MAX_CAPTIONS, checkAsset, checkCaption, shareLink, type Asset, type AssetKind, type Caption } from "@/lib/growth/shareCore";
 
 const CAPTIONS_SCOPE = "SHARE";
@@ -128,4 +129,27 @@ export async function courseShareTarget(courseId: string, src?: unknown) {
   const c = await prisma.growthCampaign.findUnique({ where: { courseId }, select: { slug: true, course: { select: { title: true } } } });
   if (!c) return null;
   return { title: c.course.title, link: shareLink(appUrl(""), c.slug, src) };
+}
+
+// ---------------------------------------------------------------- the card on the public About page
+
+/** The course whose funnel link the About page should offer: AAICBI's own courses first, otherwise any live one. Remembered for a minute. */
+export async function featuredPlay(src?: unknown): Promise<{ link: string; title: string } | null> {
+  const now = Date.now();
+  if (featuredCache.at === 0 || now - featuredCache.at > FEATURED_TTL_MS) {
+    const campaigns = await prisma.growthCampaign.findMany({ where: { enabled: true }, select: { courseId: true, slug: true, course: { select: { title: true } } }, orderBy: { createdAt: "asc" }, take: 50 });
+    let own: { slug: string; title: string } | null = null;
+    let any: { slug: string; title: string } | null = null;
+    for (const c of campaigns) {
+      const g = await courseGrowth(c.courseId);
+      if (!g.live) continue;
+      const pick = { slug: c.slug, title: c.course.title };
+      if (!g.organizationId) { own = pick; break; }
+      any = any ?? pick;
+    }
+    featuredCache.at = now;
+    featuredCache.value = own ?? any;
+  }
+  const v = featuredCache.value;
+  return v ? { link: shareLink(appUrl(""), v.slug, src), title: v.title } : null;
 }
