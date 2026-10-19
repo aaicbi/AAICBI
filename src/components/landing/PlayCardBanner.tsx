@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
  * right now, so it appears and disappears as soon as a campaign is switched on or off, and shows nothing at all when none is live.
  * People who ask their device for less motion see the still card instead of the video.
  */
-export default function PlayCardBanner({ src }: { src: string }) {
+export default function PlayCardBanner({ src, compact = false }: { src: string; compact?: boolean }) {
   const [play, setPlay] = useState<{ link: string; title: string } | null>(null);
   useEffect(() => {
     let live = true;
@@ -23,6 +23,23 @@ export default function PlayCardBanner({ src }: { src: string }) {
     return () => { live = false; };
   }, [src]);
   if (!play) return null;
+  if (compact) {
+    return (
+      <section className="mb-4" aria-label="Free challenge" data-testid="play-card-banner">
+        <a href={play.link} aria-label={`Play the free 90-second challenge from ${play.title}`} data-testid="play-card-link"
+          className="group relative block w-full overflow-hidden rounded-3xl shadow-[0_0_0_2px_rgba(242,184,75,0.65)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-brand-gold"
+          style={{ aspectRatio: "1200 / 630" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/growth/play-card.png" alt="" className="absolute inset-0 h-full w-full object-cover" data-testid="play-card-still" />
+          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+          <video className="absolute inset-0 h-full w-full object-cover motion-reduce:hidden" autoPlay muted loop playsInline preload="metadata" poster="/growth/play-card.png" aria-hidden="true" tabIndex={-1} data-testid="play-card-video">
+            <source src="/growth/play-card.mp4" type="video/mp4" />
+            <source src="/growth/play-card.webm" type="video/webm" />
+          </video>
+        </a>
+      </section>
+    );
+  }
   return (
     <section className="px-6 pb-14" aria-labelledby="play-card-h" data-testid="play-card-banner">
       <div className="mx-auto max-w-3xl text-center">

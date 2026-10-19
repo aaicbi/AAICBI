@@ -12,6 +12,7 @@ import { ComposeBox, ComposeFab } from "@/components/posts/ComposeEntry";
 import DiscoveryPanelsView from "@/components/ecosystem/DiscoveryPanels";
 import { getDiscoveryPanels, hasPanels } from "@/lib/ecosystem/discovery";
 import DiscoverFeed from "@/app/feed/DiscoverFeed";
+import AdSlot from "@/components/ads/AdSlot";
 import GameAdvert from "@/components/ecosystem/GameAdvert";
 import FeedEcosystem from "@/components/ecosystem/FeedEcosystem";
 import { visitorGames } from "@/lib/quest/visitorPlay";
@@ -75,7 +76,9 @@ export default async function FeedHome({ searchParams, base }: { searchParams: {
               </div>
             </div>
           )}
+          {!actor && <AdSlot placement="top" src="feed" compact />}
           <ComposeBox initial={initial} />
+          {actor && <div className="mt-4"><AdSlot placement="top" src="feed" compact /></div>}
           <div className="mt-4 lg:hidden"><GameAdvert games={games} signedIn={!!actor} /></div>
           <div className="mt-4 lg:hidden"><FeedEcosystem links={ecoLinks} signedIn={!!actor} /></div>
           {(hasPanels(panels) || !actor || tags.length > 0) && (

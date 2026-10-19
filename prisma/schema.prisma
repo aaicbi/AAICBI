@@ -6360,3 +6360,53 @@ model GrowthCommission {
   @@index([courseId])
   @@index([paidAt])
 }
+
+// A paid (or free) sponsored card on the feed and the About page, booked by a Super Admin for an advertiser, usually a training organization.
+model AdBooking {
+  id             String   @id @default(cuid())
+  // The training organization, when the ad belongs to one: it can then see its own results.
+  organizationId String?
+  advertiserName String
+  advertiserKind String?
+  logoUrl        String?
+  headline       String
+  caption        String
+  buttonLabel    String
+  linkUrl        String
+  // IMAGE or VIDEO, and the file in the app's own storage.
+  mediaKind      String
+  mediaUrl       String
+  mediaType      String
+  mediaName      String
+  mediaSize      Int
+  // Any of TOP, INLINE, ABOUT.
+  placements     String[]
+  startsAt       DateTime
+  endsAt         DateTime
+  priceKobo      Int?
+  // UNPAID never goes live. PAID and FREE can.
+  paymentStatus  String   @default("UNPAID")
+  paused         Boolean  @default(false)
+  notes          String?
+  viewsTotal     Int      @default(0)
+  tapsTotal      Int      @default(0)
+  createdById    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  daily          AdDaily[]
+
+  @@index([organizationId])
+  @@index([startsAt, endsAt])
+}
+
+// One row per ad per day (Nigerian time): how often it was seen and tapped.
+model AdDaily {
+  id    String    @id @default(cuid())
+  adId  String
+  ad    AdBooking @relation(fields: [adId], references: [id], onDelete: Cascade)
+  day   String
+  views Int       @default(0)
+  taps  Int       @default(0)
+
+  @@unique([adId, day])
+}
