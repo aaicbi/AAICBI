@@ -44,6 +44,7 @@ module.exports = (L) => {
     pair('trainee/settings', {}, {}, 'Settings.') +
     table(['Setting', 'What it does'], [
       ['**Profile Picture** (Your account)', 'Select **Upload** (JPG, PNG or WEBP up to 5 MB; you can drag and zoom to place it).'],
+      ['**Change password** (Your account)', 'Enter your current password, then the new one twice, and select **Change password**.'],
       ['**Progress notifications** (Notifications)', 'A switch: email me when I unlock the next module and when an assessment result is ready.'],
       ['**Low-bandwidth mode**', 'Lighter pages for slow connections.'],
       ['**AI study buddy**', 'Switch Loop’s study help on or off.'],
@@ -53,7 +54,14 @@ module.exports = (L) => {
       ['**Public Profile Link**', 'Select **Generate Link** to make a shareable link to your profile, useful on a résumé or LinkedIn. It only works while Employer Discoverability is on.'],
     ]) +
     h3('Passwords and logging out') +
-    bullets(['To set a new password, select **Forgot your password?** on the sign-in page and follow the email link. The settings page has no separate “change password” box.', 'Never share your password. AAICBI will never ask for it.', 'To log out select **Log out** at the top of the menu (on a phone open **More**). Always log out on shared computers.']) +
+    task({
+      title: 'Change your password',
+      before: 'You are signed in and know your current password. Accounts that sign in only with Google have no password to change here.',
+      steps: ['Open **Settings**. Under **Your account** find **Change password**.', 'Type your **Current password**.', 'Type the **New password** (at least 8 characters) and again under **New password again**.', 'Select **Change password**.'],
+      expected: 'A message says your password has been changed.',
+      trouble: 'If you have forgotten your current password, sign out and select **Forgot your password?** on the sign-in page; follow the link in the email.',
+    }) +
+    bullets(['If you have forgotten your password, select **Forgot your password?** on the sign-in page and follow the email link.', 'Never share your password. AAICBI will never ask for it.', 'To log out select **Log out** at the top of the menu (on a phone open **More**). Always log out on shared computers.']) +
     h3('Account security advice') +
     bullets(['Use a password you do not use anywhere else.', 'Be careful with links in messages; open AAICBI by typing its address.', 'Review your profile visibility from time to time.', 'If you think someone else used your account, reset your password and tell your organisation.']));
 

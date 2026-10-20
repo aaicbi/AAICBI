@@ -227,7 +227,13 @@
   "folder": "org",
   "name": "forgot-password",
   "who": null,
-  "path": "/admin/forgot-password"
+  "path": "/org/forgot-password"
+ },
+ {
+  "folder": "org",
+  "name": "trainees",
+  "who": "org",
+  "path": "/admin/organization/trainees"
  },
  {
   "folder": "trainee",

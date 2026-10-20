@@ -51,13 +51,14 @@ module.exports = (L) => {
     p('Your trainees are the people **enrolled in your courses**. You only ever see your own trainees, never another organisation’s. Seats in your plan limit how many can be active at once; the **Seat usage** bar on the Overview shows how many are used.') +
     h3('Where to find trainees') +
     table(['I want to…', 'Go to', 'You will see'], [
+      ['Find any of my trainees by name or email', '**Organization → Trainees**', 'Everyone enrolled in your courses, each with their courses and a status (**In progress**, **Completed** or **Access ended**). Type in the search box and select **Search**. Select a course next to a name to open that course’s Enrollments.'],
       ['See the newest enrolments and who has finished', '**Organization → Overview → Recent trainees**', 'Trainee, course, status (In progress, Completed) and enrolment date. Use the search box to find a name or course.'],
       ['See everyone in one course', '**Teaching → Courses →** your course **→ Enrollments**', 'Each person enrolled, with their status (for example **Active** or **Completed**), and **Revoke** and **Extend Access** controls.'],
       ['See scores and progress of everyone in a course', '**Insight → Performance**, then choose a course', 'Each trainee’s performance in that course.'],
       ['See who needs help early', 'A course’s **Early Warnings** page', 'Trainees who crossed an inactivity or failed-attempts threshold you set for the course.'],
       ['Write to a trainee', '**Insight → Messages**', 'Your conversations with trainees.'],
     ]) +
-    note('There is no separate “all trainees” list in the organisation menu. Trainees are reached through the Overview, your courses, Performance and Messages.') +
+    pair('org/trainees', {}, {}, 'Organization → Trainees: your own trainees only, with search.') +
     h3('Enrolling a trainee', 'o5-enrol') +
     task({
       title: 'Give a trainee access to a course',

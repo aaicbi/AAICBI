@@ -63,13 +63,28 @@ module.exports = (L) => {
       'Check the email address and password carefully, then try again after a minute.',
       'If the page says your account is pending approval, wait for the approval email.',
       'If you are a team member rather than the owner, use the link in your invitation email to choose your own password first. Team members sign in with their own email and password.',
+      'If you have forgotten your password, reset it yourself as described below.',
     ]) +
-    note('The organisation sign-in page does not have a **Forgot password** link. For an organisation owner who has lost a password, contact AAICBI support (see **Getting help** at the end of this manual). Team members can ask an Owner or Manager to check that their account is still active in **Team**.'));
+    task({
+      title: 'Reset a forgotten password',
+      purpose: 'Get back into your organisation account without waiting for anyone. It works for the owner and for every team member.',
+      before: 'You can open the email inbox of the address you sign in with.',
+      steps: [
+        'On the **Training Organization Sign In** page select **Forgot your password?** (under the **Sign in** button).',
+        'Type the **Email** you sign in with — the owner’s address or your own team address — and select **Send reset link**.',
+        'Open the email from AAICBI and select **Reset Password**. The link works for one hour and only once.',
+        'Type a **New password** (at least 8 characters) and select **Save new password**.',
+        'Select **Go to sign in** and sign in with the new password.',
+      ],
+      expected: 'The page shows **Password changed**, and your old password no longer works.',
+      trouble: 'The page always says “If an account exists for that email, we’ve sent a password reset link”, whether or not the address is registered — this protects your privacy. If no email arrives, check spam, check you typed the right address, and wait a few minutes. A disabled team member does not receive a link; ask an Owner or Manager. If the link says it is invalid or expired, select **Ask for a new link**.',
+    }) +
+    pair('org/forgot-password', {}, {}, 'Reset your organization password: enter your email, then follow the link we send.'));
 
   const ch3 = chapter('o3', 3, 'Understanding the Training Organisation Dashboard',
     'A tour of the left menu, the Overview page and the controls you will use every day.',
     h3('Two home pages: Dashboard and Overview') +
-    p('After signing in you land in your workspace. The first item in the left menu, **Dashboard**, shows notifications, your recent activity, **Quick actions** (Create Examination, Courses, Performance, Analytics, Messages) and your examinations. The first item under **Organization**, **Overview**, is the page most organisation teams use every day: it answers “how is my cohort doing?” in one screen.') +
+    p('After signing in you land in your workspace. The first item in the left menu, **Dashboard**, shows notifications, your recent activity, **Quick actions** (Create Examination, Courses, Performance, Trainees, Messages) and your examinations. The first item under **Organization**, **Overview**, is the page most organisation teams use every day: it answers “how is my cohort doing?” in one screen.') +
     pair('org/dashboard', {}, {}, 'Organization → Overview on a computer (left) and on a phone (right).') +
     h3('What is on the Overview page') +
     table(['Section', 'What it shows', 'Why it matters'], [
@@ -81,14 +96,13 @@ module.exports = (L) => {
       ['**Progress by course**', 'For each course: enrolled, completed and completion rate. Headings can be clicked to sort.', 'Shows which courses need attention.'],
       ['**Recent trainees**', 'The newest enrolments with their course, status (for example In progress or Completed) and date. Use the search box to find a trainee or course.', 'The fastest way to check on individual trainees.'],
     ]) +
-    note('The three tiles at the top of the **Dashboard** page (Pending employers, To review job postings, Flagged reported profiles) are review counters shared with the AAICBI team’s dashboard. They are not part of day-to-day teaching; use **Organization → Overview** for your trainees.') +
     h3('The left menu on a computer', 'o3-menu') +
     p('The left menu is grouped. Groups open and close when you select their heading. At the top are your name and your role in your organisation, a **bell** for notifications, **Log out**, and a **Search pages** box (press **Ctrl + K**) that jumps to any page. **Page Help** at the bottom explains the page you are on.') +
     table(['Group and item', 'What you do there', 'Who may change things'], [
       ['**Dashboard**', 'Notifications, activity and quick actions.', 'Everyone'],
       ['**Feed** → Feed, Write a post, My posts', 'Read the community feed, publish posts as your organisation, and see the status of your posts.', 'Everyone who is signed in'],
       ['**Teaching** → Courses, Examinations, Assignments, Certificates', 'Build and manage learning content and the certificate trainees receive.', 'Owner and Manager; Editors build and edit but cannot publish, unpublish or delete'],
-      ['**Organization** → Overview, Team, Public profile, Education videos, Program skills, Content and visibility, Events, Member posts, Games', 'Run your organisation: people, public page, events, videos, posts about you, and game results and moderation.', 'Depends on the page; Viewers see everything and change nothing'],
+      ['**Organization** → Overview, Trainees, Team, Public profile, Education videos, Program skills, Content and visibility, Events, Member posts, Games', 'Run your organisation: people, public page, events, videos, posts about you, and game results and moderation.', 'Depends on the page; Viewers see everything and change nothing'],
       ['**Insight** → Performance, Growth report, Ads report, Messages', 'See how trainees are doing, campaign reports and your conversations.', 'Read mostly'],
       ['**Payments**', 'Payments for your programmes.', 'Depends on your role; billing belongs to the Owner'],
       ['**Settings**', 'Account and security settings.', 'Everyone for their own account'],

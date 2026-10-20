@@ -19,19 +19,21 @@ The platform was built and run locally against a throwaway demonstration databas
 
 Public home and feed, search, the Join page and account types, organisation registration and approval, organisation and trainee sign-in, trainee registration and email verification, the organisation workspace (Overview, Dashboard, menus, roles), public profile, team, courses (create, manage, enrol, cohorts, early warnings, performance, Q&A, certificates), examinations, assignments, certificate studio, education videos, program skills, events, member posts, content and visibility, the organisation Games section (results, live games, moderation, chat games, settings, history, escalation), messages and notifications, settings and support; for trainees: dashboard, courses, joining, practice, assessments, examinations, assignments, certificates, progress and analytics, Ayakbi Arena, course chat, ladder, feed and posting, messages, notifications, profile and settings.
 
-## Things found that are not as a reader might expect (documented as limitations)
+## Things found while documenting, and how each was resolved
 
-- The organisation sign-in page has **no “Forgot password” link**. The manual says so and points to the support placeholder.
-- Organisation accounts have **no “all trainees” page**: the address `/admin/trainees` shows “We couldn’t load trainees”, and `/admin/cohorts` is a “page not found”. The manual describes the real routes (Overview, a course’s Enrollments, Performance, Messages) instead.
-- The top three tiles of the organisation **Dashboard** (pending employers, job postings to review, flagged profiles) are review counters shared with the AAICBI team’s dashboard. They are explained, not recommended for daily use. This may be worth a product review.
-- The **AI Platform Assistant** switch in organisation Settings says the feature is not available yet; the manual says the same.
-- Neither the organisation nor the trainee **Settings** page has a “change password” box; trainees reset through “Forgot your password?”.
+Five platform gaps were found while documenting. All five were then fixed in the application and the manuals were updated to describe the fixed behaviour:
+
+- The organisation sign-in page had **no “Forgot password” link**. Now it has one, with `/org/forgot-password` and `/org/reset-password` for owners and team members.
+- Organisations had **no usable “all trainees” page** (`/admin/trainees` showed “We couldn’t load trainees”). There is now **Organization → Trainees**, limited to the organisation’s own trainees; the old address redirects to it. (`/admin/cohorts` is still not a page: cohorts live inside each course.)
+- The organisation **Dashboard** showed the AAICBI team’s review counters (pending employers, job postings, flagged profiles) and staff-only links. These are hidden for organisations.
+- The inert **AI Platform Assistant** switch was removed from Settings.
+- Neither Settings page had a **change password** box. Both now have one (current password, then the new one twice).
 - The **Gaming Studio** is not described as an organisation feature anywhere; the manual states that organisations do not have it.
 
 ## Remaining gaps and items for approval
 
 1. **Support contact:** no support email, phone or help page is published inside the platform pages. A clearly marked placeholder in “Getting help” must be replaced with approved details. Organisations can already use **Settings → Message the Super Admin**.
-2. **Sign-in help for organisation owners** has no in-platform route; it depends on the support contact above.
+2. **Password reset emails** need email sending to be configured for the environment (the same as the existing trainee reset). The reset links in the manual describe the normal behaviour once email is working; in the local test environment the reset token was read from the database.
 3. **Branding:** the AAICBI logo and brand colours from `docs/brand` were used; no replacement was invented. The PDF pages are light (for printing) while the screenshots are dark (the platform default).
 4. **Screens not photographed because they need data the demo did not have:** an actual assessment attempt in progress, a paid-course checkout (Paystack), a published public organisation page seen by a visitor, an organisation’s game results with exports switched on, and the trainee’s own course group chat with several people typing at once. They are described in text.
 5. **Games screens** use sample game activity added to the demonstration database so the tabs show realistic data; real organisations will see their own.

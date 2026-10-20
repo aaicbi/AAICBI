@@ -173,8 +173,16 @@ module.exports = (L) => {
   const ch11 = chapter('o11', 11, 'Account Settings and Security',
     'Keep your account and your trainees’ information safe.',
     h3('Your account') +
-    p('Open **Settings** (bottom of the left menu, or **More → Settings** on a phone). The **Account** page has your **Profile Picture** (**Upload**, JPG/PNG/WEBP up to 5 MB), the **AI Platform Assistant** switch and **Dark Mode**. The AI Platform Assistant is marked as not available yet: turning it on only prepares your account for when it launches. Under **Support**, **Message the Super Admin** lets you send a **Subject** and **Your message** straight to the AAICBI Super Admin’s inbox — the in-platform way to ask for help. The Settings page has no box for changing a password. Your name and role are shown at the top of the left menu. Team members each have their own sign-in, and what each person changes is recorded under their own name in **Organization → Team → Recent activity** (visible to Owners and Managers).') +
-    pair('org/settings', {}, {}, 'Settings.') +
+    p('Open **Settings** (bottom of the left menu, or **More → Settings** on a phone). The **Account** page has your **Profile Picture** (**Upload**, JPG/PNG/WEBP up to 5 MB), **Change password** and **Dark Mode**. Under **Support**, **Message the Super Admin** lets you send a **Subject** and **Your message** straight to the AAICBI Super Admin’s inbox — the in-platform way to ask for help. Your name and role are shown at the top of the left menu. Team members each have their own sign-in, and what each person changes is recorded under their own name in **Organization → Team → Recent activity** (visible to Owners and Managers).') +
+    pair('org/settings', {}, {}, 'Settings: profile picture, change password, dark mode and support.') +
+    task({
+      title: 'Change your password',
+      purpose: 'Keep your account safe, for example after sharing a computer or if you think someone knows your password.',
+      before: 'You are signed in and you know your current password. (If you have forgotten it, use **Forgot your password?** on the sign-in page instead.) Every team member, whatever their role, can change their own password.',
+      steps: ['Open **Settings**.', 'In **Change password** type your **Current password**.', 'Type the **New password** (at least 8 characters) and type it again under **New password again**.', 'Select **Change password**.'],
+      expected: 'A message says your password has been changed. Use the new one next time you sign in.',
+      trouble: '“Your current password is not right” means the first box is wrong. “The two new passwords do not match” means the second and third boxes differ. After several wrong attempts you must wait a few minutes.',
+    }) +
     h3('Managing your team safely') +
     task({
       title: 'Invite a team member',
@@ -197,10 +205,10 @@ module.exports = (L) => {
     'Safe things to try first, and when to contact support.',
     table(['Problem', 'Try this', 'If it persists'], [
       ['**I cannot sign in**', 'Check the email and password. Wait a few minutes if you see “Too many login attempts”. If you see “pending approval”, wait for the approval email.', 'Contact AAICBI support.'],
-      ['**I forgot my password**', 'The organisation sign-in page has no reset link. Team members: ask an Owner or Manager to check your account in **Team**. Owners: contact AAICBI support.', 'Contact AAICBI support.'],
+      ['**I forgot my password**', 'On the sign-in page select **Forgot your password?**, enter your email and follow the link we send (it works for one hour). This works for owners and team members.', 'Check spam; a disabled team member gets no link, so ask an Owner or Manager to check **Team**.'],
       ['**A dashboard feature is missing**', 'Check your role (shown under your name). Editors and Viewers see fewer controls. Some tools are for the AAICBI team only.', 'Ask an Owner to review your role.'],
       ['**I cannot open a page or action**', 'You may not have that permission, or the ability may be switched off for your organisation.', 'Ask an Owner; for games, ask AAICBI.'],
-      ['**Trainees are missing from a list**', 'Check they are enrolled in one of **your** courses. Use **Enrollments** in the course. Clear the filters on Performance.', 'Check the course is published and has seats.'],
+      ['**Trainees are missing from a list**', 'Open **Organization → Trainees** and search by name or email. Check they are enrolled in one of **your** courses (a course’s **Enrollments** page). Clear the filters on Performance.', 'Check the course is published and has seats.'],
       ['**A course or enrolment looks wrong**', 'Open the course’s **Enrollments** page: check the status, **Extend Access** or **Revoke**.', 'Contact AAICBI.'],
       ['**Game results are not showing**', 'Try **All time**, clear the filters and check the right course is chosen. Games only count after trainees have played.', 'The games may not be switched on for the course; ask AAICBI.'],
       ['**Chat or game problems**', 'Use **Refresh** on **Live games**. Check **Restrictions** in case a trainee is paused.', 'Escalate to AAICBI.'],
