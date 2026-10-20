@@ -310,7 +310,6 @@ export default function Studio({ isSuper = false }: { isSuper?: boolean } = {}) 
         </ul>
       </section>
 
-      {isSuper && <PeoplePanel />}
 
       <section aria-label="Modules">
         <h2 className="text-sm font-semibold text-brand-ink">Modules</h2>

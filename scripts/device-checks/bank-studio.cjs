@@ -70,9 +70,9 @@ const DETAIL = (extra = {}) => ({ correctness: { agrees: false, verifiedOptionIn
 
   // ---------- who may use it ----------
   r = await api(staff, 'POST', `/api/admin/studio/modules/${M}/bank`, { action: 'approve', allPassed: true });
-  log(r.status === 403 || r.status === 404, 'staff cannot work another person’s bank');
+  log([401, 403, 404].includes(r.status), 'staff cannot work any bank: the studio is Super Admin only');
   r = await api(staff, 'GET', `/api/admin/studio/modules/${M}/bank`);
-  log(r.status === 404, 'nor read it');
+  log([401, 403, 404].includes(r.status), 'nor read it');
 
   // ---------- the AI writing and review routes are gone ----------
   r = await api(sa, 'POST', `/api/admin/studio/modules/${M}/bank`, { action: 'review' });
@@ -118,24 +118,7 @@ const DETAIL = (extra = {}) => ({ correctness: { agrees: false, verifiedOptionIn
   row = await prisma.question.findUnique({ where: { id: freshPass.id } });
   log(before.bankStatus === 'VALIDATED_PASS' && row.bankStatus === 'APPROVED' && row.bankPool !== null, 'the approval card approves the passed questions and splits the pools');
 
-  // ---------- staff: permission and scope ----------
-  const SW = await world('Bank staff course', 'Bank staff module', staffUser);
-  const sq = await SW.mk(SW.o1, 'Staff passed question about triggers?', 'VALIDATED_PASS', { bankPool: 'PRACTICE' });
-  r = await api(staff, 'POST', `/api/admin/studio/modules/${SW.mod.id}/bank`, { action: 'approve', allPassed: true });
-  log(r.status === 403, 'staff need the question-bank permission to approve, even on their own module');
-  r = await chat(staff, { message: 'BANK:Bank staff module', level: 1, studio: { moduleId: SW.mod.id, gameId: null } });
-  const tools = fakeLog().filter((c) => c.stream === true).pop().tools;
-  log(tools.includes('get_bank_questions') && !tools.includes('approve_bank_questions'), 'without the permission Loop can show their bank but not approve');
-  r = await api(sa, 'PUT', '/api/admin/studio/people', { userId: staffUser.id, permissions: ['LOOP', 'GAMES', 'ITEMS', 'ASSIGN', 'QUESTIONS', 'BANK_AI'] });
-  r = await chat(staff, { message: 'BANKAPPROVE:Bank staff module', level: 3, studio: { moduleId: SW.mod.id, gameId: null } });
-  const tools2 = fakeLog().filter((c) => c.stream === true).slice(-2)[0].tools;
-  log(tools2.includes('approve_bank_questions') && !tools2.some((t) => ['generate_bank_questions', 'review_bank_questions'].includes(t)), 'with it Loop offers approving, and never writing or reviewing questions');
-  log(r.cards.length === 1 && r.cards[0].status === 'PENDING', 'and the approval still asks, at level 3');
-  r = await api(staff, 'POST', `/api/admin/studio/modules/${SW.mod.id}/bank`, { action: 'approve', allPassed: true });
-  row = await prisma.question.findUnique({ where: { id: sq.id } });
-  log(r.status === 200 && row.bankStatus === 'APPROVED', 'with the permission staff approve their own module’s questions');
-  r = await api(staff, 'POST', `/api/admin/studio/modules/${M}/bank`, { action: 'approve', allPassed: true });
-  log(r.status === 404, 'but never another person’s');
+  // (Staff permissions in the studio were removed: it is Super Admin only. See studio-super-only.cjs.)
 
   // ---------- the studio panel ----------
   for (let i = 1; i <= 3; i++) await W.mk(W.o1, `UI passed question ${i} about triggers?`, 'VALIDATED_PASS', { bankPool: 'PRACTICE' });

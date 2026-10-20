@@ -29,7 +29,7 @@ export default function GameDemoPage() {
   }, []);
 
   const api = useMemo(() => createDemoApi(format, shuffle), [format, run]); // eslint-disable-line react-hooks/exhaustive-deps
-  const allowed = role === "SUPER_ADMIN" || role === "ADMIN" || role === "INSTRUCTOR";
+  const allowed = role === "SUPER_ADMIN";
   const info = DEMO_FORMATS.find((f) => f.format === format)!;
 
   if (checked && !allowed) {
@@ -39,7 +39,7 @@ export default function GameDemoPage() {
         <main className="mx-auto max-w-2xl px-6 py-10">
           <Card>
             <p className="font-display font-semibold text-brand-ink">Game demo</p>
-            <p className="mt-2 text-sm text-gray-600">The game demo is for staff who build courses. If you should have it, ask a Super Admin.</p>
+            <p className="mt-2 text-sm text-gray-600">The game demo is only for the Super Admin.</p>
           </Card>
         </main>
       </>

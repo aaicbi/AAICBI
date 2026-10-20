@@ -1,5 +1,7 @@
 # Game Studio
 
+> **Super Admin only.** The Game Studio, Loop inside it, the game demo and the Game results table belong to the Super Admin alone. Training organizations, admins and instructors have no menu entry, no page and no data, and every studio endpoint refuses them (`requireStudioUser` allows only `SUPER_ADMIN`). Trainees of any course (including an organization's) still play the games a Super Admin assigns to their modules. The sections below about staff permissions, staff Loop levels and sharing the results with staff describe an earlier design and no longer apply; they are kept for the data model only. Tested by `scripts/device-checks/studio-super-only.cjs`.
+
 One page, `/admin/studio` (sidebar: Teaching, **Game Studio**, Super Admin and organisation staff), where games are made,
 written with Loop, previewed exactly as trainees will play them, and assigned to modules. It replaces
 moving between the assessment page, the question bank and the Practice and mastery page.

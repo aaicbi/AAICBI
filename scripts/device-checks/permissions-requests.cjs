@@ -37,47 +37,7 @@ const lastRequest = () => fs.readFileSync('/tmp/fakeclaude-stream.log', 'utf8').
   const M = mod.id;
   const setPerms = (permissions) => api(sa, 'PUT', '/api/admin/studio/people', { userId: staffUser.id, permissions });
 
-  // ---------- permissions ----------
-  let r = await api(staff, 'GET', '/api/admin/studio');
-  log(r.status === 200 && ['LOOP', 'GAMES', 'ITEMS', 'ASSIGN', 'QUESTIONS'].every((k) => r.json.permissions.includes(k)) && !r.json.permissions.includes('MESSAGING'), 'a person nobody configured gets the studio set and no platform-wide tools');
-  r = await api(sa, 'GET', '/api/admin/studio/people');
-  const row = r.json.people.find((p) => p.id === staffUser.id);
-  log(r.json.permissionOptions.some((o) => o.key === 'MESSAGING' && o.wide) && row.permissions.length === 5, 'the Super Admin sees every tool and which ones reach all organisations');
-  r = await api(staff, 'PUT', '/api/admin/studio/people', { userId: staffUser.id, permissions: ['MESSAGING'] });
-  log([401, 403].includes(r.status), 'staff cannot grant themselves tools');
-
-  r = await setPerms(['LOOP', 'GAMES']);
-  log(r.status === 200, 'the Super Admin narrows this person to Loop and making games');
-  r = await api(staff, 'POST', '/api/admin/studio/games', { title: 'PR game', format: 'MATCHING' });
-  const g = r.json.id; log(r.status === 201, 'they can still make a game');
-  r = await api(staff, 'POST', `/api/admin/studio/modules/${M}/items`, { objectiveId: obj.id, format: 'MATCHING', content: { prompt: 'x', pairs: [{ left: 'a', right: 'b' }, { left: 'c', right: 'd' }, { left: 'e', right: 'f' }] } });
-  log(r.status === 403 && /permission/i.test(r.json.error), 'writing items is refused with a plain reason');
-  r = await api(staff, 'PUT', `/api/admin/studio/games/${g}/assign`, { moduleId: M, assigned: true });
-  log(r.status === 403, 'assigning a game is refused');
-  r = await api(staff, 'POST', `/api/modules/${M}/quest`, { action: 'autoSplit' });
-  log(r.status === 403, 'changing question pools is refused');
-  r = await api(staff, 'POST', `/api/admin/studio/modules/${M}/items/approve`, { format: 'MATCHING' });
-  log(r.status === 403, 'approving items is refused');
-
-  r = await chat(staff, { message: 'GAME:PR Loop game', level: 3, studio: { moduleId: M, gameId: null } });
-  let req = lastRequest();
-  log(req.tools.includes('create_game') && !req.tools.includes('add_game_items') && !req.tools.includes('assign_game') && !req.tools.includes('split_question_pools') && !req.tools.includes('search_people') && !req.tools.includes('send_message'), 'Loop offers exactly the tools they were allowed');
-  log(/NOT allowed to/.test(req.system) && /write and approve items/.test(req.system), 'Loop is told what they may not do');
-  r = await chat(staff, { message: 'PEOPLE:Ada', level: 3, studio: { moduleId: M, gameId: null } });
-  log(r.status === 200 && /not allowed to look people up/.test(r.text) && !/Here are the people/.test(r.text), 'calling a tool they were not given is refused by the server, not just hidden');
-
-  r = await setPerms(['GAMES', 'ITEMS']);
-  r = await chat(staff, { message: 'GAME:PR No loop', level: 1 });
-  log(r.status === 403, 'without the Loop permission Loop is closed to them');
-
-  r = await setPerms(['LOOP', 'GAMES', 'ITEMS', 'ASSIGN', 'QUESTIONS', 'MESSAGING', 'PEOPLE_DATA', 'ANALYTICS']);
-  r = await chat(staff, { message: 'GAME:PR Wide', level: 1, studio: { moduleId: M, gameId: null } });
-  req = lastRequest();
-  log(['search_people', 'send_message', 'resolve_recipients', 'get_platform_overview', 'get_trainee_report'].every((t) => req.tools.includes(t)) && !req.tools.includes('log_change_request') && !req.tools.includes('get_cohort_report'), 'allowed platform tools appear, the others do not, and change requests stay with the Super Admin');
-  r = await setPerms([]);
-  r = await api(staff, 'GET', '/api/admin/studio');
-  log(r.json.permissions.length === 0, 'an empty list really is empty (not the default)');
-  r = await setPerms(['LOOP', 'GAMES', 'ITEMS', 'ASSIGN', 'QUESTIONS']);
+  // (Studio permissions for staff were removed: the Game Studio is Super Admin only. See studio-super-only.cjs.)
 
   // ---------- change requests ----------
   r = await api(sa, 'POST', '/api/admin/requests', { title: 'x', details: 'short' });
@@ -124,12 +84,6 @@ const lastRequest = () => fs.readFileSync('/tmp/fakeclaude-stream.log', 'utf8').
   await pg.locator('[data-testid="request-card"]', { hasText: 'UI request' }).locator('[data-testid="approve-request"]').click();
   await pg.waitForFunction(() => /1 approved/i.test(document.querySelector('[data-testid="brief-card"]')?.textContent || ''), null, { timeout: 8000 }).catch(() => {});
   log((await pg.locator('[data-testid="brief-card"]').innerText()).match(/1 approved/i) !== null, 'approving on the page moves it into the hand-off count');
-  await pg.goto(B + '/admin/studio'); await pg.waitForSelector('[data-testid="people-panel"]');
-  await pg.getByRole('button', { name: /Your team/i }).click();
-  await pg.locator(`[data-testid="permissions-toggle-${staffUser.id}"]`).click();
-  const boxes = pg.locator(`ul[aria-label*="may use"] input[type="checkbox"]`);
-  log((await boxes.count()) === 11, 'the People panel lists all eleven tools with checkboxes');
-  await pg.screenshot({ path: '/tmp/dev/permissions-panel.png' });
   const sctx = await browser.newContext(dv.context); await sctx.addCookies(await cookiesFor('/api/auth/login', 'staff@dev.test'));
   const sp = await sctx.newPage(); sp.on('pageerror', (e) => errors.push(e.message));
   await sp.goto(B + '/admin/requests', { waitUntil: 'load' });

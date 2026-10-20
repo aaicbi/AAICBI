@@ -15,7 +15,7 @@ import { QuestAdminError, applyQuestSettings, autoSplitPools, questSnapshot, set
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
-    const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
+    const session = await requireRole("SUPER_ADMIN"); // the Game Studio's data: Super Admin only
     await requireOwnedModule(params.id, session.userId, session.role);
     return NextResponse.json(await questSnapshot(params.id));
   });

@@ -1,10 +1,9 @@
 /**
  * Who may use the Game Studio, and what each person may touch in it.
  *
- *  - A Super Admin sees every game, course and module, and may use Loop at any autonomy level.
- *  - Organization staff, admins and instructors see only the courses they own or were invited to
- *    edit (the same rule as every other course page), only the games THEY made, and Loop is limited
- *    to those modules and to the level a Super Admin has granted them (1, ask first, until raised).
+ *  Only a Super Admin may use it: every game, course and module, and Loop at any autonomy level. Training organizations,
+ *  admins and instructors have no Game Studio. (The helpers below that narrow a non-super person's view are kept for
+ *  the shared types and are never reached while the studio is Super Admin only.)
  */
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
@@ -29,10 +28,10 @@ function notFound(message: string) {
   return err;
 }
 
+/** The Game Studio (and Loop inside it, and the game results) belongs to the Super Admin alone: training organizations, admins and instructors are turned away. */
 export async function requireStudioUser(): Promise<StudioSession> {
-  const s = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-  const isSuper = s.role === "SUPER_ADMIN";
-  return { userId: s.userId, role: s.role, isSuper, permissions: isSuper ? [...ALL_STUDIO_PERMISSIONS] : await permissionsFor(s.userId) };
+  const s = await requireRole("SUPER_ADMIN");
+  return { userId: s.userId, role: s.role, isSuper: true, permissions: [...ALL_STUDIO_PERMISSIONS] };
 }
 
 export async function permissionsFor(userId: string): Promise<StudioPermission[]> {

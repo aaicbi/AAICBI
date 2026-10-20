@@ -25,7 +25,7 @@ export default function StudioPage() {
       .finally(() => setChecked(true));
   }, []);
 
-  const allowed = role === "SUPER_ADMIN" || role === "ADMIN" || role === "INSTRUCTOR";
+  const allowed = role === "SUPER_ADMIN";
   if (checked && !allowed) {
     return (
       <>
@@ -33,7 +33,7 @@ export default function StudioPage() {
         <main className="mx-auto max-w-2xl px-6 py-10">
           <Card>
             <p className="font-display font-semibold text-brand-ink">Game Studio</p>
-            <p className="mt-2 text-sm text-gray-600">The Game Studio is for staff who build courses. If you should have it, ask a Super Admin.</p>
+            <p className="mt-2 text-sm text-gray-600">The Game Studio is only for the Super Admin.</p>
           </Card>
         </main>
       </>

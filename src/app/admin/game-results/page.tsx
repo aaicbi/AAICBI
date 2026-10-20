@@ -5,7 +5,6 @@ import LogoutButton from "@/components/admin/LogoutButton";
 import Card from "@/components/ui/Card";
 import BackLink from "@/components/ui/BackLink";
 import ResultsTable from "@/components/game-results/ResultsTable";
-import ResultsAccessPanel from "@/components/game-results/ResultsAccessPanel";
 import { ADMIN_NAV_COMMAND } from "@/lib/admin/nav";
 
 /**
@@ -27,7 +26,7 @@ export default function GameResultsPage() {
   }, []);
   const onForbidden = useCallback((m: string) => setBlocked(m), []);
 
-  const staff = role === "SUPER_ADMIN" || role === "ADMIN" || role === "INSTRUCTOR";
+  const staff = role === "SUPER_ADMIN";
   return (
     <>
       <SiteHeader nav={ADMIN_NAV_COMMAND} right={<LogoutButton />} />
@@ -40,11 +39,10 @@ export default function GameResultsPage() {
         ) : !staff || blocked ? (
           <Card className="mt-6" data-testid="results-blocked">
             <p className="font-display font-semibold text-brand-ink">Game results</p>
-            <p className="mt-2 text-sm text-gray-600">{blocked ?? "The game results are for staff. If you should see them, ask a Super Admin."}</p>
+            <p className="mt-2 text-sm text-gray-600">{blocked ?? "The game results are only for the Super Admin."}</p>
           </Card>
         ) : (
           <div className="mt-5 space-y-5">
-            {role === "SUPER_ADMIN" && <ResultsAccessPanel />}
             <ResultsTable onForbidden={onForbidden} />
           </div>
         )}
