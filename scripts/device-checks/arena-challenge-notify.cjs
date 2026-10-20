@@ -9,6 +9,7 @@ const psql = (q) => require('child_process').execFileSync('/usr/lib/postgresql/1
   const br = await launch();
   const dev = device('iPhone 7', { viewport: { width: 375, height: 667 } });
   const ca = await signedIn(br, dev, '/api/auth/trainee-login', 't0@dev.test'); const cb = await signedIn(br, dev, '/api/auth/trainee-login', 't1@dev.test');
+  await cb.addInitScript(() => { window.__badge = []; navigator.setAppBadge = (n) => { window.__badge.push(n); return Promise.resolve(); }; navigator.clearAppBadge = () => { window.__badge.push(0); return Promise.resolve(); }; });
   const pa = await ca.newPage(); const pb = await cb.newPage(); pb.setDefaultTimeout(12000); pa.setDefaultTimeout(9000);
   // B is elsewhere in the app (not on the arena page); A is in the arena and challenges B
   await pb.goto(`${B}/trainee/dashboard`, { waitUntil: 'load' });
@@ -25,8 +26,15 @@ const psql = (q) => require('child_process').execFileSync('/usr/lib/postgresql/1
   await pb.getByTestId('challenge-pill').waitFor({ timeout: 30000 });
   log(true, 'the challenged player sees Accept and Decline on screen');
   await pb.screenshot({ path: '/tmp/dev/challenge-pill-phone.png' });
+  await pb.waitForFunction(() => (window.__badge.slice(-1)[0] || 0) >= 1, null, { timeout: 25000 });
+  log(true, 'the waiting challenge counts on the app icon number');
+  const pay = await pb.evaluate(async () => (await (await fetch('/api/arena/alerts')).json()));
+  log(pay.challenge === true && pay.total >= 1, 'the same count is what the phone push carries (' + pay.total + ')');
+  const before = await pb.evaluate(() => window.__badge.slice(-1)[0]);
   await pb.getByRole('button', { name: 'Decline' }).click();
   await pb.getByTestId('challenge-pill').waitFor({ state: 'detached' });
+  await pb.waitForFunction((b) => window.__badge.slice(-1)[0] === b - 1, before, { timeout: 4000 });
+  log(true, 'answering takes it off the icon number straight away, not at the next check');
   log(true, 'declining from the pill clears it');
   await pa.waitForTimeout(1000);
   const aId = psql(`select id from "Trainee" where email='t0@dev.test'`);

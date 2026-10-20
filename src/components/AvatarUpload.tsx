@@ -76,7 +76,7 @@ export default function AvatarUpload({
 
   return (
     <div className="flex items-center gap-4">
-      <ImageFramer file={pending} aspect={1} round={!square} title="Place your picture" onCancel={() => setPending(null)} onDone={(f) => { setPending(null); upload(f); }} onUnreadable={(f) => { setPending(null); upload(f); }} />
+      <ImageFramer file={pending} aspect={1} round={!square} maxWidth={480} title="Place your picture" onCancel={() => setPending(null)} onDone={(f) => { setPending(null); upload(f); }} onUnreadable={(f) => { setPending(null); upload(f); }} />
       <div className={`h-16 w-16 shrink-0 overflow-hidden bg-brand-mint ${square ? "rounded-xl" : "rounded-full"}`}>
         {avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- a

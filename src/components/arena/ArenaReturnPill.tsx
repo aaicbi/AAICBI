@@ -39,6 +39,8 @@ export default function ArenaReturnPill() {
     setBusy(true);
     const res = await fetch(`/api/arena/matches/${m.id}/${accept ? "accept" : "decline"}`, { method: "POST" }).catch(() => null);
     setBusy(false);
+    // The challenge no longer counts on the app icon: refresh the number now instead of at the next 20-second check.
+    window.dispatchEvent(new Event("arena-alerts-refresh"));
     if (res?.ok && accept) router.push(`/trainee/arena/match/${m.id}`);
     else setM(null);
   }
