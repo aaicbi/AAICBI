@@ -18,3 +18,6 @@ The picture editor (profile photos, organization logos, covers, course flyers) n
 
 ## The number on the app icon
 Every push to a trainee's phone (a challenge, a chat, a wallet or event note) now carries the full count waiting for them: unread group chats + unread messages + a challenge waiting on them (`src/lib/arena/attention.ts`, the same count the page uses). Answering a challenge refreshes the icon number straight away.
+
+## Shrinking pictures uploaded earlier
+Platform > Pictures (Super Admin only) lists how many stored profile pictures, logos, flyers and covers are large, then shrinks them a batch at a time (`src/lib/pictures`, uses `sharp`). Each is resized to the most it is ever shown at (480 / 1280 / 1600 px) and saved as WebP under a new name; the record is switched to the new file first and the old file is removed afterwards, only if nothing else uses it. Pictures that cannot be made clearly smaller (or cannot be read) are remembered and not retried. Certificate templates are never touched. Every run is logged.

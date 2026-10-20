@@ -1,5 +1,5 @@
 import type { ComponentType, SVGProps } from "react";
-import { Download, Flag, Gamepad2, Megaphone, Users, ReceiptText, Swords, Trophy, LayoutGrid, MessageSquarePlus, Newspaper, PenLine, FileText } from "lucide-react";
+import { Image as ImageIcon, Download, Flag, Gamepad2, Megaphone, Users, ReceiptText, Swords, Trophy, LayoutGrid, MessageSquarePlus, Newspaper, PenLine, FileText } from "lucide-react";
 import {
   AchievementIcon,
   AssessmentIcon,
@@ -50,6 +50,7 @@ const BY_PATH: Record<string, IconComponent> = {
   "/growth/report": ReceiptText,
   "/growth/groups": Users,
   "/ads": Megaphone,
+  "/pictures": ImageIcon,
   "/ads/report": ReceiptText,
   "/requests": MessageSquarePlus,
   "/certificates": CertificateIcon,

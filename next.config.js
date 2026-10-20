@@ -7,6 +7,8 @@ const nextConfig = {
   env: { NEXT_PUBLIC_BUILD_ID: process.env.VERCEL_GIT_COMMIT_SHA || "" },
   experimental: {
     // Only the icons and chart parts a page uses are sent to the phone, not the whole library.
+    // sharp (picture resizing) is a native module: load it from node_modules instead of bundling it.
+    serverComponentsExternalPackages: ["sharp"],
     optimizePackageImports: ["lucide-react", "recharts"],
     serverActions: {
       bodySizeLimit: "10mb", // allow DOCX uploads through server actions if used
