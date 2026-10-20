@@ -204,6 +204,12 @@ type Audience = "staff" | "admins" | "superadmin" | "org" | "staffAndOrg" | "rev
 
 interface DefinedItem extends AdminNavItem {
   audience: Audience;
+  /**
+   * When set, the item shows for anyone who holds this permission (and for no one else) once permissions are known, so the menu follows what the
+   * person may actually do. The server still checks the same permission on every page and action. Without permissions (the guide's static
+   * listing) the audience applies as before.
+   */
+  permission?: string;
 }
 
 const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
@@ -218,7 +224,7 @@ const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
       { label: "Courses", href: "/admin/courses", audience: "staffAndOrg" },
       { label: "Examinations", href: "/admin/exams", audience: "staffAndOrg" },
       { label: "Assignments", href: "/admin/assignments", audience: "staffAndOrg" },
-      { label: "Game Studio", href: "/admin/studio", audience: "superadmin" },
+      { label: "Game Studio", href: "/admin/studio", audience: "superadmin", permission: "gaming_studio.access:view" },
       { label: "Certificates", href: "/admin/certificate-templates", audience: "org" },
     ],
   },
@@ -241,7 +247,7 @@ const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
       { label: "Training Organizations", href: "/admin/training-organizations", audience: "admins" },
       { label: "Instructors", href: "/admin/instructors", audience: "admins" },
       { label: "Agreement Templates", href: "/admin/agreement-templates", audience: "admins" },
-      { label: "Staff", href: "/admin/staff", audience: "superadmin" },
+      { label: "Staff", href: "/admin/staff", audience: "superadmin", permission: "staff.accounts:view" },
       { label: "Startups", href: "/admin/startups", audience: "superadmin" },
       { label: "Handle requests", href: "/admin/handle-requests", audience: "superadmin" },
     ],
@@ -251,7 +257,7 @@ const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
     items: [
       { label: "Performance", href: "/admin/performance", audience: "staffAndOrg" },
       { label: "Analytics", href: "/admin/analytics", audience: "staff" },
-      { label: "Game results", href: "/admin/game-results", audience: "superadmin" },
+      { label: "Game results", href: "/admin/game-results", audience: "superadmin", permission: "gaming_ops.results:view" },
       { label: "Growth report", href: "/admin/growth/report", audience: "staffAndOrg" },
       { label: "Ads report", href: "/admin/ads/report", audience: "staffAndOrg" },
       { label: "Messages", href: "/admin/messages", audience: "staffAndOrg" },
@@ -275,7 +281,7 @@ const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
     items: [
       { label: "Command Center", href: "/admin/command", audience: "superadmin" },
       { label: "Ecosystem", href: "/admin/ecosystem", audience: "superadmin" },
-      { label: "Ayakbi Arena", href: "/admin/arena", audience: "superadmin" },
+      { label: "Ayakbi Arena", href: "/admin/arena", audience: "superadmin", permission: "gaming_studio.settings:configure" },
       { label: "Growth", href: "/admin/growth", audience: "superadmin" },
       { label: "Squads and challenges", href: "/admin/growth/groups", audience: "superadmin" },
       { label: "Ads", href: "/admin/ads", audience: "superadmin" },
@@ -287,7 +293,8 @@ const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
   },
 ];
 
-function isVisible(audience: Audience, role: string, isTrainingOrg: boolean, canReview: boolean): boolean {
+function isVisible(audience: Audience, role: string, isTrainingOrg: boolean, canReview: boolean, permission?: string, permissions?: ReadonlySet<string>): boolean {
+  if (permission && permissions) return permissions.has(permission);
   if (isTrainingOrg) return audience === "org" || audience === "staffAndOrg";
   switch (audience) {
     case "org":
@@ -305,11 +312,11 @@ function isVisible(audience: Audience, role: string, isTrainingOrg: boolean, can
 }
 
 /** The grouped sidebar structure for a session, empty groups removed. */
-export function getAdminNavGroups(role: string, isTrainingOrg = false, canReview = false): AdminNavGroup[] {
+export function getAdminNavGroups(role: string, isTrainingOrg = false, canReview = false, permissions?: ReadonlySet<string>): AdminNavGroup[] {
   return GROUPS.map((g) => ({
     label: g.label,
     items: g.items
-      .filter((i) => isVisible(i.audience, role, isTrainingOrg, canReview))
+      .filter((i) => isVisible(i.audience, role, isTrainingOrg, canReview, i.permission, permissions))
       .map(({ label, href }) => ({ label, href })),
   })).filter((g) => g.items.length > 0);
 }

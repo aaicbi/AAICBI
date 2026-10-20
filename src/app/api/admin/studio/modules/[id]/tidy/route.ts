@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireStudioUser, requireStudioModule, requireStudioPermission } from "@/lib/quest/studioAccess";
+import { requireStudioUser, requireStudioModule, requireStudioCan } from "@/lib/quest/studioAccess";
 import { withApiErrors } from "@/lib/apiError";
 import { TidyError, deleteEmptyObjective, fillAssessmentSide, mergeObjective, renameObjective } from "@/lib/quest/tidy";
 
@@ -15,7 +15,7 @@ const Body = z.discriminatedUnion("action", [
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireStudioUser();
-    requireStudioPermission(session, "QUESTIONS");
+    requireStudioCan(session, "gaming_studio.assets:manage");
     await requireStudioModule(params.id, session);
     const parsed = Body.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "That request wasn't understood." }, { status: 400 });

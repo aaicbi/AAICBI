@@ -137,7 +137,7 @@ function PeoplePanel() {
   );
 }
 
-export default function Studio({ isSuper = false }: { isSuper?: boolean } = {}) {
+export default function Studio({ isSuper = false, can = () => true }: { isSuper?: boolean; /** Whether the signed-in person holds a Studio permission; the server checks every action again. */ can?: (key: string) => boolean } = {}) {
   const { showToast } = useToast();
   const { confirm, modal } = useConfirmModal();
   const [overview, setOverview] = useState<StudioOverview | null>(null);
@@ -257,7 +257,7 @@ export default function Studio({ isSuper = false }: { isSuper?: boolean } = {}) 
       <section aria-label="Game library">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-brand-ink">Games</h2>
-          <Button size="sm" variant="secondary" onClick={() => setCreating((c) => !c)} iconLeft={<Icon icon={Plus} size="sm" />} data-testid="new-game">
+          <Button size="sm" variant="secondary" onClick={() => setCreating((c) => !c)} disabled={!can("gaming_studio.games:create")} title={can("gaming_studio.games:create") ? undefined : "You do not have permission to create games."} iconLeft={<Icon icon={Plus} size="sm" />} data-testid="new-game">
             New game
           </Button>
         </div>
@@ -404,7 +404,7 @@ export default function Studio({ isSuper = false }: { isSuper?: boolean } = {}) 
                 <Checkbox
                   label={`This game is part of ${workspace.module.title}`}
                   checked={!!assignment}
-                  disabled={busy}
+                  disabled={busy || !can("gaming_studio.games:manage")}
                   onChange={(e) => void act("PUT", `/api/admin/studio/games/${game.id}/assign`, { moduleId: workspace.module.id, assigned: e.target.checked, live: false }, e.target.checked ? "Assigned." : "Removed from this module.")}
                 />
                 <Checkbox
@@ -419,34 +419,36 @@ export default function Studio({ isSuper = false }: { isSuper?: boolean } = {}) 
                         : "Approve at least one item first."
                   }
                   checked={!!assignment?.live}
-                  disabled={busy || !assignment}
+                  disabled={busy || !assignment || !can("gaming_studio.games:publish")}
                   onChange={(e) => void act("PUT", `/api/admin/studio/games/${game.id}/assign`, { moduleId: workspace.module.id, assigned: true, live: e.target.checked }, e.target.checked ? "Live for trainees." : "Hidden from trainees.")}
                 />
                 <Checkbox
                   label="Show on the feed: signed-in people can try it"
                   hint={assignment?.feedBlocker ?? (assignment?.openToVisitors ? "On the feed now." : "A ten-question round on the feed for anyone with an account. Answers are recorded in the Game results table; after a round they do not pass, Loop invites people who have not registered to register for the course. Quiz games use practice questions only. Needs the game live, the course published and at least 10 things to play.")}
                   checked={!!assignment?.openToVisitors}
-                  disabled={busy || !assignment?.live}
+                  disabled={busy || !assignment?.live || !can("gaming_studio.games:publish")}
                   onChange={(e) => void act("PUT", `/api/admin/studio/games/${game.id}/assign`, { moduleId: workspace.module.id, assigned: true, live: true, openToVisitors: e.target.checked }, e.target.checked ? "Shown on the feed." : "Taken off the feed.")}
                 />
               </div>
             )}
           </div>
 
+          {can("gaming_studio.games:delete") && (
           <div className="mt-3 flex justify-end">
-            <Button
-              size="sm"
-              variant="ghost"
-              iconLeft={<Icon icon={Trash2} size="sm" />}
-              onClick={async () => {
-                const ok = await confirm({ title: `Delete “${game.title}”?`, description: "It is removed from every module and its plays are removed with it. Written items stay with their modules.", confirmLabel: "Delete game", danger: true });
-                if (!ok) return;
-                if (await act("DELETE", `/api/admin/studio/games/${game.id}`, undefined, "Game deleted.")) setGameId(null);
-              }}
-            >
-              Delete game
-            </Button>
-          </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                iconLeft={<Icon icon={Trash2} size="sm" />}
+                onClick={async () => {
+                  const ok = await confirm({ title: `Delete “${game.title}”?`, description: "It is removed from every module and its plays are removed with it. Written items stay with their modules.", confirmLabel: "Delete game", danger: true });
+                  if (!ok) return;
+                  if (await act("DELETE", `/api/admin/studio/games/${game.id}`, undefined, "Game deleted.")) setGameId(null);
+                }}
+              >
+                Delete game
+              </Button>
+            </div>
+          )}
         </Card>
       )}
 

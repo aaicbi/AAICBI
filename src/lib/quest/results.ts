@@ -6,7 +6,7 @@
  */
 import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/auth/session";
-import { coursesWhere, requireStudioPermission, requireStudioUser, type StudioSession } from "@/lib/quest/studioAccess";
+import { coursesWhere, requireGamingOps, type StudioSession } from "@/lib/quest/studioAccess";
 import { itemTitle, type ItemContent, type ItemFormat } from "@/lib/quest/games";
 import { mergePlayers, summarize, type PlayCount, type PlayerIdentity, type ResultFormat } from "@/lib/quest/resultsCore";
 
@@ -21,18 +21,14 @@ export async function resultsShared(): Promise<boolean> {
   return row?.gameResultsShared === true;
 }
 
-/** Throws unless this person may open the Game results table. */
+/** Throws unless this person may open the Game results table: a Super Admin, or staff given "Game results: View" (not Studio access). */
 export async function requireResultsViewer(): Promise<StudioSession> {
-  const s = await requireStudioUser();
-  if (s.isSuper) return s;
-  if (!(await resultsShared())) throw new ResultsError("The game results table isn't shared with staff right now. Ask a Super Admin.");
-  requireStudioPermission(s, "GAME_RESULTS");
-  return s;
+  return requireGamingOps("gaming_ops.results:view");
 }
 
 /** Modules whose players this person may see: all of them (null) for a Super Admin, their own courses' for everyone else. */
 async function moduleScope(s: StudioSession): Promise<string[] | null> {
-  if (s.isSuper) return null;
+  if (s.isSuper || s.scopeAll) return null;
   const mods = await prisma.module.findMany({ where: { course: await coursesWhere(s) }, select: { id: true }, take: 5000 });
   return mods.map((m) => m.id);
 }

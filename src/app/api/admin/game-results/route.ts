@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withApiErrors } from "@/lib/apiError";
+import { requireStudioCan } from "@/lib/quest/studioAccess";
+import { recordAudit } from "@/lib/rbac/audit";
 import { toCsv } from "@/lib/csv";
 import { ResultsError, gameOptions, playerTable, requireResultsViewer, resultsShared } from "@/lib/quest/results";
 import { PLAYER_KIND_LABEL } from "@/lib/quest/resultsCore";
@@ -14,6 +16,8 @@ export async function GET(req: NextRequest) {
       const query = { days: [7, 30, 90].includes(days) ? days : null, gameId: sp.get("gameId") || null, q: (sp.get("q") ?? "").slice(0, 80) };
       const { players, summary } = await playerTable(s, query);
       if (sp.get("format") === "csv") {
+        requireStudioCan(s, "gaming_ops.results:export");
+        await recordAudit({ actorId: s.userId, actorRole: s.role, action: "GAME_RESULTS_EXPORTED", resourceType: "game_results" });
         const csv = toCsv(
           ["Name", "Email", "Account", "Where", "Games", "Answers", "Correct", "Accuracy %", "Average score %", "Quiz accuracy %", "Matching accuracy %", "Ordering accuracy %", "Scenario accuracy %", "First played", "Last played"],
           players.map((p) => {

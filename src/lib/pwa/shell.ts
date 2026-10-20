@@ -1,4 +1,6 @@
 import { getAdminNavGroups } from "@/lib/admin/nav";
+import { accessOf } from "@/lib/rbac/guard";
+import type { SessionPayload } from "@/lib/auth/session";
 import { canReviewUser } from "@/lib/review/access";
 import { TRAINEE_NAV } from "@/lib/trainee/nav";
 import { EMPLOYER_NAV } from "@/lib/employer/nav";
@@ -26,7 +28,8 @@ export async function shellForSession(session: { userId: string; role: string })
     case "ADMIN":
     case "SUPER_ADMIN": {
       const org = session.role === "ADMIN" ? await findTrainingOrgByStaffUserId(session.userId).catch(() => null) : null;
-      return { role: org ? "organization" : "staff", moreItems: getAdminNavGroups(session.role, !!org, !org && (await canReviewUser(session.userId, session.role))).flatMap((g) => g.items) };
+      const access = await accessOf(session as SessionPayload).catch(() => null);
+      return { role: org ? "organization" : "staff", moreItems: getAdminNavGroups(session.role, !!org, !org && (await canReviewUser(session.userId, session.role)), access?.permissions).flatMap((g) => g.items) };
     }
     default: return null;
   }

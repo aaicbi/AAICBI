@@ -51,6 +51,7 @@ export default function AdminSidebar({
   isTrainingOrg,
   orgLabel,
   canReview,
+  permissions,
 }: {
   name: string;
   avatarUrl: string | null;
@@ -66,13 +67,15 @@ export default function AdminSidebar({
   orgLabel?: string;
   /** Whether this staff member may review posts and Loop's questions (shows the review inbox). */
   canReview?: boolean;
+  /** What this person may do: the menu shows permission-gated items (Game Studio, Game results, Staff, Arena settings) only to those who hold them. */
+  permissions?: string[];
 }) {
   const pathname = usePathname() ?? "/admin/dashboard";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const helpRef = useRef<HTMLDivElement>(null);
 
-  const navGroups = getAdminNavGroups(role, isTrainingOrg, canReview);
+  const navGroups = getAdminNavGroups(role, isTrainingOrg, canReview, permissions ? new Set(permissions) : undefined);
   const tourEntry = getSidebarTourGuideContent(pathname);
 
   useEffect(() => {

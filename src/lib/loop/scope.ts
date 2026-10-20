@@ -12,13 +12,15 @@ export interface LoopScope {
   userId: string;
   role: string;
   isSuper: boolean;
+  /** Sees every module (staff with Studio access); Loop's platform tools still stay Super Admin only. */
+  allModules?: boolean;
   /** What this person may do in the studio. Left out for a Super Admin, who may do everything. */
   permissions?: StudioPermission[];
 }
 
 /** Like resolveModuleByQuery, but for a limited person only the modules they may work on can match. */
 export async function resolveModuleForScope(query: string, scope: LoopScope): Promise<ResolveModuleResult> {
-  if (scope.isSuper) return resolveModuleByQuery(query);
+  if (scope.isSuper || scope.allModules) return resolveModuleByQuery(query);
   const modules = await prisma.module.findMany({
     where: { title: { contains: query, mode: "insensitive" } },
     select: { id: true, title: true, courseId: true, course: { select: { id: true, title: true, createdById: true } } },

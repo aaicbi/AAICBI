@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
+import { hasPermission } from "@/lib/rbac/guard";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import ArenaAdmin from "@/components/arena/ArenaAdmin";
 
@@ -8,7 +9,7 @@ export const metadata = { title: "Ayakbi Arena" };
 /** SUPER_ADMIN: turn the Ayakbi Arena on or off and set its rules, for the whole platform, an organization or a course. */
 export default async function AdminArenaPage() {
   const session = await getSession();
-  if (!session || session.role !== "SUPER_ADMIN") redirect("/admin/dashboard");
+  if (!session || !(await hasPermission(session, "gaming_studio.settings:configure"))) redirect("/admin/dashboard");
   return (
     <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
       <Breadcrumbs items={[{ label: "Platform", href: "/admin/dashboard" }, { label: "Ayakbi Arena" }]} />

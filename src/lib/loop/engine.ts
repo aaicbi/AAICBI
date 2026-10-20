@@ -60,7 +60,7 @@ export async function studioNote(ctx: StudioContext | undefined, scope?: LoopSco
   ];
   if (ctx.moduleId) {
     const m = await prisma.module.findUnique({ where: { id: ctx.moduleId }, select: { title: true, course: { select: { id: true, title: true, createdById: true } } } });
-    const allowed = m && (!scope || scope.isSuper || (await courseAccess({ id: m.course.id, createdById: m.course.createdById }, scope.userId, scope.role)));
+    const allowed = m && (!scope || scope.isSuper || scope.allModules || (await courseAccess({ id: m.course.id, createdById: m.course.createdById }, scope.userId, scope.role)));
     if (m && allowed) lines.push(`The admin has selected the module “${m.course.title} — ${m.title}”. Unless they say otherwise, "this module" means that one.`);
   }
   if (ctx.gameId) {
@@ -248,7 +248,7 @@ async function findModule(query: string, scope: LoopScope) {
   });
   const modules = [];
   for (const m of found) {
-    if (scope.isSuper || (await courseAccess({ id: m.course.id, createdById: m.course.createdById }, scope.userId, scope.role))) modules.push(m);
+    if (scope.isSuper || scope.allModules || (await courseAccess({ id: m.course.id, createdById: m.course.createdById }, scope.userId, scope.role))) modules.push(m);
     if (modules.length >= 10) break;
   }
   return {

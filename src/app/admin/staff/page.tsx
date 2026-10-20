@@ -11,6 +11,8 @@ import ErrorState from "@/components/ui/ErrorState";
 import { ADMIN_NAV_STAFF } from "@/lib/admin/nav";
 
 import { Checkbox, Select } from "@/components/ui/Field";
+import AccessDenied from "@/components/ui/AccessDenied";
+import { useMyAccess } from "@/lib/useMyAccess";
 interface StaffDto {
   id: string;
   name: string;
@@ -43,6 +45,7 @@ export default function AdminStaffPage() {
   const [staffError, setStaffError] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const { showToast } = useToast();
+  const me = useMyAccess();
 
   function load() {
     setStaffError(false);
@@ -84,6 +87,15 @@ export default function AdminStaffPage() {
     }
     showToast(canReview ? "They can now review posts and Loop's questions." : "Reviewer access removed.");
     load();
+  }
+
+  if (me && !me.permissions.has("staff.accounts:view")) {
+    return (
+      <>
+        <SiteHeader nav={ADMIN_NAV_STAFF} right={<LogoutButton />} />
+        <main className="mx-auto max-w-2xl px-6 py-10"><AccessDenied what="staff accounts" /></main>
+      </>
+    );
   }
 
   return (
