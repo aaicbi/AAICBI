@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireStudioUser, requireStudioModule, requireStudioPermission } from "@/lib/quest/studioAccess";
+import { requireStudioUser, requireStudioModule, requireStudioCan } from "@/lib/quest/studioAccess";
 import { withApiErrors } from "@/lib/apiError";
 import { approveQuestions, assignQuestions, bankOverview, copyQuestions, BankError, editQuestion, rejectQuestions } from "@/lib/quest/bank";
 
@@ -8,6 +8,7 @@ import { approveQuestions, assignQuestions, bankOverview, copyQuestions, BankErr
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireStudioUser();
+    requireStudioCan(session, "gaming_studio.configs:view");
     await requireStudioModule(params.id, session);
     return NextResponse.json(await bankOverview(params.id));
   });
@@ -32,11 +33,12 @@ const Body = z.discriminatedUnion("action", [
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireStudioUser();
-    requireStudioPermission(session, "BANK_AI");
     await requireStudioModule(params.id, session);
     const parsed = Body.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "That request wasn't understood." }, { status: 400 });
     const b = parsed.data;
+    // Approving a question is its own permission; everything else on the bank (assign, copy, reject, edit) is managing it.
+    requireStudioCan(session, b.action === "approve" ? "gaming_studio.bank:approve" : "gaming_studio.bank:manage");
     try {
       switch (b.action) {
         case "approve":

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireStudioUser, requireStudioGame, requireStudioModule } from "@/lib/quest/studioAccess";
+import { requireStudioUser, requireStudioGame, requireStudioModule, requireStudioCan } from "@/lib/quest/studioAccess";
 import { withApiErrors } from "@/lib/apiError";
 import { moduleWorkspace } from "@/lib/quest/studio";
 
@@ -7,6 +7,7 @@ import { moduleWorkspace } from "@/lib/quest/studio";
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const session = await requireStudioUser();
+    requireStudioCan(session, "gaming_studio.configs:view");
     await requireStudioModule(params.id, session);
     return NextResponse.json(await moduleWorkspace(params.id));
   });

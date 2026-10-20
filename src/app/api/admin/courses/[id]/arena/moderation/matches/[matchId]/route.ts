@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/session";
+import { requireOrgGamesCapability } from "@/lib/rbac/guard";
 import { withApiErrors } from "@/lib/apiError";
 import { requireOwnedCourse } from "@/lib/courseOwnership";
 import { ArenaError } from "@/lib/arena/arena";
@@ -12,6 +13,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string;
   return withApiErrors(async () => {
     const s = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
     await requireOwnedCourse(params.id, s.userId, s.role);
+    await requireOrgGamesCapability(s, "org_games.reports:view");
     try {
       return NextResponse.json(await matchLog(params.id, params.matchId));
     } catch (e) {

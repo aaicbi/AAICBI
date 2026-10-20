@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
             history,
             signal: req.signal,
             studio: parsed.data.studio ?? undefined,
-            scope: { userId: session.userId, role: session.role, isSuper: session.isSuper, permissions: session.permissions },
+            scope: { userId: session.userId, role: session.role, isSuper: session.isSuper, allModules: session.scopeAll, permissions: session.permissions },
           })) {
             if (ev.type === "done") {
               finalText = ev.text;

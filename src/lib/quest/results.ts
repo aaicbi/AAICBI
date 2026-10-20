@@ -6,7 +6,7 @@
  */
 import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/auth/session";
-import { coursesWhere, requireStudioPermission, requireStudioUser, type StudioSession } from "@/lib/quest/studioAccess";
+import { coursesWhere, requireGamingOps, type StudioSession } from "@/lib/quest/studioAccess";
 import { itemTitle, type ItemContent, type ItemFormat } from "@/lib/quest/games";
 import { mergePlayers, summarize, type PlayCount, type PlayerIdentity, type ResultFormat } from "@/lib/quest/resultsCore";
 
@@ -21,19 +21,15 @@ export async function resultsShared(): Promise<boolean> {
   return row?.gameResultsShared === true;
 }
 
-/** Throws unless this person may open the Game results table. */
+/** Throws unless this person may open the Game results table: a Super Admin, or staff given "Game results: View" (not Studio access). */
 export async function requireResultsViewer(): Promise<StudioSession> {
-  const s = await requireStudioUser();
-  if (s.isSuper) return s;
-  if (!(await resultsShared())) throw new ResultsError("The game results table isn't shared with staff right now. Ask a Super Admin.");
-  requireStudioPermission(s, "GAME_RESULTS");
-  return s;
+  return requireGamingOps("gaming_ops.results:view");
 }
 
 /** Modules whose players this person may see: all of them (null) for a Super Admin, their own courses' for everyone else. */
-async function moduleScope(s: StudioSession): Promise<string[] | null> {
-  if (s.isSuper) return null;
-  const mods = await prisma.module.findMany({ where: { course: await coursesWhere(s) }, select: { id: true }, take: 5000 });
+async function moduleScope(s: StudioSession, courseId?: string): Promise<string[] | null> {
+  if ((s.isSuper || s.scopeAll) && !courseId) return null;
+  const mods = await prisma.module.findMany({ where: { course: { ...(await coursesWhere(s)), ...(courseId ? { id: courseId } : {}) } }, select: { id: true }, take: 5000 });
   return mods.map((m) => m.id);
 }
 
@@ -82,8 +78,8 @@ export interface ResultsQuery {
 const sinceOf = (days: number | null) => (days ? new Date(Date.now() - days * 86_400_000) : null);
 
 /** Everything the table needs: filtered counts per player and game, merged into one row per player. */
-export async function playerTable(s: StudioSession, query: ResultsQuery) {
-  const modules = await moduleScope(s);
+export async function playerTable(s: StudioSession, query: ResultsQuery, opts: { courseId?: string; userIds?: Set<string> } = {}) {
+  const modules = await moduleScope(s, opts.courseId);
   const since = sinceOf(query.days);
   const timeWhere = { answeredAt: { not: null as null | Date, ...(since ? { gte: since } : {}) } };
   const feedTime = since ? { answeredAt: { gte: since } } : {};
@@ -127,6 +123,8 @@ export async function playerTable(s: StudioSession, query: ResultsQuery) {
   }
 
   let rows = mergePlayers(counts, identities);
+  // An organization sees only people enrolled in its own courses, even where a game on the feed is open to everyone.
+  if (opts.userIds) rows = rows.filter((r) => opts.userIds!.has(r.userId));
   const q = query.q.trim().toLowerCase();
   if (q) rows = rows.filter((r) => r.name.toLowerCase().includes(q) || r.email.toLowerCase().includes(q));
   return { players: rows.slice(0, 1000), summary: summarize(rows) };

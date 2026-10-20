@@ -1,5 +1,7 @@
 # Game Studio
 
+> **Permission-based (see `docs/rbac-audit-and-plan.md`).** The Game Studio, Loop inside it and the game demo are for the Super Admin and for staff a Super Admin has given **Access the Gaming Studio**; inside it every action needs its own permission: view configurations, create, edit, delete, publish and unpublish (switching a game live or on the feed), manage (attach to a module), test, assets, engine settings (rewards, question pools, practice rules), question bank, Loop, and global game settings (the Ayakbi Arena switches). Game **results** and moderation are separate permissions (`gaming_ops.*`) and never open the Studio. Training organizations never have the Studio: they get an organization **Games** section for their own trainees. Tested by `scripts/device-checks/studio-permissions.cjs`. Sections below about the old per-person tool list and "sharing results with staff" describe an earlier design.
+
 One page, `/admin/studio` (sidebar: Teaching, **Game Studio**, Super Admin and organisation staff), where games are made,
 written with Loop, previewed exactly as trainees will play them, and assigned to modules. It replaces
 moving between the assessment page, the question bank and the Practice and mastery page.

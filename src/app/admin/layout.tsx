@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { SidebarActiveProvider } from "@/components/SidebarActiveContext";
 import ShellContent from "@/components/pwa/ShellContent";
 import { getAdminNavGroups } from "@/lib/admin/nav";
+import { accessOf } from "@/lib/rbac/guard";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import { pageHasSidebar } from "@/lib/sidebarRoutes";
 import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
@@ -93,6 +94,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // Everyone in an organization signs in as themselves: show who, and their role, instead of only the organization.
   const orgActor = trainingOrg ? await resolveOrgActor(trainingOrg, session.email).catch(() => null) : null;
 
+  // What this person may do decides which gated items (Game Studio, Game results, Staff...) the menu shows. Re-read on every page.
+  const access = await accessOf(session);
+
   return (
     <SidebarActiveProvider>
       <div className="min-h-screen">
@@ -103,8 +107,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           role={session.role}
           isTrainingOrg={!!trainingOrg}
           canReview={!trainingOrg && !!staff?.canReview}
+          permissions={[...access.permissions]}
         />
-        <ShellContent role={trainingOrg ? "organization" : session.role === "INSTRUCTOR" ? "instructor" : "staff"} moreItems={getAdminNavGroups(session.role, !!trainingOrg, !trainingOrg && !!staff?.canReview).flatMap((g) => g.items)}>{children}</ShellContent>
+        <ShellContent role={trainingOrg ? "organization" : session.role === "INSTRUCTOR" ? "instructor" : "staff"} moreItems={getAdminNavGroups(session.role, !!trainingOrg, !trainingOrg && !!staff?.canReview, access.permissions).flatMap((g) => g.items)}>{children}</ShellContent>
       </div>
     </SidebarActiveProvider>
   );

@@ -78,6 +78,7 @@ const BY_PATH: Record<string, IconComponent> = {
   "/handle-requests": PublicProfileIcon,
   "/review": Flag,
   "/organization/posts": MessagesIcon,
+  "/organization/games": Gamepad2,
   "/performance": InsightsIcon,
   "/analytics": InsightsIcon,
   "/payments": PaymentsIcon,

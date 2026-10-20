@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
-import Card from "@/components/ui/Card";
+import AccessDenied from "@/components/ui/AccessDenied";
+import { useMyAccess } from "@/lib/useMyAccess";
 import BackLink from "@/components/ui/BackLink";
 import GameRound from "@/components/games/experience/GameRound";
 import { DEMO_FORMATS, createDemoApi } from "@/components/games/demoData";
@@ -15,32 +16,20 @@ import { ADMIN_NAV_COMMAND } from "@/lib/admin/nav";
  * (welcome, countdown, animations, Loop, sounds, summary) without building anything. Nothing is saved and no XP is paid.
  */
 export default function GameDemoPage() {
-  const [role, setRole] = useState<string | null>(null);
-  const [checked, setChecked] = useState(false);
   const [format, setFormat] = useState<PlayFormat>("QUIZ");
   const [run, setRun] = useState(0);
 
-  useEffect(() => {
-    fetch("/api/admin/settings")
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d) => setRole(typeof d.role === "string" ? d.role : null))
-      .catch(() => setRole(null))
-      .finally(() => setChecked(true));
-  }, []);
-
   const api = useMemo(() => createDemoApi(format, shuffle), [format, run]); // eslint-disable-line react-hooks/exhaustive-deps
-  const allowed = role === "SUPER_ADMIN" || role === "ADMIN" || role === "INSTRUCTOR";
+  const me = useMyAccess();
+  const allowed = !!me && me.permissions.has("gaming_studio.testing:view");
   const info = DEMO_FORMATS.find((f) => f.format === format)!;
 
-  if (checked && !allowed) {
+  if (me && !allowed) {
     return (
       <>
         <SiteHeader nav={ADMIN_NAV_COMMAND} right={<LogoutButton />} />
         <main className="mx-auto max-w-2xl px-6 py-10">
-          <Card>
-            <p className="font-display font-semibold text-brand-ink">Game demo</p>
-            <p className="mt-2 text-sm text-gray-600">The game demo is for staff who build courses. If you should have it, ask a Super Admin.</p>
-          </Card>
+          <AccessDenied what="the game demo" />
         </main>
       </>
     );

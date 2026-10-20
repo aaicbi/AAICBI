@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth/session";
-import { requireStudioUser, requireStudioPermission } from "@/lib/quest/studioAccess";
+import { requireStudioUser, requireStudioModule, requireStudioCan, requireStudioPermission } from "@/lib/quest/studioAccess";
 import { withApiErrors } from "@/lib/apiError";
 import { requireOwnedModule } from "@/lib/courseOwnership";
 import { QuestAdminError, applyQuestSettings, autoSplitPools, questSnapshot, setQuestionPool } from "@/lib/quest/admin";
@@ -15,8 +15,9 @@ import { QuestAdminError, applyQuestSettings, autoSplitPools, questSnapshot, set
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
-    const session = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
-    await requireOwnedModule(params.id, session.userId, session.role);
+    const session = await requireStudioUser(); // the Game Studio's data: Studio access only
+    requireStudioCan(session, "gaming_studio.configs:view");
+    await requireStudioModule(params.id, session);
     return NextResponse.json(await questSnapshot(params.id));
   });
 }
@@ -34,7 +35,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   return withApiErrors(async () => {
     const session = await requireStudioUser();
     requireStudioPermission(session, "QUESTIONS");
-    await requireOwnedModule(params.id, session.userId, session.role);
+    await requireStudioModule(params.id, session);
     const parsed = SettingsBody.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) return NextResponse.json({ error: "Invalid settings." }, { status: 400 });
     try {
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   return withApiErrors(async () => {
     const session = await requireStudioUser();
     requireStudioPermission(session, "QUESTIONS");
-    await requireOwnedModule(params.id, session.userId, session.role);
+    await requireStudioModule(params.id, session);
     const parsed = PostBody.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
     if (parsed.data.action === "setPool") await setQuestionPool(params.id, parsed.data.questionIds, parsed.data.pool);

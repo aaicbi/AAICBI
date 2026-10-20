@@ -29,7 +29,8 @@ describe("what reviewers can and cannot reach", () => {
   });
   it("reviewer permission is granted only through the super admin's staff route", () => {
     const src = readFileSync("src/app/api/admin/staff/[id]/route.ts", "utf8");
-    expect(src).toMatch(/requireRole\("SUPER_ADMIN"\)/);
+    // Granting reviewer needs the "manage staff accounts" permission, a high-risk permission only a Super Admin can hold or give.
+    expect(src).toMatch(/requirePermission\(needsManage \? "staff\.accounts:manage"/);
     for (const f of files("src/app/api").filter((x) => x.endsWith("route.ts") && !x.includes("admin/staff"))) {
       expect(readFileSync(f, "utf8"), f).not.toMatch(/canReview:\s*(true|parsed|body)/);
     }

@@ -27,7 +27,6 @@ const scenario = (i) => ({ situation: `Results case ${i}`, options: [{ text: `Ri
     await prisma.course.delete({ where: { id: c.id } });
   }
   await prisma.game.deleteMany({ where: { title: { startsWith: 'Results check' } } });
-  await prisma.user.update({ where: { id: staffUser.id }, data: { studioPermissions: null } });
   await prisma.platformSettings.upsert({ where: { id: 'singleton' }, create: { id: 'singleton', gameResultsShared: false }, update: { gameResultsShared: false } });
 
   const course = await prisma.course.create({ data: { title: 'Results check course', status: 'PUBLISHED', published: true, isFree: true, createdById: superUser.id } });
@@ -78,31 +77,7 @@ const scenario = (i) => ({ situation: `Results case ${i}`, options: [{ text: `Ri
   r = await call(sa, 'GET', '/api/admin/game-results?format=csv');
   log(r.status === 200 && /Name,Email,Account/.test(r.text) && r.text.includes(t0.email), 'the table downloads as a CSV');
 
-  // ---- share, then choose people
-  r = await call(sa, 'PUT', '/api/admin/game-results/access', { shared: true });
-  r = await call(staff, 'GET', '/api/admin/game-results');
-  log(r.status === 403, 'sharing alone is not enough: staff must also be switched on');
-  r = await call(sa, 'GET', '/api/admin/game-results/access');
-  log(r.json.shared === true && r.json.people.some((p) => p.id === staffUser.id && p.allowed === false), 'the Super Admin sees the staff list with everyone switched off');
-  r = await call(sa, 'PUT', '/api/admin/game-results/access', { userId: staffUser.id, allowed: true });
-  r = await call(staff, 'GET', '/api/admin/game-results');
-  log(r.status === 200 && !r.json.players.some((p) => [t0.id, t1.id].includes(p.userId)), 'a switched-on person sees only their own courses: not these players');
-  const studio = await call(staff, 'GET', '/api/admin/studio');
-  log(studio.json?.canSeeResults === true, 'the Game Studio offers them the results link');
-  await prisma.course.update({ where: { id: course.id }, data: { createdById: staffUser.id } });
-  r = await call(staff, 'GET', '/api/admin/game-results');
-  log(r.status === 200 && r.json.players.some((p) => p.userId === t0.id) && r.json.players.some((p) => p.userId === t1.id), 'once the course is theirs they see its players');
-  r = await call(staff, 'GET', `/api/admin/game-results/${t0.id}`);
-  log(r.status === 200 && r.json.plays.filter((p) => p.game === 'Results check scenarios').length === 4, 'and can open those players');
-  const perms = (await prisma.user.findUnique({ where: { id: staffUser.id }, select: { studioPermissions: true } })).studioPermissions;
-  log(perms.includes('GAMES') && perms.includes('GAME_RESULTS'), "switching someone on keeps their other studio permissions");
-  r = await call(sa, 'PUT', '/api/admin/game-results/access', { userId: staffUser.id, allowed: false });
-  r = await call(staff, 'GET', '/api/admin/game-results');
-  log(r.status === 403, 'switching the person off closes it for them');
-  r = await call(sa, 'PUT', '/api/admin/game-results/access', { userId: staffUser.id, allowed: true });
-  r = await call(sa, 'PUT', '/api/admin/game-results/access', { shared: false });
-  r = await call(staff, 'GET', '/api/admin/game-results');
-  log(r.status === 403, 'switching sharing off closes it for everyone but Super Admins');
+  // (Sharing the results with staff was removed: the Game Studio and its results are Super Admin only.)
   r = await call(sa, 'GET', '/api/admin/game-results');
   log(r.status === 200, 'and a Super Admin still sees it');
 
@@ -114,36 +89,28 @@ const scenario = (i) => ({ situation: `Results case ${i}`, options: [{ text: `Ri
     const p = await ctx.newPage(); p.setDefaultTimeout(20000);
     p.on('pageerror', (e) => errors.push(String(e)));
     await p.goto(`${B}/admin/game-results`, { waitUntil: 'load' });
-    await p.getByTestId('results-access').waitFor();
+    await p.getByTestId('results-game').waitFor();
+    log((await p.getByTestId('results-access').count()) === 0, `${name}: there are no sharing switches any more`);
     await p.getByTestId('results-game').selectOption({ label: 'Results check scenarios' });
     await p.getByTestId('results-list').waitFor();
     const row = p.locator(`[data-testid=results-row][data-user="${t0.id}"]`);
     await row.waitFor();
     await p.waitForFunction((id) => /75%/.test(document.querySelector(`[data-testid=results-row][data-user="${id}"]`)?.textContent ?? ''), t0.id, { timeout: 10000 }).catch(() => {});
     log(/75%/.test(await row.innerText()), `${name}: the table shows the feed player at 75%`);
-    log((await p.getByTestId('results-person').count()) >= 1 && (await p.getByRole('switch').count()) >= 2, `${name}: the share switch and a switch per person are there`);
     await row.locator('button').click();
     await p.getByTestId('results-detail').waitFor();
     await p.getByTestId('results-detail').locator('li', { hasText: 'Results check scenarios' }).first().waitFor();
     log((await p.getByTestId('results-detail').locator('li', { hasText: 'Results check scenarios' }).count()) === 4, `${name}: opening a player lists their latest answers`);
-    const shareSwitch = p.getByRole('switch', { name: /Share the game results table/ });
-    const before = await shareSwitch.getAttribute('aria-checked');
-    await shareSwitch.click();
-    await p.waitForFunction(([sel, b]) => document.querySelector(sel)?.getAttribute('aria-checked') !== b, ['button[role=switch][aria-label^="Share the game results"]', before]);
-    const nowShared = (await prisma.platformSettings.findUnique({ where: { id: 'singleton' } })).gameResultsShared;
-    log(String(nowShared) !== String(before === 'true'), `${name}: the share switch changes the setting`);
-    await prisma.platformSettings.update({ where: { id: 'singleton' }, data: { gameResultsShared: false } });
     log((await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 1, `${name}: no sideways scrolling`);
     await p.screenshot({ path: `/tmp/dev/game-results-${name}.png`, fullPage: false });
     await ctx.close();
   }
   // a switched-off staff member sees the explanation instead of the table
-  await prisma.user.update({ where: { id: staffUser.id }, data: { studioPermissions: null } });
   const sctx = await signedIn(br, device('Desktop Chrome', { viewport: { width: 1280, height: 900 } }), '/api/auth/login', 'staff@dev.test');
   const sp = await sctx.newPage(); sp.setDefaultTimeout(20000);
   await sp.goto(`${B}/admin/game-results`, { waitUntil: 'load' });
   await sp.getByTestId('results-blocked').waitFor();
-  log(/Super Admin/.test(await sp.getByTestId('results-blocked').innerText()), 'staff who are not switched on are told to ask a Super Admin');
+  log(/Super Admin/.test(await sp.getByTestId('results-blocked').innerText()), 'staff are told the results are only for the Super Admin');
   log((await sp.getByTestId('results-access').count()) === 0, 'and never see the access switches');
   log(errors.length === 0, 'no page errors' + (errors.length ? ': ' + errors[0] : ''));
   await br.close();

@@ -3,7 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth/session";
+import { requirePermission } from "@/lib/rbac/guard";
+import { recordAudit } from "@/lib/rbac/audit";
+import { CUSTOM_KEY, StaffAccessError, checkRoleKey, saveStaffAccess } from "@/lib/rbac/staff";
+import { cleanKeys } from "@/lib/rbac/catalogue";
 import { withApiErrors } from "@/lib/apiError";
 import { hashPassword } from "@/lib/auth/password";
 import { notifyByEmail } from "@/lib/notifications/log";
@@ -14,6 +17,13 @@ const CreateStaffSchema = z.object({
   name: z.string().trim().min(1),
   email: z.string().email(),
   role: z.enum(["ADMIN", "INSTRUCTOR"]),
+  staffNumber: z.string().trim().max(40).optional(),
+  jobTitle: z.string().trim().max(80).optional(),
+  /** The role template ("custom" starts empty). Omit it to give the account what its role always allowed. */
+  staffRoleKey: z.string().max(60).nullable().optional(),
+  grants: z.array(z.string()).max(400).optional(),
+  denies: z.array(z.string()).max(400).optional(),
+  active: z.boolean().optional(),
 });
 
 const ROLE_LABELS: Record<"ADMIN" | "INSTRUCTOR", string> = {
@@ -54,18 +64,19 @@ const SETUP_TOKEN_LIFETIME_MS = 48 * 60 * 60 * 1000;
  */
 export async function GET() {
   return withApiErrors(async () => {
-    await requireRole("SUPER_ADMIN");
+    await requirePermission("staff.accounts:view");
     const staff = await prisma.user.findMany({
+      where: { trainingOrgAsStaffUser: { is: null } },
       orderBy: { createdAt: "desc" },
-      select: { id: true, name: true, email: true, role: true, canReview: true, createdAt: true },
+      select: { id: true, name: true, email: true, role: true, canReview: true, createdAt: true, active: true, jobTitle: true, staffNumber: true, staffRoleKey: true, permissionGrants: true, permissionDenies: true },
     });
-    return NextResponse.json(staff);
+    return NextResponse.json(staff.map(({ permissionGrants, permissionDenies, ...s }) => ({ ...s, configured: !!s.staffRoleKey || permissionGrants.length > 0 || permissionDenies.length > 0 })));
   });
 }
 
 export async function POST(req: NextRequest) {
   return withApiErrors(async () => {
-    await requireRole("SUPER_ADMIN");
+    const { session } = await requirePermission("staff.accounts:create");
 
     const body = await req.json();
     const parsed = CreateStaffSchema.safeParse(body);
@@ -90,12 +101,27 @@ export async function POST(req: NextRequest) {
         name: parsed.data.name,
         email: parsed.data.email,
         role: parsed.data.role,
+        jobTitle: parsed.data.jobTitle || null,
+        staffNumber: parsed.data.staffNumber || null,
+        active: parsed.data.active ?? true,
         passwordHash: unusedPasswordHash,
         resetToken: setupToken,
         resetTokenExpiresAt: new Date(Date.now() + SETUP_TOKEN_LIFETIME_MS),
       },
     });
     await ensureProfileQuietly("STAFF", staffMember.id);
+    await recordAudit({ actorId: session.userId, actorRole: session.role, action: "STAFF_CREATED", resourceType: "staff", resourceId: staffMember.id, after: { role: parsed.data.role } });
+    // A permission set chosen on the form is saved straight away. An account created with nothing chosen keeps what its role always allowed.
+    const chosen = parsed.data.staffRoleKey !== undefined || (parsed.data.grants?.length ?? 0) > 0 || (parsed.data.denies?.length ?? 0) > 0;
+    if (chosen) {
+      try {
+        await checkRoleKey(parsed.data.staffRoleKey ?? CUSTOM_KEY);
+        await saveStaffAccess({ id: session.userId, role: session.role, permissions: new Set() }, staffMember.id, { staffRoleKey: parsed.data.staffRoleKey ?? CUSTOM_KEY, grants: cleanKeys(parsed.data.grants), denies: cleanKeys(parsed.data.denies) });
+      } catch (e) {
+        if (e instanceof StaffAccessError) return NextResponse.json({ error: `The account was created, but its permissions were not saved: ${e.message}`, id: staffMember.id }, { status: e.status });
+        throw e;
+      }
+    }
 
     const setupUrl = appUrl(`/admin/reset-password?token=${setupToken}`);
     const content = staffWelcomeEmail(staffMember.name, ROLE_LABELS[parsed.data.role], setupUrl);
