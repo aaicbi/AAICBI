@@ -93,6 +93,15 @@ th{background:var(--teal);color:#fff;text-align:left;padding:1.8mm 2.6mm;font-we
 td{border-bottom:1px solid var(--gray);padding:1.7mm 2.6mm;vertical-align:top}
 tr{break-inside:avoid}
 tbody tr:nth-child(even) td{background:#f7f9f7}
+.why{border-radius:2.6mm;padding:2.2mm 4mm;margin:2.6mm 0;break-inside:avoid;border-left:4px solid;font-size:9.6pt}
+.why > b{display:block;font:800 7.6pt Manrope;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.5mm}
+.why p{margin:0}
+.why .src{color:#5b6f69;font-size:8.6pt}
+.why.written{background:#E8F3EC;border-color:var(--teal)}.why.written > b{color:var(--teal)}
+.why.inferred{background:#EEF0F8;border-color:#4a5aa8}.why.inferred > b{color:#3a4a98}
+.why.none{background:var(--goldl);border-color:var(--gold)}.why.none > b{color:var(--goldt)}
+.frame.diagram{background:#fff;padding:3mm}
+.frame.diagram svg{width:100%;height:auto;display:block}
 .xref{font-weight:700;text-decoration:underline;text-decoration-color:#9bd3c6}
 .gl dt{font-weight:800;color:var(--teal2);margin-top:2.4mm}.gl dd{margin:0}
 .rev td:first-child{white-space:nowrap}

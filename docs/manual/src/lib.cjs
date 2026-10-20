@@ -40,6 +40,13 @@ exports.h4 = (s) => `<h4>${md(s)}</h4>`;
 exports.tip = (s) => `<aside class="call tip"><b>Tip</b><p>${md(s)}</p></aside>`;
 exports.warn = (s) => `<aside class="call warn"><b>Important</b><p>${md(s)}</p></aside>`;
 exports.note = (s) => `<aside class="call note"><b>Limitation</b><p>${md(s)}</p></aside>`;
+/** A boxed reason: kind is 'written' (recorded in code or docs), 'inferred' (our reading) or 'none' (nothing written). */
+exports.why = (kind, text, source) => {
+  const label = { written: 'Written rationale', inferred: 'Engineering inference', none: 'No written rationale' }[kind];
+  return `<aside class="why ${kind}"><b>${label}</b><p>${md(text)}${source ? ` <span class="src">${md(source)}</span>` : ''}</p></aside>`;
+};
+/** An inline SVG diagram with a caption (svg is trusted markup written in the content files). */
+exports.svgFigure = (svg, caption) => `<figure class="shot desktop"><div class="frame diagram">${svg}</div><figcaption><b>Figure ${++figNo}.</b> ${md(caption)}</figcaption></figure>`;
 exports.see = (label, id) => `<a class="xref" href="#${id}">${esc(label)}</a>`;
 /** A procedure in the manual's standard format. */
 exports.task = (t) => `<section class="task"><header><span>Task</span><h4>${md(t.title)}</h4></header>

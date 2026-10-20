@@ -17,7 +17,7 @@ const SHOTS = JSON.parse(fs.readFileSync(path.join(__dirname, process.env.SHOTS 
     const k = who + kind; if (ctxs[k]) return ctxs[k];
     const d = kind === 'm' ? PHONE : DESK;
     if (!who) { const c = await br.newContext(d); await c.addCookies([{ name: 'aaicbi_cookie_consent', value: 'declined', url: B }]); return (ctxs[k] = c); }
-    const [lp, em] = who === 'org' ? ORG : TR;
+    const [lp, em] = who === 'org' ? ORG : who === 'super' ? ['/api/auth/login', 'super@dev.test'] : TR;
     { const c = await signedIn(br, d, lp, em); return (ctxs[k] = c); }
   };
   for (const s of SHOTS) {
