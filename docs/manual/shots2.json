@@ -1,0 +1,168 @@
+[
+ {
+  "folder": "org",
+  "name": "course-detail",
+  "who": "org",
+  "path": "/admin/courses/cmuznki56000np61xp469dmpa",
+  "full": true
+ },
+ {
+  "folder": "org",
+  "name": "course-enrollments",
+  "who": "org",
+  "path": "/admin/courses/cmuznki56000np61xp469dmpa/enrollments"
+ },
+ {
+  "folder": "org",
+  "name": "course-performance",
+  "who": "org",
+  "path": "/admin/courses/cmuznki56000np61xp469dmpa/performance"
+ },
+ {
+  "folder": "org",
+  "name": "course-cohorts",
+  "who": "org",
+  "path": "/admin/courses/cmuznki56000np61xp469dmpa/cohorts"
+ },
+ {
+  "folder": "org",
+  "name": "course-early-warnings",
+  "who": "org",
+  "path": "/admin/courses/cmuznki56000np61xp469dmpa/early-warnings"
+ },
+ {
+  "folder": "org",
+  "name": "course-qa",
+  "who": "org",
+  "path": "/admin/courses/cmuznki56000np61xp469dmpa/qa"
+ },
+ {
+  "folder": "org",
+  "name": "course-certificates",
+  "who": "org",
+  "path": "/admin/courses/cmuznki56000np61xp469dmpa/certificates"
+ },
+ {
+  "folder": "org",
+  "name": "trainee-detail",
+  "who": "org",
+  "path": "/admin/trainees/cmuznki350005p61x36gamynd"
+ },
+ {
+  "folder": "org",
+  "name": "cohort-detail",
+  "who": "org",
+  "path": "/admin/cohorts/cmuznki7d001tp61xg3qef50d"
+ },
+ {
+  "folder": "trainee",
+  "name": "course-detail",
+  "who": "tr",
+  "path": "/trainee/courses/cmuznki56000np61xp469dmpa",
+  "full": true
+ },
+ {
+  "folder": "trainee",
+  "name": "module-practice",
+  "who": "tr",
+  "path": "/trainee/courses/cmuznki56000np61xp469dmpa/modules/cmuznki5a000pp61xh5sv6213/practice"
+ },
+ {
+  "folder": "trainee",
+  "name": "module-assessment",
+  "who": "tr",
+  "path": "/trainee/courses/cmuznki56000np61xp469dmpa/modules/cmuznki5a000pp61xh5sv6213/assessment"
+ },
+ {
+  "folder": "trainee",
+  "name": "examination",
+  "who": "tr",
+  "path": "/trainee/courses/cmuznki56000np61xp469dmpa/examination"
+ },
+ {
+  "folder": "trainee",
+  "name": "arena-course",
+  "who": "tr",
+  "path": "/trainee/arena/cmuznki56000np61xp469dmpa"
+ },
+ {
+  "folder": "trainee",
+  "name": "arena-chat",
+  "who": "tr",
+  "path": "/trainee/arena/cmuznki56000np61xp469dmpa/chat"
+ },
+ {
+  "folder": "trainee",
+  "name": "arena-ladder",
+  "who": "tr",
+  "path": "/trainee/arena/cmuznki56000np61xp469dmpa/ladder"
+ },
+ {
+  "folder": "trainee",
+  "name": "lesson-qa",
+  "who": "tr",
+  "path": "/trainee/lessons/x/qa",
+  "kinds": [
+   "d"
+  ]
+ },
+ {
+  "folder": "org",
+  "name": "performance-course",
+  "who": "org",
+  "path": "/admin/performance",
+  "actions": [
+   {
+    "select": [
+     "select",
+     "cmuznki56000np61xp469dmpa"
+    ]
+   },
+   {
+    "wait": 1500
+   }
+  ]
+ },
+ {
+  "folder": "org",
+  "name": "growth-report",
+  "who": "org",
+  "path": "/admin/growth/report"
+ },
+ {
+  "folder": "org",
+  "name": "ads-report",
+  "who": "org",
+  "path": "/admin/ads/report"
+ },
+ {
+  "folder": "shared",
+  "name": "login-choose",
+  "who": null,
+  "path": "/login"
+ },
+ {
+  "folder": "shared",
+  "name": "home-feed",
+  "who": null,
+  "path": "/"
+ },
+ {
+  "folder": "org",
+  "name": "feed",
+  "who": "org",
+  "path": "/feed"
+ },
+ {
+  "folder": "trainee",
+  "name": "feed",
+  "who": "tr",
+  "path": "/feed"
+ },
+ {
+  "folder": "org",
+  "name": "team-invite",
+  "who": "org",
+  "path": "/admin/organization/team"
+ }
+]

@@ -1,0 +1,9 @@
+[
+ {"folder":"org","name":"games","who":"org","path":"/admin/organization/games"},
+ {"folder":"org","name":"games-live","who":"org","path":"/admin/organization/games","actions":[{"click":"button:has-text('Live games')"}]},
+ {"folder":"org","name":"games-moderation","who":"org","path":"/admin/organization/games","actions":[{"click":"button:has-text('Moderation')"}]},
+ {"folder":"org","name":"games-chat","who":"org","path":"/admin/organization/games","actions":[{"click":"button:has-text('Group chat games')"},{"wait":800}]},
+ {"folder":"org","name":"games-settings","who":"org","path":"/admin/organization/games","actions":[{"click":"button:has-text('Settings')"}]},
+ {"folder":"org","name":"games-history","who":"org","path":"/admin/organization/games","actions":[{"click":"button:has-text('History')"}]},
+ {"folder":"org","name":"games-reason","who":"org","path":"/admin/organization/games","kinds":["d"],"actions":[{"click":"button:has-text('Moderation')"},{"wait":600},{"click":"button:has-text('Restrict')"},{"wait":500}]}
+]
