@@ -504,8 +504,8 @@
 .ar-fopt.ar-fright{background:#c9f0d8;color:var(--ink);border-color:#7fd6a0}
 .ar-fopt.ar-fwrong{background:#ffe9eb;color:var(--ink);border-color:var(--rose)}
 .ar-sysmsg{text-align:center;font-size:.85em;font-weight:700;color:var(--gold);padding:.2em .6em}
-.ar-picker{display:grid;gap:.3em;max-height:11em;overflow:auto;padding:.3em;border-radius:.8em;background:rgba(0,0,0,.25)}
-.ar-pickrow{display:flex;align-items:center;gap:.6em;font:inherit;padding:.4em .6em;border-radius:.7em;border:0;background:var(--glass);color:var(--white);cursor:pointer;text-align:left}
+.ar-chatpick{display:grid;grid-template-columns:minmax(0,1fr);grid-auto-rows:auto;align-content:start;gap:.3em;max-height:11em;overflow:auto;padding:.3em;border-radius:.8em;background:rgba(0,0,0,.25)}
+.ar-pickrow{display:flex;min-width:0;align-items:center;gap:.6em;font:inherit;padding:.4em .6em;border-radius:.7em;border:0;background:var(--glass);color:var(--white);cursor:pointer;text-align:left}
 .ar-pickrow[disabled]{opacity:.5;cursor:not-allowed}
 .ar-chat.ar-chatbig{height:100%;max-height:none;min-height:0}
 .ar-chat{grid-template-rows:auto auto minmax(0,1fr) auto auto}

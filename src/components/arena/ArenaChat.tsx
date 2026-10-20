@@ -112,7 +112,7 @@ export default function ArenaChat({ courseId, chat, suspended, online, offline, 
       <div className="ar-row"><strong className="ar-grow">Course chat</strong>{chat.fastest || chat.credits > 0 ? (chat.wallet ? <button type="button" className="ar-pill" title="Your credits: open your wallet" aria-expanded={walletOpen} onClick={() => setWalletOpen((o) => !o)} style={{ cursor: "pointer", color: "inherit" }}>⭐ {chat.credits}</button> : <span className="ar-pill" title="Your credit scores">⭐ {chat.credits}</span>) : null}{!suspended && <button type="button" className="ar-btn ar-ghost ar-sm" disabled={busy} onClick={() => setPicking((p) => !p)} aria-expanded={picking}>⚔️ Challenge</button>}</div>
       {walletOpen && chat.wallet && <ArenaWallet courseId={courseId} onClose={() => setWalletOpen(false)} onChanged={onChanged} flash={flash} />}
       {picking && (
-        <div className="ar-picker" role="menu">
+        <div className="ar-chatpick" role="menu">
           {online.length === 0 && <p className="ar-muted">Nobody else is online right now.</p>}
           {online.map((p) => <button key={p.id} type="button" role="menuitem" className="ar-pickrow" disabled={p.status === "BUSY"} onClick={() => void challenge(p.id)}><span className="ar-av" aria-hidden>{p.initials}</span><span className="ar-grow">{p.name}</span><span className="ar-sub">{p.status === "BUSY" ? "In a match" : "Challenge"}</span></button>)}
           {offline.length > 0 && <p className="ar-sub" style={{ margin: ".3em .3em 0" }}>Not online · they get a notification on their phone</p>}
