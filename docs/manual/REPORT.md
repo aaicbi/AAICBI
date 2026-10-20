@@ -5,8 +5,8 @@
 | Deliverable | Location |
 |---|---|
 | Training Organisation User Manual (71 pages) | `docs/manual/output/AAICBI Training Organisation User Manual v1.0.pdf` |
-| Trainee User Manual | `docs/manual/output/AAICBI Trainee User Manual v1.0.pdf` |
-| Combined edition (Part A and Part B) | `docs/manual/output/Combined AAICBI Ecosystem User Manual v1.0.pdf` |
+| Trainee User Manual (52 pages) | `docs/manual/output/AAICBI Trainee User Manual v1.0.pdf` |
+| Combined edition, Part A and Part B (120 pages) | `docs/manual/output/Combined AAICBI Ecosystem User Manual v1.0.pdf` |
 | Original screenshots (164 computer and phone captures, by audience) | `docs/manual/screenshots/{shared,org,trainee}/` |
 | Editable sources | `docs/manual/src/` (text in `src/content`, design in `src/style.css`, builder `build.cjs`) |
 | How to rebuild or update | `docs/manual/README.md` |
