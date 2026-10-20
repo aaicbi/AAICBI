@@ -1,16 +1,16 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import DesktopRecommended from "@/components/pwa/DesktopRecommended";
 import SiteHeader from "@/components/SiteHeader";
 import LogoutButton from "@/components/admin/LogoutButton";
 import Card from "@/components/ui/Card";
-import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import ErrorState from "@/components/ui/ErrorState";
 import { ADMIN_NAV_STAFF } from "@/lib/admin/nav";
 
-import { Checkbox, Input, Select } from "@/components/ui/Field";
+import { Checkbox, Select } from "@/components/ui/Field";
 interface StaffDto {
   id: string;
   name: string;
@@ -18,6 +18,10 @@ interface StaffDto {
   role: "SUPER_ADMIN" | "ADMIN" | "INSTRUCTOR";
   canReview?: boolean;
   createdAt: string;
+  active?: boolean;
+  jobTitle?: string | null;
+  staffNumber?: string | null;
+  configured?: boolean;
 }
 
 const ROLE_LABELS: Record<StaffDto["role"], string> = {
@@ -37,11 +41,6 @@ const ROLE_LABELS: Record<StaffDto["role"], string> = {
 export default function AdminStaffPage() {
   const [staff, setStaff] = useState<StaffDto[] | null>(null);
   const [staffError, setStaffError] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState<"ADMIN" | "INSTRUCTOR">("INSTRUCTOR");
-  const [creating, setCreating] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const { showToast } = useToast();
 
@@ -56,28 +55,6 @@ export default function AdminStaffPage() {
   useEffect(() => {
     load();
   }, []);
-
-  async function createStaff(e: React.FormEvent) {
-    e.preventDefault();
-    setCreating(true);
-    const res = await fetch("/api/admin/staff", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, role }),
-    });
-    setCreating(false);
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      showToast(typeof data.error === "string" ? data.error : "Could not create account. Try again.", "error");
-      return;
-    }
-    setName("");
-    setEmail("");
-    setRole("INSTRUCTOR");
-    setShowAddForm(false);
-    showToast("Account created — they'll receive an email to set their password.");
-    load();
-  }
 
   async function changeRole(id: string, newRole: "ADMIN" | "INSTRUCTOR") {
     setBusyId(id);
@@ -119,32 +96,8 @@ export default function AdminStaffPage() {
         <DesktopRecommended what="Managing staff accounts" />
         <div className="flex items-center justify-between">
           <h1 className="font-display text-2xl font-semibold text-brand-ink">Staff Accounts</h1>
-          {!showAddForm && <Button onClick={() => setShowAddForm(true)}>+ Add Staff</Button>}
+          <Link href="/admin/staff/new" className="inline-flex min-h-[44px] items-center rounded-full bg-brand-action px-5 text-sm font-bold text-brand-onAccent hover:bg-brand-actionHover" data-testid="add-staff">+ Add Staff</Link>
         </div>
-
-        {showAddForm && (
-          <Card className="mt-4">
-            <form onSubmit={createStaff} className="space-y-3">
-              <Input label="Full name" value={name} onChange={(e) => setName(e.target.value)} required />
-              <Input label="Work email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-              <Select label="Role" compact value={role} onChange={(e) => setRole(e.target.value as "ADMIN" | "INSTRUCTOR")}>
-                  <option value="INSTRUCTOR">Instructor</option>
-                  <option value="ADMIN">Admin</option>
-                </Select>
-              <p className="text-xs text-gray-500">
-                They&apos;ll receive an email with a link to set their own password.
-              </p>
-              <div className="flex gap-2">
-                <Button type="submit" size="sm" loading={creating}>
-                  Create Account
-                </Button>
-                <button type="button" onClick={() => setShowAddForm(false)} className="text-xs font-semibold text-gray-500">
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </Card>
-        )}
 
         <div className="mt-6 space-y-3">
           {staffError ? (
@@ -162,12 +115,14 @@ export default function AdminStaffPage() {
                   ) : (
                     <p className="font-display font-semibold text-brand-ink">{s.name}</p>
                   )}
-                  <p className="text-xs text-gray-500">{s.email}</p>
+                  <p className="text-xs text-gray-500">{s.email}{s.jobTitle ? ` · ${s.jobTitle}` : ""}{s.staffNumber ? ` · #${s.staffNumber}` : ""}</p>
+                  {s.role !== "SUPER_ADMIN" && <p className="text-xs text-gray-600">{s.active === false ? "Suspended · " : ""}{s.configured ? "Custom permissions" : "Standard access for the account type"}</p>}
                 </div>
                 {s.role === "SUPER_ADMIN" ? (
                   <span className="text-xs font-semibold text-brand-teal">{ROLE_LABELS[s.role]}</span>
                 ) : (
                   <div className="flex flex-wrap items-center justify-end gap-3">
+                  <Link href={`/admin/staff/${s.id}`} className="inline-flex min-h-[44px] items-center rounded-full border border-brand-gray px-4 text-xs font-semibold text-brand-ink hover:bg-brand-mint" data-testid={`staff-access-${s.id}`}>Access</Link>
                   <Checkbox label="Reviewer" hint="Can review posts and Loop's questions" checked={!!s.canReview} onChange={() => setReviewer(s.id, !s.canReview)} disabled={busyId === s.id} />
                   <Select label={`Role for ${s.name}`} hideLabel compact controlClassName="text-xs font-semibold" value={s.role} onChange={(e) => changeRole(s.id, e.target.value as "ADMIN" | "INSTRUCTOR")} disabled={busyId === s.id}>
                     <option value="INSTRUCTOR">Instructor</option>

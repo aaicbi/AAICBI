@@ -192,6 +192,11 @@ export async function getSession(): Promise<SessionPayload | null> {
     const session = payload as unknown as SessionPayload;
     // A teammate who was disabled or removed is signed out on their very next request, not when their cookie expires.
     if (session.role === "ADMIN" && !(await orgPersonStillValid(session.userId, session.email))) return null;
+    // The same for a staff member a Super Admin has suspended: their open session ends at once, not when the cookie expires.
+    if (session.role === "SUPER_ADMIN" || session.role === "ADMIN" || session.role === "INSTRUCTOR") {
+      const u = await prisma.user.findUnique({ where: { id: session.userId }, select: { active: true } });
+      if (!u || !u.active) return null;
+    }
     return session;
   } catch {
     return null; // expired or tampered — treat as logged out, don't throw

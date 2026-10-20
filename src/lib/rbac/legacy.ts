@@ -27,7 +27,6 @@ const ADMIN = [
   "feed.posts:approve", "feed.posts:moderate", "feed.comments:moderate", "feed.reports:moderate",
   "comms.notifications:manage", "comms.announcements:create",
   "reports.organizations:view", "reports.platform:view", "reports.gaming:view", "billing.transactions:view",
-  "staff.accounts:view",
 ];
 
 export const LEGACY_DEFAULTS: Record<"SUPER_ADMIN" | "ADMIN" | "INSTRUCTOR", string[]> = {
