@@ -6,6 +6,7 @@ import Card from "@/components/ui/Card";
 import AccessDenied from "@/components/ui/AccessDenied";
 import { useMyAccess } from "@/lib/useMyAccess";
 import BackLink from "@/components/ui/BackLink";
+import Escalations from "@/components/game-results/Escalations";
 import ResultsTable from "@/components/game-results/ResultsTable";
 import { ADMIN_NAV_COMMAND } from "@/lib/admin/nav";
 
@@ -32,6 +33,7 @@ export default function GameResultsPage() {
           <div className="mt-6" data-testid="results-blocked">{blocked ? <Card><p className="text-sm text-brand-ink">{blocked}</p></Card> : <AccessDenied what="the game results" />}</div>
         ) : (
           <div className="mt-5 space-y-5">
+            {me.permissions.has("gaming_ops.incidents:view") && <Escalations canClose={me.permissions.has("gaming_ops.incidents:manage")} />}
             <ResultsTable onForbidden={onForbidden} />
           </div>
         )}

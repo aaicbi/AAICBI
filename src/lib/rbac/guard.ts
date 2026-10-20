@@ -81,3 +81,16 @@ export async function hasPermission(session: SessionPayload | null, permission: 
   if (!session) return false;
   return (await accessOf(session)).permissions.has(permission);
 }
+
+/**
+ * For the older per-course arena routes that organizations and instructors already use: when the caller is a training organization, the
+ * Super Admin's per-organization switches apply too. Staff and Super Admins are unchanged (they pass; course ownership is checked as before).
+ */
+export async function requireOrgGamesCapability(session: SessionPayload, permission: string, policyFlag?: keyof OrgGamingPolicyInput): Promise<void> {
+  const access = await accessOf(session);
+  if (access.kind !== "organization") return;
+  if (!access.permissions.has(permission) || (policyFlag && !(await orgPolicyOf(access.organizationId as string))[policyFlag])) {
+    await recordAudit({ actorId: session.userId, actorRole: "ORGANIZATION", action: "ACCESS_DENIED", resourceType: "permission", resourceId: permission, organizationId: access.organizationId, outcome: "DENIED" });
+    throw new PermissionError(permission);
+  }
+}

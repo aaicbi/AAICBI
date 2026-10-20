@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth/session";
+import { requireOrgGamesCapability } from "@/lib/rbac/guard";
 import { withApiErrors } from "@/lib/apiError";
 import { requireOwnedCourse } from "@/lib/courseOwnership";
 import { ArenaError } from "@/lib/arena/arena";
@@ -17,7 +18,8 @@ async function guard(courseId: string) {
 /** GET: live and recent matches and the reports for one course, for the people who moderate it. */
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
-    await guard(params.id);
+    const s = await guard(params.id);
+    await requireOrgGamesCapability(s, "org_games.reports:view");
     return NextResponse.json(await moderationOverview(params.id));
   });
 }
@@ -37,6 +39,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const parsed = Action.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Choose what to do." }, { status: 400 });
     const a = parsed.data;
+    if (a.action === "end" || a.action === "void") await requireOrgGamesCapability(s, "org_games.sessions:moderate", "endSessions");
+    else {
+      await requireOrgGamesCapability(s, "org_games.reports:moderate");
+      if (a.action === "resolve" && a.suspendHours) await requireOrgGamesCapability(s, "org_games.restrictions:manage", "restrictTrainees");
+    }
     try {
       if (a.action === "end") await endMatch(params.id, a.matchId, s.userId);
       else if (a.action === "void") await voidMatch(params.id, a.matchId, s.userId);

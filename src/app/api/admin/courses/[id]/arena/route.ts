@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/session";
+import { requireOrgGamesCapability } from "@/lib/rbac/guard";
 import { withApiErrors } from "@/lib/apiError";
 import { requireOwnedCourse } from "@/lib/courseOwnership";
 import { organizationOfCourse, saveScope, scopeRow } from "@/lib/arena/config";
@@ -30,6 +31,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   return withApiErrors(async () => {
     const s = await requireRole("SUPER_ADMIN", "ADMIN", "INSTRUCTOR");
     await requireOwnedCourse(params.id, s.userId, s.role);
+    await requireOrgGamesCapability(s, "org_games.settings:configure", "courseRules");
     const body = await req.json().catch(() => null);
     const clean = sanitizeArenaPatch(body, RULE_KEYS);
     if (Object.keys(clean).length === 0) return NextResponse.json({ error: "Nothing to change." }, { status: 400 });

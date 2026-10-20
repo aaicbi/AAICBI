@@ -124,3 +124,14 @@ New `src/lib/rbac/`:
 1. **Scope of this build:** slices 1 to 4 (foundation, staff management, Gaming Studio and Operations, organization Games section), then the remaining categories one at a time. (The full 14-category rewrite in a single change is not recommended.)
 2. **Organization defaults:** results and moderation switched **on** for OWNER and MANAGER (this is what organizations can already do per course), view-only for EDITOR and VIEWER; Super Admin can switch each capability off per organization.
 3. **Existing staff on deploy:** keep exactly today's access (legacy defaults), apart from the Studio, which stays Super Admin only until a Super Admin grants it.
+
+## Status: slices 1–4 built
+
+1. Foundation: permission catalogue, role templates, custom roles, audit trail, deny-by-default guards.
+2. Staff management: `/admin/staff` (create, edit access, roles, suspend), every change audited.
+3. Gaming Studio and Gaming Operations split: the Studio needs `gaming_studio.access:view` plus per-action grants; results, moderation and escalations live under `gaming_ops.*`.
+4. Organization Games section (`/admin/organization/games`): results, leaderboards, live games, moderation with required reasons, chat games and settings for the organization's own courses only. The Super Admin switches each capability on or off per organization (Arena page); cross-organization attempts answer "not found" and are audited; organizations can escalate to AAICBI, and the Super Admin closes escalations from Game results.
+
+Not yet done: a staff "organizations in scope" field (today `gaming_ops.platform:moderate` is the all-organizations switch), a staff Loop level control, and the remaining permission categories (billing, security, platform admin, organizations, feed, partners, messaging, trainees, reports, courses), which still use the older role checks and move over one category per change.
+
+Checks: `tests/rbac.test.ts`, `tests/orgGames.test.ts`, `scripts/device-checks/{staff-permissions,studio-permissions,org-games}.cjs`.

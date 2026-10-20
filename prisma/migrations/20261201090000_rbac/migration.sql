@@ -48,7 +48,7 @@ CREATE TABLE "OrgGamingPolicy" (
     "removeParticipants" BOOLEAN NOT NULL DEFAULT true,
     "chatGameModeration" BOOLEAN NOT NULL DEFAULT true,
     "toggleGames" BOOLEAN NOT NULL DEFAULT false,
-    "courseRules" BOOLEAN NOT NULL DEFAULT false,
+    "courseRules" BOOLEAN NOT NULL DEFAULT true,
     "updatedById" TEXT,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

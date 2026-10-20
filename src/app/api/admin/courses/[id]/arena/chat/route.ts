@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth/session";
+import { requireOrgGamesCapability } from "@/lib/rbac/guard";
 import { withApiErrors } from "@/lib/apiError";
 import { requireOwnedCourse } from "@/lib/courseOwnership";
 import { liftSuspension, moderationView, removeChatMessage, suspendPlayer } from "@/lib/arena/chat";
@@ -17,7 +18,8 @@ async function guard(courseId: string) {
 /** GET: the recent chat and the suspensions for one course, for the people who moderate it. */
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
-    await guard(params.id);
+    const s = await guard(params.id);
+    await requireOrgGamesCapability(s, "org_games.reports:view");
     return NextResponse.json(await moderationView(params.id));
   });
 }
@@ -35,6 +37,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const parsed = Action.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Choose what to do." }, { status: 400 });
     const a = parsed.data;
+    if (a.action === "remove") await requireOrgGamesCapability(s, "org_games.chat_games:moderate", "chatGameModeration");
+    else await requireOrgGamesCapability(s, "org_games.restrictions:manage", a.action === "suspend" ? "restrictTrainees" : undefined);
     try {
       if (a.action === "remove") await removeChatMessage(params.id, a.messageId, s.userId, a.reason);
       else if (a.action === "suspend") await suspendPlayer(params.id, a.traineeId, s.userId, { hours: a.hours, reason: a.reason, removeRecent: a.removeRecent });

@@ -39,7 +39,7 @@ export interface OrgGamingPolicyInput {
 }
 export const DEFAULT_ORG_POLICY: OrgGamingPolicyInput = {
   resultsView: true, resultsExport: false, liveMonitor: true, endSessions: true, restrictTrainees: true, removeParticipants: true,
-  chatGameModeration: true, toggleGames: false, courseRules: false,
+  chatGameModeration: true, toggleGames: false, courseRules: true,
 };
 export type OrgRoleName = "OWNER" | "MANAGER" | "EDITOR" | "VIEWER";
 

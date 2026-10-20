@@ -122,7 +122,7 @@ describe("resolving an organization", () => {
     }
   });
   it("follows the Super Admin's switches", () => {
-    const off = resolveOrganization("OWNER", { ...DEFAULT_ORG_POLICY, resultsView: false, liveMonitor: false, endSessions: false, restrictTrainees: false, removeParticipants: false, chatGameModeration: false });
+    const off = resolveOrganization("OWNER", { ...DEFAULT_ORG_POLICY, resultsView: false, liveMonitor: false, endSessions: false, restrictTrainees: false, removeParticipants: false, chatGameModeration: false, courseRules: false });
     expect(off.size).toBe(0);
     expect(resolveOrganization("OWNER").has("org_games.results:export")).toBe(false);
     expect(resolveOrganization("OWNER", { ...DEFAULT_ORG_POLICY, resultsExport: true }).has("org_games.results:export")).toBe(true);

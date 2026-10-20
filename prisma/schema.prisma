@@ -6466,7 +6466,7 @@ model OrgGamingPolicy {
   removeParticipants Boolean  @default(true)
   chatGameModeration Boolean  @default(true)
   toggleGames        Boolean  @default(false)
-  courseRules        Boolean  @default(false)
+  courseRules        Boolean  @default(true)
   updatedById        String?
   updatedAt          DateTime @updatedAt
   createdAt          DateTime @default(now())
