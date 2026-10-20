@@ -33,5 +33,40 @@
  {"folder":"trainee","name":"login","who":null,"path":"/trainee/login","marks":[
   {"n":1,"sel":"input[type=email] >> visible=true","label":"Your **Email**."},
   {"n":2,"sel":"input[type=password] >> visible=true","label":"Your **Password**."},
-  {"n":3,"sel":"a:has-text('Forgot your password?') >> visible=true","label":"**Forgot your password?**"}]}
+  {"n":3,"sel":"a:has-text('Forgot your password?') >> visible=true","label":"**Forgot your password?**"}]},
+ {"folder":"org","name":"courses","who":"org","path":"/admin/courses","marks":[
+  {"n":1,"sel":"text=+ Create Course >> visible=true","label":"**+ Create Course** starts a new course."},
+  {"n":2,"sel":"text=Manage >> visible=true","label":"**Manage** opens a course."},
+  {"n":3,"sel":"text=Draft >> visible=true","label":"The status: **Draft** or **Published**."}]},
+ {"folder":"org","name":"course-new","who":"org","path":"/admin/courses/new","marks":[
+  {"n":1,"sel":"label:has-text('Course Title') >> visible=true","label":"The **Course Title** is required."},
+  {"n":2,"sel":"text=This course is free >> visible=true","label":"Free or paid."},
+  {"n":3,"sel":"button:has-text('Create & Add Modules') >> visible=true","label":"**Create & Add Modules**."}]},
+ {"folder":"org","name":"course-enrollments","who":"org","path":"/admin/courses/cmuznki56000np61xp469dmpa/enrollments","marks":[
+  {"n":1,"sel":"input[type=email] >> visible=true","label":"The trainee’s registered email."},
+  {"n":2,"sel":"button:has-text('Grant Access') >> visible=true","label":"**Grant Access**."},
+  {"n":3,"sel":"text=Revoke >> visible=true","label":"**Revoke** and **Extend Access** for each person."}]},
+ {"folder":"org","name":"performance-course","who":"org","path":"/admin/performance","actions":[{"select":["select","cmuznki56000np61xp469dmpa"]},{"wait":1800}],"marks":[
+  {"n":1,"sel":"text=Total trainees >> visible=true","label":"Summary cards: trainees, completion, scores, at risk, certification.","at":"center","box":false},
+  {"n":2,"sel":"button:has-text('Export CSV') >> visible=true","label":"**Export CSV** and **Export PDF**."},
+  {"n":3,"sel":"input[placeholder^='Search'] >> visible=true","label":"Filters and search."}]},
+ {"folder":"org","name":"settings","who":"org","path":"/admin/settings","marks":[
+  {"n":1,"sel":"text=Profile Picture >> visible=true","label":"**Profile Picture** with **Upload**.","at":"center","box":false},
+  {"n":2,"sel":"text=Dark Mode >> visible=true","label":"**Dark Mode** switch.","at":"center","box":false},
+  {"n":3,"sel":"text=Message the Super Admin >> visible=true","label":"**Support**: message the AAICBI Super Admin.","at":"center","box":false}]},
+ {"folder":"org","name":"events","who":"org","path":"/admin/organization/events","marks":[
+  {"n":1,"sel":"label:has-text('Title') >> visible=true","label":"**Title** is required."},
+  {"n":2,"sel":"button:has-text('Publish event') >> visible=true","label":"**Publish event**."}]},
+ {"folder":"trainee","name":"dashboard","who":"tr","path":"/trainee/dashboard","marks":[
+  {"n":1,"sel":"text=Your Examinations >> visible=true","label":"**Your examinations**: available, in progress, passed.","at":"center","box":false},
+  {"n":2,"sel":"text=Notifications >> visible=true","label":"**Notifications** with **View All Notifications**.","at":"center","box":false},
+  {"n":3,"sel":"a:has-text('Courses') >> visible=true","label":"The menu: **Courses** and the other sections."}]},
+ {"folder":"trainee","name":"courses","who":"tr","path":"/trainee/courses","marks":[
+  {"n":1,"sel":"text=FREE >> visible=true","label":"**FREE** or **PAID** tag.","at":"center","box":false},
+  {"n":2,"sel":"text=Continue learning >> visible=true","label":"**Continue learning** (enrolled) or **View course**.","at":"center","box":false}]},
+ {"folder":"trainee","name":"examinations","who":"tr","path":"/trainee/examinations","marks":[
+  {"n":1,"sel":"input[placeholder^='Search'] >> visible=true","label":"Search your examinations."},
+  {"n":2,"sel":"th:has-text('Pass') >> visible=true","label":"Pass mark, attempts and status for each."}]},
+ {"folder":"trainee","name":"arena","who":"tr","path":"/trainee/arena","marks":[
+  {"n":1,"sel":"a:has-text('SQL for Data Analytics') >> visible=true","label":"Choose a course to open its arena."}]}
 ]
