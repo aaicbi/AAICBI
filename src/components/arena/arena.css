@@ -504,7 +504,17 @@
 .ar-fopt.ar-fright{background:#c9f0d8;color:var(--ink);border-color:#7fd6a0}
 .ar-fopt.ar-fwrong{background:#ffe9eb;color:var(--ink);border-color:var(--rose)}
 .ar-sysmsg{text-align:center;font-size:.85em;font-weight:700;color:var(--gold);padding:.2em .6em}
-.ar-chatpick{display:grid;grid-template-columns:minmax(0,1fr);grid-auto-rows:auto;align-content:start;gap:.3em;max-height:11em;overflow:auto;padding:.3em;border-radius:.8em;background:rgba(0,0,0,.25)}
+.ar-chat{position:relative}
+.ar-pickslot{height:0;overflow:hidden;margin-top:-.5em}
+.ar-chatpick{position:absolute;z-index:6;left:.5em;top:3em;bottom:.5em;width:min(17em,78%);display:flex;flex-direction:column;gap:.3em;overflow-y:auto;overflow-x:hidden;padding:.4em;border-radius:.9em;background:rgba(7,32,28,.97);border:1px solid var(--glass-line);box-shadow:0 .5em 1.5em rgba(0,0,0,.45)}
+.ar-pickhead{display:flex;align-items:center;gap:.4em;position:sticky;top:-.4em;margin:-.4em -.4em .1em;padding:.5em .6em;background:rgba(7,32,28,.99);border-bottom:1px solid var(--glass-line);z-index:1}
+.ar-chatpick>.ar-pickrow{flex:none}
+/* On a wide screen the list sits at the left of the chat, with the messages beside it; on a narrow one it slides over the messages. */
+@media (min-aspect-ratio: 1/1){
+  .ar-chat.ar-withpeople>*:not(.ar-chatpick):not(:first-child){margin-left:calc(min(17em,78%) + .6em)}
+  .ar-chatpick{background:rgba(0,0,0,.25);box-shadow:none}
+  .ar-pickhead{background:rgba(7,32,28,.6)}
+}
 .ar-pickrow{display:flex;min-width:0;align-items:center;gap:.6em;font:inherit;padding:.4em .6em;border-radius:.7em;border:0;background:var(--glass);color:var(--white);cursor:pointer;text-align:left}
 .ar-pickrow[disabled]{opacity:.5;cursor:not-allowed}
 .ar-chat.ar-chatbig{height:100%;max-height:none;min-height:0}

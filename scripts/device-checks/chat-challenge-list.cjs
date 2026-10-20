@@ -20,16 +20,17 @@ const psql = (q) => require('child_process').execFileSync('/usr/lib/postgresql/1
     await pg.getByRole('button', { name: /Challenge/ }).first().click();
     await pg.locator('.ar-chatpick').waitFor();
     const m = await pg.evaluate(() => {
-      const box = document.querySelector('.ar-chatpick'); const rows = [...box.querySelectorAll('.ar-pickrow')].map((r) => r.getBoundingClientRect());
+      const box = document.querySelector('.ar-chatpick'); const chat = document.querySelector('.ar-chat').getBoundingClientRect(); const bb = box.getBoundingClientRect(); const msgs = document.querySelector('.ar-chatlist').getBoundingClientRect(); const rows = [...box.querySelectorAll('.ar-pickrow')].map((r) => r.getBoundingClientRect());
       const cs = getComputedStyle(box);
       let overlap = 0; for (let i = 1; i < rows.length; i++) if (rows[i].top < rows[i - 1].bottom - 1 && Math.abs(rows[i].left - rows[i - 1].left) < 5) overlap++;
       const names = [...box.querySelectorAll('.ar-pickrow .ar-grow')].map((n) => n.getBoundingClientRect().height);
-      return { n: rows.length, cols: cs.gridTemplateColumns.split(' ').length, overlap, minH: Math.min(...rows.map((r) => r.height)), maxName: Math.max(...names), scrolls: box.scrollHeight > box.clientHeight, boxH: box.clientHeight, sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth };
+      return { n: rows.length, cols: cs.gridTemplateColumns.split(' ').length, overlap, minH: Math.min(...rows.map((r) => r.height)), maxName: Math.max(...names), scrolls: box.scrollHeight > box.clientHeight, boxH: box.clientHeight, left: bb.left - chat.left, fill: bb.height / chat.height, msgLeft: msgs.left, panelRight: bb.right, sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth };
     });
     log(m.n === 45 && m.cols === 1, name + ': one column with all ' + m.n + ' classmates (' + m.cols + ' column)');
     log(m.overlap === 0 && m.minH >= 28, name + ': no rows sit on top of each other (smallest row ' + Math.round(m.minH) + ' px)');
     log(m.maxName < 40, name + ': every name stays on one line');
-    log(m.scrolls && m.boxH <= 260, name + ': the list scrolls inside a small box (' + m.boxH + ' px)');
+    log(m.scrolls && m.fill > 0.6 && m.left < 20, name + ': the list runs down the left side of the chat, top to bottom, and scrolls (' + Math.round(m.fill * 100) + '% of the chat height)');
+    if (name === 'desktop') log(m.panelRight <= m.msgLeft + 1, 'desktop: the messages sit beside the list, not under it');
     log(m.sw <= m.cw, name + ': no sideways scrolling');
     await pg.screenshot({ path: `/tmp/dev/chat-challenge-${name}.png` });
     await ctx.close();

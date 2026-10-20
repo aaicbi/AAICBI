@@ -108,16 +108,20 @@ export default function ArenaChat({ courseId, chat, suspended, online, offline, 
   };
 
   return (
-    <div className={`ar-glass ar-chat${big ? " ar-chatbig" : ""}`}>
+    <div className={`ar-glass ar-chat${big ? " ar-chatbig" : ""}${picking ? " ar-withpeople" : ""}`}>
       <div className="ar-row"><strong className="ar-grow">Course chat</strong>{chat.fastest || chat.credits > 0 ? (chat.wallet ? <button type="button" className="ar-pill" title="Your credits: open your wallet" aria-expanded={walletOpen} onClick={() => setWalletOpen((o) => !o)} style={{ cursor: "pointer", color: "inherit" }}>⭐ {chat.credits}</button> : <span className="ar-pill" title="Your credit scores">⭐ {chat.credits}</span>) : null}{!suspended && <button type="button" className="ar-btn ar-ghost ar-sm" disabled={busy} onClick={() => setPicking((p) => !p)} aria-expanded={picking}>⚔️ Challenge</button>}</div>
       {walletOpen && chat.wallet && <ArenaWallet courseId={courseId} onClose={() => setWalletOpen(false)} onChanged={onChanged} flash={flash} />}
       {picking && (
-        <div className="ar-chatpick" role="menu">
+        <>
+        <div className="ar-pickslot" aria-hidden />
+        <div className="ar-chatpick" role="menu" aria-label="People in this course" data-testid="people-panel">
+          <div className="ar-pickhead"><strong className="ar-grow">Challenge someone</strong><button type="button" className="ar-btn ar-ghost ar-sm" onClick={() => setPicking(false)} aria-label="Close the list of people">✕</button></div>
           {online.length === 0 && <p className="ar-muted">Nobody else is online right now.</p>}
-          {online.map((p) => <button key={p.id} type="button" role="menuitem" className="ar-pickrow" disabled={p.status === "BUSY"} onClick={() => void challenge(p.id)}><span className="ar-av" aria-hidden>{p.initials}</span><span className="ar-grow">{p.name}</span><span className="ar-sub">{p.status === "BUSY" ? "In a match" : "Challenge"}</span></button>)}
+          {online.map((p) => <button key={p.id} type="button" role="menuitem" className="ar-pickrow" disabled={p.status === "BUSY"} onClick={() => void challenge(p.id)}><span className="ar-av" aria-hidden>{p.initials}</span><span className="ar-grow">{p.name}</span>{p.status === "BUSY" && <span className="ar-sub">In a match</span>}</button>)}
           {offline.length > 0 && <p className="ar-sub" style={{ margin: ".3em .3em 0" }}>Not online · they get a notification on their phone</p>}
-          {offline.map((p) => <button key={p.id} type="button" role="menuitem" className="ar-pickrow" onClick={() => void challenge(p.id)}><span className="ar-av" aria-hidden>{p.initials}</span><span className="ar-grow">{p.name}</span><span className="ar-sub">Challenge</span></button>)}
+          {offline.map((p) => <button key={p.id} type="button" role="menuitem" className="ar-pickrow" onClick={() => void challenge(p.id)}><span className="ar-av" aria-hidden>{p.initials}</span><span className="ar-grow">{p.name}</span></button>)}
         </div>
+        </>
       )}
       <div className="ar-chatlist" ref={list} role="log" aria-live="polite" aria-label="Course chat messages">
         {chat.messages.length === 0 && <p className="ar-muted">No messages yet. Say hello to your coursemates.</p>}
