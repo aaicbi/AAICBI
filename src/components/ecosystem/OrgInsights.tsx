@@ -54,7 +54,7 @@ export default function OrgInsights() {
           {data.topVideos.map((v) => (
             <Card key={v.id} className="flex items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element -- YouTube thumbnail. */}
-              <img src={v.thumbnailUrl} alt="" className="h-12 w-20 shrink-0 rounded object-cover" />
+              <img loading="lazy" decoding="async" src={v.thumbnailUrl} alt="" className="h-12 w-20 shrink-0 rounded object-cover" />
               <p className="min-w-0 flex-1 truncate font-semibold text-brand-ink">{v.title}</p>
               <p className="shrink-0 text-xs text-gray-600">{v.views} views ({data.days} days) · {v.totalViews} total · {v.reactions} likes and saves</p>
             </Card>

@@ -56,7 +56,7 @@ export default function ShowcaseProjectPage({ params }: { params: { id: string }
             <div className="mt-2 flex items-center gap-2">
               {project.founderAvatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element -- a real, dynamically-uploaded external URL.
-                <img src={project.founderAvatarUrl} alt="" className="h-7 w-7 rounded-full object-cover" />
+                <img loading="lazy" decoding="async" src={project.founderAvatarUrl} alt="" className="h-7 w-7 rounded-full object-cover" />
               ) : (
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-mint text-xs font-semibold text-brand-teal">
                   {project.founderName.slice(0, 1).toUpperCase()}
@@ -78,7 +78,7 @@ export default function ShowcaseProjectPage({ params }: { params: { id: string }
                 {project.media.map((m) =>
                   m.type === "IMAGE" ? (
                     // eslint-disable-next-line @next/next/no-img-element -- a real, dynamically-uploaded external URL.
-                    <img key={m.id} src={m.url} alt="" className="h-40 w-full rounded-lg object-cover" />
+                    <img loading="lazy" decoding="async" key={m.id} src={m.url} alt="" className="h-40 w-full rounded-lg object-cover" />
                   ) : (
                     <video key={m.id} src={m.url} controls className="h-40 w-full rounded-lg object-cover" />
                   )

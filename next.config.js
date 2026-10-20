@@ -2,9 +2,12 @@ const { staffSignInPath } = require("./src/lib/staffAccessPath");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  poweredByHeader: false,
   // The page knows which release it came from, so an open game tab can notice a newer release and reload itself.
   env: { NEXT_PUBLIC_BUILD_ID: process.env.VERCEL_GIT_COMMIT_SHA || "" },
   experimental: {
+    // Only the icons and chart parts a page uses are sent to the phone, not the whole library.
+    optimizePackageImports: ["lucide-react", "recharts"],
     serverActions: {
       bodySizeLimit: "10mb", // allow DOCX uploads through server actions if used
     },
@@ -39,6 +42,12 @@ nextConfig.headers = async () => [
       { key: "Content-Type", value: "application/javascript; charset=utf-8" },
     ],
   },
+  // Fixed public files (the play card, icons, logos, patterns) are kept by the browser for a day and refreshed quietly after that,
+  // so a repeat visit on a slow network does not download them again.
+  ...["/growth/:path*", "/icons/:path*", "/logo.svg", "/wallpaper-pattern.svg", "/wallpaper-pattern-dark.svg"].map((source) => ({
+    source,
+    headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }],
+  })),
   { source: "/offline.html", headers: [{ key: "Cache-Control", value: "public, max-age=3600" }] },
   // Staff areas and their sign-in addresses are never for search engines.
   ...[staffSignInPath(), "/staff-access", "/admin/:path*", "/instructor/:path*"].map((source) => ({

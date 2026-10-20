@@ -54,7 +54,7 @@ export default async function OrganizationsPage() {
                 <div className="flex items-center gap-3">
                   {o.logoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element -- an uploaded organization logo.
-                    <img src={o.logoUrl} alt="" className="h-12 w-12 rounded-lg object-cover" />
+                    <img loading="lazy" decoding="async" src={o.logoUrl} alt="" className="h-12 w-12 rounded-lg object-cover" />
                   ) : (
                     <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-brand-mint font-semibold text-brand-teal">{o.name.slice(0, 1)}</span>
                   )}

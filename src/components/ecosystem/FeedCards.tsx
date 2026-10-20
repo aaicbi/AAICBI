@@ -35,7 +35,7 @@ export default function FeedCard({ item }: { item: FeedItem }) {
             <div className="flex items-center gap-3">
               {item.org.logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element -- an uploaded organization logo.
-                <img src={item.org.logoUrl} alt="" className="h-12 w-12 rounded-lg object-cover" />
+                <img loading="lazy" decoding="async" src={item.org.logoUrl} alt="" className="h-12 w-12 rounded-lg object-cover" />
               ) : (
                 <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-brand-mint font-semibold text-brand-teal">{item.org.name.slice(0, 1)}</span>
               )}
@@ -70,7 +70,7 @@ export default function FeedCard({ item }: { item: FeedItem }) {
             <Link href={`/showcase/${item.project.id}`} className="block">
               {item.project.coverUrl && (
                 // eslint-disable-next-line @next/next/no-img-element -- an uploaded project image.
-                <img src={item.project.coverUrl} alt="" className="-m-5 mb-3 h-40 w-[calc(100%+2.5rem)] max-w-none object-cover" />
+                <img loading="lazy" decoding="async" src={item.project.coverUrl} alt="" className="-m-5 mb-3 h-40 w-[calc(100%+2.5rem)] max-w-none object-cover" />
               )}
               <p className="font-display font-semibold text-brand-ink">{item.project.title}</p>
               {item.project.description && <p className="mt-1 line-clamp-2 text-sm text-gray-600">{item.project.description}</p>}

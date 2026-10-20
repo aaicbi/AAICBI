@@ -71,14 +71,14 @@ export default function CommunityShowcasePage() {
                   // rather than fighting that padding with a competing
                   // utility class of equal specificity.
                   // eslint-disable-next-line @next/next/no-img-element -- a real, dynamically-uploaded external URL.
-                  <img src={cover.url} alt="" className="-m-5 mb-3 h-40 w-[calc(100%+2.5rem)] max-w-none object-cover" />
+                  <img loading="lazy" decoding="async" src={cover.url} alt="" className="-m-5 mb-3 h-40 w-[calc(100%+2.5rem)] max-w-none object-cover" />
                 )}
                 <p className="font-display font-semibold text-brand-ink">{p.title}</p>
                 {p.description && <p className="mt-1 line-clamp-2 text-sm text-gray-600">{p.description}</p>}
                 <div className="mt-3 flex items-center gap-2">
                   {p.founderAvatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element -- a real, dynamically-uploaded external URL.
-                    <img src={p.founderAvatarUrl} alt="" className="h-6 w-6 rounded-full object-cover" />
+                    <img loading="lazy" decoding="async" src={p.founderAvatarUrl} alt="" className="h-6 w-6 rounded-full object-cover" />
                   ) : (
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-mint text-xs font-semibold text-brand-teal">
                       {p.founderName.slice(0, 1).toUpperCase()}

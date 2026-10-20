@@ -39,7 +39,7 @@ export default function FollowersList({ handle, count }: { handle: string; count
               {people.map((p) => (
                 <li key={p.profileId}>
                   <Link href={`/@${p.handle}`} className="flex items-center gap-3 rounded-xl p-1 hover:bg-brand-mint">
-                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden bg-brand-mint ${p.square ? "rounded-lg" : "rounded-full"}`}>{p.avatarUrl ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={p.avatarUrl} alt="" className="no-ring h-full w-full object-cover" /> : <AvatarFallback variant={p.square ? "company" : "person"} size="sm" />}</span>
+                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden bg-brand-mint ${p.square ? "rounded-lg" : "rounded-full"}`}>{p.avatarUrl ? /* eslint-disable-next-line @next/next/no-img-element */ <img loading="lazy" decoding="async" src={p.avatarUrl} alt="" className="no-ring h-full w-full object-cover" /> : <AvatarFallback variant={p.square ? "company" : "person"} size="sm" />}</span>
                     <span className="min-w-0"><span className="block truncate text-sm font-semibold text-brand-ink">{p.name}</span><span className="block truncate text-xs text-gray-600">@{p.handle} · {p.kindLabel}</span></span>
                   </Link>
                 </li>

@@ -1,5 +1,24 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useLiteConnection } from "@/lib/useLiteConnection";
+
+/** The card's picture (a 30 KB still, not the 500 KB original) and, only on a good connection, its looping video. */
+function CardMedia() {
+  const lite = useLiteConnection();
+  return (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/growth/play-card-still.webp" alt="" width={1200} height={630} className="absolute inset-0 h-full w-full object-cover" data-testid="play-card-still" />
+      {!lite && (
+        // eslint-disable-next-line jsx-a11y/media-has-caption
+        <video className="absolute inset-0 h-full w-full object-cover motion-reduce:hidden" autoPlay muted loop playsInline preload="metadata" poster="/growth/play-card-still.webp" aria-hidden="true" tabIndex={-1} data-testid="play-card-video">
+          <source src="/growth/play-card.mp4" type="video/mp4" />
+          <source src="/growth/play-card.webm" type="video/webm" />
+        </video>
+      )}
+    </>
+  );
+}
 
 /**
  * The animated play card on the public pages: a looping, softly glowing card that opens the free taster. It asks which course link is live
@@ -29,13 +48,7 @@ export default function PlayCardBanner({ src, compact = false }: { src: string; 
         <a href={play.link} aria-label={`Play the free 90-second challenge from ${play.title}`} data-testid="play-card-link"
           className="group relative block w-full overflow-hidden rounded-3xl shadow-[0_0_0_2px_rgba(242,184,75,0.65)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-brand-gold"
           style={{ aspectRatio: "1200 / 630" }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/growth/play-card.png" alt="" className="absolute inset-0 h-full w-full object-cover" data-testid="play-card-still" />
-          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-          <video className="absolute inset-0 h-full w-full object-cover motion-reduce:hidden" autoPlay muted loop playsInline preload="metadata" poster="/growth/play-card.png" aria-hidden="true" tabIndex={-1} data-testid="play-card-video">
-            <source src="/growth/play-card.mp4" type="video/mp4" />
-            <source src="/growth/play-card.webm" type="video/webm" />
-          </video>
+          <CardMedia />
         </a>
       </section>
     );
@@ -48,13 +61,7 @@ export default function PlayCardBanner({ src, compact = false }: { src: string; 
         <a href={play.link} aria-label={`Play the free 90-second challenge from ${play.title}`} data-testid="play-card-link"
           className="group relative mx-auto mt-6 block w-full overflow-hidden rounded-3xl shadow-[0_0_0_2px_rgba(242,184,75,0.65),0_22px_60px_-18px_rgba(6,50,45,0.6)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_0_0_2px_rgba(242,184,75,1),0_28px_70px_-16px_rgba(242,184,75,0.45)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-brand-gold"
           style={{ aspectRatio: "1200 / 630" }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/growth/play-card.png" alt="" className="absolute inset-0 h-full w-full object-cover" data-testid="play-card-still" />
-          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-          <video className="absolute inset-0 h-full w-full object-cover motion-reduce:hidden" autoPlay muted loop playsInline preload="metadata" poster="/growth/play-card.png" aria-hidden="true" tabIndex={-1} data-testid="play-card-video">
-            <source src="/growth/play-card.mp4" type="video/mp4" />
-            <source src="/growth/play-card.webm" type="video/webm" />
-          </video>
+          <CardMedia />
         </a>
         <p className="mt-4 text-sm font-semibold text-brand-ink">Tap the card to play.</p>
         <a href={play.link} className="mt-3 inline-flex min-h-[52px] items-center justify-center rounded-full bg-brand-gold px-8 text-base font-extrabold text-brand-onGold hover:opacity-90" data-testid="play-card-button">Play now, it&apos;s free</a>

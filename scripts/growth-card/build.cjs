@@ -35,6 +35,8 @@ function logoSvg() {
     }
     await pg.evaluate((t) => window.setTime(t), POSTER_MS);
     await pg.screenshot({ path: path.join(OUT, `${v.name}.png`) });
+    // A small still for the pages themselves (about 30 KB instead of about 500 KB); the PNG stays for downloads.
+    try { execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', path.join(OUT, `${v.name}.png`), '-c:v', 'libwebp', '-quality', '72', path.join(OUT, `${v.name}-still.webp`)]); } catch { /* optional */ }
     const mp4 = path.join(OUT, `${v.name}.mp4`), gif = path.join(OUT, `${v.name}.gif`);
     execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', path.join(tmp, 'f%04d.png'), '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '21', '-preset', 'slow', '-movflags', '+faststart', mp4]);
     // A WebM copy for browsers that cannot decode H.264 (the About page lists both sources).

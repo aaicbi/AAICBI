@@ -16,7 +16,7 @@ function Name({ who }: { who: Who }) {
 function Avatar({ who }: { who: Who }) {
   const inner = (
     <span className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden bg-brand-mint ${who.square ? "rounded-xl" : "rounded-full"}`}>
-      {who.avatarUrl ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={who.avatarUrl} alt="" className="no-ring h-full w-full object-cover" /> : <AvatarFallback variant={who.square ? "company" : "person"} size="md" />}
+      {who.avatarUrl ? /* eslint-disable-next-line @next/next/no-img-element */ <img loading="lazy" decoding="async" src={who.avatarUrl} alt="" className="no-ring h-full w-full object-cover" /> : <AvatarFallback variant={who.square ? "company" : "person"} size="md" />}
     </span>
   );
   return who.linkable ? <Link href={`/@${who.handle}`} aria-label={`${who.name}'s profile`} tabIndex={-1}>{inner}</Link> : inner;
