@@ -32,7 +32,7 @@ function html(m, pages) {
 <div class="band"></div><div class="meta"><b>Africa’s AI Capacity Building Initiative (AAICBI)</b><br>Organised by Futybills Tech Community<br>Document version ${VERSION} · Published ${DATE}<br>Prepared against the live platform; screenshots use demonstration accounts and sample data.</div></section>`;
   const front = `<section class="fm"><h2>Contents</h2><ul class="toc">${toc.join('')}</ul><p style="margin-top:8mm;font-size:9.2pt;color:#4a5e59">Tap or click any entry to jump to it. Numbered red circles on the screenshots match the numbered steps and keys next to them. Every task follows the same pattern: <b>Task, Purpose, Before you begin, Steps, Expected result, If it does not work.</b></p></section>`;
   const body = parts.map((p) => (p.title ? `<section class="chapter" style="text-align:center;padding-top:80mm"><h2 style="font-size:30pt">${lib.md(p.title)}</h2></section>` : '') + p.chapters.map((c) => c.html).join('')).join('');
-  const support = load(m.parts[0].src).support(lib);
+  const support = m.parts.length > 1 ? require('./src/content/common.cjs').supportBody(lib, 'both') : load(m.parts[0].src).support(lib);
   const tail = `<section class="chapter" id="glossary"><div class="chap-head"><h2>Glossary</h2></div><dl class="gl">${glossary.map(([t, d]) => `<dt>${lib.md(t)}</dt><dd>${lib.md(d)}</dd>`).join('')}</dl></section>
 <section class="chapter" id="support"><div class="chap-head"><h2>Getting help</h2></div>${support}</section>
 <section class="chapter" id="revisions"><div class="chap-head"><h2>Document information and revision history</h2></div>
