@@ -23,7 +23,13 @@ export async function sendPushForNotification(
     if (subs.length === 0) return;
     const webpush = (await import("web-push")).default;
     webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:admin@aaicbi.org", process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY as string, process.env.VAPID_PRIVATE_KEY as string);
-    const payload = JSON.stringify(buildPushPayload(n));
+    // Every push to a trainee's phone carries the full count waiting for them (chats, messages, a challenge), so the number on the app
+    // icon is right whichever kind of push arrived last, including a challenge sent while the app is closed.
+    let badge = n.badge;
+    if (recipientType === "TRAINEE") {
+      try { badge = (await (await import("@/lib/arena/attention")).attentionOf(recipientId)).total; } catch { /* keep what the sender gave */ }
+    }
+    const payload = JSON.stringify(buildPushPayload({ ...n, badge }));
     await Promise.all(
       subs.map(async (s) => {
         try {

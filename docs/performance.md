@@ -12,3 +12,9 @@
 2. **Pooled connection string.** Use Neon's pooled address (the host with `-pooler`) for `DATABASE_URL` so each function call does not open a fresh connection.
 3. **Database cold starts.** On Neon's free tier the database sleeps when idle and the first request after a pause can take a few seconds. Turn off auto-suspend (paid plans) or keep it warm.
 4. **Vercel Analytics / Speed Insights** shows which pages are slow for real visitors.
+
+## Pictures people upload
+The picture editor (profile photos, organization logos, covers, course flyers) now saves what it cuts out as **WebP** and no larger than needed: 480 px for a profile photo or logo, 1280 px for a flyer, 1600 px for a cover banner (a browser that cannot write WebP gets a JPG). A 6 MB phone photo becomes a few dozen KB. Pictures uploaded before this change keep their old size until they are chosen again.
+
+## The number on the app icon
+Every push to a trainee's phone (a challenge, a chat, a wallet or event note) now carries the full count waiting for them: unread group chats + unread messages + a challenge waiting on them (`src/lib/arena/attention.ts`, the same count the page uses). Answering a challenge refreshes the icon number straight away.

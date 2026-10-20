@@ -47,10 +47,12 @@ function drawBlurredBackground(ctx: CanvasRenderingContext2D, img: HTMLImageElem
  * picture in. The frame has the shape the picture will be shown in (a wide banner, a square or round profile picture, a 16:9 flyer),
  * so what they see here is what visitors see. The kept part is cut out in the browser and that is what gets uploaded.
  */
-export default function ImageFramer({ file, aspect, round = false, title, context, alsoShow, onCancel, onDone, onUnreadable }: {
+export default function ImageFramer({ file, aspect, round = false, maxWidth = 1600, title, context, alsoShow, onCancel, onDone, onUnreadable }: {
   file: File | null;
   aspect: number;
   round?: boolean;
+  /** The widest the saved picture may be, in pixels. Small pictures (profile photos) need far less than a banner. */
+  maxWidth?: number;
   title: string;
   /** What sits under the picture on the real page (the logo and name), so the frame looks like the page. */
   context?: React.ReactNode;
@@ -100,7 +102,7 @@ export default function ImageFramer({ file, aspect, round = false, title, contex
   async function confirm() {
     if (!img || !crop) return;
     setBusy(true);
-    const out = outputSize(aspect, crop);
+    const out = outputSize(aspect, crop, maxWidth);
     const canvas = document.createElement("canvas");
     canvas.width = out.w; canvas.height = out.h;
     const ctx = canvas.getContext("2d");
@@ -110,9 +112,18 @@ export default function ImageFramer({ file, aspect, round = false, title, contex
     if (needsPadding(W, H, crop)) drawBlurredBackground(ctx, img, out);
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(img, -crop.x * k, -crop.y * k, W * k, H * k);
-    let type = file!.type;
-    let blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, type, 0.92));
-    if (blob && blob.size > MAX_BYTES) { type = "image/webp"; blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, type, 0.85)); }
+    // Saved as WebP (a fraction of the size of a JPG or PNG, and it keeps transparency). A browser that cannot write WebP gets a JPG on white.
+    let type = "image/webp";
+    let blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, type, 0.8));
+    if (!blob || blob.type !== "image/webp") {
+      type = "image/jpeg";
+      const flat = document.createElement("canvas");
+      flat.width = canvas.width; flat.height = canvas.height;
+      const fctx = flat.getContext("2d");
+      if (fctx) { fctx.fillStyle = "#fff"; fctx.fillRect(0, 0, flat.width, flat.height); fctx.drawImage(canvas, 0, 0); }
+      blob = await new Promise<Blob | null>((r) => flat.toBlob(r, type, 0.82));
+    }
+    if (blob && blob.size > MAX_BYTES) blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, type, 0.6));
     setBusy(false);
     if (!blob) return onUnreadable ? onUnreadable(file!) : onCancel();
     const ext = type === "image/png" ? "png" : type === "image/webp" ? "webp" : "jpg";

@@ -32,8 +32,10 @@ export default function ChatAlerts() {
     const first = setTimeout(load, 1500);
     const id = setInterval(() => { void load(); }, 20_000);
     const vis = () => { if (!document.hidden) void load(); };
+    const now = () => { void load(); };
     document.addEventListener("visibilitychange", vis);
-    return () => { stop = true; clearTimeout(first); clearInterval(id); document.removeEventListener("visibilitychange", vis); };
+    window.addEventListener("arena-alerts-refresh", now);
+    return () => { stop = true; clearTimeout(first); clearInterval(id); document.removeEventListener("visibilitychange", vis); window.removeEventListener("arena-alerts-refresh", now); };
   }, [path]);
 
   // The number on the app icon and in the tab title. Reading the chat itself counts as seen.

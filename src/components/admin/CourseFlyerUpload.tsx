@@ -72,7 +72,7 @@ export default function CourseFlyerUpload({
 
   return (
     <div className="flex items-start gap-4">
-      <ImageFramer file={pending} aspect={16 / 9} title="Place your flyer" onCancel={() => setPending(null)} onDone={(f) => { setPending(null); upload(f); }} onUnreadable={(f) => { setPending(null); upload(f); }} />
+      <ImageFramer file={pending} aspect={16 / 9} maxWidth={1280} title="Place your flyer" onCancel={() => setPending(null)} onDone={(f) => { setPending(null); upload(f); }} onUnreadable={(f) => { setPending(null); upload(f); }} />
       <div className="flex h-28 w-44 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-brand-gray bg-brand-mint">
         {flyerUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- a real, dynamically-uploaded external URL.

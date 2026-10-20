@@ -12,9 +12,8 @@ export async function pushToCourse(courseId: string, exceptId: string | null, n:
       const key = `${courseId}:${id}`;
       if (!only && now - (lastPush.get(key) ?? 0) < 20_000) continue;
       lastPush.set(key, now);
-      const read = await prisma.arenaChatRead.findUnique({ where: { traineeId_courseId: { traineeId: id, courseId } }, select: { lastReadAt: true } });
-      const unread = await prisma.arenaChatMessage.count({ where: { courseId, deletedAt: null, createdAt: { gt: read?.lastReadAt ?? new Date(Date.now() - 7 * 86_400_000) }, NOT: { senderId: id } } });
-      void sendPushForNotification("TRAINEE", id, { type: `ARENA_TALK_${courseId}`, title: n.title, body: n.body, url: n.url ?? `/trainee/arena/${courseId}/chat`, badge: unread });
+      // The icon number (everything waiting for them, not just this chat) is worked out when the push is sent.
+      void sendPushForNotification("TRAINEE", id, { type: `ARENA_TALK_${courseId}`, title: n.title, body: n.body, url: n.url ?? `/trainee/arena/${courseId}/chat` });
     }
     if (lastPush.size > 5000) lastPush.clear();
   } catch { /* a push that fails must never break the chat */ }
