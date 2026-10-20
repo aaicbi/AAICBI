@@ -285,6 +285,14 @@ model User {
   // regardless of role.
   active Boolean @default(true)
 
+  // Staff permissions (see docs/rbac-audit-and-plan.md). A person with no role key and no overrides keeps exactly the access their
+  // `role` always gave them ("legacy defaults"). Otherwise: the role template (built in, or a StaffRole row), plus `permissionGrants`,
+  // minus `permissionDenies`. Read from the database on every request, so a change applies to open sessions at once.
+  staffNumber       String?
+  staffRoleKey      String?
+  permissionGrants  String[] @default([])
+  permissionDenies  String[] @default([])
+
   /// A reviewer: a staff member the super admin has allowed to review posts and Loop's questions.
   canReview Boolean @default(false)
 
@@ -6409,4 +6417,79 @@ model AdDaily {
   taps  Int       @default(0)
 
   @@unique([adId, day])
+}
+
+// A custom staff role: a named set of permission keys a Super Admin builds from the catalogue (src/lib/rbac/catalogue.ts).
+// The eight built-in templates live in code; editing one saves a custom copy here.
+model StaffRole {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  description String   @default("")
+  permissions String[] @default([])
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// One table for the sensitive things that happen: permission changes, Studio access, publishing and deleting, moderation decisions,
+// trainee restrictions, cross-organization attempts, exports. Never holds passwords, tokens or private message text.
+model AuditEvent {
+  id             String   @id @default(cuid())
+  actorId        String?
+  actorRole      String?
+  action         String
+  resourceType   String?
+  resourceId     String?
+  organizationId String?
+  outcome        String   @default("OK")
+  reason         String?
+  before         Json?
+  after          Json?
+  createdAt      DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([createdAt])
+}
+
+// What a training organization may do with games, set by a Super Admin (defaults are what organizations could already do per course).
+model OrgGamingPolicy {
+  id                 String   @id @default(cuid())
+  organizationId     String   @unique
+  resultsView        Boolean  @default(true)
+  resultsExport      Boolean  @default(false)
+  liveMonitor        Boolean  @default(true)
+  endSessions        Boolean  @default(true)
+  restrictTrainees   Boolean  @default(true)
+  removeParticipants Boolean  @default(true)
+  chatGameModeration Boolean  @default(true)
+  toggleGames        Boolean  @default(false)
+  courseRules        Boolean  @default(false)
+  updatedById        String?
+  updatedAt          DateTime @updatedAt
+  createdAt          DateTime @default(now())
+}
+
+// A moderation decision an organization (or a Super Admin) made about a trainee's game conduct, with the reason, and its escalation.
+model GameModerationAction {
+  id             String    @id @default(cuid())
+  organizationId String
+  courseId       String?
+  matchId        String?
+  traineeId      String?
+  kind           String
+  reason         String
+  actorType      String
+  actorId        String
+  actorName      String?
+  escalatedAt    DateTime?
+  resolvedAt     DateTime?
+  resolvedById   String?
+  createdAt      DateTime  @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([traineeId, createdAt])
+  @@index([escalatedAt])
 }
