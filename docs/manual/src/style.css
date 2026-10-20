@@ -4,7 +4,7 @@
 @page{size:A4;margin:24mm 18mm 22mm}
 @page :first{margin:0}
 *{box-sizing:border-box}
-html{font-family:Manrope,system-ui,sans-serif;color:var(--ink);font-size:10.4pt;line-height:1.55}
+html{font-family:Manrope,system-ui,sans-serif;color:var(--ink);font-size:10.4pt;line-height:1.55;font-weight:500}
 body{margin:0}
 h1,h2,h3,h4{font-family:Fraunces,Georgia,serif;color:var(--teal2);line-height:1.2;margin:0}
 p{margin:0 0 .65em}
@@ -76,9 +76,12 @@ figcaption{font-size:8.8pt;color:#4a5e59;margin-top:1.6mm}
 .key li{display:flex;gap:2mm;align-items:flex-start}
 .shot.desktop{max-width:100%}
 .shot.mobile{max-width:62mm;margin-left:auto;margin-right:auto}
-.pair .row{display:block}
-.pair .d{width:100%;break-inside:avoid;margin-bottom:4mm}
-.pair .m{width:54mm;margin:0 auto;break-inside:avoid}
+.pair .d{width:100%;break-inside:avoid;margin-bottom:3mm}
+.pair .prow{display:flex;gap:6mm;align-items:flex-start;break-inside:avoid}
+.pair .m{flex:0 0 46mm;width:46mm;break-inside:avoid}
+.pair .mk{flex:1;padding-top:2mm}
+.pair .mk .key{grid-template-columns:1fr;margin-top:0}
+.pair .mk figcaption{margin-top:3mm;font-size:9.4pt;color:var(--ink)}
 .pair .m .shot.mobile{max-width:none}
 .pair{break-inside:auto}
 .pair .key{grid-template-columns:1fr}

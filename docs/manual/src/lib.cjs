@@ -18,15 +18,17 @@ function shot(file, o = {}) {
   const kind = /mobile/.test(file) ? 'mobile' : 'desktop';
   const marks = (o.marks || []).map((m) => (m.box ? `<i class="box" style="left:${m.box[0]}%;top:${m.box[1]}%;width:${m.box[2]}%;height:${m.box[3]}%"></i>` : '') + `<b class="badge" style="left:${Math.min(Math.max(m.x, 3.2), 96.8)}%;top:${Math.max(m.y, 2.2)}%">${m.n}</b>`).join('');
   const key = (o.key || []).map(([n, t]) => `<li><b class="badge s">${n}</b><span>${md(t)}</span></li>`).join('');
-  return `<figure class="shot ${kind}${o.wide ? ' wide' : ''}"><div class="frame"><img src="${img64(file)}" alt="${esc(o.alt || o.caption || '')}">${marks}</div>${key ? `<ol class="key">${key}</ol>` : ''}${o.noCaption ? '' : `<figcaption><b>Figure ${++figNo}.</b> ${md(o.caption || '')}</figcaption>`}</figure>`;
+  if (o.keyOnly) return key ? `<ol class="key">${key}</ol>` : '';
+  return `<figure class="shot ${kind}${o.wide ? ' wide' : ''}"><div class="frame"><img src="${img64(file)}" alt="${esc(o.alt || o.caption || '')}">${marks}</div>${key && !o.noKey ? `<ol class="key">${key}</ol>` : ''}${o.noCaption ? '' : `<figcaption><b>Figure ${++figNo}.</b> ${md(o.caption || '')}</figcaption>`}</figure>`;
 }
 exports.shot = shot;
 /** Desktop and phone side by side (the phone is narrower). a and b are options for shot(). */
 exports.pair = (fileBase, a = {}, b = {}, caption = '') => {
   const n = ++figNo; figNo = n - 1; // one number for the pair
-  const d = shot(fileBase + '-desktop.png', { ...a, noCaption: true }), m = shot(fileBase + '-mobile.png', { ...b, noCaption: true });
+  const d = shot(fileBase + '-desktop.png', { ...a, noCaption: true }), m = shot(fileBase + '-mobile.png', { ...b, noCaption: true, noKey: true });
+  const mk = shot(fileBase + '-mobile.png', { ...b, keyOnly: true });
   figNo = n;
-  return `<figure class="pair"><div class="row"><div class="d">${d}<p class="lab">Desktop (computer)</p></div><div class="m">${m}<p class="lab">Phone</p></div></div><figcaption><b>Figure ${n}.</b> ${md(caption)}</figcaption></figure>`;
+  return `<figure class="pair"><div class="d">${d}<p class="lab">Computer</p></div><div class="prow"><div class="m">${m}<p class="lab">Phone</p></div><div class="mk">${mk}<figcaption><b>Figure ${n}.</b> ${md(caption)}</figcaption></div></div></figure>`;
 };
 exports.steps = (list) => `<ol class="steps">${list.map((s) => `<li>${md(s)}</li>`).join('')}</ol>`;
 exports.bullets = (list) => `<ul class="bul">${list.map((s) => `<li>${md(s)}</li>`).join('')}</ul>`;
