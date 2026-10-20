@@ -117,7 +117,7 @@ export default async function FeedHome({ searchParams, base }: { searchParams: {
                 {people.map((p) => (
                   <li key={p.profileId} className="flex items-center gap-3">
                     <Link href={`/@${p.handle}`} className="flex min-w-0 flex-1 items-center gap-3">
-                      <span className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden bg-brand-mint ${p.square ? "rounded-xl" : "rounded-full"}`}>{p.avatarUrl ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={p.avatarUrl} alt="" className="no-ring h-full w-full object-cover" /> : <AvatarFallback variant="company" size="sm" />}</span>
+                      <span className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden bg-brand-mint ${p.square ? "rounded-xl" : "rounded-full"}`}>{p.avatarUrl ? /* eslint-disable-next-line @next/next/no-img-element */ <img loading="lazy" decoding="async" src={p.avatarUrl} alt="" className="no-ring h-full w-full object-cover" /> : <AvatarFallback variant="company" size="sm" />}</span>
                       <span className="min-w-0"><span className="block truncate text-sm font-semibold text-brand-ink">{p.name}</span><span className="block truncate text-xs text-gray-600">{p.kindLabel}{p.followers > 0 ? ` · ${p.followers} follower${p.followers === 1 ? "" : "s"}` : ""}</span></span>
                     </Link>
                     <FollowButton profileId={p.profileId} initial={false} name={p.name} />

@@ -11,7 +11,7 @@ export default function ProfileHitCard({ hit }: { hit: ProfileHit }) {
     <Link href={`/@${hit.handle}`} className="block">
       <Card interactive className="flex h-full items-start gap-3">
         <span className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden bg-brand-surface ${round ? "rounded-full" : "rounded-xl"}`}>
-          {hit.avatarUrl ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={hit.avatarUrl} alt="" className="no-ring h-full w-full object-cover" /> : <AvatarFallback variant={round ? "person" : "company"} size="md" />}
+          {hit.avatarUrl ? /* eslint-disable-next-line @next/next/no-img-element */ <img loading="lazy" decoding="async" src={hit.avatarUrl} alt="" className="no-ring h-full w-full object-cover" /> : <AvatarFallback variant={round ? "person" : "company"} size="md" />}
         </span>
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-x-2">

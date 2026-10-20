@@ -33,7 +33,7 @@ export default function JobPostingMediaGallery({
         <div key={m.id} className="group relative aspect-video overflow-hidden rounded-lg bg-brand-mint">
           {m.type === "IMAGE" ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={m.url} alt="" className="h-full w-full object-cover" />
+            <img loading="lazy" decoding="async" src={m.url} alt="" className="h-full w-full object-cover" />
           ) : (
             <video src={m.url} className="h-full w-full object-cover" controls preload="metadata" />
           )}

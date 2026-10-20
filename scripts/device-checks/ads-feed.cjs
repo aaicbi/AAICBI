@@ -155,6 +155,15 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAoAAAAFCAYAAACNbyblAAAAHElEQVQ
   const vids = await pg.getByTestId('sponsored-media').first().evaluate((a) => [...a.querySelectorAll('video')].map((v) => ({ shown: getComputedStyle(v).display !== 'none', autoplay: v.autoplay })));
   log(vids.length === 2 && vids.filter((v) => v.shown).length === 1 && vids.find((v) => v.shown).autoplay === false, 'reduced motion: a video ad shows its still first frame and does not play');
 
+  // slow connection: a video ad does not download until pressed
+  const slow = await mk({ viewport: { width: 1000, height: 800 } });
+  await slow.addInitScript(() => { Object.defineProperty(navigator, 'connection', { value: { effectiveType: '3g', saveData: false }, configurable: true }); });
+  pg = await slow.newPage();
+  const vreq = []; pg.on('request', (q) => { if (q.url().includes('/ads/video/')) vreq.push(q.url()); });
+  await pg.goto(`${B}/feed`); await pg.getByTestId('sponsored-card').first().waitFor({ timeout: 15000 }); await pg.waitForTimeout(1500);
+  const lv = await pg.getByTestId('sponsored-media').first().evaluate((d) => { const v = d.querySelector('video'); return v && { controls: v.controls, autoplay: v.autoplay, preload: v.preload }; });
+  log(lv && lv.controls && !lv.autoplay && lv.preload === 'none' && vreq.length === 0, 'slow connection: the video ad waits for a press and downloads nothing by itself');
+
   // our own card as the fallback
   await call(S, 'POST', '/api/admin/ads', { action: 'pause', id, paused: true });
   await call(S, 'POST', '/api/admin/ads', { action: 'pause', id: second.id, paused: true });

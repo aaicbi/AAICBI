@@ -37,7 +37,7 @@ export default async function StartupsPage({ searchParams }: { searchParams: { q
               <li key={s.id}>
                 <Link href={s.handle ? `/@${s.handle}` : "/startups"} className="block h-full">
                   <Card interactive className="flex h-full gap-3">
-                    <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-brand-mint">{s.logoUrl ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={s.logoUrl} alt="" className="no-ring h-full w-full object-cover" /> : <AvatarFallback variant="company" size="md" />}</span>
+                    <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-brand-mint">{s.logoUrl ? /* eslint-disable-next-line @next/next/no-img-element */ <img loading="lazy" decoding="async" src={s.logoUrl} alt="" className="no-ring h-full w-full object-cover" /> : <AvatarFallback variant="company" size="md" />}</span>
                     <span className="min-w-0">
                       <span className="flex flex-wrap items-center gap-2"><span className="font-display font-semibold text-brand-ink">{s.name}</span>{s.verified && <Badge variant="success">Verified</Badge>}</span>
                       {s.tagline && <span className="mt-1 block break-words text-sm text-gray-700">{s.tagline}</span>}

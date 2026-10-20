@@ -42,7 +42,7 @@ const call = async (cookie, method, path, body) => { const r = await fetch(B + p
   const link = await pg.getByTestId('play-card-link').getAttribute('href');
   log(link.endsWith(`/play/${slug}?src=about`), 'the About page shows the card, linking to the funnel (' + link.replace(/^https?:\/\/[^/]+/, '') + ')');
   const vid = await pg.getByTestId('play-card-video').evaluate((v) => ({ autoplay: v.autoplay, muted: v.muted, loop: v.loop, inline: v.playsInline, src: [...v.querySelectorAll('source')].map((x) => x.getAttribute('src')).join(','), poster: v.getAttribute('poster') }));
-  log(vid.autoplay && vid.muted && vid.loop && vid.inline && vid.src === '/growth/play-card.mp4,/growth/play-card.webm' && vid.poster === '/growth/play-card.png', 'it is a muted, looping, auto-playing video (MP4, with WebM for browsers that cannot decode it) with the still card as its poster');
+  log(vid.autoplay && vid.muted && vid.loop && vid.inline && vid.src === '/growth/play-card.mp4,/growth/play-card.webm' && vid.poster === '/growth/play-card-still.webp', 'it is a muted, looping, auto-playing video (MP4, with WebM for browsers that cannot decode it) with the still card as its poster');
   log((await pg.getByTestId('play-card-still').evaluate((i) => i.complete && i.naturalWidth)) === 1200, 'the still card loads');
   const ratio = await pg.getByTestId('play-card-link').evaluate((a) => { const b = a.getBoundingClientRect(); return b.width / b.height; });
   log(Math.abs(ratio - 1200 / 630) < 0.02, 'the card keeps its shape (' + ratio.toFixed(2) + ')');

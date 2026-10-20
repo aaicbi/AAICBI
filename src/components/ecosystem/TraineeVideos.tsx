@@ -154,7 +154,7 @@ export default function TraineeVideos() {
               <Card key={v.id} className="space-y-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
                   {/* eslint-disable-next-line @next/next/no-img-element -- YouTube thumbnail. */}
-                  <img src={v.thumbnailUrl} alt="" className="aspect-video w-full max-w-[14rem] shrink-0 rounded object-cover sm:h-16 sm:w-28 sm:max-w-none" />
+                  <img loading="lazy" decoding="async" src={v.thumbnailUrl} alt="" className="aspect-video w-full max-w-[14rem] shrink-0 rounded object-cover sm:h-16 sm:w-28 sm:max-w-none" />
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-brand-ink">{v.title}</p>
                     <p className="text-xs text-gray-600">{v.organizationName}{v.submittedByTrainee ? "" : " · posted by your organization"}</p>

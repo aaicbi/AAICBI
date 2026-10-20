@@ -31,7 +31,7 @@ function MediaFrame({ item, className }: { item: JobPostingMediaItem; className:
     <div className={`overflow-hidden rounded-xl bg-brand-mint ${className}`}>
       {item.type === "IMAGE" ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={item.url} alt="" className="h-full w-full object-cover" />
+        <img loading="lazy" decoding="async" src={item.url} alt="" className="h-full w-full object-cover" />
       ) : (
         <video src={item.url} className="h-full w-full object-cover" controls preload="metadata" />
       )}
