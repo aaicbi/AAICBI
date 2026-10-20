@@ -80,8 +80,8 @@ This link expires in 48 hours. If you didn't create this account, you can ignore
   };
 }
 
-export function passwordResetEmail(recipientLabel: "staff" | "trainee", resetUrl: string): EmailContent {
-  const audience = recipientLabel === "staff" ? "staff" : "AAICBI";
+export function passwordResetEmail(recipientLabel: "staff" | "trainee" | "organization", resetUrl: string): EmailContent {
+  const audience = recipientLabel === "staff" ? "staff" : recipientLabel === "organization" ? "AAICBI training organization" : "AAICBI";
   return {
     subject: `Reset your ${audience} account password`,
     html: wrapHtml(`

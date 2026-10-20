@@ -67,7 +67,11 @@ function AdminTraineesContent() {
     if (segment) params.set("segment", segment);
     const qs = params.toString() ? `?${params.toString()}` : "";
     fetch(`/api/admin/trainees${qs}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((r) => {
+        // A training organization is never allowed the platform-wide list (the API answers 404); send it to its own.
+        if (r.status === 404) { router.replace("/admin/organization/trainees"); return Promise.reject(); }
+        return r.ok ? r.json() : Promise.reject();
+      })
       .then(setTrainees)
       .catch(() => setError(true));
   }

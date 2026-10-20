@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { createdByFilter } from "@/lib/courseOwnership";
+import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 import { getTimeOfDayGreeting, formatLastVisit } from "@/lib/dashboardHelpers";
 import { getRecentNotifications, getUnreadNotificationCount, getEventsSinceLastVisit } from "@/lib/dashboard/recentNotifications";
 import { ADMIN_AREAS } from "@/lib/adminAreas";
@@ -66,7 +67,10 @@ export default async function AdminDashboardPage() {
   // Personalized landing page — "pending approvals" a SUPER_ADMIN/ADMIN
   // can actually act on, real counts only (never shown for INSTRUCTOR,
   // which has no approval authority anywhere else in this app either).
-  const isApprover = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+  // A training organization signs in as a shadow ADMIN. It has no approval authority, so it must not see the
+  // platform's review counters or the staff-only links built from them.
+  const isOrganization = session.role === "ADMIN" && !!(await findTrainingOrgByStaffUserId(session.userId));
+  const isApprover = (session.role === "SUPER_ADMIN" || session.role === "ADMIN") && !isOrganization;
   const [pendingEmployers, pendingJobPostings, pendingReports] = isApprover
     ? await Promise.all([
         prisma.employer.count({ where: { approvalState: "PENDING" } }),
@@ -88,9 +92,11 @@ export default async function AdminDashboardPage() {
     { label: "Create Examination", href: "/admin/exams/new", primary: true },
     { label: "Courses", href: "/admin/courses", primary: true },
     { label: "Performance", href: "/admin/performance", primary: true },
-    { label: "Analytics", href: "/admin/analytics", primary: true },
+    ...(isOrganization
+      ? [{ label: "Trainees", href: "/admin/organization/trainees", primary: true }]
+      : [{ label: "Analytics", href: "/admin/analytics", primary: true }]),
     { label: "Messages", href: "/admin/messages", primary: true },
-    { label: "My Profile", href: "/admin/profile", primary: false },
+    ...(isOrganization ? [{ label: "Organization overview", href: "/admin/organization", primary: false }] : [{ label: "My Profile", href: "/admin/profile", primary: false }]),
     // AI Command Center — genuinely SUPER_ADMIN only (unlike the
     // isApprover-gated items below, which ADMIN can also use), server-
     // checked here rather than fetched client-side, so there's no risk

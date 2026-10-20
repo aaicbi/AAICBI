@@ -14,6 +14,7 @@ import { SUPPORTED_LANGUAGES, LANGUAGE_LABELS, t, type LanguageCode } from "@/li
 
 import { Checkbox, Input, Textarea } from "@/components/ui/Field";
 import Toggle from "@/components/ui/Toggle";
+import ChangePasswordCard from "@/components/account/ChangePasswordCard";
 /**
  * The self-service side of the notification-preference gap flagged
  * across the M14/M15 audits, joined by M39's low-bandwidth toggle on
@@ -215,6 +216,9 @@ export default function TraineeSettingsPage() {
             <AvatarUpload avatarUrl={avatarUrl} apiPath="/api/trainee/avatar" onChange={setAvatarUrl} />
           </div>
         </Card>
+        <div className="mt-4">
+          <ChangePasswordCard apiPath="/api/trainee/password" />
+        </div>
 
         {/* Landscape pass — now that the sidebar frees up the width a
             centered max-w-md column used to need for a top nav, every

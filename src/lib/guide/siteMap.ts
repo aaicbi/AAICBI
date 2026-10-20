@@ -54,6 +54,7 @@ export const PAGES: Array<SitePage & { group: Group }> = [
   { group: "Join and sign in", href: "/startup/register", label: "Create a startup (founder) account", who: ANY, what: "Sign up as a founder; your startup profile is created as a draft for review.", aliases: ["register a startup", "founder account", "start a startup"] },
   { group: "Join and sign in", href: "/org/register", label: "Register your organization", who: ANY, what: "Apply to run programs on AAICBI; new organizations are reviewed first.", aliases: ["become a training organization", "register organization", "register my organisation"] },
   { group: "Join and sign in", href: "/org/login", label: "Organization sign in", who: ANY, what: "Sign in as an organization owner or team member.", aliases: ["organization login", "organisation login", "team login"] },
+  { group: "Join and sign in", href: "/org/forgot-password", label: "Organization password reset", who: ANY, what: "Forgot your organization or team password? Enter your email to get a reset link.", aliases: ["organization forgot password", "team forgot password", "reset organization password", "organisation password"] },
   { group: "Join and sign in", href: "/employer/register", label: "Register as an employer", who: ANY, what: "Apply to find talent and post jobs; reviewed before you go live.", aliases: ["employer sign up", "hire", "recruit"] },
   { group: "Join and sign in", href: "/employer/login", label: "Employer sign in", who: ANY, what: "Sign in as an employer.", aliases: ["employer login"] },
   { group: "Join and sign in", href: "/investor/register", label: "Register as an investor", who: ANY, what: "Apply to see startups and pitches; reviewed before you go live.", aliases: ["investor sign up", "invest"] },
@@ -112,6 +113,7 @@ export const PAGES: Array<SitePage & { group: Group }> = [
   { group: "Training organization", href: "/admin/organization/events", label: "Events", who: ["organization"], what: "Announce events on your public page.", aliases: ["post an event", "create event"] },
   { group: "Training organization", href: "/admin/organization/programs", label: "Program skills", who: ["organization"], what: "Tag your programs with the skills they teach so people can find them.", aliases: ["tag skills", "skills"] },
   { group: "Training organization", href: "/admin/organization/insights", label: "Content and visibility", who: ["organization"], what: "How your public content is being seen.", aliases: ["insights", "visibility", "how is my content doing"] },
+  { group: "Training organization", href: "/admin/organization/trainees", label: "Trainees", who: ["organization"], what: "Everyone enrolled in your courses, with search; open a course's Enrollments to give, extend or end access.", aliases: ["my trainees", "students", "enrolled trainees", "find a trainee"] },
   { group: "Training organization", href: "/admin/organization/posts", label: "Member posts", who: ["organization"], what: "Posts by your members that mention your organization; hold or release them.", aliases: ["member posts", "moderate posts", "hold a post"] },
   { group: "Training organization", href: "/admin/organization/games", label: "Games", who: ["organization"], what: "Your trainees' game results and leaderboards, live games, and moderation of your own courses' games.", aliases: ["game results", "arena moderation", "restrict a player", "end a game"] },
   { group: "Training organization", href: "/org/billing", label: "Platform access (billing)", who: ["organization"], what: "Your platform-fee payment status, if your plan uses one.", aliases: ["billing", "payment", "platform fee", "subscription", "pay"] },
@@ -275,4 +277,5 @@ export const NOT_LISTED: Array<{ route: string; why: string }> = [
   { route: "/trainee/reset-password", why: "Opened from the password email." },
   { route: "/investor/reset-password", why: "Opened from the password email." },
   { route: "/org/set-password", why: "Opened from a teammate invitation email." },
+  { route: "/org/reset-password", why: "Opened from the password email." },
 ];
