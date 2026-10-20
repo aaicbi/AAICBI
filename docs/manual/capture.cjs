@@ -5,7 +5,7 @@ const fs = require('fs'), path = require('path');
 const OUT = path.join(__dirname, 'screenshots');
 const DESK = { colorScheme: 'dark', viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1.5 };
 const PHONE = { colorScheme: 'dark', viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' };
-const ORG = ['/api/auth/training-org-login', 'org@dev.test'], TR = ['/api/auth/trainee-login', 't0@dev.test'];
+const ORG = ['/api/auth/training-org-login', 'org@dev.test'], TR = ['/api/auth/trainee-login', 't11@dev.test'];
 // [folder, name, who, path, opts]  who: null = signed out
 const SHOTS = JSON.parse(fs.readFileSync(path.join(__dirname, process.env.SHOTS || 'shots.json'), 'utf8'));
 (async () => {
@@ -27,6 +27,8 @@ const SHOTS = JSON.parse(fs.readFileSync(path.join(__dirname, process.env.SHOTS 
       try {
         await page.goto(B + s.path, { waitUntil: 'load', timeout: 30000 }).catch(() => {});
         await page.waitForTimeout(s.wait || 1800);
+        // The "Install the app" banner appears on a first visit; dismiss it so it does not cover the screen.
+        await page.locator('button:has-text("Not now")').first().click({ timeout: 700 }).then(() => page.waitForTimeout(500)).catch(() => {});
         for (const a of s.actions || []) {
           if (a.click) await page.locator(a.click).first().click({ timeout: 5000 }).catch((e) => console.log('  click miss', a.click));
           if (a.fill) await page.locator(a.fill[0]).first().fill(a.fill[1]).catch(() => console.log('  fill miss', a.fill[0]));

@@ -52,22 +52,96 @@ module.exports = (L) => {
     h3('Where to find trainees') +
     table(['I want to…', 'Go to', 'You will see'], [
       ['See the newest enrolments and who has finished', '**Organization → Overview → Recent trainees**', 'Trainee, course, status (In progress, Completed) and enrolment date. Use the search box to find a name or course.'],
-      ['See everyone in one course', '**Teaching → Courses →** your course **→ Enrolments**', 'The people enrolled in that course.'],
+      ['See everyone in one course', '**Teaching → Courses →** your course **→ Enrollments**', 'Each person enrolled, with their status (for example **Active** or **Completed**), and **Revoke** and **Extend Access** controls.'],
       ['See scores and progress of everyone in a course', '**Insight → Performance**, then choose a course', 'Each trainee’s performance in that course.'],
-      ['See who needs help early', 'A course’s **Early warnings** page', 'Trainees who may be falling behind.'],
+      ['See who needs help early', 'A course’s **Early Warnings** page', 'Trainees who crossed an inactivity or failed-attempts threshold you set for the course.'],
       ['Write to a trainee', '**Insight → Messages**', 'Your conversations with trainees.'],
     ]) +
     note('There is no separate “all trainees” list in the organisation menu. Trainees are reached through the Overview, your courses, Performance and Messages.') +
-    h3('Enrolments and cohorts') +
-    p('Trainees enrol in a course themselves (and pay if the course is paid), or are placed in a course by the arrangements your organisation has with AAICBI. Inside each course you can organise trainees into **cohorts** and review the enrolments list. Details of these course pages are in Chapter 6.') +
+    h3('Enrolling a trainee', 'o5-enrol') +
+    task({
+      title: 'Give a trainee access to a course',
+      purpose: 'Add a trainee to a course yourself, including a paid course, for example after an offline payment or a support case.',
+      before: 'The trainee already has an AAICBI trainee account and you know the email address they registered with.',
+      steps: [
+        'Open **Teaching → Courses** and select **Manage** on the course.',
+        'In the list of links at the top right of the course page, select **Enrollments**.',
+        'Type the trainee’s address into the box that shows **trainee@example.com**.',
+        'Select **Grant Access**.',
+      ],
+      expected: 'The trainee appears in the list below with the status **Active**, and the course shows in their **My courses**.',
+      trouble: 'A red message under the box tells you why (for example that no trainee account exists for that address — ask them to create one first). Trainees can also enrol themselves in a free course from the course page; **Copy Trainee Link** on the page copies the link to share.',
+    }) +
+    pair('org/course-enrollments', {}, {}, 'The Enrollments page of a course: grant access by email, copy the trainee link, and **Revoke** or **Extend Access** for each person.') +
+    task({
+      title: 'Extend or revoke a trainee’s access',
+      steps: ['Open the course’s **Enrollments** page.', 'Find the trainee. To end their access select **Revoke**. To give more time select **Extend Access**, enter the number of days and a **reason** (it is kept in the audit trail), then confirm.'],
+      expected: 'The status changes (**Expired / Revoked** after a revoke) and the change is recorded with your reason.',
+    }) +
+    h3('Cohorts') +
+    p('A **cohort** (also called an intake) is an optional roster for reporting on one group of trainees separately. Every trainee can still use the course whether or not they are in a cohort. Open a course and choose **Cohorts / Intakes**, then **+ New Cohort**. Cohorts also appear as a filter on the **Performance** page.') +
+    pair('org/course-cohorts', {}, {}, 'Cohorts / Intakes for a course. A new course has none until you create one.') +
     h3('Account or enrolment problems') +
     bullets([
       'A trainee cannot find a course: check the course is **Published** (Courses list) and that they are enrolled.',
       'You have no seats left: the Overview shows “n of n seats used”. Contact AAICBI to change your plan.',
       'A trainee cannot sign in or has lost a password: the trainee uses **Forgot your password?** on their own sign-in page. You cannot reset a trainee’s password for them.',
-      'A trainee’s profile contains something wrong: ask them to correct it, or use the reporting tools described in Chapter 8.',
+      'A trainee’s profile or messages contain something wrong: see Chapter 8 for moderation and reporting.',
     ]) +
     h3('What is not available to organisations') +
-    p('Organisation accounts cannot create or delete trainee accounts, cannot see trainees of other organisations and cannot change a trainee’s email or password. Where an action needs the AAICBI team, the page says so or the control is not shown.'));
-  return [ch4, ch5];
+    p('Organisation accounts cannot see trainees of other organisations and cannot change a trainee’s email or password. Where an action needs the AAICBI team, the page says so or the control is not shown.'));
+
+  const ch6 = chapter('o6', 6, 'Managing Courses and Training Activities',
+    'Everything you need to create a course, publish it, follow it and issue certificates.',
+    h3('The Courses list') +
+    p('Open **Teaching → Courses**. Each course is a card with its title, the number of modules and a status: **Draft** (only your team sees it) or **Published** (trainees can find and join it). Select **Manage** to open a course, or **+ Create Course** to start a new one.') +
+    pair('org/courses', {}, {}, 'The Courses list on a computer and on a phone.') +
+    task({
+      title: 'Create a course',
+      purpose: 'Start a new programme that trainees can enrol in.',
+      before: 'You are an Owner, Manager or Editor.',
+      steps: [
+        'Open **Teaching → Courses** and select **+ Create Course**.',
+        'Type the **Course Title** (required) and a **Description**.',
+        'Leave **This course is free (lifetime access, no payment)** ticked for a free course, or untick it if you will set a price later.',
+        'Select **Create & Add Modules**.',
+      ],
+      expected: 'The new course opens as a **Draft**, ready for modules and lessons.',
+      trouble: 'If nothing happens, check that the title is filled in.',
+    }) +
+    pair('org/course-new', {}, {}, 'Create Course. Only a title is required; everything else can be added afterwards.') +
+    h3('Inside a course') +
+    p('A course page gathers everything about one course. A row of links at the top right opens the related pages: **Copy Trainee Link**, **Certificates Issued**, **Q&A**, **Enrollments**, **Cohorts / Intakes**, **Early Warnings**, **Performance**, **Course Examination** and **Preview as Trainee**. The **Status** menu switches between Draft and Published. Below that the page has these sections:') +
+    table(['Section', 'What you do there'], [
+      ['**Work on this together**', 'Make an **invite link** so a colleague, instructor or another organisation can help build the course as an editor, or a **copy link** that gives another organisation their own independent copy. Editors change content; the owner keeps publishing, pricing, deleting and sharing.'],
+      ['**Pricing & Access**', 'Free or paid access.'],
+      ['**Certificate Template**', 'Choose which of your approved certificate templates this course uses.'],
+      ['**Early-Warning Thresholds**', 'Set when a trainee counts as inactive or at risk of failing.'],
+      ['**Q&A Scope**', 'Who can see and post in a lesson’s question thread: everyone, or only the trainee’s cohort.'],
+      ['**WhatsApp Study Group**', 'Paste a group invitation link; enrolled trainees then see a **Join WhatsApp Group** button.'],
+      ['**Schedule & Registration**', 'Start and end dates, registration deadline, capacity and location, for courses announced in advance.'],
+      ['**Ayakbi Arena rules** and the moderation panels', 'Rules of play and tools for chat and games on this course (Chapter 7).'],
+      ['**Course Information & Marketing Materials**', 'The details shown on the public course page: category, level, duration, instructors, prerequisites, what trainees will learn. Switches choose what is visible; you can upload a flyer and a curriculum.'],
+      ['**Modules and lessons**', 'Each module has lessons and materials. Use **+ Add Lesson**, **+ Add Material** and **+ Add Module**, and the **Assessment**, **Edit** and **Delete** links. The arrows reorder items.'],
+    ]) +
+    pair('org/course-detail', {}, {}, 'A course page (shortened here; the real page is long). On a phone the same sections are stacked in the same order.') +
+    note('Editors can build and edit but cannot publish, unpublish or delete a course, or change pricing or sharing. Those belong to Owners and Managers.') +
+    h3('Examinations, assignments and certificates') +
+    table(['Page', 'What it is for', 'How to start'], [
+      ['**Teaching → Examinations**', 'Formal examinations with question banks and results.', '**+ Create Examination**; you can upload a Word document of questions.'],
+      ['**Teaching → Assignments**', 'Written work set for trainees, with AI-assisted marking that you can review.', '**Upload Word Document** or **Create Manually**.'],
+      ['**Teaching → Certificates**', 'Design the certificate trainees receive, with your own logo.', 'Enter a **Template name** and **Create template**, or **Choose a starting template**. Use the design tools (text, fields, logo, QR code, shapes) and **Upload template** to use your own background. Templates are sent for approval.'],
+    ]) +
+    pair('org/exams', {}, {}, 'Examinations. A new organisation has none until it creates one.') +
+    pair('org/assignments', {}, {}, 'Assignments, with the two ways to create one.') +
+    h3('Following a course') +
+    bullets([
+      '**Performance** for a course shows total trainees, average completion, average assessment score, at-risk trainees and certification rate, with a table per trainee (Chapter 10).',
+      '**Early Warnings** lists trainees who crossed an inactivity or failed-attempts threshold.',
+      '**Q&A** lists every question thread across the course, most recent first.',
+      '**Certificates Issued** shows certificates; they are issued automatically when a trainee completes every module.',
+      '**Preview as Trainee** shows the course exactly as a trainee sees it before you publish it.',
+    ]) +
+    tip('Open **Preview as Trainee** and check the course on your phone before you publish it. Then set the **Status** to **Published**.'));
+  return [ch4, ch5, ch6];
 };

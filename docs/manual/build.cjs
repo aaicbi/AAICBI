@@ -6,7 +6,7 @@ const css = fs.readFileSync(path.join(__dirname, 'src/style.css'), 'utf8');
 const OUT = path.join(__dirname, 'output');
 const VERSION = '1.0', DATE = '20 October 2026';
 const svg = (f) => 'data:image/svg+xml;base64,' + fs.readFileSync(path.join(__dirname, 'assets', f)).toString('base64');
-const load = (f) => { delete require.cache[require.resolve(f)]; return require(f); };
+const load = (f) => { const full = path.join(__dirname, 'src', f); delete require.cache[require.resolve(full)]; return require(full); };
 
 const MANUALS = {
   org: { file: 'AAICBI Training Organisation User Manual v1.0.pdf', audience: 'For training organisations', title: 'AAICBI Ecosystem — Training Organisation User Manual', cover: ['Training Organisation', 'User Manual'], sub: 'A Practical Guide to Managing Your Organisation, Trainees, Courses, and Platform Activities', parts: [{ title: null, src: './content/org.cjs' }] },
@@ -64,7 +64,8 @@ function locate(file, m) {
   const find = (id, re, from) => { for (let i = from; i <= n; i++) if (re.test(text[i])) { pages[id] = i; return i; } };
   let toc = 2; while (toc < n && /Contents/.test(text[toc + 1]) && toc < 6) toc++;
   let from = toc + 1;
-  for (const p of parts) for (const c of p.chapters) { const re = new RegExp('(^|\\n)\\s*' + c.no + '\\s+' + c.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\*\*/g, '').replace(/\s+/g, '\\s+'), 'i'); const f = find(c.id, re, from); if (f) from = f; }
+  for (const p of parts) for (const c of p.chapters) { const words = c.title.replace(/\*\*/g, '').split(/\s+/).slice(0, 3).map((w) => w.replace(/[.*+?^${}()|[\]\\,]/g, '\\$&'));
+      const re = new RegExp('(^|\\n)[^\\n]*' + words.join('\\s+'), 'i'); const f = find(c.id, re, from); if (f) from = f; }
   find('glossary', /\n\s*Glossary\s*\n/, from); find('support', /\n\s*Getting help\s*\n/, from); find('revisions', /Document information and revision history\s*\n/, from);
   return { pages, n };
 }

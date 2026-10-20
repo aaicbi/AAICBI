@@ -43,4 +43,4 @@ exports.task = (t) => `<section class="task"><header><span>Task</span><h4>${md(t
 <div class="lbl">Steps</div>${exports.steps(t.steps)}
 ${t.expected ? `<div class="expect"><b>Expected result</b> ${md(t.expected)}</div>` : ''}${t.trouble ? `<div class="trouble"><b>If it does not work</b> ${md(t.trouble)}</div>` : ''}${t.extra || ''}</section>`;
 exports.table = (head, rows) => `<table><thead><tr>${head.map((h) => `<th>${md(h)}</th>`).join('')}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${md(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
-exports.chapter = (id, no, title, intro, body) => `<section class="chapter" id="${id}"><div class="chap-head"><span class="chap-no">${no}</span><h2>${md(title)}</h2></div>${intro ? `<p class="lead">${md(intro)}</p>` : ''}${body}</section>`;
+exports.chapter = (id, no, title, intro, body) => ({ id, no, title, html: `<section class="chapter" id="${id}"><div class="chap-head"><span class="chap-no">${no}</span><h2>${md(title)}</h2></div>${intro ? `<p class="lead">${md(intro)}</p>` : ''}${body}</section>` });
