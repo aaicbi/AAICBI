@@ -7,6 +7,7 @@ import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
+import { Input } from "@/components/ui/Field";
 
 export const metadata = { title: "Trainees" };
 
@@ -50,7 +51,7 @@ export default async function OrganizationTraineesPage({ searchParams }: { searc
       <h1 className="mt-2 font-display text-2xl font-semibold text-brand-ink">Trainees</h1>
       <p className="mt-1 max-w-2xl text-sm text-gray-600">Everyone enrolled in your courses. Open a course and choose Enrollments to give someone access, extend it or end it.</p>
       <form method="get" className="mt-5 flex gap-2" role="search">
-        <input name="q" defaultValue={q} placeholder="Search by name or email" aria-label="Search trainees" className="min-h-[44px] w-full max-w-sm rounded-xl border border-brand-gray bg-white px-3 text-sm text-brand-ink" />
+        <Input name="q" defaultValue={q} placeholder="Search by name or email" label="Search trainees" hideLabel wrapperClassName="w-full max-w-sm" />
         <button type="submit" className="min-h-[44px] rounded-full bg-brand-action px-5 text-sm font-semibold text-brand-onAccent">Search</button>
       </form>
       <div className="mt-5 space-y-3">
