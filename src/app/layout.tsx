@@ -11,6 +11,7 @@ import GlobalBottomNav from "@/components/pwa/GlobalBottomNav";
 import ArenaReturnPill from "@/components/arena/ArenaReturnPill";
 import ChatAlerts from "@/components/arena/ChatAlerts";
 import ResponsiveTables from "@/components/pwa/ResponsiveTables";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 // next/font self-hosts these at build time — no external font-CDN
@@ -107,6 +108,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ArenaReturnPill />
         <ChatAlerts />
         <ResponsiveTables />
+        <SpeedInsights />
       </body>
     </html>
   );
