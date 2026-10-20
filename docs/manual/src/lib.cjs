@@ -18,8 +18,10 @@ function shot(file, o = {}) {
   const kind = /mobile/.test(file) ? 'mobile' : 'desktop';
   const marks = (o.marks || []).map((m) => (m.box ? `<i class="box" style="left:${m.box[0]}%;top:${m.box[1]}%;width:${m.box[2]}%;height:${m.box[3]}%"></i>` : '') + `<b class="badge" style="left:${Math.min(Math.max(m.x, 3.2), 96.8)}%;top:${Math.max(m.y, 2.2)}%">${m.n}</b>`).join('');
   const key = (o.key || []).map(([n, t]) => `<li><b class="badge s">${n}</b><span>${md(t)}</span></li>`).join('');
+  let frameStyle = '';
+  if (o.crop) { const b = fs.readFileSync(path.join(SHOTS, file)); const w = b.readUInt32BE(16), h = b.readUInt32BE(20); frameStyle = ` style="aspect-ratio:${w}/${Math.round(h * o.crop)};overflow:hidden"`; }
   if (o.keyOnly) return key ? `<ol class="key">${key}</ol>` : '';
-  return `<figure class="shot ${kind}${o.wide ? ' wide' : ''}"><div class="frame"><img src="${img64(file)}" alt="${esc(o.alt || o.caption || '')}">${marks}</div>${key && !o.noKey ? `<ol class="key">${key}</ol>` : ''}${o.noCaption ? '' : `<figcaption><b>Figure ${++figNo}.</b> ${md(o.caption || '')}</figcaption>`}</figure>`;
+  return `<figure class="shot ${kind}${o.wide ? ' wide' : ''}"><div class="frame"${frameStyle}><img src="${img64(file)}" alt="${esc(o.alt || o.caption || '')}">${marks}</div>${key && !o.noKey ? `<ol class="key">${key}</ol>` : ''}${o.noCaption ? '' : `<figcaption><b>Figure ${++figNo}.</b> ${md(o.caption || '')}</figcaption>`}</figure>`;
 }
 exports.shot = shot;
 /** Desktop and phone side by side (the phone is narrower). a and b are options for shot(). */

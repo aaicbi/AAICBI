@@ -40,7 +40,7 @@ module.exports = (L) => {
     'Studying a course, practising, taking assessments and reading your results.',
     h3('Opening a course') +
     p('From **Courses** or from the course card on your dashboard, select **Continue learning**. The course page lists its **modules**. Each module has **lessons** (reading materials and videos), **practice** and an **assessment**. Complete the lessons to move on; some modules unlock one after another.') +
-    pair('trainee/course-detail', {}, {}, 'A course page with its modules (shortened).') +
+    pair('trainee/course-detail', { crop: 0.4 }, { crop: 0.25 }, 'The top of a course page with its modules (the page continues further down).') +
     h3('Lessons and resources') +
     p('Open a lesson to read or watch it. Videos play inside the page. Materials you can save for offline study appear under **My downloads**. On each lesson you can use **Q&A** to ask a question; your instructor and coursemates can reply.') +
     h3('Practice') +

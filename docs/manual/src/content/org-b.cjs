@@ -124,7 +124,7 @@ module.exports = (L) => {
       ['**Course Information & Marketing Materials**', 'The details shown on the public course page: category, level, duration, instructors, prerequisites, what trainees will learn. Switches choose what is visible; you can upload a flyer and a curriculum.'],
       ['**Modules and lessons**', 'Each module has lessons and materials. Use **+ Add Lesson**, **+ Add Material** and **+ Add Module**, and the **Assessment**, **Edit** and **Delete** links. The arrows reorder items.'],
     ]) +
-    pair('org/course-detail', {}, {}, 'A course page (shortened here; the real page is long). On a phone the same sections are stacked in the same order.') +
+    pair('org/course-detail', { crop: 0.3 }, { crop: 0.16 }, 'The top of a course page (the real page is much longer and continues with the sections listed above). On a phone the same sections are stacked in the same order.') +
     note('Editors can build and edit but cannot publish, unpublish or delete a course, or change pricing or sharing. Those belong to Owners and Managers.') +
     h3('Examinations, assignments and certificates') +
     table(['Page', 'What it is for', 'How to start'], [
