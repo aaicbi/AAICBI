@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/rbac/audit";
 import type { SessionPayload } from "@/lib/auth/session";
 import {
-  ANON, canChangeStatus, canView, changesPromo, embedFor, isPublished, joinDecision, nextPromotion, overlaps, phaseOf, promotionLabel, registrationDecision, validateEvent,
+  ANON, canChangeStatus, canView, changesPromo, embedFor, isPublished, joinDecision, nextPromotion, overlaps, phaseOf, promotionLabel, registrationDecision, validateEvent, expandRecurrence, type Recurrence,
   PROMOTION_ACTIONS_NEED_REASON, ORG_PROMOTION_ACTIONS, DAY_MS, utcToLocalInput,
   type Audience, type Delivery, type EventValue, type Phase, type Promotion, type PromotionAction, type RegistrationMode, type RegistrationStatus, type Status, type Viewer,
 } from "@/lib/events/eventsCore";
@@ -19,7 +19,7 @@ const ROW = {
   startsAt: true, endsAt: true, timeZone: true, registrationDeadline: true, capacity: true, delivery: true, venueName: true, address: true, city: true, state: true, directions: true,
   mapUrl: true, attendanceNotes: true, conferenceProvider: true, status: true, audience: true, registrationMode: true, registrationNotes: true, registrationUrl: true,
   hybridSeparateRegistration: true, flyerUrl: true, videoUrl: true, videoKind: true, promotionStatus: true, promotionNote: true, promotionRequestedAt: true, publishAt: true, publishedAt: true,
-  cancelledAt: true, cancelReason: true, joinOpensMinutes: true, isDemo: true, createdAt: true, updatedAt: true,
+  cancelledAt: true, cancelReason: true, joinOpensMinutes: true, seriesId: true, seriesIndex: true, isDemo: true, createdAt: true, updatedAt: true,
   category: { select: { id: true, name: true, slug: true } },
   trainingOrganization: { select: { id: true, name: true, logoUrl: true, publicProfile: { select: { slug: true } } } },
   targets: { select: { kind: true, refId: true } },
@@ -41,6 +41,8 @@ export interface EventView {
   organizer: { kind: "AAICBI" | "ORGANIZATION"; id: string | null; name: string; slug: string | null; logoUrl: string | null; promotedByAaicbi: boolean };
   published: boolean; publishedAt: string | null; publishAt: string | null;
   cancelReason: string | null; joinOpensMinutes: number | null;
+  /** Set when this event was made with a repeat setting; it is still a separate event. */
+  series: { id: string; index: number } | null;
   // Only filled for people who manage the event.
   managed: { managedBy: string; promotionStatus: Promotion; promotionLabel: string; promotionNote: string | null; promotionRequestedAt: string | null; targets: { kind: string; refId: string }[]; createdByLabel: string | null; isDemo: boolean } | null;
 }
@@ -62,7 +64,7 @@ export function toView(r: Row, now: Date, o: { manager: boolean; confirmed?: num
     status: r.status, phase: phaseOf(r, now), audience: r.audience, registrationMode: r.registrationMode, registrationNotes: r.registrationNotes, registrationUrl: r.registrationUrl, hybridSeparateRegistration: r.hybridSeparateRegistration,
     flyerUrl: r.flyerUrl, videoUrl: r.videoKind === "UPLOAD" || embed ? r.videoUrl : null, videoKind: r.videoKind, embedUrl: embed?.embedUrl ?? null, media: r.media,
     organizer: organizerOf(r), published: isPublished(r, now), publishedAt: r.publishedAt?.toISOString() ?? null, publishAt: r.publishAt?.toISOString() ?? null,
-    cancelReason: r.cancelReason, joinOpensMinutes: r.joinOpensMinutes,
+    cancelReason: r.cancelReason, joinOpensMinutes: r.joinOpensMinutes, series: r.seriesId ? { id: r.seriesId, index: r.seriesIndex ?? 1 } : null,
     managed: o.manager ? { managedBy: r.managedBy, promotionStatus: r.promotionStatus, promotionLabel: promotionLabel(r, now), promotionNote: r.promotionNote, promotionRequestedAt: r.promotionRequestedAt?.toISOString() ?? null, targets: r.targets, createdByLabel: r.createdByLabel, isDemo: r.isDemo } : null,
   };
 }
@@ -293,12 +295,13 @@ export async function joinDetails(id: string, session: SessionPayload | null, ac
 }
 
 /** What the edit form needs beyond the public view: the meeting link and instructions (never the passcode). */
-export async function manageDetail(a: Actor, id: string): Promise<{ event: EventView; rights: Rights; join: { meetingUrl: string; meetingId: string | null; instructions: string | null; hasPasscode: boolean } | null; history: { id: string; at: string; who: string; action: string; note: string | null }[] }> {
+export async function manageDetail(a: Actor, id: string): Promise<{ event: EventView; seriesTotal: number | null; seriesLater: number; rights: Rights; join: { meetingUrl: string; meetingId: string | null; instructions: string | null; hasPasscode: boolean } | null; history: { id: string; at: string; who: string; action: string; note: string | null }[] }> {
   const { row, rights } = await mustManage(a, id, "read");
   const j = rights.joinInfo ? await prisma.eventJoinInfo.findUnique({ where: { eventId: id } }) : null;
   const hist = await prisma.eventActivity.findMany({ where: { eventId: id }, orderBy: { createdAt: "desc" }, take: 60 });
+  const [seriesTotal, seriesLater] = row.seriesId ? await Promise.all([prisma.event.count({ where: { seriesId: row.seriesId, trainingOrganizationId: row.trainingOrganizationId } }), prisma.event.count({ where: { seriesId: row.seriesId, trainingOrganizationId: row.trainingOrganizationId, status: "SCHEDULED", startsAt: { gt: row.startsAt } } })]) : [null, 0];
   return {
-    event: toView(row, new Date(), { manager: true }), rights,
+    event: toView(row, new Date(), { manager: true }), seriesTotal, seriesLater, rights,
     join: j ? { meetingUrl: j.meetingUrl, meetingId: j.meetingId, instructions: j.instructions, hasPasscode: !!j.passcodeEnc } : null,
     history: hist.map((h) => ({ id: h.id, at: h.createdAt.toISOString(), who: h.actorLabel ?? "System", action: h.action, note: h.note })),
   };
@@ -338,7 +341,7 @@ async function checkTargets(v: EventValue, orgId: string | null, a: Actor) {
  * Creates or changes an event. Platform staff create AAICBI's own events or events promoted on an organisation's behalf; an organisation
  * creates its own. Everything is validated again here: the form's checks are for convenience, this is the authority.
  */
-export async function saveEvent(a: Actor, input: { id?: string; data: unknown; action: SaveAction; organizationId?: string | null }): Promise<SaveResult> {
+export async function saveEvent(a: Actor, input: { id?: string; data: unknown; action: SaveAction; organizationId?: string | null; series?: { id: string; index: number }; quiet?: boolean }): Promise<SaveResult> {
   const settings = await assertEnabled(a);
   const existing = input.id ? await mustLoad(input.id) : null;
   const creating = !existing;
@@ -419,7 +422,7 @@ export async function saveEvent(a: Actor, input: { id?: string; data: unknown; a
     };
     const saved = existing
       ? await tx.event.update({ where: { id: existing.id }, data, select: { id: true } })
-      : await tx.event.create({ data: { ...data, trainingOrganizationId: ownerOrg, managedBy: org ? "ORG" : "PLATFORM", createdByUserId: a.userId, createdByLabel: a.label }, select: { id: true } });
+      : await tx.event.create({ data: { ...data, trainingOrganizationId: ownerOrg, managedBy: org ? "ORG" : "PLATFORM", createdByUserId: a.userId, createdByLabel: a.label, seriesId: input.series?.id ?? null, seriesIndex: input.series?.index ?? null }, select: { id: true } });
     await tx.eventTarget.deleteMany({ where: { eventId: saved.id } });
     if (value.targets.length) await tx.eventTarget.createMany({ data: value.targets.map((t) => ({ eventId: saved.id, kind: t.kind, refId: t.refId })) });
     await tx.eventMedia.deleteMany({ where: { eventId: saved.id } });
@@ -439,7 +442,7 @@ export async function saveEvent(a: Actor, input: { id?: string; data: unknown; a
 
   const ne = noticeEvent(row);
   const aud = { trainingOrganizationId: row.trainingOrganizationId, audience: row.audience, targets: row.targets.map((t) => ({ kind: t.kind as never, refId: t.refId })) };
-  if (row.status === "SCHEDULED") {
+  if (row.status === "SCHEDULED" && !input.quiet) {
     if (rescheduled) await notifyAudienceAndRegistered({ ...ne, ...aud }, "RESCHEDULED", {}, `RESCHEDULED:${row.startsAt.getTime()}`);
     else if (wasStatus === "DRAFT" && row.audience !== "PUBLIC" && row.audience !== "ORG_STAFF") await notifyAudienceAndRegistered({ ...ne, ...aud }, "INVITED");
     else if (wasStatus === "DRAFT" && row.audience === "ORG_STAFF" && row.trainingOrganizationId === null) await notifyAudienceAndRegistered({ ...ne, ...aud }, "INVITED");
@@ -454,18 +457,59 @@ export async function saveEvent(a: Actor, input: { id?: string; data: unknown; a
 
 // ---------------------------------------------------------------------------------------------------------------- cancel, archive, delete
 
-export async function cancelEvent(a: Actor, id: string, reason: string): Promise<EventView> {
+export async function cancelEvent(a: Actor, id: string, reason: string, scope: "one" | "series" = "one"): Promise<EventView & { alsoCancelled?: number }> {
   await assertEnabled(a);
   const { row } = await mustManage(a, id, "cancel");
   const why = reason.replace(/\s+/g, " ").trim().slice(0, 500);
   if (why.length < 3) throw new EventsError("Give a reason for cancelling.", 422, { reason: "Give a reason for cancelling." });
   const ok = canChangeStatus(row.status, "CANCELLED", phaseOf(row, new Date()));
   if (!ok.ok) throw new EventsError(ok.reason ?? "That event cannot be cancelled.", 409);
-  const updated = await prisma.event.update({ where: { id }, data: { status: "CANCELLED", cancelledAt: new Date(), cancelReason: why, publishedAt: null }, select: ROW });
-  await log(id, a, "Cancelled", why);
-  await audit(a, "EVENT_CANCELLED", row, why);
-  await notifyAudienceAndRegistered({ ...noticeEvent(updated), trainingOrganizationId: updated.trainingOrganizationId, audience: updated.audience, targets: updated.targets.map((t) => ({ kind: t.kind as never, refId: t.refId })) }, "CANCELLED", { reason: why });
-  return toView(updated, new Date(), { manager: true });
+  const one = async (r: Row, tellAudience: boolean) => {
+    const updated = await prisma.event.update({ where: { id: r.id }, data: { status: "CANCELLED", cancelledAt: new Date(), cancelReason: why, publishedAt: null }, select: ROW });
+    await log(r.id, a, "Cancelled", why);
+    await audit(a, "EVENT_CANCELLED", r, why);
+    if (tellAudience) await notifyAudienceAndRegistered({ ...noticeEvent(updated), trainingOrganizationId: updated.trainingOrganizationId, audience: updated.audience, targets: updated.targets.map((t) => ({ kind: t.kind as never, refId: t.refId })) }, "CANCELLED", { reason: why });
+    return updated;
+  };
+  let others = 0;
+  if (scope === "series" && row.seriesId) {
+    // This event and every later one in the series that is still scheduled. Each is told about once; people registered for several hear about each.
+    const later = await prisma.event.findMany({ where: { seriesId: row.seriesId, id: { not: id }, status: "SCHEDULED", startsAt: { gt: row.startsAt }, trainingOrganizationId: row.trainingOrganizationId }, select: ROW, orderBy: { startsAt: "asc" }, take: 60 });
+    for (const r of later) if (rightsOf(a, r).cancel && phaseOf(r, new Date()) !== "COMPLETED") { await one(r, true); others++; }
+  }
+  const updated = await one(row, true);
+  return { ...toView(updated, new Date(), { manager: true }), alsoCancelled: others };
+}
+
+/**
+ * Creates a repeating event as ordinary, separate events (so each can be edited, cancelled, registered for and reminded about alone). Every date is
+ * checked before anything is saved, and if one fails the ones already made are removed. Only the first event announces itself, so people are not
+ * sent a dozen notices at once; reminders still go out for each. Promotion requests are made one event at a time, afterwards.
+ */
+export async function createSeries(a: Actor, input: { data: unknown; action: SaveAction; organizationId?: string | null; recurrence: Recurrence }): Promise<SaveResult & { created: number }> {
+  if (input.action === "submit") throw new EventsError("Save the repeating events first, then ask for public promotion on each event you want promoted.", 422, { recurrence: "Repeating events cannot be submitted for promotion all at once." });
+  const d = (input.data ?? {}) as Record<string, unknown>;
+  const exp = expandRecurrence(String(d.startLocal ?? ""), String(d.endLocal ?? ""), input.recurrence);
+  if (!exp.ok) throw new EventsError(exp.error, 422, { recurrence: exp.error });
+  const mode = input.action === "schedule" ? "schedule" : "draft";
+  for (const [i, o] of exp.occurrences.entries()) {
+    const v = validateEvent({ ...d, ...o }, mode);
+    if (!v.ok) throw new EventsError(i === 0 ? "Please fix the highlighted fields." : `Event ${i + 1} of the series has a problem: ${Object.values(v.errors)[0]}`, 422, i === 0 ? v.errors : { recurrence: Object.values(v.errors)[0] });
+  }
+  const seriesId = `ser_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
+  const made: string[] = [];
+  try {
+    let first: SaveResult | null = null;
+    for (const [i, o] of exp.occurrences.entries()) {
+      const r = await saveEvent(a, { data: { ...d, ...o }, action: input.action, organizationId: input.organizationId, series: { id: seriesId, index: i + 1 }, quiet: i > 0 });
+      made.push(r.event.id);
+      if (i === 0) first = r;
+    }
+    return { ...(first as SaveResult), created: made.length };
+  } catch (e) {
+    if (made.length) await prisma.event.deleteMany({ where: { id: { in: made } } }).catch(() => undefined);
+    throw e;
+  }
 }
 
 export async function archiveEvent(a: Actor, id: string): Promise<EventView> {
@@ -633,7 +677,7 @@ export async function saveCategory(a: Actor, input: { id?: string; name?: unknow
 export async function updateSettings(a: Actor, patch: Record<string, unknown>) {
   await need(a, "events.settings:configure");
   const data: Record<string, unknown> = {};
-  for (const k of ["enabled", "orgEventsEnabled", "promotionsEnabled", "registrationEnabled", "showPast"]) if (typeof patch[k] === "boolean") data[k] = patch[k];
+  for (const k of ["enabled", "orgEventsEnabled", "promotionsEnabled", "registrationEnabled", "showPast", "emailEnabled"]) if (typeof patch[k] === "boolean") data[k] = patch[k];
   if (patch.joinOpensMinutes !== undefined) {
     const n = Number(patch.joinOpensMinutes);
     if (!Number.isInteger(n) || n < 0 || n > 1440) throw new EventsError("Choose from 0 to 1440 minutes.", 422, { joinOpensMinutes: "Choose from 0 to 1440 minutes." });

@@ -15,13 +15,13 @@ export class EventsError extends Error {
   constructor(message: string, public status = 400, public fields?: Record<string, string>) { super(message); }
 }
 
-export interface EventSettingsView { enabled: boolean; orgEventsEnabled: boolean; promotionsEnabled: boolean; registrationEnabled: boolean; showPast: boolean; joinOpensMinutes: number }
-const DEFAULT_SETTINGS: EventSettingsView = { enabled: true, orgEventsEnabled: true, promotionsEnabled: true, registrationEnabled: true, showPast: true, joinOpensMinutes: 15 };
+export interface EventSettingsView { enabled: boolean; orgEventsEnabled: boolean; promotionsEnabled: boolean; registrationEnabled: boolean; showPast: boolean; joinOpensMinutes: number; emailEnabled: boolean; lastSweepAt: string | null }
+const DEFAULT_SETTINGS: EventSettingsView = { enabled: true, orgEventsEnabled: true, promotionsEnabled: true, registrationEnabled: true, showPast: true, joinOpensMinutes: 15, emailEnabled: true, lastSweepAt: null };
 
 export async function getEventSettings(): Promise<EventSettingsView> {
   try {
     const row = await prisma.eventSettings.findUnique({ where: { id: "default" } });
-    return row ? { enabled: row.enabled, orgEventsEnabled: row.orgEventsEnabled, promotionsEnabled: row.promotionsEnabled, registrationEnabled: row.registrationEnabled, showPast: row.showPast, joinOpensMinutes: row.joinOpensMinutes } : DEFAULT_SETTINGS;
+    return row ? { enabled: row.enabled, orgEventsEnabled: row.orgEventsEnabled, promotionsEnabled: row.promotionsEnabled, registrationEnabled: row.registrationEnabled, showPast: row.showPast, joinOpensMinutes: row.joinOpensMinutes, emailEnabled: row.emailEnabled, lastSweepAt: row.lastSweepAt?.toISOString() ?? null } : DEFAULT_SETTINGS;
   } catch { return DEFAULT_SETTINGS; }
 }
 

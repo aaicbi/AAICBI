@@ -40,3 +40,32 @@ export function noticeFor(kind: NoticeKind, e: NoticeEvent, extra: { reason?: st
     case "REGISTRATION_REQUEST": return { type: "EVENT_REGISTRATION", title: `New registration to review: ${t}`, body: `${extra.who ?? "Someone"} asked to attend.`, url: extra.manageUrl ?? url };
   }
 }
+
+// ---------------------------------------------------------------------------------------------------------------- email
+
+/**
+ * Which notices are also sent by email. Only things about one person's own plans or requests, never the platform-wide "a new public event was
+ * published" announcement (that stays in the app). Email carries the same words as the in-app notice and a link to the event page: never a
+ * meeting link or passcode.
+ */
+export const EMAIL_KINDS = new Set<string>([
+  "INVITED", "REMINDER_DAY", "REMINDER_HOUR", "RESCHEDULED", "CANCELLED", "REGISTERED", "REGISTRATION_PENDING", "REGISTRATION_CONFIRMED", "REGISTRATION_DECLINED", "REGISTRATION_REQUEST",
+  "PROMOTION_SUBMITTED", "PROMOTION_APPROVED", "PROMOTION_REJECTED", "PROMOTION_CHANGES", "PROMOTION_PUBLISHED", "PROMOTION_PULLED",
+]);
+/** Above this many recipients a notice stays in the app only: email is for people an event is aimed at, not for a crowd. */
+export const EMAIL_RECIPIENT_LIMIT = 500;
+
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+export function noticeEmail(n: Notice, baseUrl: string): { subject: string; html: string; text: string } {
+  const link = `${baseUrl.replace(/\/$/, "")}${n.url.startsWith("/") ? n.url : `/${n.url}`}`;
+  const html = `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#F7F4EE;font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;"><div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:8px;padding:32px;">
+<p style="margin:0 0 20px;font-size:13px;font-weight:bold;letter-spacing:0.05em;color:#016B61;text-transform:uppercase;">AAICBI Events</p>
+<h1 style="margin:0 0 12px;font-size:20px;line-height:1.3;">${esc(n.title)}</h1>
+<p style="margin:0 0 20px;font-size:15px;line-height:1.5;">${esc(n.body)}</p>
+<p style="margin:24px 0;"><a href="${esc(link)}" style="display:inline-block;background:#016B61;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:999px;font-weight:bold;">Open the event</a></p>
+<p style="margin:0 0 16px;font-size:12px;color:#888;word-break:break-all;">If the button does not work, copy this link: ${esc(link)}</p>
+<p style="margin:24px 0 0;font-size:12px;color:#888;">You are receiving this because of an event on the AAICBI Ecosystem. Joining details are only shown on the event page, after you sign in.</p>
+</div></body></html>`;
+  return { subject: n.title, html, text: `${n.title}\n\n${n.body}\n\nOpen the event: ${link}\n\nJoining details are only shown on the event page, after you sign in.` };
+}

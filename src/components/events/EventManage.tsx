@@ -12,7 +12,7 @@ import { StatusBadges, howOf, promoVariant, whenOf } from "@/components/events/m
 import { AUDIENCE_LABEL, REGISTRATION_MODE_LABEL, eventTypeLabel, formatWhen } from "@/lib/events/eventsCore";
 import type { EventView, Rights } from "@/lib/events/events";
 
-interface Detail { event: EventView; rights: Rights; join: { meetingUrl: string; meetingId: string | null; instructions: string | null; hasPasscode: boolean } | null; history: { id: string; at: string; who: string; action: string; note: string | null }[] }
+interface Detail { event: EventView; seriesTotal: number | null; seriesLater: number; rights: Rights; join: { meetingUrl: string; meetingId: string | null; instructions: string | null; hasPasscode: boolean } | null; history: { id: string; at: string; who: string; action: string; note: string | null }[] }
 
 const Fact = ({ label, children }: { label: string; children: React.ReactNode }) => <div><dt className="text-xs font-semibold uppercase tracking-wide text-gray-600">{label}</dt><dd className="mt-0.5 text-sm text-brand-ink [overflow-wrap:anywhere]">{children}</dd></div>;
 
@@ -39,7 +39,8 @@ export default function EventManage({ scope, apiBase, uiBase, eventId, permissio
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2"><h1 className="font-display text-2xl font-semibold text-brand-ink [overflow-wrap:anywhere]">{e.title}</h1><StatusBadges e={e} /></div>
         <p className="text-sm text-gray-700">{e.organizer.name}{e.organizer.promotedByAaicbi ? " (promoted by AAICBI on its behalf)" : ""} · {whenOf(e)}</p>
-        <EventActions event={e} rights={r} scope={scope} apiBase={apiBase} uiBase={uiBase} permissions={permissions} afterChange={load} />
+        <EventActions event={e} rights={r} scope={scope} apiBase={apiBase} uiBase={uiBase} permissions={permissions} afterChange={load} seriesLater={d.seriesLater} />
+        {e.series && <p className="text-sm text-gray-700" data-testid="series-note">Repeating event: <b>{e.series.index}{d.seriesTotal ? ` of ${d.seriesTotal}` : ""}</b>. It can be edited, cancelled and registered for on its own.</p>}
         {e.published && <p className="text-sm"><Link href={`/events/${e.id}`} className="font-semibold text-brand-teal hover:underline">View the public page</Link></p>}
         {!r.edit && scope === "organization" && e.managed?.managedBy === "PLATFORM" && <p className="rounded-lg bg-brand-mint/50 px-3 py-2 text-sm text-brand-ink">AAICBI manages this event on your behalf. You can see it here but cannot change it.</p>}
         {e.managed?.promotionNote && e.managed.promotionStatus !== "APPROVED" && <p className="rounded-lg bg-brand-goldLight px-3 py-2 text-sm text-brand-goldText"><b>AAICBI note:</b> {e.managed.promotionNote}</p>}

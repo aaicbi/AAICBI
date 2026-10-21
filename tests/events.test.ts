@@ -4,7 +4,7 @@ import {
   overlaps, phaseOf, registrationDecision, utcToLocalInput, validateEvent, validZone, weekDays, zonedToUtc, type Viewer, type ViewableEvent,
 } from "@/lib/events/eventsCore";
 import { noticeFor, type NoticeKind } from "@/lib/events/eventsNotices";
-import { formatInstant } from "@/lib/events/eventsCore";
+import { expandRecurrence, formatInstant, matchAttendance, parseAttendanceReport } from "@/lib/events/eventsCore";
 import { decryptPasscode, encryptPasscode } from "@/lib/events/eventsCrypto";
 
 const NOW = new Date("2027-03-10T09:00:00Z");
@@ -317,5 +317,60 @@ describe("notification wording", () => {
   });
   it("shows a single moment with its zone", () => {
     expect(formatInstant(new Date("2027-03-20T09:00:00Z"), "Africa/Lagos")).toBe("Sat, 20 Mar 2027, 10:00 WAT");
+  });
+});
+
+describe("repeating events", () => {
+  const ok = (r: ReturnType<typeof expandRecurrence>) => { if (!r.ok) throw new Error(r.error); return r.occurrences; };
+  it("repeats weekly at the same clock time, as many events as asked", () => {
+    const o = ok(expandRecurrence("2027-03-01T10:00", "2027-03-01T12:00", { freq: "WEEKLY", count: 4 }));
+    expect(o.map((x) => x.startLocal)).toEqual(["2027-03-01T10:00", "2027-03-08T10:00", "2027-03-15T10:00", "2027-03-22T10:00"]);
+    expect(o[3].endLocal).toBe("2027-03-22T12:00");
+  });
+  it("repeats on chosen weekdays and stops on a date", () => {
+    const o = ok(expandRecurrence("2027-03-01T09:00", "2027-03-01T10:00", { freq: "WEEKLY", weekdays: [1, 3], until: "2027-03-12" }));
+    expect(o.map((x) => x.startLocal.slice(0, 10))).toEqual(["2027-03-01", "2027-03-03", "2027-03-08", "2027-03-10"]);
+  });
+  it("repeats daily and monthly, skipping months without that day, and keeps events that cross midnight whole", () => {
+    expect(ok(expandRecurrence("2027-03-01T10:00", "2027-03-01T11:00", { freq: "DAILY", count: 3 })).map((x) => x.startLocal.slice(8, 10))).toEqual(["01", "02", "03"]);
+    expect(ok(expandRecurrence("2027-01-31T10:00", "2027-01-31T11:00", { freq: "MONTHLY", count: 3 })).map((x) => x.startLocal.slice(0, 10))).toEqual(["2027-01-31", "2027-03-31", "2027-05-31"]);
+    expect(ok(expandRecurrence("2027-03-01T23:00", "2027-03-02T01:00", { freq: "DAILY", count: 2 }))[1]).toEqual({ startLocal: "2027-03-02T23:00", endLocal: "2027-03-03T01:00" });
+  });
+  it("refuses unsafe or unclear settings", () => {
+    const bad = (r: ReturnType<typeof expandRecurrence>) => (r.ok ? "" : r.error);
+    expect(bad(expandRecurrence("2027-03-01T10:00", "2027-03-01T11:00", { freq: "WEEKLY" }))).toMatch(/stop/);
+    expect(bad(expandRecurrence("2027-03-01T10:00", "2027-03-01T11:00", { freq: "WEEKLY", count: 60 }))).toMatch(/2 to 52/);
+    expect(bad(expandRecurrence("2027-03-01T10:00", "2027-03-01T11:00", { freq: "WEEKLY", count: 1 }))).toMatch(/2 to 52/);
+    expect(bad(expandRecurrence("2027-03-01T10:00", "2027-03-01T11:00", { freq: "DAILY", until: "2029-01-01" }))).toMatch(/year/);
+    expect(bad(expandRecurrence("2027-03-01T10:00", "2027-03-01T11:00", { freq: "DAILY", until: "2027-02-01" }))).toMatch(/after the first/);
+    expect(bad(expandRecurrence("2027-03-01T11:00", "2027-03-01T10:00", { freq: "DAILY", count: 3 }))).toMatch(/after it starts/);
+    expect(bad(expandRecurrence("2027-03-01T10:00", "2027-03-01T11:00", { freq: "MONTHLY", count: 40 }))).toMatch(/within a year/);
+  });
+});
+
+describe("attendance reports", () => {
+  const regs = [{ registrationId: "r1", email: "kemi@dev.test", name: "Kemi Alade" }, { registrationId: "r2", email: "tunde@dev.test", name: "Tunde Bello" }, { registrationId: "r3", email: null, name: "Zainab Musa" }, { registrationId: "r4", email: "a@x.test", name: "Sam Lee" }, { registrationId: "r5", email: "b@x.test", name: "Sam Lee" }];
+  it("reads a Zoom report with a summary above the table", () => {
+    const csv = 'Topic,Start Time\nPrompt basics,2027-03-01\n\nName (original name),User Email,Total Duration (minutes)\nKemi Alade,Kemi@dev.test,58\n"Bello, Tunde",tunde@dev.test,4\nGuest,,12\n';
+    const r = parseAttendanceReport(csv);
+    expect(r.rows).toHaveLength(3);
+    expect(r.rows[0]).toEqual({ email: "kemi@dev.test", name: "Kemi Alade", minutes: 58 });
+  });
+  it("reads a tab-separated Teams style report with h:mm:ss durations, and a Meet report with emails only", () => {
+    const t = parseAttendanceReport("Full Name\tEmail\tIn-Meeting Duration\nKemi Alade\tkemi@dev.test\t1h 2m 5s\n");
+    expect(t.rows[0].minutes).toBe(62);
+    const m = parseAttendanceReport("Name,Email,Duration\nKemi Alade,kemi@dev.test,0:45:10\n");
+    expect(m.rows[0].minutes).toBe(45);
+  });
+  it("explains a file it cannot use, and never throws", () => {
+    expect(parseAttendanceReport("hello").error).toBeTruthy();
+    expect(parseAttendanceReport("foo,bar\n1,2\n").error).toMatch(/Name or Email/);
+  });
+  it("matches by email first, by an exact unique name only when there is no email, and sets short stays aside", () => {
+    const rows = parseAttendanceReport("Name,Email,Duration\nKemi Alade,KEMI@dev.test,50\nKemi Alade,kemi@dev.test,10\nTunde Bello,tunde@dev.test,3\nZainab Musa,,40\nSam Lee,,30\nNobody,nobody@x.test,30\n").rows;
+    const m = matchAttendance(rows, regs, 5);
+    expect(m.matched.map((x) => [x.registrationId, x.via, x.minutes])).toEqual([["r1", "email", 50], ["r3", "name", 40]]);
+    expect(m.tooShort).toEqual([{ label: "Tunde Bello", minutes: 3 }]);
+    expect(m.unmatched.map((x) => x.label).sort()).toEqual(["Nobody", "Sam Lee"]);
   });
 });

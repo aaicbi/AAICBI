@@ -2,7 +2,10 @@ import { prisma } from "@/lib/prisma";
 import { sendPushForNotification } from "@/lib/push/send";
 import { staffPermissionsOf } from "@/lib/rbac/guard";
 import type { Audience, TargetInput } from "@/lib/events/eventsCore";
-import { noticeFor, type Notice, type NoticeEvent, type NoticeKind } from "@/lib/events/eventsNotices";
+import { EMAIL_KINDS, EMAIL_RECIPIENT_LIMIT, noticeEmail, noticeFor, type Notice, type NoticeEvent, type NoticeKind } from "@/lib/events/eventsNotices";
+import { sendEmail } from "@/lib/notifications/email";
+import { getEventSettings } from "@/lib/events/eventsAccess";
+import { appUrl } from "@/lib/appUrl";
 
 /**
  * Sends Event Manager notifications through the platform's own in-app notifications (and web push for small audiences). One row in
@@ -113,6 +116,7 @@ export async function sendNotice(eventId: string, kind: string, recipients: Reci
       await prisma.eventNotice.createMany({ data: fresh.map((r) => ({ eventId, kind: dedupe, recipientType: r.recipientType, recipientId: r.recipientId })), skipDuplicates: true });
       await prisma.userNotification.createMany({ data: fresh.map((r) => ({ recipientType: r.recipientType, recipientId: r.recipientId, type: notice.type, title: notice.title, body: notice.body, url: notice.url })) });
       sent += fresh.length;
+      if (EMAIL_KINDS.has(kind) && fresh.length <= EMAIL_RECIPIENT_LIMIT) await emailNotice(eventId, notice, fresh);
       if (list.length <= PUSH_LIMIT) await Promise.all(fresh.map((r) => sendPushForNotification(r.recipientType, r.recipientId, { type: notice.type, title: notice.title, body: notice.body, url: notice.url })));
     }
     return sent;
@@ -157,4 +161,36 @@ export async function recipientOfProfile(profileId: string): Promise<Recipient |
   if (p.trainingOrganizationId) return { recipientType: "TRAINING_ORG", recipientId: p.trainingOrganizationId };
   if (p.userId) return { recipientType: "STAFF", recipientId: p.userId };
   return null;
+}
+
+/** The address of each recipient's account. */
+async function emailsOf(list: Recipient[]): Promise<Map<string, string>> {
+  const ids = (t: Recipient["recipientType"]) => list.filter((r) => r.recipientType === t).map((r) => r.recipientId);
+  const [t, e, i, o, u] = await Promise.all([
+    ids("TRAINEE").length ? prisma.trainee.findMany({ where: { id: { in: ids("TRAINEE") } }, select: { id: true, email: true } }) : [],
+    ids("EMPLOYER").length ? prisma.employer.findMany({ where: { id: { in: ids("EMPLOYER") } }, select: { id: true, email: true } }) : [],
+    ids("INVESTOR").length ? prisma.investor.findMany({ where: { id: { in: ids("INVESTOR") } }, select: { id: true, email: true } }) : [],
+    ids("TRAINING_ORG").length ? prisma.trainingOrganization.findMany({ where: { id: { in: ids("TRAINING_ORG") } }, select: { id: true, email: true } }) : [],
+    ids("STAFF").length ? prisma.user.findMany({ where: { id: { in: ids("STAFF") } }, select: { id: true, email: true } }) : [],
+  ]);
+  const out = new Map<string, string>();
+  for (const [type, rows] of [["TRAINEE", t], ["EMPLOYER", e], ["INVESTOR", i], ["TRAINING_ORG", o], ["STAFF", u]] as const) for (const r of rows) if (r.email) out.set(`${type}:${r.id}`, r.email);
+  return out;
+}
+
+/** Emails a notice to people who were just told in the app. Off when the Super Admin switches event email off. One failure never stops the others or the action. */
+async function emailNotice(eventId: string, notice: Notice, recipients: Recipient[]): Promise<void> {
+  try {
+    if (!(await getEventSettings()).emailEnabled) return;
+    const emails = await emailsOf(recipients);
+    const content = noticeEmail(notice, appUrl("/"));
+    for (const r of recipients) {
+      const to = emails.get(key(r));
+      if (!to) continue;
+      const res = await sendEmail({ to, subject: content.subject, html: content.html, text: content.text }).catch((e) => ({ ok: false as const, error: e instanceof Error ? e.message : "failed" }));
+      await prisma.notificationLog.create({ data: { recipientType: r.recipientType, recipientId: r.recipientId, type: notice.type, channel: "EMAIL", relatedId: eventId, status: res.ok ? "SENT" : "FAILED", error: res.ok || !res.error ? null : res.error.replace(/[^\s@]+@[^\s@]+/g, "[email]").slice(0, 300) } }).catch(() => undefined);
+    }
+  } catch (e) {
+    console.error("Could not email event notices:", e instanceof Error ? e.message : e);
+  }
 }

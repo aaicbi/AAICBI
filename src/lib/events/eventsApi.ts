@@ -5,10 +5,11 @@ import { rateLimit } from "@/lib/rateLimit";
 import { getSession } from "@/lib/auth/session";
 import { EventsError, actorOf, getEventSettings, requireActor, type Actor } from "@/lib/events/eventsAccess";
 import {
-  archiveEvent, cancelEvent, deleteDraft, eventDetail, joinDetails, listCategories, listManagedEvents, listVisibleEvents, manageDetail, overview, promotionAction, saveCategory, saveEvent, updateSettings,
+  archiveEvent, cancelEvent, createSeries, deleteDraft, eventDetail, joinDetails, listCategories, listManagedEvents, listVisibleEvents, manageDetail, overview, promotionAction, saveCategory, saveEvent, updateSettings,
   type Filters, type PromotionInput, type SaveAction,
 } from "@/lib/events/events";
-import { decideRegistration, exportRegistrations, listRegistrations, markAttendance, register, cancelMyRegistration } from "@/lib/events/eventsRegistration";
+import type { Recurrence } from "@/lib/events/eventsCore";
+import { applyAttendanceReport, decideRegistration, exportRegistrations, previewAttendanceReport, listRegistrations, markAttendance, register, cancelMyRegistration } from "@/lib/events/eventsRegistration";
 import { opensManager } from "@/lib/events/eventsAccess";
 
 /** Shared by the organization's routes and the platform's routes: who is acting decides what is allowed, so both ask the same code. */
@@ -56,7 +57,10 @@ export const managerCreate = (req: NextRequest) => guarded(async () => {
   const a = await requireActor();
   await limited(a, "save", 60);
   const b = await body(req);
-  return json(await saveEvent(a, { data: b.data, action: (b.action as SaveAction) ?? "save", organizationId: typeof b.organizationId === "string" ? b.organizationId : null }), 201);
+  const common = { data: b.data, action: (b.action as SaveAction) ?? "save", organizationId: typeof b.organizationId === "string" ? b.organizationId : null };
+  const rec = b.recurrence as Recurrence | null | undefined;
+  if (rec && typeof rec === "object") return json(await createSeries(a, { ...common, recurrence: { freq: rec.freq, weekdays: Array.isArray(rec.weekdays) ? rec.weekdays.map(Number) : undefined, count: rec.count === undefined || rec.count === null ? undefined : Number(rec.count), until: typeof rec.until === "string" && rec.until ? rec.until : undefined } }), 201);
+  return json(await saveEvent(a, common), 201);
 });
 
 export const managerDetail = (id: string) => guarded(async () => json(await manageDetail(await requireActor(), id)));
@@ -69,7 +73,7 @@ export const managerUpdate = (req: NextRequest, id: string) => guarded(async () 
 });
 
 export const managerDelete = (id: string) => guarded(async () => { await deleteDraft(await requireActor(), id); return json({ deleted: true }); });
-export const managerCancel = (req: NextRequest, id: string) => guarded(async () => json({ event: await cancelEvent(await requireActor(), id, String((await body(req)).reason ?? "")) }));
+export const managerCancel = (req: NextRequest, id: string) => guarded(async () => { const b = await body(req); return json({ event: await cancelEvent(await requireActor(), id, String(b.reason ?? ""), b.scope === "series" ? "series" : "one") }); });
 export const managerArchive = (id: string) => guarded(async () => json({ event: await archiveEvent(await requireActor(), id) }));
 
 export const managerPromotion = (req: NextRequest, id: string) => guarded(async () => {
@@ -87,7 +91,12 @@ export const managerRegistrationAction = (req: NextRequest, _id: string) => guar
   const rid = typeof b.registrationId === "string" ? b.registrationId : "";
   if (b.op === "confirm" || b.op === "decline") await decideRegistration(a, rid, b.op, typeof b.reason === "string" ? b.reason : undefined);
   else if (b.op === "attended" || b.op === "not_attended") await markAttendance(a, rid, b.op === "attended");
-  else throw new EventsError("That action was not understood.", 400);
+  else if (b.op === "import_preview" || b.op === "import_apply") {
+    const csv = typeof b.csv === "string" ? b.csv : "";
+    const min = b.minMinutes === undefined || b.minMinutes === "" ? 5 : Number(b.minMinutes);
+    if (b.op === "import_preview") return json({ preview: await previewAttendanceReport(a, _id, csv, min) });
+    return json({ ok: true, ...(await applyAttendanceReport(a, _id, csv, min)) });
+  } else throw new EventsError("That action was not understood.", 400);
   return json({ ok: true });
 });
 export const managerExport = (id: string) => guarded(async () => {
