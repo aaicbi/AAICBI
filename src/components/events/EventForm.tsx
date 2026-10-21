@@ -114,7 +114,7 @@ export default function EventForm({
 
   const previewEvent: CardEvent = useMemo(() => {
     const zone = validZone(f.timeZone) ? f.timeZone : "Africa/Lagos";
-    const s = zonedToUtc(f.startLocal, zone) ?? new Date(Date.now() + 7 * 864e5), e = zonedToUtc(f.endLocal, zone) ?? new Date(s.getTime() + 36e5);
+    const s = zonedToUtc(f.startLocal, zone) ?? new Date("2030-01-01T09:00:00Z"), e = zonedToUtc(f.endLocal, zone) ?? new Date(s.getTime() + 36e5);
     return {
       id: eventId ?? "preview", title: f.title || "Your event title", summary: f.summary || null, eventType: f.eventType, startsAt: s.toISOString(), endsAt: e.toISOString(), timeZone: zone, delivery: f.delivery,
       venueName: f.venueName || null, city: f.city || null, flyerUrl: f.flyerUrl || null, phase: "UPCOMING", registrationMode: f.registrationMode, capacity: f.capacity ? Number(f.capacity) || null : null, confirmedCount: 0,
