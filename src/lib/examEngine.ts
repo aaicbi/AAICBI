@@ -20,7 +20,7 @@ import { prisma } from "@/lib/prisma";
 import type { Attempt, Exam, Question, Option } from "@prisma/client";
 import { reconstructOrderedItems } from "@/lib/examEngineCore";
 import { drawFormal, evaluateGates, isFormalEligible } from "@/lib/quest/core";
-import { criticalObjectiveIds } from "@/lib/quest/server";
+import { criticalObjectiveIds, failedGateObjectives } from "@/lib/quest/server";
 import { computeTopicStats } from "@/lib/performanceCore";
 import { generatePerformanceSummary } from "@/lib/ai/analyzePerformance";
 import { rateLimit } from "@/lib/rateLimit";
@@ -458,6 +458,8 @@ export async function submitAttempt(attemptId: string) {
           ? `/trainee/courses/${exam.courseModule.courseId}`
           : "/trainee/dashboard";
         const courseUrl = appUrl(relativeUrl);
+        const mark = attempt.passMarkPercent ?? exam.passMarkPercent;
+        const gateFailures = graded.passed === false && (graded.percentage ?? 0) >= mark ? await failedGateObjectives(attemptId, mark).catch(() => []) : [];
         const email = assessmentResultEmail({
           traineeName: trainee.name,
           examTitle: exam.title,
@@ -465,7 +467,8 @@ export async function submitAttempt(attemptId: string) {
           totalQuestions: graded.totalQuestions ?? 0,
           percentage: graded.percentage ?? 0,
           passed: graded.passed ?? false,
-          passMarkPercent: attempt.passMarkPercent ?? exam.passMarkPercent,
+          passMarkPercent: mark,
+          gateFailures,
           courseUrl,
           performanceSummary: generatedSummary,
         });

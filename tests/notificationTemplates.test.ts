@@ -82,6 +82,18 @@ describe("assessmentResultEmail", () => {
     expect(passed.html).not.toBe(failed.html);
   });
 
+  it("explains a fail that is above the pass mark: the key topics, not the score, held it back", () => {
+    const r = assessmentResultEmail({ ...base, score: 46, totalQuestions: 50, percentage: 92, passMarkPercent: 80, passed: false, gateFailures: ["Explain how a prompt shapes a model's answer"] });
+    expect(r.text).toContain("Why this is not a pass yet");
+    expect(r.text).toContain("Explain how a prompt shapes a model's answer");
+    expect(r.html).toContain("WHY THIS IS NOT A PASS YET");
+  });
+
+  it("does not add that explanation when the score itself failed, or when it passed", () => {
+    expect(assessmentResultEmail({ ...base, percentage: 50, passed: false, gateFailures: ["x"] }).text).not.toContain("Why this is not a pass yet");
+    expect(assessmentResultEmail({ ...base, passed: true, gateFailures: ["x"] }).text).not.toContain("Why this is not a pass yet");
+  });
+
   it("omits the performance-summary section entirely when there isn't one", () => {
     const result = assessmentResultEmail({ ...base, performanceSummary: null });
     expect(result.html).not.toContain("HOW YOU DID BY TOPIC");
