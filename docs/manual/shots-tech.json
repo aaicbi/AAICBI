@@ -1,0 +1,12 @@
+[
+ {"folder":"tech","name":"studio","who":"super","path":"/admin/studio"},
+ {"folder":"tech","name":"studio-demo","who":"super","path":"/admin/studio/demo"},
+ {"folder":"tech","name":"arena-settings","who":"super","path":"/admin/arena"},
+ {"folder":"tech","name":"game-results","who":"super","path":"/admin/game-results"},
+ {"folder":"tech","name":"staff","who":"super","path":"/admin/staff"},
+ {"folder":"tech","name":"certificate-studio","who":"org","path":"/admin/certificate-templates","full":true},
+ {"folder":"tech","name":"arena-chat","who":"tr","path":"/trainee/arena/cmuznki56000np61xp469dmpa/chat"},
+ {"folder":"tech","name":"arena-ladder","who":"tr","path":"/trainee/arena/cmuznki56000np61xp469dmpa/ladder"},
+ {"folder":"tech","name":"command-center","who":"super","path":"/admin/command"},
+ {"folder":"tech","name":"platform-pictures","who":"super","path":"/admin/pictures"}
+]

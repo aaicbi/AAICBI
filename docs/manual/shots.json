@@ -1,0 +1,395 @@
+[
+ {
+  "folder": "shared",
+  "name": "home-feed",
+  "who": null,
+  "path": "/"
+ },
+ {
+  "folder": "shared",
+  "name": "join-choose",
+  "who": null,
+  "path": "/join"
+ },
+ {
+  "folder": "shared",
+  "name": "search",
+  "who": null,
+  "path": "/search?q=data"
+ },
+ {
+  "folder": "shared",
+  "name": "about",
+  "who": null,
+  "path": "/about"
+ },
+ {
+  "folder": "org",
+  "name": "register",
+  "who": null,
+  "path": "/org/register",
+  "full": true
+ },
+ {
+  "folder": "org",
+  "name": "login",
+  "who": null,
+  "path": "/org/login"
+ },
+ {
+  "folder": "org",
+  "name": "dashboard",
+  "who": "org",
+  "path": "/admin/organization"
+ },
+ {
+  "folder": "org",
+  "name": "admin-dashboard",
+  "who": "org",
+  "path": "/admin/dashboard"
+ },
+ {
+  "folder": "org",
+  "name": "profile",
+  "who": "org",
+  "path": "/admin/organization/profile"
+ },
+ {
+  "folder": "org",
+  "name": "team",
+  "who": "org",
+  "path": "/admin/organization/team"
+ },
+ {
+  "folder": "org",
+  "name": "courses",
+  "who": "org",
+  "path": "/admin/courses"
+ },
+ {
+  "folder": "org",
+  "name": "course-new",
+  "who": "org",
+  "path": "/admin/courses/new"
+ },
+ {
+  "folder": "org",
+  "name": "exams",
+  "who": "org",
+  "path": "/admin/exams"
+ },
+ {
+  "folder": "org",
+  "name": "assignments",
+  "who": "org",
+  "path": "/admin/assignments"
+ },
+ {
+  "folder": "org",
+  "name": "certificates",
+  "who": "org",
+  "path": "/admin/certificate-templates"
+ },
+ {
+  "folder": "org",
+  "name": "performance",
+  "who": "org",
+  "path": "/admin/performance"
+ },
+ {
+  "folder": "org",
+  "name": "messages",
+  "who": "org",
+  "path": "/admin/messages"
+ },
+ {
+  "folder": "org",
+  "name": "payments",
+  "who": "org",
+  "path": "/admin/payments"
+ },
+ {
+  "folder": "org",
+  "name": "events",
+  "who": "org",
+  "path": "/admin/organization/events"
+ },
+ {
+  "folder": "org",
+  "name": "insights",
+  "who": "org",
+  "path": "/admin/organization/insights"
+ },
+ {
+  "folder": "org",
+  "name": "posts",
+  "who": "org",
+  "path": "/admin/organization/posts"
+ },
+ {
+  "folder": "org",
+  "name": "programs",
+  "who": "org",
+  "path": "/admin/organization/programs"
+ },
+ {
+  "folder": "org",
+  "name": "education",
+  "who": "org",
+  "path": "/admin/education"
+ },
+ {
+  "folder": "org",
+  "name": "games",
+  "who": "org",
+  "path": "/admin/organization/games"
+ },
+ {
+  "folder": "org",
+  "name": "games-live",
+  "who": "org",
+  "path": "/admin/organization/games",
+  "actions": [
+   {
+    "click": "button:has-text('Live games')"
+   }
+  ]
+ },
+ {
+  "folder": "org",
+  "name": "games-moderation",
+  "who": "org",
+  "path": "/admin/organization/games",
+  "actions": [
+   {
+    "click": "button:has-text('Moderation')"
+   }
+  ]
+ },
+ {
+  "folder": "org",
+  "name": "games-chat",
+  "who": "org",
+  "path": "/admin/organization/games",
+  "actions": [
+   {
+    "click": "button:has-text('Group chat games')"
+   }
+  ]
+ },
+ {
+  "folder": "org",
+  "name": "games-settings",
+  "who": "org",
+  "path": "/admin/organization/games",
+  "actions": [
+   {
+    "click": "button:has-text('Settings')"
+   }
+  ]
+ },
+ {
+  "folder": "org",
+  "name": "games-history",
+  "who": "org",
+  "path": "/admin/organization/games",
+  "actions": [
+   {
+    "click": "button:has-text('History')"
+   }
+  ]
+ },
+ {
+  "folder": "org",
+  "name": "settings",
+  "who": "org",
+  "path": "/admin/settings"
+ },
+ {
+  "folder": "org",
+  "name": "notifications",
+  "who": "org",
+  "path": "/notifications"
+ },
+ {
+  "folder": "org",
+  "name": "feed",
+  "who": "org",
+  "path": "/feed"
+ },
+ {
+  "folder": "org",
+  "name": "compose",
+  "who": "org",
+  "path": "/compose"
+ },
+ {
+  "folder": "org",
+  "name": "forgot-password",
+  "who": null,
+  "path": "/org/forgot-password"
+ },
+ {
+  "folder": "org",
+  "name": "trainees",
+  "who": "org",
+  "path": "/admin/organization/trainees"
+ },
+ {
+  "folder": "trainee",
+  "name": "register",
+  "who": null,
+  "path": "/trainee/register",
+  "full": true
+ },
+ {
+  "folder": "trainee",
+  "name": "login",
+  "who": null,
+  "path": "/trainee/login"
+ },
+ {
+  "folder": "trainee",
+  "name": "forgot-password",
+  "who": null,
+  "path": "/trainee/forgot-password"
+ },
+ {
+  "folder": "trainee",
+  "name": "dashboard",
+  "who": "tr",
+  "path": "/trainee/dashboard"
+ },
+ {
+  "folder": "trainee",
+  "name": "courses",
+  "who": "tr",
+  "path": "/trainee/courses"
+ },
+ {
+  "folder": "trainee",
+  "name": "examinations",
+  "who": "tr",
+  "path": "/trainee/examinations"
+ },
+ {
+  "folder": "trainee",
+  "name": "assignments",
+  "who": "tr",
+  "path": "/trainee/assignments"
+ },
+ {
+  "folder": "trainee",
+  "name": "certificates",
+  "who": "tr",
+  "path": "/trainee/certificates"
+ },
+ {
+  "folder": "trainee",
+  "name": "progress",
+  "who": "tr",
+  "path": "/trainee/progress"
+ },
+ {
+  "folder": "trainee",
+  "name": "activity",
+  "who": "tr",
+  "path": "/trainee/my-activity"
+ },
+ {
+  "folder": "trainee",
+  "name": "arena",
+  "who": "tr",
+  "path": "/trainee/arena"
+ },
+ {
+  "folder": "trainee",
+  "name": "messages",
+  "who": "tr",
+  "path": "/trainee/messages"
+ },
+ {
+  "folder": "trainee",
+  "name": "explore",
+  "who": "tr",
+  "path": "/trainee/explore"
+ },
+ {
+  "folder": "trainee",
+  "name": "profile",
+  "who": "tr",
+  "path": "/trainee/profile"
+ },
+ {
+  "folder": "trainee",
+  "name": "settings",
+  "who": "tr",
+  "path": "/trainee/settings"
+ },
+ {
+  "folder": "trainee",
+  "name": "downloads",
+  "who": "tr",
+  "path": "/trainee/downloads"
+ },
+ {
+  "folder": "trainee",
+  "name": "buddy",
+  "who": "tr",
+  "path": "/trainee/buddy"
+ },
+ {
+  "folder": "trainee",
+  "name": "introductions",
+  "who": "tr",
+  "path": "/trainee/introductions"
+ },
+ {
+  "folder": "trainee",
+  "name": "jobs",
+  "who": "tr",
+  "path": "/trainee/job-postings"
+ },
+ {
+  "folder": "trainee",
+  "name": "videos",
+  "who": "tr",
+  "path": "/trainee/videos"
+ },
+ {
+  "folder": "trainee",
+  "name": "startups",
+  "who": "tr",
+  "path": "/trainee/startups"
+ },
+ {
+  "folder": "trainee",
+  "name": "report",
+  "who": "tr",
+  "path": "/trainee/report"
+ },
+ {
+  "folder": "trainee",
+  "name": "feed",
+  "who": "tr",
+  "path": "/feed"
+ },
+ {
+  "folder": "trainee",
+  "name": "compose",
+  "who": "tr",
+  "path": "/compose"
+ },
+ {
+  "folder": "trainee",
+  "name": "notifications",
+  "who": "tr",
+  "path": "/notifications"
+ },
+ {
+  "folder": "trainee",
+  "name": "organizations",
+  "who": "tr",
+  "path": "/organizations"
+ }
+]

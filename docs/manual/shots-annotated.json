@@ -1,0 +1,72 @@
+[
+ {"folder":"shared","name":"join-choose","who":null,"path":"/join","marks":[
+  {"n":1,"sel":"header >> text=Create account >> visible=true","label":"**Create account** opens the Join page from any page."},
+  {"n":2,"sel":"h2:has-text('Trainee') >> visible=true","label":"The **Trainee** card is for learners."},
+  {"n":3,"sel":"h2:has-text('Training Organization') >> visible=true","label":"The **Training Organization** card is for organisations that run courses."}]},
+ {"folder":"org","name":"register","who":null,"path":"/org/register","full":true,"marks":[
+  {"n":1,"sel":"label:has-text('Organization name') >> visible=true","label":"Your organisation’s name and your own name."},
+  {"n":2,"sel":"label:has-text('Work email') >> visible=true","label":"A work email you can read, then a password."},
+  {"n":3,"sel":"text=Revenue share >> visible=true","label":"How you will work with AAICBI (nothing is charged here)."},
+  {"n":4,"sel":"button:has-text('Register') >> visible=true","label":"**Register** sends your application for review."}]},
+ {"folder":"org","name":"login","who":null,"path":"/org/login","marks":[
+  {"n":1,"sel":"input[type=email] >> visible=true","label":"Your **Email**."},
+  {"n":2,"sel":"input[type=password] >> visible=true","label":"Your **Password**."},
+  {"n":3,"sel":"button:has-text('Sign in') >> visible=true","label":"**Sign in**."}]},
+ {"folder":"org","name":"dashboard","who":"org","path":"/admin/organization","marks":[
+  {"n":1,"sel":"text=Active trainees >> visible=true","label":"Key numbers: trainees, courses, certificates and completion.","at":"center","box":false},
+  {"n":2,"sel":"text=Seat usage >> visible=true","label":"**Seat usage**: seats used out of your plan.","at":"center","box":false},
+  {"n":3,"sel":"text=Progress by course >> visible=true","label":"**Progress by course**: enrolled, completed and rate.","at":"center","box":false},
+  {"n":4,"sel":"text=Recent trainees >> visible=true","label":"**Recent trainees** with a search box.","at":"center","box":false}]},
+ {"folder":"org","name":"profile","who":"org","path":"/admin/organization/profile","marks":[
+  {"n":1,"sel":"text=Show my organization page publicly >> visible=true","label":"Switch your public page on or off."},
+  {"n":2,"sel":"text=Page address >> visible=true","label":"The short address of your page.","at":"center","box":false},
+  {"n":3,"sel":"text=Organization picture >> visible=true","label":"Your logo; **Upload** adds it.","at":"center","box":false},
+  {"n":4,"sel":"text=Cover picture >> visible=true","label":"A wide cover picture.","at":"center","box":false}]},
+ {"folder":"org","name":"games","who":"org","path":"/admin/organization/games","marks":[
+  {"n":1,"sel":"button:has-text('Results') >> visible=true","label":"Tabs: Results, Live games, Moderation, Group chat games, Settings, History."},
+  {"n":2,"sel":"text=Open reports >> visible=true","label":"**Open reports** waiting for you.","at":"center","box":false},
+  {"n":3,"sel":"text=With AAICBI >> visible=true","label":"Incidents you passed to AAICBI.","at":"center","box":false}]},
+ {"folder":"trainee","name":"register","who":null,"path":"/trainee/register","marks":[
+  {"n":1,"sel":"label:has-text('Full name') >> visible=true","label":"Your **Full name**, **Email** and **Password**."},
+  {"n":2,"sel":"#privacyConsent >> visible=true","label":"Tick the Privacy Policy box."},
+  {"n":3,"sel":"button:has-text('Create account') >> visible=true","label":"**Create account**."}]},
+ {"folder":"trainee","name":"login","who":null,"path":"/trainee/login","marks":[
+  {"n":1,"sel":"input[type=email] >> visible=true","label":"Your **Email**."},
+  {"n":2,"sel":"input[type=password] >> visible=true","label":"Your **Password**."},
+  {"n":3,"sel":"a:has-text('Forgot your password?') >> visible=true","label":"**Forgot your password?**"}]},
+ {"folder":"org","name":"courses","who":"org","path":"/admin/courses","marks":[
+  {"n":1,"sel":"text=+ Create Course >> visible=true","label":"**+ Create Course** starts a new course."},
+  {"n":2,"sel":"text=Manage >> visible=true","label":"**Manage** opens a course."},
+  {"n":3,"sel":"text=Draft >> visible=true","label":"The status: **Draft** or **Published**."}]},
+ {"folder":"org","name":"course-new","who":"org","path":"/admin/courses/new","marks":[
+  {"n":1,"sel":"label:has-text('Course Title') >> visible=true","label":"The **Course Title** is required."},
+  {"n":2,"sel":"text=This course is free >> visible=true","label":"Free or paid."},
+  {"n":3,"sel":"button:has-text('Create & Add Modules') >> visible=true","label":"**Create & Add Modules**."}]},
+ {"folder":"org","name":"course-enrollments","who":"org","path":"/admin/courses/cmuznki56000np61xp469dmpa/enrollments","marks":[
+  {"n":1,"sel":"input[type=email] >> visible=true","label":"The trainee’s registered email."},
+  {"n":2,"sel":"button:has-text('Grant Access') >> visible=true","label":"**Grant Access**."},
+  {"n":3,"sel":"text=Revoke >> visible=true","label":"**Revoke** and **Extend Access** for each person."}]},
+ {"folder":"org","name":"performance-course","who":"org","path":"/admin/performance","actions":[{"select":["select","cmuznki56000np61xp469dmpa"]},{"wait":1800}],"marks":[
+  {"n":1,"sel":"text=Total trainees >> visible=true","label":"Summary cards: trainees, completion, scores, at risk, certification.","at":"center","box":false},
+  {"n":2,"sel":"button:has-text('Export CSV') >> visible=true","label":"**Export CSV** and **Export PDF**."},
+  {"n":3,"sel":"input[placeholder^='Search'] >> visible=true","label":"Filters and search."}]},
+ {"folder":"org","name":"settings","who":"org","path":"/admin/settings","marks":[
+  {"n":1,"sel":"text=Profile Picture >> visible=true","label":"**Profile Picture** with **Upload**.","at":"center","box":false},
+  {"n":2,"sel":"text=Dark Mode >> visible=true","label":"**Dark Mode** switch.","at":"center","box":false},
+  {"n":3,"sel":"text=Message the Super Admin >> visible=true","label":"**Support**: message the AAICBI Super Admin.","at":"center","box":false}]},
+ {"folder":"org","name":"events","who":"org","path":"/admin/organization/events","marks":[
+  {"n":1,"sel":"label:has-text('Title') >> visible=true","label":"**Title** is required."},
+  {"n":2,"sel":"button:has-text('Publish event') >> visible=true","label":"**Publish event**."}]},
+ {"folder":"trainee","name":"dashboard","who":"tr","path":"/trainee/dashboard","marks":[
+  {"n":1,"sel":"text=Your Examinations >> visible=true","label":"**Your examinations**: available, in progress, passed.","at":"center","box":false},
+  {"n":2,"sel":"text=Notifications >> visible=true","label":"**Notifications** with **View All Notifications**.","at":"center","box":false},
+  {"n":3,"sel":"a:has-text('Courses') >> visible=true","label":"The menu: **Courses** and the other sections."}]},
+ {"folder":"trainee","name":"courses","who":"tr","path":"/trainee/courses","marks":[
+  {"n":1,"sel":"text=FREE >> visible=true","label":"**FREE** or **PAID** tag.","at":"center","box":false},
+  {"n":2,"sel":"text=Continue learning >> visible=true","label":"**Continue learning** (enrolled) or **View course**.","at":"center","box":false}]},
+ {"folder":"trainee","name":"examinations","who":"tr","path":"/trainee/examinations","marks":[
+  {"n":1,"sel":"input[placeholder^='Search'] >> visible=true","label":"Search your examinations."},
+  {"n":2,"sel":"th:has-text('Pass') >> visible=true","label":"Pass mark, attempts and status for each."}]},
+ {"folder":"trainee","name":"arena","who":"tr","path":"/trainee/arena","marks":[
+  {"n":1,"sel":"a:has-text('SQL for Data Analytics') >> visible=true","label":"Choose a course to open its arena."}]}
+]

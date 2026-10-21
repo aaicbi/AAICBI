@@ -65,7 +65,12 @@ export default function TrainingOrgLoginPage() {
           </form>
         </Card>
 
-        <p className="mt-4 text-center text-xs text-gray-500">
+        <p className="mt-4 text-center text-xs">
+          <a href="/org/forgot-password" className="text-brand-teal hover:underline">
+            Forgot your password?
+          </a>
+        </p>
+        <p className="mt-2 text-center text-xs text-gray-500">
           New here?{" "}
           <a href="/org/register" className="text-brand-teal hover:underline">
             Register your organization

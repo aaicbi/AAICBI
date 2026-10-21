@@ -5,6 +5,8 @@ import Toggle from "@/components/ui/Toggle";
 import { useToast } from "@/components/ui/Toast";
 import AvatarUpload from "@/components/AvatarUpload";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import ChangePasswordCard from "@/components/account/ChangePasswordCard";
+import { useMyAccess } from "@/lib/useMyAccess";
 
 /**
  * Settings-page redesign — the personal-preferences half of the old
@@ -24,6 +26,7 @@ export default function AccountSettingsPanel() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const { showToast } = useToast();
+  const isOrganization = useMyAccess()?.kind === "organization";
 
   function applyTheme(enabled: boolean) {
     document.documentElement.classList.toggle("dark", enabled);
@@ -101,23 +104,9 @@ export default function AccountSettingsPanel() {
         </div>
       </Card>
 
-      <Card>
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="font-display font-semibold text-brand-ink">AI Platform Assistant</p>
-            <p className="mt-1 text-sm text-gray-600">
-              Reports, analytics, and management help powered by AI. Not available yet — turning this on now just
-              means it&apos;ll be ready for you the moment it launches.
-            </p>
-          </div>
-          <Toggle
-            checked={aiAssistantEnabled}
-            onChange={() => toggle("aiAssistantEnabled")}
-            disabled={saving}
-            label="AI Platform Assistant"
-          />
-        </div>
-      </Card>
+      {/* The AI Platform Assistant switch used to sit here. The feature is not available, so a switch that does nothing
+          was removed; the saved preference is still sent unchanged so it is ready if the feature launches. */}
+      {isOrganization && <ChangePasswordCard apiPath="/api/org/password" />}
 
       <Card>
         <div className="flex items-start justify-between gap-4">
