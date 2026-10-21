@@ -53,6 +53,20 @@ async function call(cookie, method, path, body) { const r = await fetch(B + path
     ok(r.s === 403, 'an instructor cannot manage the team');
     ok((await call(cInst, 'DELETE', `/api/courses/${A.id}`)).s === 403, 'an instructor cannot delete a course');
 
+    // editing is limited to the instructor's courses
+    r = await call(cInst, 'POST', `/api/courses/${A.id}/modules`, { title: 'ZZ new module' });
+    ok(r.s === 201 || r.s === 200, 'an instructor can add a module to their own course (' + r.s + ')');
+    r = await call(cInst, 'POST', `/api/courses/${Bc.id}/modules`, { title: 'ZZ sneaky' });
+    ok(r.s === 403 && /not one of yours/.test(JSON.stringify(r.j)), 'but not to a course they were not given');
+    const modB = await prisma.module.create({ data: { courseId: Bc.id, title: 'B module', order: 1 } });
+    const lessonB = await prisma.lesson.create({ data: { moduleId: modB.id, title: 'B lesson', order: 1 } });
+    ok((await call(cInst, 'PUT', `/api/modules/${modB.id}`, { title: 'x' })).s === 403, 'nor edit a module of that course');
+    ok((await call(cInst, 'PUT', `/api/lessons/${lessonB.id}`, { title: 'x' })).s === 403, 'nor a lesson of that course');
+    ok((await call(cInst, 'POST', `/api/courses/${Bc.id}/cohorts`, { name: 'x' })).s === 403, 'nor add a cohort to it');
+    ok((await call(cInst, 'POST', '/api/courses', { title: 'ZZ Team new' })).s === 403, 'an instructor cannot create a new course');
+    ok((await call(cInst, 'GET', `/api/courses/${Bc.id}`)).s === 200, 'they can still look at the organization\'s other courses');
+    ok((await call(cAdm, 'PUT', `/api/modules/${modB.id}`, { title: 'B module renamed' })).s === 200, 'an admin can edit any of the organization\'s courses');
+
     r = await call(cAdm, 'GET', '/admin/organization/trainees');
     ok(r.text.includes(`/admin/organization/trainees/${t11.id}`) && r.text.includes(`/admin/organization/trainees/${other.id}`), 'an admin sees all the organization\'s trainees');
     r = await call(cAdm, 'POST', '/api/org/members', { name: 'ZZ Helper', email: 'zz-helper@dev.test', role: 'EDITOR' });
