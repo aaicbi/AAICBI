@@ -27,6 +27,7 @@ import DashboardSwitcher from "@/components/mobile/DashboardSwitcher";
 import MobileHome from "@/components/mobile/MobileHome";
 import { nextEventBlock, opportunitiesBlock } from "@/lib/mobile/homeData";
 import type { MobileBlock } from "@/lib/mobile/homeCore";
+import UpcomingEventsWidget from "@/components/events/UpcomingEventsWidget";
 
 /**
  * M12 — replaces the M10-era empty shell (browsing-only, no progress)
@@ -298,6 +299,7 @@ export default async function TraineeDashboardPage() {
           momentumLine={momentumLine}
           profileHref="/trainee/profile"
         />
+        <UpcomingEventsWidget as="participant" />
 
         {!trainee.emailVerified && (
           <div className="mt-4 rounded-lg border border-brand-gold bg-brand-goldLight/50 px-4 py-3 text-sm text-brand-goldText">

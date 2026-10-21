@@ -16,6 +16,7 @@ import NotificationSummaryCard from "@/components/dashboard/NotificationSummaryC
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import QuickActionsCard from "@/components/dashboard/QuickActionsCard";
 import { ADMIN_NAV } from "@/lib/admin/nav";
+import UpcomingEventsWidget from "@/components/events/UpcomingEventsWidget";
 
 const ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: "Super Admin",
@@ -123,6 +124,7 @@ export default async function AdminDashboardPage() {
           lastVisitLabel={formatLastVisit(staff.previousLoginAt)}
           profileHref="/admin/profile"
         />
+        <UpcomingEventsWidget as="platform" />
 
         {isApprover && (pendingEmployers > 0 || pendingJobPostings > 0 || pendingReports > 0) && (
           <div className="mt-6 grid grid-cols-3 gap-3">

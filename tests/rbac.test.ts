@@ -19,7 +19,8 @@ describe("the catalogue", () => {
   });
   it("keeps staff and organization permissions in separate categories", () => {
     expect(STAFF_PERMISSIONS.some((k) => k.startsWith("org_games."))).toBe(false);
-    expect(ORG_PERMISSIONS.every((k) => k.startsWith("org_games."))).toBe(true);
+    expect(STAFF_PERMISSIONS.some((k) => k.startsWith("org_events."))).toBe(false);
+    expect(ORG_PERMISSIONS.every((k) => k.startsWith("org_games.") || k.startsWith("org_events."))).toBe(true);
     expect(CATEGORIES.find((c) => c.id === "org_games")?.audience).toBe("organization");
   });
   it("separates the Gaming Studio from gaming moderation", () => {
@@ -45,7 +46,7 @@ describe("the catalogue", () => {
 
 describe("role templates", () => {
   it("are the eight suggested ones and contain only real staff permissions", () => {
-    expect(ROLE_TEMPLATES.map((t) => t.key)).toEqual(["platform_admin", "gaming_studio_admin", "gaming_ops_moderator", "org_support", "trainee_course_admin", "content_moderator", "reports_officer", "technical_support"]);
+    expect(ROLE_TEMPLATES.map((t) => t.key)).toEqual(["platform_admin", "gaming_studio_admin", "gaming_ops_moderator", "events_manager", "org_support", "trainee_course_admin", "content_moderator", "reports_officer", "technical_support"]);
     for (const t of ROLE_TEMPLATES) {
       expect(t.permissions.length).toBeGreaterThan(0);
       expect(t.permissions.every((k) => STAFF_PERMISSIONS.includes(k))).toBe(true);
@@ -108,7 +109,7 @@ describe("resolving a staff member", () => {
 describe("resolving an organization", () => {
   it("never returns anything outside organization games: no Studio, no platform control", () => {
     for (const role of ["OWNER", "MANAGER", "EDITOR", "VIEWER"] as const) {
-      for (const k of resolveOrganization(role, { ...DEFAULT_ORG_POLICY, resultsExport: true, toggleGames: true, courseRules: true })) expect(k.startsWith("org_games.")).toBe(true);
+      for (const k of resolveOrganization(role, { ...DEFAULT_ORG_POLICY, resultsExport: true, toggleGames: true, courseRules: true })) expect(k.startsWith("org_games.") || k.startsWith("org_events.")).toBe(true);
     }
   });
   it("lets owners and managers moderate by default and editors and viewers only look", () => {
@@ -123,7 +124,7 @@ describe("resolving an organization", () => {
   });
   it("follows the Super Admin's switches", () => {
     const off = resolveOrganization("OWNER", { ...DEFAULT_ORG_POLICY, resultsView: false, liveMonitor: false, endSessions: false, restrictTrainees: false, removeParticipants: false, chatGameModeration: false, courseRules: false });
-    expect(off.size).toBe(0);
+    expect([...off].filter((k) => k.startsWith("org_games."))).toEqual([]);
     expect(resolveOrganization("OWNER").has("org_games.results:export")).toBe(false);
     expect(resolveOrganization("OWNER", { ...DEFAULT_ORG_POLICY, resultsExport: true }).has("org_games.results:export")).toBe(true);
     expect(resolveOrganization("MANAGER", { ...DEFAULT_ORG_POLICY, toggleGames: true }).has("org_games.settings:configure")).toBe(true);

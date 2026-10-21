@@ -59,5 +59,20 @@ export function resolveOrganization(role: OrgRoleName, policy: OrgGamingPolicyIn
   if (mod && policy.chatGameModeration) out.add("org_games.chat_games:moderate");
   if (mod && (policy.endSessions || policy.restrictTrainees || policy.removeParticipants || policy.chatGameModeration)) out.add("org_games.reports:moderate");
   if (mod && (policy.toggleGames || policy.courseRules)) out.add("org_games.settings:configure");
+  for (const k of orgEventPermissions(role)) out.add(k);
   return new Set([...out].filter((k) => ORG_PERMISSIONS.includes(k)));
+}
+
+/**
+ * What a person in an organization may do with the organization's own events. Owners and managers do everything; editors prepare events
+ * and their pictures but do not handle registrations or send requests for public promotion; viewers only look. Whether the Event Manager
+ * is switched on for organizations at all is a platform setting checked separately.
+ */
+export function orgEventPermissions(role: OrgRoleName): string[] {
+  const view = ["org_events.events:view", "org_events.promotion:view"];
+  if (role === "OWNER" || role === "MANAGER") {
+    return [...view, "org_events.events:create", "org_events.events:edit", "org_events.media:manage", "org_events.registrations:view", "org_events.registrations:manage", "org_events.registrations:export", "org_events.promotion:create"];
+  }
+  if (role === "EDITOR") return [...view, "org_events.events:create", "org_events.events:edit", "org_events.media:manage", "org_events.registrations:view"];
+  return view;
 }

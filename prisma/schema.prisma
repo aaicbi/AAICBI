@@ -3331,6 +3331,7 @@ enum TrainingOrganizationApprovalState {
 }
 
 model TrainingOrganization {
+  managedEvents Event[]
   id            String                             @id @default(cuid())
   name          String
   contactName   String
@@ -6492,4 +6493,249 @@ model GameModerationAction {
   @@index([organizationId, createdAt])
   @@index([traineeId, createdAt])
   @@index([escalatedAt])
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Event Manager and live session scheduling. See docs/events.md.
+// The internal lifecycle (`status`) and the public promotion workflow (`promotionStatus`) are separate on purpose: an organisation can
+// run an internal session even when its request for public promotion is rejected. Private joining details live in EventJoinInfo, never
+// on Event, so no list or public query can leak them by accident. The older OrganizationEvent table is kept untouched; its rows were
+// copied into Event by the migration (same ids) and nothing reads it any more.
+// ---------------------------------------------------------------------------------------------------------------------------------
+enum EventDelivery {
+  PHYSICAL
+  ONLINE
+  HYBRID
+}
+
+/// Who may see the event. PUBLIC still needs Super Admin approval when an organisation owns it (see promotionStatus).
+enum EventAudience {
+  PUBLIC
+  ORG_MEMBERS
+  SELECTED_TRAINEES
+  ORG_STAFF
+  INVITED
+  PRIVATE
+}
+
+/// The internal lifecycle. "Completed" and "live" are worked out from the clock, not stored.
+enum EventStatus {
+  DRAFT
+  SCHEDULED
+  CANCELLED
+  ARCHIVED
+}
+
+enum EventPromotionStatus {
+  NONE
+  SUBMITTED
+  CHANGES_REQUESTED
+  APPROVED
+  PUBLISHED
+  REJECTED
+}
+
+enum EventRegistrationMode {
+  OPEN
+  REGISTRATION
+  APPROVAL
+  INVITE_ONLY
+}
+
+enum EventRegistrationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  DECLINED
+}
+
+model EventCategory {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  events    Event[]
+}
+
+model Event {
+  id                         String                @id @default(cuid())
+  /// Null for an event AAICBI itself organises. Set for an organisation's own event, including one the Super Admin promotes for it.
+  trainingOrganizationId     String?
+  trainingOrganization       TrainingOrganization? @relation(fields: [trainingOrganizationId], references: [id], onDelete: Cascade)
+  createdByUserId            String?
+  createdByLabel             String?
+  /// ORG: the organisation manages it. PLATFORM: AAICBI staff manage it (AAICBI's own events, or an event promoted on an organisation's behalf; the organisation sees it read-only).
+  managedBy                  String                @default("ORG")
+  title                      String
+  summary                    String?
+  description                String?
+  categoryId                 String?
+  category                   EventCategory?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  /// What kind of activity it is (a lecture, a meeting, a class...). Free choice from a fixed list, see eventsCore.EVENT_TYPES.
+  eventType                  String                @default("OTHER")
+  startsAt                   DateTime
+  endsAt                     DateTime
+  /// IANA name, for example Africa/Lagos. startsAt and endsAt are always stored in UTC.
+  timeZone                   String                @default("Africa/Lagos")
+  registrationDeadline       DateTime?
+  capacity                   Int?
+  delivery                   EventDelivery         @default(PHYSICAL)
+  venueName                  String?
+  address                    String?
+  city                       String?
+  state                      String?
+  directions                 String?
+  mapUrl                     String?
+  attendanceNotes            String?
+  conferenceProvider         String?
+  status                     EventStatus           @default(DRAFT)
+  audience                   EventAudience         @default(PRIVATE)
+  registrationMode           EventRegistrationMode @default(OPEN)
+  registrationNotes          String?
+  /// An outside registration page (for an event that registers people elsewhere). Always opened as an external link.
+  registrationUrl            String?
+  /// Online and physical attendance of a hybrid event.
+  hybridSeparateRegistration Boolean               @default(false)
+  flyerUrl                   String?
+  videoUrl                   String?
+  /// UPLOAD (a file this app stored) or EXTERNAL (a YouTube or similar link).
+  videoKind                  String?
+  promotionStatus            EventPromotionStatus  @default(NONE)
+  promotionNote              String?
+  promotionRequestedAt       DateTime?
+  promotionDecidedAt         DateTime?
+  promotionDecidedById       String?
+  /// When an approved event goes live on the public pages. Null with APPROVED means "publish when the Super Admin presses publish".
+  publishAt                  DateTime?
+  publishedAt                DateTime?
+  cancelledAt                DateTime?
+  cancelReason               String?
+  /// Join button opens this many minutes before the start (null = the platform default).
+  joinOpensMinutes           Int?
+  isDemo                     Boolean               @default(false)
+  createdAt                  DateTime              @default(now())
+  updatedAt                  DateTime              @updatedAt
+
+  joinInfo      EventJoinInfo?
+  targets       EventTarget[]
+  media         EventMedia[]
+  registrations EventRegistration[]
+  activity      EventActivity[]
+  notices       EventNotice[]
+
+  @@index([trainingOrganizationId, startsAt])
+  @@index([status, startsAt])
+  @@index([audience, promotionStatus, startsAt])
+  @@index([promotionStatus, promotionRequestedAt])
+  @@index([categoryId])
+}
+
+/// The private way into an online session. Served only to people allowed to join; never part of a list, a card or a public page.
+model EventJoinInfo {
+  eventId      String   @id
+  event        Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  meetingUrl   String
+  meetingId    String?
+  /// Encrypted at rest (AES-256-GCM, see eventsCrypto.ts).
+  passcodeEnc  String?
+  instructions String?
+  updatedAt    DateTime @updatedAt
+}
+
+/// Who a SELECTED_TRAINEES or INVITED event is for: a cohort, a course or one trainee.
+model EventTarget {
+  id      String @id @default(cuid())
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  /// COHORT | COURSE | TRAINEE
+  kind    String
+  refId   String
+
+  @@unique([eventId, kind, refId])
+  @@index([kind, refId])
+}
+
+/// Extra pictures and videos beyond the flyer.
+model EventMedia {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  /// POSTER | IMAGE | VIDEO
+  kind      String
+  url       String
+  mimeType  String?
+  sizeBytes Int?
+  caption   String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([eventId, sortOrder])
+}
+
+/// One registration per person per event. The person is their Profile, so trainees, employers, investors, founders, staff and organisations all work the same way.
+model EventRegistration {
+  id                 String                  @id @default(cuid())
+  eventId            String
+  event              Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  profileId          String
+  /// ONLINE | PHYSICAL for a hybrid event that asks people to choose.
+  attendanceMode     String?
+  status             EventRegistrationStatus @default(CONFIRMED)
+  /// A manual register kept by the organiser. Clicking a join link never sets these.
+  attended           Boolean                 @default(false)
+  attendedMarkedAt   DateTime?
+  attendedMarkedById String?
+  decidedById        String?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+
+  @@unique([eventId, profileId])
+  @@index([eventId, status])
+  @@index([profileId, createdAt])
+}
+
+/// The history of an event: who did what and why. Complements the platform AuditEvent for sensitive actions.
+model EventActivity {
+  id         String   @id @default(cuid())
+  eventId    String
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  actorId    String?
+  actorLabel String?
+  /// SUPER_ADMIN | STAFF | ORGANIZATION | SYSTEM
+  actorKind  String
+  action     String
+  note       String?
+  createdAt  DateTime @default(now())
+
+  @@index([eventId, createdAt])
+}
+
+/// One row per notification kind and person and event, so a retry or a second press never sends twice.
+model EventNotice {
+  id            String   @id @default(cuid())
+  eventId       String
+  event         Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  recipientType String
+  recipientId   String
+  /// PUBLISHED | INVITED | REMINDER_DAY | REMINDER_HOUR | RESCHEDULED:<startsAt ms> | CANCELLED | REGISTERED ...
+  kind          String
+  createdAt     DateTime @default(now())
+
+  @@unique([eventId, recipientType, recipientId, kind])
+  @@index([eventId, kind])
+}
+
+/// Platform-wide switches for the Event Manager (one row, id = "default").
+model EventSettings {
+  id                  String   @id @default("default")
+  enabled             Boolean  @default(true)
+  orgEventsEnabled    Boolean  @default(true)
+  promotionsEnabled   Boolean  @default(true)
+  registrationEnabled Boolean  @default(true)
+  showPast            Boolean  @default(true)
+  joinOpensMinutes    Int      @default(15)
+  updatedById         String?
+  updatedAt           DateTime @updatedAt
 }

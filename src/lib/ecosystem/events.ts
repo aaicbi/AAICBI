@@ -1,40 +1,39 @@
 import { prisma } from "@/lib/prisma";
-
-const DAY = 24 * 3600 * 1000;
+import { publicWhere } from "@/lib/events/events";
+import { getEventSettings } from "@/lib/events/eventsAccess";
 
 export interface EventCard {
-  id: string; title: string; description: string | null; startsAt: Date; endsAt: Date | null;
-  locationText: string | null; registrationUrl: string | null; organizationName: string; organizationSlug: string;
+  id: string; title: string; description: string | null; startsAt: Date; endsAt: Date | null; timeZone: string; delivery: "PHYSICAL" | "ONLINE" | "HYBRID";
+  locationText: string | null; registrationUrl: string | null; organizationName: string; organizationSlug: string; flyerUrl: string | null;
 }
 
 /**
- * Published events of organizations with a public page that are not over
- * yet (an event with no end time stays listed for the day it starts).
- * Over-fetches slightly and filters in code so the "not over" rule lives
- * in one place (isUpcoming's definition).
+ * Published public events that are not over yet, from the Event Manager. These are the only events the public pages, the landing page,
+ * search and the mobile home ever list: an event appears here only after it was published (and, for an organisation, approved).
+ * Private joining details are never part of this.
  */
 export async function listUpcomingEvents(opts: { organizationId?: string; q?: string; take?: number } = {}): Promise<EventCard[]> {
+  if (!(await getEventSettings()).enabled) return [];
   const now = new Date();
-  const q = opts.q?.trim();
-  const rows = await prisma.organizationEvent.findMany({
+  const q = opts.q?.trim().slice(0, 80);
+  const rows = await prisma.event.findMany({
     where: {
-      status: "PUBLISHED",
-      startsAt: { gte: new Date(now.getTime() - 60 * DAY) },
-      trainingOrganization: { approvalState: "APPROVED", publicProfile: { is: { publicEnabled: true } }, ...(opts.organizationId ? { id: opts.organizationId } : {}) },
-      ...(q ? { OR: [{ title: { contains: q, mode: "insensitive" } }, { description: { contains: q, mode: "insensitive" } }, { locationText: { contains: q, mode: "insensitive" } }] } : {}),
+      AND: [
+        publicWhere(now), { endsAt: { gt: now } },
+        ...(opts.organizationId ? [{ trainingOrganizationId: opts.organizationId }] : []),
+        ...(q ? [{ OR: [{ title: { contains: q, mode: "insensitive" as const } }, { summary: { contains: q, mode: "insensitive" as const } }, { description: { contains: q, mode: "insensitive" as const } }, { venueName: { contains: q, mode: "insensitive" as const } }, { city: { contains: q, mode: "insensitive" as const } }] }] : []),
+      ],
     },
     orderBy: { startsAt: "asc" },
-    take: 200,
+    take: Math.min(opts.take ?? 30, 200),
     select: {
-      id: true, title: true, description: true, startsAt: true, endsAt: true, locationText: true, registrationUrl: true,
+      id: true, title: true, summary: true, description: true, startsAt: true, endsAt: true, timeZone: true, delivery: true, venueName: true, city: true, registrationUrl: true, flyerUrl: true,
       trainingOrganization: { select: { name: true, publicProfile: { select: { slug: true } } } },
     },
   });
-  return rows
-    .filter((e) => (e.endsAt ?? new Date(e.startsAt.getTime() + DAY)).getTime() >= now.getTime())
-    .slice(0, opts.take ?? 30)
-    .map((e) => ({
-      id: e.id, title: e.title, description: e.description, startsAt: e.startsAt, endsAt: e.endsAt, locationText: e.locationText,
-      registrationUrl: e.registrationUrl, organizationName: e.trainingOrganization.name, organizationSlug: e.trainingOrganization.publicProfile?.slug ?? "",
-    }));
+  return rows.map((e) => ({
+    id: e.id, title: e.title, description: e.summary ?? e.description, startsAt: e.startsAt, endsAt: e.endsAt, timeZone: e.timeZone, delivery: e.delivery,
+    locationText: e.delivery === "ONLINE" ? "Online" : [e.venueName, e.city].filter(Boolean).join(", ") || (e.delivery === "HYBRID" ? "Hybrid" : null),
+    registrationUrl: e.registrationUrl, organizationName: e.trainingOrganization?.name ?? "AAICBI", organizationSlug: e.trainingOrganization?.publicProfile?.slug ?? "", flyerUrl: e.flyerUrl,
+  }));
 }

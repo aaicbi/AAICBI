@@ -220,6 +220,19 @@ export const CATEGORIES: Category[] = [
     ],
   },
   {
+    id: "events", label: "Events and live sessions", audience: "staff",
+    description: "The platform Event Manager: AAICBI's own events and the promotion of training organizations' events. Nobody has these by default except the Super Admin.",
+    features: [
+      f("events.global", "Global events and calendar", "See every event on the platform, including organizations' private ones, and the global calendar.", ["view"], ["view"]),
+      f("events.platform", "Platform events", "Create and edit AAICBI's own events. Publish = make a public event live. Delete = cancel and archive.", ["create", "edit", "publish", "delete"]),
+      f("events.categories", "Event categories", "Create, rename and switch off event categories.", ["manage"]),
+      f("events.promotions", "Promotion requests", "Review organizations' requests for public promotion. Approve = approve, reject or ask for changes. Publish = put an approved event on the public pages.", ["view", "approve", "publish"]),
+      f("events.registrations", "Registrations and attendance", "See who registered for platform events and keep the attendance register.", ["view", "manage", "export"], ["export"]),
+      f("events.analytics", "Event analytics", "Participation and engagement across events.", ["view"]),
+      f("events.settings", "Event settings", "Switch the Event Manager, organization events, promotion and registration on or off.", ["configure"], ["configure"]),
+    ],
+  },
+  {
     id: "org_games", label: "Organization games (training organizations only)", audience: "organization",
     description: "What a training organization may do with games played by its own trainees. Set per organization by a Super Admin.",
     features: [
@@ -230,6 +243,16 @@ export const CATEGORIES: Category[] = [
       f("org_games.restrictions", "Trainee participation", "Restrict a trainee or remove them from a game.", ["manage"]),
       f("org_games.chat_games", "Course group chat games", "Moderate games in the organization's course chats.", ["moderate"]),
       f("org_games.settings", "Game settings for its courses", "Switch supported games on or off for its own courses and set course participation rules.", ["configure"]),
+    ],
+  },
+  {
+    id: "org_events", label: "Organization events (training organizations only)", audience: "organization",
+    description: "What a training organization may do with its own events and live sessions. Never includes platform events or other organizations' events.",
+    features: [
+      f("org_events.events", "Organization events", "See its own events and calendar. Create = new events and drafts. Edit = change them, reschedule and cancel.", ["view", "create", "edit"]),
+      f("org_events.media", "Event flyers and videos", "Upload promotional pictures and videos.", ["manage"]),
+      f("org_events.registrations", "Registrations and attendance", "See who registered, decide registrations and keep the attendance register.", ["view", "manage", "export"]),
+      f("org_events.promotion", "Public promotion", "Ask the Super Admin to promote an event publicly, and follow the request.", ["view", "create"]),
     ],
   },
 ];
