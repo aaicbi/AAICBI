@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeAction, mayDo, worthLogging } from "@/lib/org/people";
+import { describeAction, instructorCourseLimit, isMemberRole, mayDo, MEMBER_ROLES, ROLE_LABEL, worthLogging } from "@/lib/org/people";
 
 const ok = (r: string, m: string, p: string) => mayDo(r as never, m, p).ok;
 
@@ -57,5 +57,29 @@ describe("the activity log", () => {
     expect(worthLogging("POST", "/api/guide/chat")).toBe(false);
     expect(worthLogging("POST", "/api/auth/logout")).toBe(false);
     expect(worthLogging("PUT", "/api/courses/abc")).toBe(true);
+  });
+});
+
+describe("organization instructors", () => {
+  it("is a role an owner can give, and the manager role is shown as Admin", () => {
+    expect(isMemberRole("INSTRUCTOR")).toBe(true);
+    expect(MEMBER_ROLES).toEqual(["MANAGER", "INSTRUCTOR", "EDITOR", "VIEWER"]);
+    expect(ROLE_LABEL.MANAGER).toBe("Admin");
+    expect(ROLE_LABEL.INSTRUCTOR).toBe("Instructor");
+  });
+  it("an instructor builds content like an editor but cannot publish, delete or touch team, profile or billing", () => {
+    expect(ok("INSTRUCTOR", "PUT", "/api/courses/abc")).toBe(true);
+    expect(ok("INSTRUCTOR", "POST", "/api/exams/e1/questions")).toBe(true);
+    expect(ok("INSTRUCTOR", "POST", "/api/reports/trainees/send")).toBe(true);
+    expect(ok("INSTRUCTOR", "DELETE", "/api/courses/abc")).toBe(false);
+    expect(ok("INSTRUCTOR", "POST", "/api/exams/e1/publish")).toBe(false);
+    expect(ok("INSTRUCTOR", "POST", "/api/org/members")).toBe(false);
+    expect(ok("INSTRUCTOR", "PUT", "/api/org/profile")).toBe(false);
+    expect(ok("INSTRUCTOR", "POST", "/api/org/billing/pay")).toBe(false);
+  });
+  it("limits an instructor to assigned courses that the organization owns, and nobody else", () => {
+    expect(instructorCourseLimit("INSTRUCTOR", ["a", "b", "x", "a"], ["a", "b", "c"])).toEqual(["a", "b"]);
+    expect(instructorCourseLimit("INSTRUCTOR", [], ["a"])).toEqual([]);
+    for (const r of ["OWNER", "MANAGER", "EDITOR", "VIEWER"] as const) expect(instructorCourseLimit(r, ["a"], ["a"])).toBeNull();
   });
 });

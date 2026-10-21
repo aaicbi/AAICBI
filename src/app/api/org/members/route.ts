@@ -4,12 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { withApiErrors } from "@/lib/apiError";
 import { rateLimit } from "@/lib/rateLimit";
 import { isMemberRole } from "@/lib/org/people";
+import { ownCourseIds } from "@/lib/org/memberCourses";
 import { issueMemberInvite, requireTrainingOrgSession, unusablePasswordHash } from "@/lib/trainingOrgMembers";
 
 const CreateSchema = z.object({
   name: z.string().trim().min(1, "Enter a name.").max(100),
   email: z.string().trim().toLowerCase().email("Enter a valid email address."),
-  role: z.string().default("EDITOR").refine(isMemberRole, "Choose manager, editor or viewer."),
+  courseIds: z.array(z.string().min(1)).max(200).optional(),
+  role: z.string().default("EDITOR").refine(isMemberRole, "Choose admin, instructor, editor or viewer."),
 });
 
 /**
@@ -21,14 +23,15 @@ const CreateSchema = z.object({
 export async function GET() {
   return withApiErrors(async () => {
     const { org } = await requireTrainingOrgSession();
-    const members = await prisma.trainingOrganizationMember.findMany({
+    const [courses, members] = await Promise.all([prisma.course.findMany({ where: { createdById: org.staffUserId ?? "" }, orderBy: { title: "asc" }, select: { id: true, title: true } }), prisma.trainingOrganizationMember.findMany({
       where: { trainingOrganizationId: org.id },
       orderBy: { createdAt: "asc" },
-      select: { id: true, name: true, email: true, role: true, disabledAt: true, lastLoginAt: true, createdAt: true, setupToken: true, passwordHash: false },
-    });
+      select: { id: true, name: true, email: true, role: true, disabledAt: true, lastLoginAt: true, createdAt: true, setupToken: true, passwordHash: false, courses: { select: { courseId: true } } },
+    })]);
     return NextResponse.json({
       owner: { name: org.contactName, email: org.email, lastLoginAt: org.lastLoginAt },
-      members: members.map(({ setupToken, ...m }) => ({ ...m, invitePending: setupToken !== null })),
+      courses,
+      members: members.map(({ setupToken, courses: cs, ...m }) => ({ ...m, courseIds: cs.map((c) => c.courseId), invitePending: setupToken !== null })),
     });
   });
 }
@@ -50,6 +53,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { name, email, role } = parsed.data;
+    const courseIds = role === "INSTRUCTOR" ? await ownCourseIds(org.staffUserId, parsed.data.courseIds ?? []) : [];
     const [orgWithEmail, memberWithEmail] = await Promise.all([
       prisma.trainingOrganization.findUnique({ where: { email }, select: { id: true } }),
       prisma.trainingOrganizationMember.findUnique({ where: { email }, select: { id: true } }),
@@ -59,7 +63,7 @@ export async function POST(req: NextRequest) {
     }
 
     const member = await prisma.trainingOrganizationMember.create({
-      data: { trainingOrganizationId: org.id, name, email, role, passwordHash: await unusablePasswordHash() },
+      data: { trainingOrganizationId: org.id, name, email, role, passwordHash: await unusablePasswordHash(), ...(courseIds.length ? { courses: { create: courseIds.map((courseId) => ({ courseId })) } } : {}) },
       select: { id: true, name: true, email: true },
     });
     const setupUrl = await issueMemberInvite(member, org.name);

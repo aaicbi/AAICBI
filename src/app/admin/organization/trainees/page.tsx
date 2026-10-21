@@ -8,6 +8,7 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
 import { Input } from "@/components/ui/Field";
+import { orgInstructorCourseLimit } from "@/lib/org/memberCourses";
 import ReportActions from "@/components/reports/ReportActions";
 
 export const metadata = { title: "Trainees" };
@@ -24,10 +25,11 @@ export default async function OrganizationTraineesPage({ searchParams }: { searc
   const org = await findTrainingOrgByStaffUserId(session.userId);
   if (!org) redirect("/admin/dashboard");
 
+  const limit = await orgInstructorCourseLimit(session.userId, session.email);
   const q = (searchParams.q ?? "").trim().slice(0, 80);
   const enrollments = await prisma.courseEnrollment.findMany({
     where: {
-      course: { createdById: session.userId },
+      course: { createdById: session.userId, ...(limit ? { id: { in: limit } } : {}) },
       ...(q ? { trainee: { OR: [{ name: { contains: q, mode: "insensitive" } }, { email: { contains: q, mode: "insensitive" } }] } } : {}),
     },
     orderBy: { enrolledAt: "desc" },

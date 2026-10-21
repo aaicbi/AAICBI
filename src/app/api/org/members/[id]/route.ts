@@ -4,9 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { withApiErrors } from "@/lib/apiError";
 import { rateLimit } from "@/lib/rateLimit";
 import { isMemberRole } from "@/lib/org/people";
+import { ownCourseIds } from "@/lib/org/memberCourses";
 import { issueMemberInvite, requireTrainingOrgSession } from "@/lib/trainingOrgMembers";
 
-const PatchSchema = z.union([z.object({ action: z.enum(["disable", "enable", "resend"]) }), z.object({ action: z.literal("role"), role: z.string().refine(isMemberRole, "Choose manager, editor or viewer.") })]);
+const PatchSchema = z.union([z.object({ action: z.enum(["disable", "enable", "resend"]) }), z.object({ action: z.literal("role"), role: z.string().refine(isMemberRole, "Choose admin, instructor, editor or viewer.") }), z.object({ action: z.literal("courses"), courseIds: z.array(z.string().min(1)).max(200) })]);
 
 /** Finds the member only if it belongs to the session's own organization. */
 async function ownMember(id: string, organizationId: string) {
@@ -27,6 +28,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const member = await ownMember(params.id, org.id);
     if (!member) return NextResponse.json({ error: "Team member not found." }, { status: 404 });
 
+    if (parsed.data.action === "courses") {
+      if (member.role !== "INSTRUCTOR") return NextResponse.json({ error: "Only instructors are given courses." }, { status: 400 });
+      const ids = await ownCourseIds(org.staffUserId, parsed.data.courseIds);
+      await prisma.$transaction([
+        prisma.trainingOrganizationMemberCourse.deleteMany({ where: { memberId: member.id } }),
+        prisma.trainingOrganizationMemberCourse.createMany({ data: ids.map((courseId) => ({ memberId: member.id, courseId })) }),
+      ]);
+      return NextResponse.json({ ok: true, courseIds: ids });
+    }
     if (parsed.data.action === "role") {
       await prisma.trainingOrganizationMember.update({ where: { id: member.id }, data: { role: parsed.data.role } });
       return NextResponse.json({ ok: true });

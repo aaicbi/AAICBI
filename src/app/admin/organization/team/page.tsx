@@ -32,7 +32,7 @@ export default async function OrganizationTeamPage() {
           <OrgActivityList />
         </>
       ) : (
-        <Card className="mt-6"><p className="text-sm text-gray-700">Only the owner or a manager can manage the team and see the activity.</p></Card>
+        <Card className="mt-6"><p className="text-sm text-gray-700">Only the owner or an admin can manage the team and see the activity.</p></Card>
       )}
     </main>
   );
