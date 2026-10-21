@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
+import ExpandSelect from "@/components/ui/ExpandSelect";
 
 interface Counts {
   create: number;
@@ -181,7 +182,7 @@ export default function ImportPanel({ moduleId, moduleTitle, canUse, canMakeGame
                 <p className="font-medium text-brand-ink">{o.text}</p>
                 <label className="mt-1 flex flex-wrap items-center gap-2">
                   <span>Goes to:</span>
-                  <select
+                  <ExpandSelect compact
                     aria-label={`Where objective ${o.number} goes`}
                     data-testid="import-objective-choice"
                     disabled={busy}
@@ -199,7 +200,7 @@ export default function ImportPanel({ moduleId, moduleTitle, canUse, canMakeGame
                       </option>
                     ))}
                     <option value="skip">Leave this part out</option>
-                  </select>
+                  </ExpandSelect>
                   {!o.skipped && o.match.how !== "new" && o.match.how !== "chosen" && <span className="text-gray-500">(matched by {o.match.how})</span>}
                 </label>
               </li>

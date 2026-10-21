@@ -7,6 +7,7 @@ import PushNudge from "./PushNudge";
 import ChallengeMute from "./ChallengeMute";
 import { useArenaLive, channels } from "./useArenaLive";
 import type { CourseArenaView } from "@/lib/arena/arenaView";
+import ExpandSelect from "@/components/ui/ExpandSelect";
 
 /** The course arena: who is online, challenges in and out, your current match, and recent results. */
 export default function ArenaLobby({ courseId, traineeId }: { courseId: string; traineeId: string }) {
@@ -86,10 +87,10 @@ export default function ArenaLobby({ courseId, traineeId }: { courseId: string; 
               <ChallengeMute />
               <div className="ar-glass ar-fill ar-lobbylist">
                 <div className="ar-row"><strong className="ar-grow">Online now</strong>
-                  <select aria-label="Topic" value={topic} onChange={(e) => setTopic(e.target.value)} style={{ maxWidth: "50%" }}>
+                  <ExpandSelect tone="dark" compact aria-label="Topic" value={topic} onChange={(e) => setTopic(e.target.value)} style={{ maxWidth: "50%" }}>
                     <option value="">Whole course</option>
                     {v.topics.map((t) => <option key={t.id} value={t.id}>{t.title} ({t.count})</option>)}
-                  </select>
+                  </ExpandSelect>
                 </div>
                 {v.online.length === 0 && <p className="ar-muted">Nobody else is in the arena right now. You can still challenge a coursemate below, and they'll get a notification on their phone.</p>}
                 {v.online.map((p) => (

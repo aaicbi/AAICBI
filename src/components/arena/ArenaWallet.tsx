@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import ExpandSelect from "@/components/ui/ExpandSelect";
 
 interface Wallet { enabled: boolean; balance: number; maxTransfer: number; sentToday: number; maxPerDay: number; history: { id: string; points: number; label: string; at: number }[]; mates: { id: string; name: string }[] }
 
@@ -28,10 +29,10 @@ export default function ArenaWallet({ courseId, onClose, onChanged, flash }: { c
       <div className="ar-row"><b className="ar-grow">⭐ {w.balance} credits</b><button type="button" className="ar-btn ar-ghost ar-sm" onClick={onClose}>Close</button></div>
       {!w.enabled ? <p className="ar-muted">Sending and spending credits opens soon.</p> : (
         <form className="ar-row" onSubmit={send} style={{ flexWrap: "wrap" }}>
-          <select className="ar-chatin" value={to} onChange={(e) => setTo(e.target.value)} aria-label="Send to" style={{ minWidth: 0 }}>
+          <ExpandSelect tone="dark" compact className="ar-chatin" value={to} onChange={(e) => setTo(e.target.value)} aria-label="Send to" style={{ minWidth: 0 }}>
             <option value="">Send to…</option>
             {w.mates.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-          </select>
+          </ExpandSelect>
           <input className="ar-chatin" type="number" min={1} max={w.maxTransfer} value={amount} onChange={(e) => setAmount(Number(e.target.value) || 1)} aria-label="Credits" style={{ maxWidth: "6em", flex: "none" }} />
           <button type="submit" className="ar-btn ar-sm" disabled={!to || busy}>Send</button>
         </form>

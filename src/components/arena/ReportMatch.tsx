@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { REPORT_REASONS } from "@/lib/arena/moderationCore";
+import ExpandSelect from "@/components/ui/ExpandSelect";
 
 /** "Report this match": tell the course's moderators about cheating or abuse. A player reports the other player; a watcher picks who. */
 export default function ReportMatch({ matchId, watcherOf }: { matchId: string; watcherOf?: { id: string; name: string }[] }) {
@@ -29,7 +30,7 @@ export default function ReportMatch({ matchId, watcherOf }: { matchId: string; w
         <form className="ar-glass" onSubmit={send} data-testid="report-form" style={{ display: "grid", gap: ".5em", textAlign: "left" }}>
           <strong>What went wrong?</strong>
           {REPORT_REASONS.map((r) => <label key={r.key} className="ar-row" style={{ gap: ".5em" }}><input type="radio" name="reason" value={r.key} checked={reason === r.key} onChange={() => setReason(r.key)} /> {r.label}</label>)}
-          {watcherOf && <select className="ar-chatin" value={who} onChange={(e) => setWho(e.target.value)} aria-label="Who is this about"><option value="">Who is this about? (optional)</option>{watcherOf.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>}
+          {watcherOf && <ExpandSelect tone="dark" compact className="ar-chatin" value={who} onChange={(e) => setWho(e.target.value)} aria-label="Who is this about"><option value="">Who is this about? (optional)</option>{watcherOf.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</ExpandSelect>}
           <textarea className="ar-chatin" rows={2} maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Tell the moderator a little more (optional)" aria-label="More detail" style={{ borderRadius: ".8em" }} />
           {msg && <p className="ar-note ar-miss" role="alert">{msg}</p>}
           <div className="ar-row"><button type="submit" className="ar-btn ar-sm" disabled={!reason || busy}>Send report</button><button type="button" className="ar-btn ar-ghost ar-sm" onClick={() => setOpen(false)}>Cancel</button></div>

@@ -8,6 +8,7 @@ import ErrorState from "@/components/ui/ErrorState";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { ARENA_SETTING_LABELS, RULE_LIMITS, bonusPoints, type ArenaAvailable, type ArenaRow, type ArenaSettings, type ArenaSpectatorMode } from "@/lib/arena/configCore";
+import ExpandSelect from "@/components/ui/ExpandSelect";
 
 type ScopeType = "PLATFORM" | "ORGANIZATION" | "COURSE";
 interface Payload {
@@ -130,16 +131,16 @@ export default function ArenaAdmin() {
             ))}
           </div>
           {scopeType === "ORGANIZATION" && (
-            <select aria-label="Organization" value={scopeId} onChange={(e) => { setScopeId(e.target.value); setData(null); }} className="rounded-lg border border-brand-gray bg-brand-surface px-3 py-2 text-sm text-brand-ink">
+            <ExpandSelect compact aria-label="Organization" value={scopeId} onChange={(e) => { setScopeId(e.target.value); setData(null); }} className="rounded-lg border border-brand-gray bg-brand-surface px-3 py-2 text-sm text-brand-ink">
               <option value="">Choose an organization</option>
               {data.organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-            </select>
+            </ExpandSelect>
           )}
           {scopeType === "COURSE" && (
-            <select aria-label="Course" value={scopeId} onChange={(e) => { setScopeId(e.target.value); setData(null); }} className="rounded-lg border border-brand-gray bg-brand-surface px-3 py-2 text-sm text-brand-ink">
+            <ExpandSelect compact aria-label="Course" value={scopeId} onChange={(e) => { setScopeId(e.target.value); setData(null); }} className="rounded-lg border border-brand-gray bg-brand-surface px-3 py-2 text-sm text-brand-ink">
               <option value="">Choose a course</option>
               {data.courses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
-            </select>
+            </ExpandSelect>
           )}
         </div>
         {wide && !scopeId ? (

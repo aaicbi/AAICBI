@@ -4,6 +4,7 @@ import { ChevronDown, Download, Gamepad2, Search, Target, Trophy, Users } from "
 import Card from "@/components/ui/Card";
 import EmptyState from "@/components/ui/EmptyState";
 import { PLAYER_KIND_LABEL, RESULT_FORMATS, type PlayerRow, type ResultFormat, type ResultsSummary } from "@/lib/quest/resultsCore";
+import ExpandSelect from "@/components/ui/ExpandSelect";
 
 interface GameOption { id: string; title: string; format: string }
 interface RecentPlay { at: string; source: "COURSE" | "FEED"; game: string; format: ResultFormat; what: string; correct: boolean; score: number }
@@ -90,16 +91,16 @@ export default function ResultsTable({ onForbidden }: { onForbidden: (message: s
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" aria-hidden="true" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name or email" aria-label="Search players" className="min-h-[44px] w-full rounded-full border border-brand-gray bg-brand-surface pl-9 pr-3 text-sm text-brand-ink" data-testid="results-search" />
           </div>
-          <select value={days} onChange={(e) => setDays(e.target.value)} aria-label="Period" className="min-h-[44px] rounded-full border border-brand-gray bg-brand-surface px-3 text-sm text-brand-ink" data-testid="results-days">
+          <ExpandSelect compact value={days} onChange={(e) => setDays(e.target.value)} aria-label="Period" className="min-h-[44px] rounded-full border border-brand-gray bg-brand-surface px-3 text-sm text-brand-ink" data-testid="results-days">
             <option value="7">Last 7 days</option>
             <option value="30">Last 30 days</option>
             <option value="90">Last 90 days</option>
             <option value="all">All time</option>
-          </select>
-          <select value={gameId} onChange={(e) => setGameId(e.target.value)} aria-label="Game" className="min-h-[44px] max-w-full rounded-full border border-brand-gray bg-brand-surface px-3 text-sm text-brand-ink sm:max-w-[16rem]" data-testid="results-game">
+          </ExpandSelect>
+          <ExpandSelect compact value={gameId} onChange={(e) => setGameId(e.target.value)} aria-label="Game" className="min-h-[44px] max-w-full rounded-full border border-brand-gray bg-brand-surface px-3 text-sm text-brand-ink sm:max-w-[16rem]" data-testid="results-game">
             <option value="">All games</option>
             {games.map((g) => <option key={g.id} value={g.id}>{g.title}</option>)}
-          </select>
+          </ExpandSelect>
           <a href={csv} className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-full border border-brand-action px-4 text-sm font-semibold text-brand-action hover:bg-brand-mint" data-testid="results-csv"><Download className="h-4 w-4" aria-hidden="true" />CSV</a>
         </div>
 

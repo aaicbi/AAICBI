@@ -3,6 +3,7 @@ import { useState } from "react";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
+import ExpandSelect from "@/components/ui/ExpandSelect";
 
 export interface TidyObjective {
   id: string;
@@ -72,7 +73,7 @@ export default function TidyPanel({ moduleId, objectives, minimums, canUse, onCh
                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
                   <label className="flex items-center gap-1.5 text-xs text-gray-700">
                     Merge into
-                    <select
+                    <ExpandSelect compact
                       aria-label={`Merge “${o.text.slice(0, 40)}” into another objective`}
                       data-testid="tidy-merge"
                       disabled={busy}
@@ -91,7 +92,7 @@ export default function TidyPanel({ moduleId, objectives, minimums, canUse, onCh
                           {x.text.length > 70 ? `${x.text.slice(0, 70)}…` : x.text}
                         </option>
                       ))}
-                    </select>
+                    </ExpandSelect>
                   </label>
                   <Button
                     size="sm"

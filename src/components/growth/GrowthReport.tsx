@@ -6,6 +6,7 @@ import ErrorState from "@/components/ui/ErrorState";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { LEDGER_LABEL, NOTE_MAX, PERIODS, PERIOD_LABEL, naira, type FunnelCounts, type FunnelStep, type LedgerStatus, type Period } from "@/lib/growth/reportCore";
+import ExpandSelect from "@/components/ui/ExpandSelect";
 
 interface LedgerRow { id: string; paidAt: string; trainee: string; course: string; organization: string | null; source: string; amountKobo: number; rateBps: number; commissionKobo: number; status: LedgerStatus; note: string | null; settledAt: string | null; reference: string | null }
 interface Summary { payments: number; amountKobo: number; owedKobo: number; settledKobo: number; reversedKobo: number; owedCount: number; settledCount: number; reversedCount: number; earnedKobo: number }
@@ -76,10 +77,10 @@ export default function GrowthReport({ isSuper }: { isSuper: boolean }) {
         </div>
         {isSuper && (
           <label className="block text-sm"><span className="font-semibold text-brand-ink">Show</span>
-            <select value={org} onChange={(e) => setOrg(e.target.value)} className="mt-1 block min-h-[40px] rounded-lg border border-brand-gray bg-brand-surface px-3 text-base text-brand-ink" data-testid="org-select">
+            <ExpandSelect compact value={org} onChange={(e) => setOrg(e.target.value)} className="mt-1 block min-h-[40px] rounded-lg border border-brand-gray bg-brand-surface px-3 text-base text-brand-ink" data-testid="org-select">
               <option value="all">Everything</option><option value="aaicbi">AAICBI&apos;s own courses</option>
               {data.organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-            </select></label>
+            </ExpandSelect></label>
         )}
         <a href={csvHref} className="ml-auto inline-flex min-h-[40px] items-center rounded-full border border-brand-action px-4 text-sm font-semibold text-brand-action hover:bg-brand-mint" data-testid="download-csv">Download the ledger (CSV)</a>
       </div>

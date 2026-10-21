@@ -8,6 +8,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import AvatarFallback from "@/components/ui/AvatarFallback";
 import { publicStartups } from "@/lib/startups/startups";
 import { INDUSTRIES, STAGE_LABEL } from "@/lib/startups/startupCore";
+import ExpandSelect from "@/components/ui/ExpandSelect";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Startups", description: "Startups from the AAICBI community, approved by the AAICBI team." };
@@ -28,7 +29,7 @@ export default async function StartupsPage({ searchParams }: { searchParams: { q
           <label htmlFor="q" className="sr-only">Search startups</label>
           <input id="q" name="q" defaultValue={q ?? ""} maxLength={60} placeholder="Search by name or what they do" className="min-h-[44px] min-w-[200px] flex-1 rounded-full border border-brand-gray bg-brand-surface px-4 text-sm text-brand-ink" />
           <label htmlFor="industry" className="sr-only">Industry</label>
-          <select id="industry" name="industry" defaultValue={industry ?? ""} className="min-h-[44px] rounded-full border border-brand-gray bg-brand-surface px-4 text-sm text-brand-ink"><option value="">All industries</option>{INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}</select>
+          <ExpandSelect compact id="industry" name="industry" defaultValue={industry ?? ""} className="min-h-[44px] rounded-full border border-brand-gray bg-brand-surface px-4 text-sm text-brand-ink"><option value="">All industries</option>{INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}</ExpandSelect>
           <button type="submit" className="min-h-[44px] rounded-full bg-brand-action px-5 text-sm font-semibold text-brand-onAccent">Search</button>
         </form>
         {list.length === 0 ? <div className="mt-8"><EmptyState title="No startups found" description={q || industry ? "Try a different word or industry." : "No startup has been approved yet."} /></div> : (
