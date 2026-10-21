@@ -4,11 +4,11 @@ import type { TraineeReport } from "@/lib/reports/performance";
 import { fmtDate, fmtMinutes } from "@/lib/reports/performanceCore";
 
 const pct = (n: number | null | undefined) => (n == null ? "—" : `${Math.round(n)}%`);
-const Stat = ({ l, v }: { l: string; v: string | number }) => <div className="rounded-xl bg-white/70 p-3"><p className="text-[11px] uppercase tracking-wide text-gray-500">{l}</p><p className="font-display text-xl font-semibold text-brand-ink">{v}</p></div>;
+const Stat = ({ l, v }: { l: string; v: string | number }) => <div className="rounded-xl border border-brand-gray bg-brand-surface p-3"><p className="text-[11px] uppercase tracking-wide text-gray-500">{l}</p><p className="font-display text-xl font-semibold text-brand-ink">{v}</p></div>;
 const Section = ({ title, children, note }: { title: string; children: React.ReactNode; note?: string }) => <Card><h2 className="font-display text-lg font-semibold text-brand-ink">{title}</h2>{note && <p className="mt-0.5 text-xs text-gray-500">{note}</p>}<div className="mt-3">{children}</div></Card>;
 const Scroll = ({ children }: { children: React.ReactNode }) => <div className="overflow-x-auto"><table className="w-full min-w-[520px] text-left text-sm">{children}</table></div>;
-const Th = ({ children }: { children: React.ReactNode }) => <th className="border-b border-gray-200 py-1.5 pr-3 text-xs font-semibold uppercase text-gray-500">{children}</th>;
-const Td = ({ children }: { children: React.ReactNode }) => <td className="border-b border-gray-100 py-1.5 pr-3 align-top">{children}</td>;
+const Th = ({ children }: { children: React.ReactNode }) => <th className="border-b border-brand-gray py-1.5 pr-3 text-xs font-semibold uppercase text-gray-500">{children}</th>;
+const Td = ({ children }: { children: React.ReactNode }) => <td className="border-b border-brand-gray/40 py-1.5 pr-3 align-top">{children}</td>;
 
 /** The full performance report on screen. Used for the trainee's own page, the organization's and instructors' pages. */
 export default function TraineeReportView({ r }: { r: TraineeReport }) {
@@ -24,7 +24,7 @@ export default function TraineeReportView({ r }: { r: TraineeReport }) {
 
       <Section title="Course progress">
         {r.courses.length === 0 ? <p className="text-sm text-gray-600">No enrolment in this scope.</p> : r.courses.map((c) => (
-          <details key={c.id} className="mb-2 rounded-xl border border-gray-200 p-3" open={r.courses.length === 1}>
+          <details key={c.id} className="mb-2 rounded-xl border border-brand-gray p-3" open={r.courses.length === 1}>
             <summary className="cursor-pointer font-semibold text-brand-ink">{c.title} <span className="font-normal text-gray-600">· {c.percent}% · {c.modulesCompleted}/{c.modulesTotal} modules · enrolled {fmtDate(c.enrolledAt)}</span> {c.completedAt && <Badge variant="gold">Completed</Badge>} {c.accessEnded && <Badge variant="danger">Access ended</Badge>}</summary>
             <Scroll><thead><tr><Th>Module</Th><Th>Lessons</Th><Th>Status</Th></tr></thead><tbody>{c.modules.map((m) => <tr key={m.title}><Td>{m.title}</Td><Td>{m.lessonsDone}/{m.lessonsTotal}</Td><Td>{m.completed ? <Badge variant="success">Completed</Badge> : m.locked ? <Badge variant="warning">Locked</Badge> : "Open"}</Td></tr>)}</tbody></Scroll>
           </details>
