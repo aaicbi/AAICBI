@@ -25,12 +25,13 @@ const EXPLAIN: Partial<Record<Op, string>> = {
 };
 
 /** Everything a manager can do with one event, as buttons that open a small confirmation. The server decides again whether each is allowed. */
-export default function EventActions({ event: e, rights, scope, apiBase, uiBase, permissions, afterChange }: { event: EventView; rights: Rights; scope: "platform" | "organization"; apiBase: string; uiBase: string; permissions: string[]; afterChange?: () => void }) {
+export default function EventActions({ event: e, rights, scope, apiBase, uiBase, permissions, afterChange, seriesLater = 0 }: { event: EventView; rights: Rights; scope: "platform" | "organization"; apiBase: string; uiBase: string; permissions: string[]; afterChange?: () => void; seriesLater?: number }) {
   const router = useRouter();
   const { showToast } = useToast();
   const [op, setOp] = useState<Op | null>(null);
   const [reason, setReason] = useState("");
   const [publishAt, setPublishAt] = useState("");
+  const [cancelScope, setCancelScope] = useState<"one" | "series">("one");
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const has = (k: string) => permissions.includes(k);
@@ -65,7 +66,7 @@ export default function EventActions({ event: e, rights, scope, apiBase, uiBase,
     const id = e.id;
     let res: Response;
     const post = (path: string, body?: unknown) => fetch(`${apiBase}/${id}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body ?? {}) });
-    if (op === "cancel") res = await post("/cancel", { reason });
+    if (op === "cancel") res = await post("/cancel", { reason, scope: cancelScope });
     else if (op === "archive") res = await post("/archive");
     else if (op === "delete") res = await fetch(`${apiBase}/${id}`, { method: "DELETE" });
     else if (op === "approve_publish") {
@@ -91,6 +92,12 @@ export default function EventActions({ event: e, rights, scope, apiBase, uiBase,
         {op && (
           <div className="space-y-3">
             {EXPLAIN[op] && <p className="text-sm text-gray-700">{EXPLAIN[op]}</p>}
+            {op === "cancel" && e.series && seriesLater > 0 && (
+              <fieldset className="space-y-1 text-sm"><legend className="font-semibold text-brand-ink">This event is part of a repeating series</legend>
+                <label className="flex min-h-[40px] items-center gap-2"><input type="radio" name="scope" checked={cancelScope === "one"} onChange={() => setCancelScope("one")} /> This event only</label>
+                <label className="flex min-h-[40px] items-center gap-2"><input type="radio" name="scope" checked={cancelScope === "series"} onChange={() => setCancelScope("series")} /> This event and the {seriesLater} later {seriesLater === 1 ? "one" : "ones"}</label>
+              </fieldset>
+            )}
             {(NEEDS_REASON.includes(op) || op === "unpublish") && <Textarea label={REASON_LABEL[op] ?? "Reason"} value={reason} onChange={(ev) => setReason(ev.target.value)} rows={3} maxLength={500} required={NEEDS_REASON.includes(op)} />}
             {(op === "publish" || op === "approve_publish") && <Input label="Publish at (optional)" type="datetime-local" value={publishAt} onChange={(ev) => setPublishAt(ev.target.value)} hint={`Leave empty to publish now. Time is in ${e.timeZone}.`} />}
             {problem && <p role="alert" className="text-sm text-brand-rose">{problem}</p>}

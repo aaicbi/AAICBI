@@ -11,6 +11,8 @@ import { sweepScheduledPublications } from "@/lib/events/events";
  */
 export async function runEventSweep(now: Date = new Date()): Promise<{ published: number; reminded: number }> {
   const settings = await getEventSettings();
+  // Record that the job ran, even when events are switched off, so the Event Manager can tell when the schedule has stopped.
+  await prisma.eventSettings.upsert({ where: { id: "default" }, create: { id: "default", lastSweepAt: now }, update: { lastSweepAt: now } }).catch(() => undefined);
   if (!settings.enabled) return { published: 0, reminded: 0 };
   const published = await sweepScheduledPublications(now);
   const soon = await prisma.event.findMany({

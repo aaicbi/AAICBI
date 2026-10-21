@@ -49,6 +49,18 @@ export async function GET() {
         status: process.env.RESEND_API_KEY ? "connected" : "not_configured",
       },
       {
+        id: "file_storage",
+        label: "File Storage (Vercel Blob)",
+        description: "Event flyers and promotional videos, certificate backgrounds, ad pictures and other uploads.",
+        status: process.env.BLOB_READ_WRITE_TOKEN ? "connected" : "not_configured",
+      },
+      {
+        id: "scheduled_jobs",
+        label: "Scheduled Jobs (cron secret)",
+        description: "The hourly and daily jobs: event reminders and scheduled publishing, access expiry, alerts and reports. They refuse to run without CRON_SECRET.",
+        status: process.env.CRON_SECRET ? "connected" : "not_configured",
+      },
+      {
         id: "ai_assistant",
         label: "AI Features (Anthropic)",
         description: "AI-assisted exam generation, job-posting screening, and translation drafting.",

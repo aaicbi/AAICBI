@@ -11,7 +11,7 @@ import { useToast } from "@/components/ui/Toast";
 import EventCard, { type CardEvent } from "@/components/events/EventCard";
 import {
   AUDIENCES, AUDIENCE_LABEL, COMMON_ZONES, DELIVERIES, DELIVERY_LABEL, EVENT_TYPES, LIMITS, MEDIA_RULES, REGISTRATION_MODES, REGISTRATION_MODE_LABEL, detectProvider, embedFor, checkHttpsUrl,
-  mediaPrefix, validateEvent, validZone, zonedToUtc, type Audience, type Delivery, type RegistrationMode, type TargetInput,
+  mediaPrefix, validateEvent, validZone, zonedToUtc, expandRecurrence, FREQ_LABEL, formatDay, type Recurrence, type RepeatFreq, type Audience, type Delivery, type RegistrationMode, type TargetInput,
 } from "@/lib/events/eventsCore";
 import type { EventView } from "@/lib/events/events";
 
@@ -58,6 +58,7 @@ export function stateFrom(i: FormInitial | null): FormState {
 
 const STEPS = ["Basics", "Date and time", "Place or link", "Flyer and video", "Audience", "Registration", "Preview"] as const;
 const FIELD_STEP: Record<string, number> = {
+  recurrence: 1,
   title: 0, summary: 0, description: 0, categoryId: 0, eventType: 0, organizationId: 0,
   startLocal: 1, endLocal: 1, timeZone: 1, registrationDeadlineLocal: 1,
   venueName: 2, address: 2, mapUrl: 2, meetingUrl: 2, meetingId: 2, passcode: 2, joinInstructions: 2, joinOpensMinutes: 2,
@@ -90,11 +91,14 @@ export default function EventForm({
   const [opts, setOpts] = useState<AudienceOptions | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [traineeQuery, setTraineeQuery] = useState("");
+  const [uploadsOn, setUploadsOn] = useState<boolean | null>(null);
+  const [repeat, setRepeat] = useState<{ freq: "NONE" | RepeatFreq; weekdays: number[]; ends: "count" | "until"; count: string; until: string }>({ freq: "NONE", weekdays: [], ends: "count", count: "8", until: "" });
   const top = useRef<HTMLDivElement>(null);
   const existing = !!eventId;
   const scheduled = initial?.event.status === "SCHEDULED";
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => { setF((s) => ({ ...s, [k]: v })); setErrors((e) => { if (!e[k as string]) return e; const n = { ...e }; delete n[k as string]; return n; }); };
 
+  useEffect(() => { fetch("/api/events/upload-token").then((r) => (r.ok ? r.json() : null)).then((j) => setUploadsOn(j ? !!j.available : null)).catch(() => setUploadsOn(null)); }, []);
   useEffect(() => { fetch("/api/events/categories").then((r) => (r.ok ? r.json() : null)).then((j) => j && setCategories(j.categories)).catch(() => undefined); }, []);
   useEffect(() => {
     const q = scope === "platform" && f.organizationId ? `?org=${encodeURIComponent(f.organizationId)}` : "";
@@ -111,6 +115,9 @@ export default function EventForm({
   const live = useMemo(() => validateEvent({ ...payload(f), passcode: undefined }, "schedule"), [f]);
   const draftCheck = useMemo(() => validateEvent(payload(f), "draft"), [f]);
   const stepsWithProblems = useMemo(() => new Set(Object.keys(live.errors).map((k) => FIELD_STEP[k] ?? 0)), [live]);
+
+  const recurrence: Recurrence | null = !existing && repeat.freq !== "NONE" ? { freq: repeat.freq, weekdays: repeat.freq === "WEEKLY" ? repeat.weekdays : undefined, count: repeat.ends === "count" ? Number(repeat.count) : undefined, until: repeat.ends === "until" ? repeat.until : undefined } : null;
+  const series = useMemo(() => (recurrence ? expandRecurrence(f.startLocal, f.endLocal, recurrence) : null), [recurrence, f.startLocal, f.endLocal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const previewEvent: CardEvent = useMemo(() => {
     const zone = validZone(f.timeZone) ? f.timeZone : "Africa/Lagos";
@@ -146,10 +153,12 @@ export default function EventForm({
       setProblem("Some details need attention. The steps marked with a warning sign show what to fix.");
       return;
     }
+    if (recurrence && action === "submit") { setProblem("Save the repeating events first, then ask for public promotion on each event you want promoted."); return; }
+    if (recurrence && series && !series.ok) { setErrors({ recurrence: series.error }); setStep(1); setProblem(series.error); return; }
     setBusy(action);
     const res = await fetch(existing ? `${apiBase}/${eventId}` : apiBase, {
       method: existing ? "PUT" : "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, data: payload(f), organizationId: scope === "platform" ? f.organizationId || null : undefined }),
+      body: JSON.stringify({ action, data: payload(f), organizationId: scope === "platform" ? f.organizationId || null : undefined, recurrence }),
     });
     const j = await res.json().catch(() => ({}));
     setBusy(null);
@@ -160,7 +169,7 @@ export default function EventForm({
       return;
     }
     const extra = [...(j.conflicts?.length ? [`Overlaps with: ${j.conflicts.join(", ")}.`] : []), ...(j.warnings ?? [])].join(" ");
-    showToast(action === "submit" ? "Saved and sent to AAICBI for review." : action === "schedule" ? "Event scheduled." : "Saved.");
+    showToast(j.created > 1 ? `${j.created} events ${action === "schedule" ? "scheduled" : "saved as drafts"}.` : action === "submit" ? "Saved and sent to AAICBI for review." : action === "schedule" ? "Event scheduled." : "Saved.");
     if (extra) showToast(extra);
     router.push(`${uiBase}/${j.event.id}`);
     router.refresh();
@@ -229,6 +238,27 @@ export default function EventForm({
                 </div>
                 {live.warnings.map((w) => <p key={w} className="rounded-lg bg-brand-goldLight px-3 py-2 text-sm text-brand-goldText">{w}</p>)}
                 <Input label="Registration deadline (optional)" type="datetime-local" value={f.registrationDeadlineLocal} onChange={(e) => set("registrationDeadlineLocal", e.target.value)} error={err("registrationDeadlineLocal")} />
+                {!existing && (
+                  <div className="space-y-3 rounded-xl border border-brand-gray p-4" data-testid="repeat-box">
+                    <Select label="Repeat" value={repeat.freq} onChange={(e) => setRepeat({ ...repeat, freq: e.target.value as "NONE" | RepeatFreq })} hint="Makes separate events, each at the same time of day. You can edit or cancel each one on its own.">
+                      <option value="NONE">Does not repeat</option>
+                      {(Object.keys(FREQ_LABEL) as RepeatFreq[]).map((k) => <option key={k} value={k}>{FREQ_LABEL[k]}</option>)}
+                    </Select>
+                    {repeat.freq === "WEEKLY" && (
+                      <fieldset><legend className="text-sm font-semibold text-brand-ink">On these days (leave empty for the first event&apos;s weekday)</legend>
+                        <div className="mt-1 flex flex-wrap gap-1">{["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => <label key={d} className={`flex min-h-[40px] cursor-pointer items-center rounded-full border px-3 text-sm font-semibold ${repeat.weekdays.includes(i) ? "border-brand-teal bg-brand-mint" : "border-brand-gray"}`}><input type="checkbox" className="sr-only" checked={repeat.weekdays.includes(i)} onChange={() => setRepeat({ ...repeat, weekdays: repeat.weekdays.includes(i) ? repeat.weekdays.filter((x) => x !== i) : [...repeat.weekdays, i] })} />{d}</label>)}</div>
+                      </fieldset>
+                    )}
+                    {repeat.freq !== "NONE" && (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Select label="Stops" value={repeat.ends} onChange={(e) => setRepeat({ ...repeat, ends: e.target.value as "count" | "until" })}><option value="count">After a number of events</option><option value="until">On a date</option></Select>
+                        {repeat.ends === "count" ? <Input label="Number of events (2 to 52)" type="number" min={2} max={52} value={repeat.count} onChange={(e) => setRepeat({ ...repeat, count: e.target.value })} /> : <Input label="Last day" type="date" value={repeat.until} onChange={(e) => setRepeat({ ...repeat, until: e.target.value })} />}
+                      </div>
+                    )}
+                    {series && (series.ok ? <p className="rounded-lg bg-brand-mint/40 px-3 py-2 text-sm text-brand-ink" role="status">This makes <b>{series.occurrences.length} events</b>, from {formatDay(zonedToUtc(series.occurrences[0].startLocal, validZone(f.timeZone) ? f.timeZone : "Africa/Lagos") ?? new Date(), "UTC")} to {formatDay(zonedToUtc(series.occurrences[series.occurrences.length - 1].startLocal, validZone(f.timeZone) ? f.timeZone : "Africa/Lagos") ?? new Date(), "UTC")}.{scope === "organization" && f.audience === "PUBLIC" ? " Ask for public promotion on each event afterwards." : ""}</p> : <p className="rounded-lg bg-brand-goldLight px-3 py-2 text-sm text-brand-goldText" role="status">{series.error}</p>)}
+                    {err("recurrence") && <p role="alert" className="text-sm text-brand-rose">{err("recurrence")}</p>}
+                  </div>
+                )}
               </>
             )}
 
@@ -279,18 +309,19 @@ export default function EventForm({
               <>
                 <legend className="font-display text-lg font-semibold text-brand-ink">Flyer and promotional media</legend>
                 <p className={hint}>The flyer is the picture on event cards. Without one, a designed AAICBI cover is used.</p>
+                {canUpload && uploadsOn === false && <p role="status" className="rounded-lg border border-brand-gold bg-brand-goldLight px-3 py-2 text-sm text-brand-goldText">File uploads are not set up on this server yet, so flyers and videos cannot be uploaded. You can still add a YouTube or Vimeo link below, and the event will use the AAICBI cover. Ask your administrator to connect file storage.</p>}
                 {canUpload ? (
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-semibold text-brand-ink" htmlFor="flyer">Flyer or poster</label>
-                      <input id="flyer" type="file" accept={MEDIA_RULES.FLYER.types.join(",")} className={mediaPick} disabled={uploading === "flyer"} onChange={(e) => void upload("flyer", e.target.files?.[0], (url) => set("flyerUrl", url))} />
+                      <input id="flyer" type="file" accept={MEDIA_RULES.FLYER.types.join(",")} className={mediaPick} disabled={uploading === "flyer" || uploadsOn === false} onChange={(e) => void upload("flyer", e.target.files?.[0], (url) => set("flyerUrl", url))} />
                       <p className={hint}>{MEDIA_RULES.FLYER.label}{uploading === "flyer" ? " · uploading…" : ""}</p>
                       {err("flyerUrl") && <p role="alert" className="text-xs text-brand-rose">{err("flyerUrl")}</p>}
                       {f.flyerUrl && <div className="mt-2 flex items-center gap-3">{/* eslint-disable-next-line @next/next/no-img-element */}<img src={f.flyerUrl} alt="Flyer preview" className="h-24 w-auto rounded-lg border border-brand-gray object-contain" /><Button type="button" size="sm" variant="secondary" onClick={() => set("flyerUrl", "")}>Remove flyer</Button></div>}
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-brand-ink" htmlFor="video">Promotional video</label>
-                      <input id="video" type="file" accept={MEDIA_RULES.VIDEO.types.join(",")} className={mediaPick} disabled={uploading === "video"} onChange={(e) => void upload("video", e.target.files?.[0], (url) => set("videoUrl", url))} />
+                      <input id="video" type="file" accept={MEDIA_RULES.VIDEO.types.join(",")} className={mediaPick} disabled={uploading === "video" || uploadsOn === false} onChange={(e) => void upload("video", e.target.files?.[0], (url) => set("videoUrl", url))} />
                       <p className={hint}>{MEDIA_RULES.VIDEO.label}{uploading === "video" ? " · uploading…" : ""}</p>
                     </div>
                   </div>
@@ -302,7 +333,7 @@ export default function EventForm({
                 {canUpload && (
                   <div>
                     <label className="block text-sm font-semibold text-brand-ink" htmlFor="extra">More pictures (optional, up to 8)</label>
-                    <input id="extra" type="file" accept={MEDIA_RULES.IMAGE.types.join(",")} className={mediaPick} disabled={uploading === "image" || f.media.length >= 8} onChange={(e) => void upload("image", e.target.files?.[0], (url, file) => set("media", [...f.media, { kind: "IMAGE", url, mimeType: file.type, sizeBytes: file.size, caption: null }]))} />
+                    <input id="extra" type="file" accept={MEDIA_RULES.IMAGE.types.join(",")} className={mediaPick} disabled={uploading === "image" || f.media.length >= 8 || uploadsOn === false} onChange={(e) => void upload("image", e.target.files?.[0], (url, file) => set("media", [...f.media, { kind: "IMAGE", url, mimeType: file.type, sizeBytes: file.size, caption: null }]))} />
                     {err("media") && <p role="alert" className="text-xs text-brand-rose">{err("media")}</p>}
                     {f.media.length > 0 && (
                       <ul className="mt-2 flex flex-wrap gap-2">

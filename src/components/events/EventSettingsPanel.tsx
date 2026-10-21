@@ -13,6 +13,7 @@ const SWITCHES: { key: keyof ManagerData["settings"]; label: string; help: strin
   { key: "orgEventsEnabled", label: "Events for training organisations", help: "Lets organisations schedule events. Existing events stay visible." },
   { key: "promotionsEnabled", label: "Public promotion requests", help: "Lets organisations ask AAICBI to promote an event publicly." },
   { key: "registrationEnabled", label: "Registration", help: "Lets people register for events that ask for it." },
+  { key: "emailEnabled", label: "Email for event notices", help: "Also emails people about their own events: invitations, reminders, new times, cancellations, registration and promotion decisions. Platform-wide announcements stay in the app. Needs the email service to be set up." },
   { key: "showPast", label: "Show past events", help: "Lets people browse events that have finished." },
 ];
 
@@ -49,6 +50,7 @@ export default function EventSettingsPanel({ data, canConfigure, canCategories, 
               </li>
             ))}
           </ul>
+          <p className="mt-3 text-xs text-gray-600">Hourly job (scheduled publishing and reminders): {data.settings.lastSweepAt ? `last ran ${new Date(data.settings.lastSweepAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}` : "has not run yet"}.</p>
           <form className="mt-4 flex flex-wrap items-end gap-3" onSubmit={(e) => { e.preventDefault(); void save({ joinOpensMinutes: Number(minutes) }); }}>
             <Input label="Join button opens (minutes before start)" type="number" min={0} max={1440} value={minutes} onChange={(e) => setMinutes(e.target.value)} wrapperClassName="w-64" />
             <Button type="submit" variant="secondary">Save</Button>

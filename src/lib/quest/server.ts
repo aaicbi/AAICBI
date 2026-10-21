@@ -442,7 +442,7 @@ export async function serveQuestion(
 // Hint
 // ---------------------------------------------------------------------------
 
-export async function useHint(traineeId: string, moduleId: string, practiceAnswerId: string) {
+export async function takeHint(traineeId: string, moduleId: string, practiceAnswerId: string) {
   const { module: mod } = await assertPracticeAccess(traineeId, moduleId);
   const row = await prisma.practiceAnswer.findFirst({
     where: { id: practiceAnswerId, traineeId, moduleId, answeredAt: null },

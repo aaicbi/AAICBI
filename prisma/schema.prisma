@@ -6614,6 +6614,9 @@ model Event {
   cancelReason               String?
   /// Join button opens this many minutes before the start (null = the platform default).
   joinOpensMinutes           Int?
+  /// Events made together from one "repeat" setting share a seriesId; each is still an ordinary, separate event.
+  seriesId                   String?
+  seriesIndex                Int?
   isDemo                     Boolean               @default(false)
   createdAt                  DateTime              @default(now())
   updatedAt                  DateTime              @updatedAt
@@ -6630,6 +6633,7 @@ model Event {
   @@index([audience, promotionStatus, startsAt])
   @@index([promotionStatus, promotionRequestedAt])
   @@index([categoryId])
+  @@index([seriesId, startsAt])
 }
 
 /// The private way into an online session. Served only to people allowed to join; never part of a list, a card or a public page.
@@ -6687,6 +6691,8 @@ model EventRegistration {
   attended           Boolean                 @default(false)
   attendedMarkedAt   DateTime?
   attendedMarkedById String?
+  /// MANUAL (an organiser ticked it) or REPORT (matched from an attendance report exported from Meet, Zoom or Teams). Never set by a join link.
+  attendanceSource   String?
   decidedById        String?
   createdAt          DateTime                @default(now())
   updatedAt          DateTime                @updatedAt
@@ -6736,6 +6742,9 @@ model EventSettings {
   registrationEnabled Boolean  @default(true)
   showPast            Boolean  @default(true)
   joinOpensMinutes    Int      @default(15)
+  emailEnabled        Boolean  @default(true)
+  /// When the hourly job last ran, so the Event Manager can warn when scheduling has stopped.
+  lastSweepAt         DateTime?
   updatedById         String?
   updatedAt           DateTime @updatedAt
 }

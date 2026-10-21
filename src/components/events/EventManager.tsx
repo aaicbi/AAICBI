@@ -105,8 +105,15 @@ function Overview({ scope, apiBase, uiBase }: { scope: "platform" | "organizatio
       {(d) => {
         const o = d.overview;
         const myPromos = (pend.data?.items ?? []).filter((e) => e.managed && ["SUBMITTED", "CHANGES_REQUESTED", "APPROVED"].includes(e.managed.promotionStatus));
+        const swept = d.settings.lastSweepAt ? new Date(d.settings.lastSweepAt).getTime() : 0;
+        const stale = scope === "platform" && Date.now() - swept > 3 * 3600_000;
         return (
           <div className="space-y-5">
+            {stale && (
+              <p role="status" className="rounded-xl border border-brand-gold bg-brand-goldLight px-4 py-3 text-sm text-brand-goldText" data-testid="sweep-warning">
+                <b>Scheduled publishing and reminders are not running.</b> The hourly event job {d.settings.lastSweepAt ? `last ran ${Math.round((Date.now() - swept) / 3600_000)} hours ago` : "has not run yet"}. Events set to publish later will not go live and reminders will not be sent until it does. Check that <code>CRON_SECRET</code> is set and that scheduled jobs are enabled on the host.
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
               <Tile label="Upcoming" value={o.upcoming} />
               <Tile label="Live now" value={o.live} />

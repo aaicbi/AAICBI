@@ -612,3 +612,143 @@ export function weekDays(anchor: string): string[] {
   const lead = (new Date(t).getUTCDay() + 6) % 7;
   return Array.from({ length: 7 }, (_, i) => new Date(t - lead * DAY_MS + i * DAY_MS).toISOString().slice(0, 10));
 }
+
+// ---------------------------------------------------------------------------------------------------------------- repeating events
+
+export type RepeatFreq = "DAILY" | "WEEKLY" | "MONTHLY";
+export interface Recurrence { freq: RepeatFreq; /** Days of the week for WEEKLY, 0 = Sunday. Empty: the weekday of the first event. */ weekdays?: number[]; /** Total number of events, first one included. */ count?: number; /** Last day, "YYYY-MM-DD". */ until?: string }
+export const MAX_OCCURRENCES = 52;
+export const MAX_REPEAT_DAYS = 366;
+export const FREQ_LABEL: Record<RepeatFreq, string> = { DAILY: "Every day", WEEKLY: "Every week", MONTHLY: "Every month" };
+
+const dayMs = (y: number, m: number, d: number) => Date.UTC(y, m - 1, d);
+const pad = (n: number) => String(n).padStart(2, "0");
+const keyOf = (t: number) => { const d = new Date(t); return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`; };
+
+/**
+ * The dates of a repeating event, as wall-clock times in the event's own zone: every occurrence starts at the same clock time and lasts as long
+ * as the first (so a 10:00 class stays at 10:00 across a clock change). They are made as ordinary, separate events, so everything about a single
+ * event (editing, cancelling, registering) works on each one. At most 52 events and a year.
+ */
+export function expandRecurrence(startLocal: string, endLocal: string, rule: Recurrence): { ok: true; occurrences: { startLocal: string; endLocal: string }[] } | { ok: false; error: string } {
+  const s = LOCAL.exec(startLocal), e = LOCAL.exec(endLocal);
+  if (!s || !e) return { ok: false, error: "Choose the first event's start and end first." };
+  if (!["DAILY", "WEEKLY", "MONTHLY"].includes(rule.freq)) return { ok: false, error: "Choose how often it repeats." };
+  const [sy, sm, sd, sh, smin] = s.slice(1).map(Number);
+  const startDay = dayMs(sy, sm, sd);
+  const durationMin = Math.round((Date.UTC(+e[1], +e[2] - 1, +e[3], +e[4], +e[5]) - Date.UTC(sy, sm - 1, sd, sh, smin)) / MINUTE_MS);
+  if (durationMin <= 0) return { ok: false, error: "The event must end after it starts." };
+  const hasCount = rule.count !== undefined && rule.count !== null, hasUntil = !!rule.until;
+  if (!hasCount && !hasUntil) return { ok: false, error: "Say when the repeats stop: after a number of events, or on a date." };
+  let count = MAX_OCCURRENCES;
+  if (hasCount) { if (!Number.isInteger(rule.count) || (rule.count as number) < 2 || (rule.count as number) > MAX_OCCURRENCES) return { ok: false, error: `Choose from 2 to ${MAX_OCCURRENCES} events.` }; count = rule.count as number; }
+  let untilMs = startDay + MAX_REPEAT_DAYS * DAY_MS;
+  if (hasUntil) {
+    const u = /^(\d{4})-(\d{2})-(\d{2})$/.exec(rule.until as string);
+    if (!u || keyOf(dayMs(+u[1], +u[2], +u[3])) !== rule.until) return { ok: false, error: "That end date is not valid." };
+    untilMs = dayMs(+u[1], +u[2], +u[3]);
+    if (untilMs <= startDay) return { ok: false, error: "The last day must be after the first event." };
+    if (untilMs - startDay > MAX_REPEAT_DAYS * DAY_MS) return { ok: false, error: `Repeats can run for at most a year (${MAX_REPEAT_DAYS} days).` };
+  }
+  const weekdays = rule.freq === "WEEKLY" ? [...new Set((rule.weekdays ?? []).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))] : [];
+  if (rule.freq === "WEEKLY" && (rule.weekdays ?? []).length !== weekdays.length && (rule.weekdays ?? []).some((d) => !Number.isInteger(d) || d < 0 || d > 6)) return { ok: false, error: "Choose valid days of the week." };
+  const firstDow = new Date(startDay).getUTCDay();
+  const days: number[] = [startDay];
+  for (let t = startDay + DAY_MS; t <= untilMs && days.length < count; t += DAY_MS) {
+    const d = new Date(t);
+    const ok = rule.freq === "DAILY" ? true : rule.freq === "WEEKLY" ? (weekdays.length ? weekdays.includes(d.getUTCDay()) : d.getUTCDay() === firstDow) : d.getUTCDate() === sd;
+    if (ok) days.push(t);
+  }
+  if (days.length < 2) return { ok: false, error: "That setting makes only one event. Choose a later last day or more events." };
+  if (hasCount && days.length < count && !hasUntil) return { ok: false, error: "That setting does not reach the number of events within a year." };
+  const out = days.map((t) => {
+    const startMs = t + (sh * 60 + smin) * MINUTE_MS, endMs = startMs + durationMin * MINUTE_MS;
+    const f = (ms: number) => `${keyOf(ms)}T${pad(new Date(ms).getUTCHours())}:${pad(new Date(ms).getUTCMinutes())}`;
+    return { startLocal: f(startMs), endLocal: f(endMs) };
+  });
+  return { ok: true, occurrences: out };
+}
+
+// ---------------------------------------------------------------------------------------------------------------- attendance reports
+
+/**
+ * Meet, Zoom and Teams can each export a list of who joined. The platform cannot see inside those calls and has no connection to them, so
+ * an organiser can upload that exported file and people are matched to confirmed registrations by email (or, when the file has no email, by an
+ * exact and unique name). The result is labelled "from a report" and the organiser reviews it before anything is saved.
+ */
+export interface ReportRow { email: string | null; name: string | null; minutes: number | null }
+
+function splitLine(line: string, delim: string): string[] {
+  const out: string[] = []; let cur = "", q = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (q) { if (c === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+    else if (c === '"') q = true; else if (c === delim) { out.push(cur); cur = ""; } else cur += c;
+  }
+  out.push(cur);
+  return out.map((x) => x.trim());
+}
+const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9@. ]+/g, " ").replace(/\s+/g, " ").trim();
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_HEAD = ["email", "user email", "e mail", "email address", "participant email", "attendee email", "user principal name"];
+const NAME_HEAD = ["name", "user name", "name original name", "full name", "participant", "display name", "attendee", "first name"];
+const TIME_HEAD = ["duration", "duration minutes", "total duration", "time in session", "time in meeting", "in meeting duration", "attendance duration"];
+
+/** Reads a CSV or tab-separated attendance export. Skips the summary lines Zoom and Teams put above the table. Never throws. */
+export function parseAttendanceReport(text: string): { rows: ReportRow[]; error?: string } {
+  const clean = text.replace(/^﻿/, "").replace(/\r\n?/g, "\n");
+  const lines = clean.split("\n").filter((l) => l.trim());
+  if (lines.length < 2) return { rows: [], error: "That file has no rows." };
+  const delim = [",", "\t", ";"].map((d) => [d, lines.slice(0, 12).reduce((n, l) => n + (l.split(d).length - 1), 0)] as const).sort((a, b) => b[1] - a[1])[0][0];
+  const headIdx = lines.findIndex((l) => { const cells = splitLine(l, delim).map(norm); return cells.length >= 2 && (cells.some((c) => EMAIL_HEAD.includes(c)) || cells.some((c) => NAME_HEAD.includes(c))); });
+  if (headIdx < 0) return { rows: [], error: "I could not find a Name or Email column. Export the participants report from your meeting service and upload that file." };
+  const head = splitLine(lines[headIdx], delim).map(norm);
+  const col = (names: string[]) => head.findIndex((h) => names.includes(h));
+  const ci = { email: col(EMAIL_HEAD), name: col(NAME_HEAD), time: head.findIndex((h) => TIME_HEAD.includes(h) || h.includes("duration")) };
+  const rows: ReportRow[] = [];
+  for (const l of lines.slice(headIdx + 1, headIdx + 5001)) {
+    const c = splitLine(l, delim);
+    const email = ci.email >= 0 && EMAIL_RE.test(c[ci.email] ?? "") ? c[ci.email].toLowerCase() : null;
+    const name = ci.name >= 0 ? (c[ci.name] ?? "").slice(0, 120) || null : null;
+    if (!email && !name) continue;
+    const raw = ci.time >= 0 ? (c[ci.time] ?? "").trim() : "";
+    let minutes: number | null = null;
+    if (raw) {
+      const hms = /^(\d+):(\d{2})(?::(\d{2}))?$/.exec(raw);
+      const words = /(?:(\d+)\s*h)?\s*(?:(\d+)\s*m)?\s*(?:(\d+)\s*s)?$/i.exec(raw);
+      if (hms) minutes = hms[3] !== undefined ? +hms[1] * 60 + +hms[2] + (+hms[3] >= 30 ? 1 : 0) : +hms[1] + (+hms[2] >= 30 ? 1 : 0);
+      else if (/^\d+(\.\d+)?$/.test(raw)) minutes = Math.round(Number(raw));
+      else if (words && (words[1] || words[2] || words[3])) minutes = +(words[1] ?? 0) * 60 + +(words[2] ?? 0) + (+(words[3] ?? 0) >= 30 ? 1 : 0);
+    }
+    rows.push({ email, name, minutes });
+  }
+  return rows.length ? { rows } : { rows, error: "That file has no participants in it." };
+}
+
+export interface Registrant { registrationId: string; email: string | null; name: string }
+export interface AttendanceMatch { matched: { registrationId: string; name: string; via: "email" | "name"; minutes: number | null }[]; unmatched: { label: string }[]; tooShort: { label: string; minutes: number }[] }
+
+/** Matches report rows to confirmed registrants. A person joining twice counts once, with the longest stay. Short stays are set aside, not matched. */
+export function matchAttendance(rows: ReportRow[], registrants: Registrant[], minMinutes = 0): AttendanceMatch {
+  const byEmail = new Map(registrants.filter((r) => r.email).map((r) => [r.email!.toLowerCase(), r]));
+  const byName = new Map<string, Registrant[]>();
+  for (const r of registrants) byName.set(norm(r.name), [...(byName.get(norm(r.name)) ?? []), r]);
+  const best = new Map<string, { r: Registrant; via: "email" | "name"; minutes: number | null }>();
+  const unmatched: { label: string }[] = [], tooShort: { label: string; minutes: number }[] = [];
+  for (const row of rows) {
+    const label = row.name ?? row.email ?? "unknown";
+    let hit: { r: Registrant; via: "email" | "name" } | null = null;
+    if (row.email && byEmail.has(row.email)) hit = { r: byEmail.get(row.email)!, via: "email" };
+    else if (!row.email && row.name) { const c = byName.get(norm(row.name)); if (c && c.length === 1) hit = { r: c[0], via: "name" }; }
+    if (!hit) { unmatched.push({ label }); continue; }
+    const prev = best.get(hit.r.registrationId);
+    const minutes = row.minutes === null ? prev?.minutes ?? null : Math.max(row.minutes, prev?.minutes ?? 0);
+    best.set(hit.r.registrationId, { ...hit, minutes });
+  }
+  const matched: AttendanceMatch["matched"] = [];
+  for (const [id, v] of best) {
+    if (minMinutes > 0 && v.minutes !== null && v.minutes < minMinutes) { tooShort.push({ label: v.r.name, minutes: v.minutes }); continue; }
+    matched.push({ registrationId: id, name: v.r.name, via: v.via, minutes: v.minutes });
+  }
+  return { matched, unmatched, tooShort };
+}

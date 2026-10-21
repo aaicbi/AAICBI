@@ -91,13 +91,35 @@ Migration `20261202090000_events`: `Event`, `EventJoinInfo`, `EventTarget`, `Eve
 
 * `tests/events.test.ts`: rules (time zones, links, validation, lifecycle, promotion order, visibility, join window, registration, reminders, calendar, encryption).
 * `tests/rbac.test.ts`: catalogue separation and the new templates.
-* `scripts/device-checks/events-api.cjs`: 79 end-to-end checks over HTTP against the local database (permissions, isolation, promotion, joining details, registration, notifications, switches).
+* `scripts/device-checks/events-api.cjs`: 79 end-to-end checks over HTTP, and `events-followups.cjs` another 34 (series, report import, email, the hourly job, uploads) against the local database (permissions, isolation, promotion, joining details, registration, notifications, switches).
 * `scripts/device-checks/events-ui.cjs`: every screen in a real browser on desktop and phone.
+
+## Repeating events
+
+On the Date and time step of a new event, **Repeat** makes a series: every day, every week (optionally on chosen weekdays) or every month, stopping after a number of events (2 to 52) or on a date (within a year). Each occurrence is an ordinary, separate event at the same clock time in the event's zone, so a 10:00 class stays at 10:00 across a clock change. Every date is validated before anything is saved, and a failure removes what was made. Only the first event announces itself (one notice, not a dozen); reminders still go out for each. Cancelling an event offers "this event only" or "this and all later events in the series". Repeating events cannot be submitted for public promotion all at once: ask for promotion on each event you want promoted. Editing is per event.
+
+## Attendance
+
+Joining a call is never counted. Attendance is a register an organiser keeps, in two ways: ticking people, or **importing an attendance report**. Google Meet, Zoom and Microsoft Teams can each export who joined; upload that CSV (Zoom's summary lines, tab-separated Teams files and UTF-16 are handled), and people are matched to confirmed registrations by email, or by an exact, unique name when the file has no email. People who stayed under a chosen number of minutes (default 5) are set aside, the organiser previews the match before anything is saved, only people are added as present (nobody is marked absent), and each is labelled "from report". This records a file the organiser uploaded; there is no live link to those services, and a direct integration would need each provider's credentials and approval.
+
+## Email
+
+Personal notices are also emailed (through the platform's existing email service) to the people concerned: invitations, reminders, new times, cancellations, registration updates and promotion decisions. The platform-wide "a new public event was published" announcement stays in the app, and notices to more than 500 people stay in the app. Emails carry the same words and a link to the event page, never a meeting link or passcode. Each attempt is recorded in the notification log. The Super Admin can switch event email off in Event settings. There are no per-person email preferences on the platform yet.
+
+## Scheduling, uploads and set-up checks
+
+* The hourly job (`/api/cron/event-sweep`, in `vercel.json`) publishes events set to publish later and sends reminders. It records when it last ran; the Event Manager overview warns Super Admins when it has been quiet for three hours, and Event settings shows the last run. It needs `CRON_SECRET`.
+* The event form asks the server whether file uploads are set up (`BLOB_READ_WRITE_TOKEN`) and, if not, says so and disables the file pickers; a YouTube or Vimeo link still works.
+* Settings, Integrations now lists File Storage and Scheduled Jobs (cron secret) beside the other services.
+
+## Linting
+
+`npm run lint` is set up (`.eslintrc.json`, `next/core-web-vitals`, `react/no-unescaped-entities` off because apostrophes in JSX text are valid). It reports no errors; the remaining warnings are older code (plain `<img>` tags, hook dependency lists, PDF image alt text). A function named `useHint` in the question practice route was renamed `takeHint`, because the linter rightly took it for a React hook.
 
 ## Known limits
 
-* Meeting attendance cannot be verified: there is no integration with Meet, Zoom or Teams, so attendance is a manual register.
-* No recurring events yet.
-* The flyer and video uploads need the Vercel Blob token; without it the form explains that the upload failed and a video can still be a YouTube or Vimeo link.
-* Email is not used for event notices.
+* Meeting attendance cannot be verified live: there is no integration with Meet, Zoom or Teams, only the manual register and the report import above.
+* Series are created together; changing a whole series at once (rather than event by event) is not built.
+* Flyer and video uploads were exercised only up to the server's permission and set-up checks, because the real upload needs a Vercel Blob token that is not available in the test environment.
+* Email depends on the existing email service being configured; there are no per-person email preferences.
 * Registration for an event aimed at a profile (an invited employer, say) works; picking such people in the form is limited to trainees, cohorts and courses.

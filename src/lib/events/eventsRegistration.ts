@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/rbac/audit";
 import type { SessionPayload } from "@/lib/auth/session";
 import { toCsv } from "@/lib/csv";
-import { formatWhen, hasRoom, phaseOf, registrationDecision, type RegistrationStatus } from "@/lib/events/eventsCore";
+import { formatWhen, hasRoom, matchAttendance, parseAttendanceReport, phaseOf, registrationDecision, type AttendanceMatch, type RegistrationStatus } from "@/lib/events/eventsCore";
 import { EventsError, assertEnabled, getEventSettings, loadViewer, profileOf, type Actor } from "@/lib/events/eventsAccess";
 import { rightsOf } from "@/lib/events/events";
 import { noticeFor } from "@/lib/events/eventsNotices";
@@ -90,7 +90,7 @@ async function whoAre(profileIds: string[]): Promise<Map<string, Who>> {
   return out;
 }
 
-export interface RegistrationRow { id: string; name: string; kind: string; handle: string; status: RegistrationStatus; attendanceMode: string | null; attended: boolean; registeredAt: string }
+export interface RegistrationRow { id: string; name: string; kind: string; handle: string; status: RegistrationStatus; attendanceMode: string | null; attended: boolean; attendanceSource: string | null; registeredAt: string }
 
 async function manageable(a: Actor, eventId: string, want: "registrations" | "exportList") {
   const e = await eventFor(eventId);
@@ -104,7 +104,7 @@ export async function listRegistrations(a: Actor, eventId: string): Promise<{ ro
   const e = await manageable(a, eventId, "registrations");
   const regs = await prisma.eventRegistration.findMany({ where: { eventId }, orderBy: [{ status: "asc" }, { createdAt: "asc" }], take: 2000 });
   const who = await whoAre(regs.map((r) => r.profileId));
-  const rows = regs.map((r): RegistrationRow => ({ id: r.id, name: who.get(r.profileId)?.name ?? "Unknown", kind: who.get(r.profileId)?.kind ?? "Account", handle: who.get(r.profileId)?.handle ?? "", status: r.status as RegistrationStatus, attendanceMode: r.attendanceMode, attended: r.attended, registeredAt: r.createdAt.toISOString() }));
+  const rows = regs.map((r): RegistrationRow => ({ id: r.id, name: who.get(r.profileId)?.name ?? "Unknown", kind: who.get(r.profileId)?.kind ?? "Account", handle: who.get(r.profileId)?.handle ?? "", status: r.status as RegistrationStatus, attendanceMode: r.attendanceMode, attended: r.attended, attendanceSource: r.attendanceSource, registeredAt: r.createdAt.toISOString() }));
   return { rows, capacity: e.capacity, confirmed: rows.filter((r) => r.status === "CONFIRMED").length, pending: rows.filter((r) => r.status === "PENDING").length, attended: rows.filter((r) => r.attended && r.status === "CONFIRMED").length };
 }
 
@@ -138,7 +138,7 @@ export async function markAttendance(a: Actor, registrationId: string, attended:
   if (!(a.kind === "ORGANIZATION" ? a.permissions.has("org_events.registrations:manage") : a.permissions.has("events.registrations:manage"))) throw new EventsError("You do not have permission to keep the attendance register.", 403);
   if (reg.status !== "CONFIRMED") throw new EventsError("Only confirmed registrations can be marked.", 409);
   if (new Date().getTime() < e.startsAt.getTime()) throw new EventsError("Attendance can be marked once the event has started.", 409);
-  await prisma.eventRegistration.update({ where: { id: registrationId }, data: { attended, attendedMarkedAt: attended ? new Date() : null, attendedMarkedById: attended ? a.userId : null } });
+  await prisma.eventRegistration.update({ where: { id: registrationId }, data: { attended, attendedMarkedAt: attended ? new Date() : null, attendedMarkedById: attended ? a.userId : null, attendanceSource: attended ? "MANUAL" : null } });
 }
 
 /** A spreadsheet of participants, for people allowed to export. Cells that could be run as formulas are made safe. */
@@ -164,4 +164,43 @@ export async function myUpcomingRegistrations(session: SessionPayload, take = 5)
     select: { status: true, event: { select: { id: true, title: true, startsAt: true, endsAt: true, timeZone: true, delivery: true, venueName: true, city: true, trainingOrganization: { select: { name: true } } } } },
   });
   return rows.map((r) => ({ status: r.status as RegistrationStatus, id: r.event.id, title: r.event.title, when: formatWhen(r.event.startsAt, r.event.endsAt, r.event.timeZone), startsAt: r.event.startsAt.toISOString(), delivery: r.event.delivery, place: [r.event.venueName, r.event.city].filter(Boolean).join(", ") || null, organizer: r.event.trainingOrganization?.name ?? "AAICBI" }));
+}
+
+const REPORT_MAX_CHARS = 1_000_000;
+export interface ReportPreview extends AttendanceMatch { rows: number; minMinutes: number; alreadyMarked: number }
+
+async function reportMatches(a: Actor, eventId: string, csv: string, minMinutes: number) {
+  const e = await manageable(a, eventId, "registrations");
+  if (!(a.kind === "ORGANIZATION" ? a.permissions.has("org_events.registrations:manage") : a.permissions.has("events.registrations:manage"))) throw new EventsError("You do not have permission to keep the attendance register.", 403);
+  if (new Date().getTime() < e.startsAt.getTime()) throw new EventsError("An attendance report can be imported once the event has started.", 409);
+  if (csv.length > REPORT_MAX_CHARS) throw new EventsError("That file is too large. Export only the participants report.", 413);
+  const parsed = parseAttendanceReport(csv);
+  if (parsed.error) throw new EventsError(parsed.error, 422, { csv: parsed.error });
+  const min = Number.isFinite(minMinutes) ? Math.min(Math.max(Math.floor(minMinutes), 0), 600) : 0;
+  const regs = await prisma.eventRegistration.findMany({ where: { eventId, status: "CONFIRMED" }, select: { id: true, profileId: true, attended: true }, take: 5000 });
+  const who = await whoAre(regs.map((r) => r.profileId));
+  const registrants = regs.map((r) => ({ registrationId: r.id, email: who.get(r.profileId)?.email ?? null, name: who.get(r.profileId)?.name ?? "" }));
+  const match = matchAttendance(parsed.rows, registrants, min);
+  const marked = new Set(regs.filter((r) => r.attended).map((r) => r.id));
+  return { e, match, rows: parsed.rows.length, min, alreadyMarked: match.matched.filter((m) => marked.has(m.registrationId)).length };
+}
+
+/** Shows what an uploaded attendance report would do, without saving anything, so the organiser can check it first. */
+export async function previewAttendanceReport(a: Actor, eventId: string, csv: string, minMinutes = 5): Promise<ReportPreview> {
+  const r = await reportMatches(a, eventId, csv, minMinutes);
+  return { ...r.match, rows: r.rows, minMinutes: r.min, alreadyMarked: r.alreadyMarked };
+}
+
+/**
+ * Marks the matched, confirmed registrants as present, labelled "from a report". It only ever adds presence: nobody is marked absent because
+ * they are missing from the file, and an organiser's own ticks are kept. This is the organiser's record of a file they uploaded, not a
+ * connection to Meet, Zoom or Teams.
+ */
+export async function applyAttendanceReport(a: Actor, eventId: string, csv: string, minMinutes = 5): Promise<{ marked: number }> {
+  await assertEnabled(a);
+  const r = await reportMatches(a, eventId, csv, minMinutes);
+  const ids = r.match.matched.map((m) => m.registrationId);
+  const res = ids.length ? await prisma.eventRegistration.updateMany({ where: { id: { in: ids }, eventId, status: "CONFIRMED", attended: false }, data: { attended: true, attendedMarkedAt: new Date(), attendedMarkedById: a.userId, attendanceSource: "REPORT" } }) : { count: 0 };
+  await recordAudit({ actorId: a.userId, actorRole: a.kind === "ORGANIZATION" ? "ORGANIZATION" : a.session.role, action: "EVENT_ATTENDANCE_REPORT_IMPORTED", resourceType: "event", resourceId: eventId, organizationId: r.e.trainingOrganizationId, reason: `${res.count} marked from ${r.rows} rows` });
+  return { marked: res.count };
 }

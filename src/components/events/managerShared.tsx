@@ -7,7 +7,7 @@ import type { EventView, ManagedRow, OverviewNumbers } from "@/lib/events/events
 export interface ManagerData {
   items: ManagedRow[]; total: number; page: number; pageSize: number; overview: OverviewNumbers;
   categories: { id: string; name: string; slug: string; active: boolean }[];
-  settings: { enabled: boolean; orgEventsEnabled: boolean; promotionsEnabled: boolean; registrationEnabled: boolean; showPast: boolean; joinOpensMinutes: number };
+  settings: { enabled: boolean; orgEventsEnabled: boolean; promotionsEnabled: boolean; registrationEnabled: boolean; showPast: boolean; joinOpensMinutes: number; emailEnabled: boolean; lastSweepAt: string | null };
   actor: { kind: string; orgId: string | null; orgName: string | null; permissions: string[] };
 }
 
