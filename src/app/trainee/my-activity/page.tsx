@@ -69,9 +69,10 @@ export default function MyActivityPage() {
             <p className="mt-1 text-sm text-gray-500">A quick look at your own progress and performance across the platform.</p>
           </div>
           {activity && (
+            <div className="flex flex-wrap gap-2"><Button href="/trainee/performance" size="sm">Full performance report</Button>
             <Button href="/api/trainee/my-activity/report.pdf" variant="secondary" size="sm" iconLeft={<Icon icon={Download} size="sm" />}>
               Download My Report (PDF)
-            </Button>
+            </Button></div>
           )}
         </div>
 
