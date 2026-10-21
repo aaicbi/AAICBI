@@ -47,13 +47,11 @@ export default function QuestSettingsPage({ params }: { params: { id: string } }
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
-  const [percent, setPercent] = useState("70");
   const { showToast } = useToast();
   const url = `/api/modules/${params.id}/quest`;
 
   const apply = useCallback((snap: Snapshot) => {
     setData(snap);
-    setPercent(String(snap.settings.practiceRequiredPercent));
   }, []);
 
   useEffect(() => {
@@ -100,9 +98,6 @@ export default function QuestSettingsPage({ params }: { params: { id: string } }
 
   const s = data.settings;
   const untaggedTotal = data.objectives.reduce((n, o) => n + (o.coverage?.untagged ?? 0), 0);
-  const criticalIds = data.objectives.filter((o) => o.isCritical).map((o) => o.id);
-  const toggleCritical = (id: string, on: boolean) =>
-    send("PUT", { criticalObjectiveIds: on ? [...criticalIds, id] : criticalIds.filter((c) => c !== id) });
   const toggleReward = (kind: string, on: boolean) =>
     send("PUT", { enabledRewards: on ? [...s.enabledRewards, kind] : s.enabledRewards.filter((k) => k !== kind) });
 
@@ -155,15 +150,6 @@ export default function QuestSettingsPage({ params }: { params: { id: string } }
                         {c.formalShort > 0 && <span className="text-brand-rose"> ({c.formalShort} short)</span>} · Not assigned {c.untagged}
                       </p>
                     )}
-                    <div className="mt-2 flex flex-wrap items-center gap-4">
-                      <Checkbox
-                        label="Required for the assessment (mastery gate)"
-                        hint="A trainee can't pass unless they clear this objective, whatever their overall score."
-                        checked={o.isCritical}
-                        disabled={saving}
-                        onChange={(e) => void toggleCritical(o.id, e.target.checked)}
-                      />
-                    </div>
                     <button
                       type="button"
                       className="mt-2 text-xs font-semibold text-brand-teal underline"
@@ -228,34 +214,6 @@ export default function QuestSettingsPage({ params }: { params: { id: string } }
               disabled={saving || (!data.ready && !s.practiceEnabled)}
               onChange={(e) => void send("PUT", { practiceEnabled: e.target.checked }, e.target.checked ? "Practice is live." : "Practice is off.")}
             />
-            <Checkbox
-              label="Practice first: the assessment opens only after enough practice"
-              hint="Checked once, when a trainee first tries to start the assessment. Off by default."
-              checked={s.practiceBeforeFormal}
-              disabled={saving}
-              onChange={(e) => void send("PUT", { practiceBeforeFormal: e.target.checked })}
-            />
-            {s.practiceBeforeFormal && (
-              <div className="flex flex-wrap items-end gap-3 pl-6">
-                <Input
-                  label="Objectives to master first (%)"
-                  type="number"
-                  min={10}
-                  max={100}
-                  value={percent}
-                  onChange={(e) => setPercent(e.target.value)}
-                  wrapperClassName="w-48"
-                />
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  loading={saving}
-                  onClick={() => void send("PUT", { practiceRequiredPercent: Math.max(10, Math.min(100, Number(percent) || 70)) }, "Saved.")}
-                >
-                  Save
-                </Button>
-              </div>
-            )}
           </div>
         </Card>
 

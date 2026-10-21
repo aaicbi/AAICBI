@@ -185,16 +185,13 @@ const splitPools: ActionDef = {
 const practiceSettings: ActionDef = {
   name: "set_practice_settings",
   description:
-    "Change a module's practice settings: switch practice on or off (only possible once every objective has 10 practice and 6 formal approved questions), require practice before the assessment, set the required percentage, choose which rewards are on, and choose which objectives are required to pass the assessment.",
+    "Change a module's practice settings: switch practice on or off (only possible once every objective has 10 practice and 6 formal approved questions), and choose which rewards are on. Practice never affects the module assessment: passing it depends only on the overall score reaching the pass mark.",
   inputSchema: {
     type: "object",
     properties: {
       moduleQuery: MODULE_PROP,
       practiceEnabled: { type: "boolean" },
-      practiceBeforeFormal: { type: "boolean" },
-      practiceRequiredPercent: { type: "number", description: "10 to 100" },
       enabledRewards: { type: "array", items: { type: "string", enum: ["ANSWER", "MISSED_BONUS", "STREAK", "OBJECTIVE_MASTERED", "MODULE_COMPLETED"] } },
-      requiredObjectiveQueries: { type: "array", items: { type: "string" }, description: "Text fragments of the objectives trainees must clear to pass the assessment. An empty list clears all." },
     },
     required: ["moduleQuery"],
   },
@@ -206,25 +203,9 @@ const practiceSettings: ActionDef = {
       input.practiceEnabled = raw.practiceEnabled;
       parts.push(raw.practiceEnabled ? "switch practice on" : "switch practice off");
     }
-    if (typeof raw.practiceBeforeFormal === "boolean") {
-      input.practiceBeforeFormal = raw.practiceBeforeFormal;
-      parts.push(raw.practiceBeforeFormal ? "require practice before the assessment" : "stop requiring practice before the assessment");
-    }
-    if (typeof raw.practiceRequiredPercent === "number") {
-      const pct = Math.max(10, Math.min(100, Math.round(raw.practiceRequiredPercent)));
-      input.practiceRequiredPercent = pct;
-      parts.push(`require ${pct}% of objectives mastered first`);
-    }
     if (Array.isArray(raw.enabledRewards)) {
       input.enabledRewards = raw.enabledRewards.filter((x): x is string => typeof x === "string");
       parts.push(`rewards on: ${(input.enabledRewards as string[]).join(", ") || "none"}`);
-    }
-    if (Array.isArray(raw.requiredObjectiveQueries)) {
-      const objectives = await prisma.moduleLearningObjective.findMany({ where: { moduleId: module.id }, select: { id: true, text: true } });
-      const queries = raw.requiredObjectiveQueries.filter((x): x is string => typeof x === "string" && x.trim() !== "");
-      const chosen = objectives.filter((o) => queries.some((q) => o.text.toLowerCase().includes(q.toLowerCase())));
-      input.criticalObjectiveIds = chosen.map((o) => o.id);
-      parts.push(chosen.length ? `required objectives: ${chosen.map((o) => `“${o.text}”`).join(", ")}` : "no required objectives");
     }
     if (parts.length === 0) throw new ActionInputError("Nothing to change: give at least one setting.");
     return { input, summary: `For ${label}: ${parts.join("; ")}.`, risk: "low" };
@@ -233,10 +214,7 @@ const practiceSettings: ActionDef = {
     try {
       await applyQuestSettings(String(input.moduleId), {
         practiceEnabled: input.practiceEnabled as boolean | undefined,
-        practiceBeforeFormal: input.practiceBeforeFormal as boolean | undefined,
-        practiceRequiredPercent: input.practiceRequiredPercent as number | undefined,
         enabledRewards: input.enabledRewards as string[] | undefined,
-        criticalObjectiveIds: input.criticalObjectiveIds as string[] | undefined,
       });
     } catch (e) {
       if (e instanceof QuestAdminError) throw new Error(e.message);

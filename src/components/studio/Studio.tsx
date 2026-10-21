@@ -585,16 +585,6 @@ export default function Studio({ isSuper = false, can = () => true }: { isSuper?
                         </ul>
                       </div>
                     )}
-                    <Checkbox
-                      wrapperClassName="mt-1.5"
-                      label="Required to pass the assessment"
-                      checked={o.isCritical}
-                      disabled={busy}
-                      onChange={(e) => {
-                        const ids = workspace.quest.objectives.filter((x) => x.isCritical).map((x) => x.id);
-                        void act("PUT", `/api/modules/${workspace.module.id}/quest`, { criticalObjectiveIds: e.target.checked ? [...ids, o.id] : ids.filter((x) => x !== o.id) });
-                      }}
-                    />
                   </li>
                 ))}
               </ul>
@@ -606,31 +596,6 @@ export default function Studio({ isSuper = false, can = () => true }: { isSuper?
             )}
           </Card>
 
-          <Card data-testid="gates-card">
-            <h3 className="text-sm font-semibold text-brand-ink">Before the formal assessment</h3>
-            <Checkbox
-              wrapperClassName="mt-2"
-              label="Practice first: the assessment opens only after enough practice"
-              checked={workspace.quest.settings.practiceBeforeFormal}
-              disabled={busy}
-              onChange={(e) => void act("PUT", `/api/modules/${workspace.module.id}/quest`, { practiceBeforeFormal: e.target.checked })}
-            />
-            {workspace.quest.settings.practiceBeforeFormal && (
-              <Select
-                label="Objectives to master first"
-                compact
-                wrapperClassName="mt-2 max-w-xs"
-                value={String(workspace.quest.settings.practiceRequiredPercent)}
-                onChange={(e) => void act("PUT", `/api/modules/${workspace.module.id}/quest`, { practiceRequiredPercent: Number(e.target.value) })}
-              >
-                {[50, 60, 70, 80, 90, 100].map((p) => (
-                  <option key={p} value={p}>
-                    {p}%
-                  </option>
-                ))}
-              </Select>
-            )}
-          </Card>
         </>
       )}
     </div>
