@@ -15,6 +15,7 @@ import { getTimeOfDayGreeting } from "@/lib/dashboardHelpers";
 import { nextEventBlock } from "@/lib/mobile/homeData";
 import type { MobileBlock } from "@/lib/mobile/homeCore";
 import GrowthPathDoodle from "@/components/doodles/GrowthPathDoodle";
+import UpcomingEventsWidget from "@/components/events/UpcomingEventsWidget";
 
 export const metadata = { title: "Organization overview" };
 
@@ -111,6 +112,8 @@ export default async function OrganizationOverviewPage() {
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <h1 className="font-display text-2xl font-semibold text-brand-ink">{org.name}</h1>
       <p className="mt-1 text-sm text-gray-600">Your trainees, their progress and your plan at a glance.</p>
+
+      <UpcomingEventsWidget as="organization" />
 
       <section aria-label="Summary" className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Active trainees" value={activeTrainees} note={seatCap ? `of ${seatCap} seats` : "No seat limit"} />

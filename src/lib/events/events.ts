@@ -142,6 +142,8 @@ function commonWhere(f: Filters): Prisma.EventWhereInput[] {
   const q = f.q?.trim().slice(0, 80);
   if (q) out.push({ OR: [{ title: { contains: q, mode: "insensitive" } }, { summary: { contains: q, mode: "insensitive" } }, { description: { contains: q, mode: "insensitive" } }, { venueName: { contains: q, mode: "insensitive" } }, { city: { contains: q, mode: "insensitive" } }, { trainingOrganization: { name: { contains: q, mode: "insensitive" } } }] });
   if (f.categoryId) out.push({ categoryId: f.categoryId });
+  if (f.audience === "PUBLIC") out.push({ audience: "PUBLIC" });
+  else if (f.audience === "RESTRICTED") out.push({ audience: { not: "PUBLIC" } });
   if (f.type) out.push({ eventType: f.type });
   if (f.delivery === "PHYSICAL" || f.delivery === "ONLINE" || f.delivery === "HYBRID") out.push({ delivery: f.delivery });
   if (f.organizer === "platform") out.push({ trainingOrganizationId: null });
@@ -663,3 +665,10 @@ export async function overview(a: Actor): Promise<OverviewNumbers> {
 export { ANON };
 export type { Viewer };
 export { profileOf };
+
+/** Organisations that have a published public event coming up, for the "organiser" filter on the events page. */
+export async function publicOrganizers(): Promise<{ id: string; name: string }[]> {
+  const now = new Date();
+  const rows = await prisma.event.findMany({ where: { AND: [publicWhere(now), { endsAt: { gt: now } }, { trainingOrganizationId: { not: null } }] }, select: { trainingOrganization: { select: { id: true, name: true } } }, distinct: ["trainingOrganizationId"], take: 100 });
+  return rows.map((r) => r.trainingOrganization).filter((o): o is { id: string; name: string } => !!o).sort((a, b) => a.name.localeCompare(b.name));
+}

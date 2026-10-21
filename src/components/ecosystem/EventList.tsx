@@ -1,25 +1,23 @@
 import Link from "next/link";
 import Card from "@/components/ui/Card";
 import type { EventCard } from "@/lib/ecosystem/events";
+import { formatWhen } from "@/lib/events/eventsCore";
 
-const fmt = (d: Date) => d.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }) + " UTC";
-
-/** Event cards. The registration link is the organization's own and is always opened as an external link. */
+/** Short event entries for the public pages. Each opens the full event page, where registration and the join button are. Times show their zone. */
 export default function EventList({ events, showOrganization = false }: { events: EventCard[]; showOrganization?: boolean }) {
   return (
     <ul className="space-y-3">
       {events.map((e) => (
         <li key={e.id}>
-          <Card>
-            <p className="font-display font-semibold text-brand-ink">{e.title}</p>
+          <Card interactive>
+            <p className="font-display font-semibold text-brand-ink"><Link href={`/events/${e.id}`} className="hover:underline">{e.title}</Link></p>
             <p className="text-xs text-gray-600">
-              {fmt(e.startsAt)}{e.endsAt ? ` to ${fmt(e.endsAt)}` : ""}{e.locationText ? ` • ${e.locationText}` : ""}
+              {formatWhen(e.startsAt, e.endsAt ?? e.startsAt, e.timeZone)}{e.locationText ? ` • ${e.locationText}` : ""}
               {showOrganization && e.organizationSlug && <> • <Link href={`/organizations/${e.organizationSlug}`} className="text-brand-teal underline underline-offset-2 hover:no-underline">{e.organizationName}</Link></>}
+              {showOrganization && !e.organizationSlug && <> • {e.organizationName}</>}
             </p>
-            {e.description && <p className="mt-2 whitespace-pre-line text-sm text-gray-700">{e.description}</p>}
-            {e.registrationUrl && (
-              <a href={e.registrationUrl} target="_blank" rel="noopener noreferrer nofollow" className="mt-3 inline-block text-sm font-semibold text-brand-teal hover:underline">Register</a>
-            )}
+            {e.description && <p className="mt-2 line-clamp-3 whitespace-pre-line text-sm text-gray-700">{e.description}</p>}
+            <p className="mt-2"><Link href={`/events/${e.id}`} className="text-sm font-semibold text-brand-teal hover:underline">View details</Link></p>
           </Card>
         </li>
       ))}

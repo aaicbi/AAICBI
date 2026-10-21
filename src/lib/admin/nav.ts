@@ -209,13 +209,15 @@ interface DefinedItem extends AdminNavItem {
    * person may actually do. The server still checks the same permission on every page and action. Without permissions (the guide's static
    * listing) the audience applies as before.
    */
-  permission?: string;
+  permission?: string | string[];
 }
 
 const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
   { label: null, items: [{ label: "Dashboard", href: "/admin/dashboard", audience: "staffAndOrg" }, { label: "Change requests", href: "/admin/requests", audience: "superadmin" }] },
   // The ecosystem feed: everyone who signs in can read it and post to it.
   { label: "Feed", items: [{ label: "Feed", href: "/feed", audience: "staffAndOrg" }, { label: "Write a post", href: "/compose", audience: "staffAndOrg" }, { label: "My posts", href: "/my-posts", audience: "staffAndOrg" }] },
+  // The Event Manager: AAICBI's own events and the promotion of organizations' events. Only staff who hold an event permission see it.
+  { label: "Events", items: [{ label: "Event Manager", href: "/admin/events", audience: "superadmin", permission: ["events.global:view", "events.platform:create", "events.platform:edit", "events.platform:publish", "events.promotions:view", "events.registrations:view", "events.analytics:view", "events.settings:configure", "events.categories:manage"] }] },
   // The review team's inbox: posts, appeals and Loop's questions. Super admins and the staff they made reviewers.
   { label: "Review", items: [{ label: "Review inbox", href: "/admin/review", audience: "reviewer" }] },
   {
@@ -238,7 +240,7 @@ const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
       { label: "Education videos", href: "/admin/education", audience: "org" },
       { label: "Program skills", href: "/admin/organization/programs", audience: "org" },
       { label: "Content and visibility", href: "/admin/organization/insights", audience: "org" },
-      { label: "Events", href: "/admin/organization/events", audience: "org" },
+      { label: "Events", href: "/admin/organization/events", audience: "org", permission: "org_events.events:view" },
       { label: "Member posts", href: "/admin/organization/posts", audience: "org" },
       { label: "Games", href: "/admin/organization/games", audience: "org", permission: "org_games.results:view" },
     ],
@@ -295,8 +297,8 @@ const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
   },
 ];
 
-function isVisible(audience: Audience, role: string, isTrainingOrg: boolean, canReview: boolean, permission?: string, permissions?: ReadonlySet<string>): boolean {
-  if (permission && permissions) return permissions.has(permission);
+function isVisible(audience: Audience, role: string, isTrainingOrg: boolean, canReview: boolean, permission?: string | string[], permissions?: ReadonlySet<string>): boolean {
+  if (permission && permissions) return Array.isArray(permission) ? permission.some((p) => permissions.has(p)) : permissions.has(permission);
   if (isTrainingOrg) return audience === "org" || audience === "staffAndOrg";
   switch (audience) {
     case "org":

@@ -208,6 +208,12 @@ export function formatWhen(start: Date, end: Date, tz: string): string {
   const z = zoneLabel(tz, start);
   return day(start) === day(end) ? `${day(start)}, ${time(start)} to ${time(end)} ${z}` : `${day(start)}, ${time(start)} to ${day(end)}, ${time(end)} ${z}`;
 }
+/** One moment, with its zone: "Tue 12 Jan 2027, 10:00 WAT". */
+export function formatInstant(d: Date, tz: string): string {
+  const day = new Intl.DateTimeFormat("en-GB", { timeZone: tz, weekday: "short", day: "numeric", month: "short", year: "numeric" }).format(d);
+  const time = new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(d);
+  return `${day}, ${time} ${zoneLabel(tz, d)}`;
+}
 export function formatDay(d: Date, tz: string): string {
   return new Intl.DateTimeFormat("en-GB", { timeZone: tz, weekday: "short", day: "numeric", month: "short" }).format(d);
 }

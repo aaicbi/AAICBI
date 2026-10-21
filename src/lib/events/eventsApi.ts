@@ -48,7 +48,7 @@ export const managerList = (req: NextRequest) => guarded(async () => {
   const kind = a.kind === "ORGANIZATION" ? "organization" : "platform";
   if (!opensManager(a.permissions, kind)) throw new EventsError("You do not have access to the Event Manager.", 403);
   const f = filtersFrom(req.nextUrl.searchParams);
-  const [list, nums, categories] = await Promise.all([listManagedEvents(a, f), overview(a), listCategories(a.permissions.has("events.categories:manage"))]);
+  const [list, nums, categories] = await Promise.all([listManagedEvents(a, f), overview(a), listCategories(!a.permissions.has("events.categories:manage"))]);
   return json({ ...list, overview: nums, categories, settings: s, actor: { kind: a.kind, orgId: a.orgId, orgName: a.orgName, permissions: [...a.permissions].filter((k) => k.startsWith("events.") || k.startsWith("org_events.")) } });
 });
 
@@ -118,7 +118,7 @@ export const audienceOptions = (req: NextRequest) => guarded(async () => {
 
 // ------------------------------------------------------------------------------------------------ platform-only handlers
 
-export const platformCategories = () => guarded(async () => { const a = await requireActor(); return json({ categories: await listCategories(a.permissions.has("events.categories:manage")) }); });
+export const platformCategories = () => guarded(async () => { const a = await requireActor(); return json({ categories: await listCategories(!a.permissions.has("events.categories:manage")) }); });
 export const platformCategorySave = (req: NextRequest) => guarded(async () => json({ category: await saveCategory(await requireActor(), await body(req)) }));
 export const platformSettings = (req: NextRequest) => guarded(async () => {
   const a = await requireActor();

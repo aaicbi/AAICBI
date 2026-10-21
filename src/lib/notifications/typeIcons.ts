@@ -17,6 +17,7 @@ import {
   Sparkles,
   UserPlus,
   Swords,
+  CalendarDays,
   type LucideIcon,
 } from "lucide-react";
 
@@ -32,6 +33,13 @@ import {
  */
 const TYPE_ICON: Record<string, LucideIcon> = {
   WELCOME: Sparkles,
+  EVENT_PUBLISHED: CalendarDays,
+  EVENT_INVITED: CalendarDays,
+  EVENT_REMINDER: Clock,
+  EVENT_RESCHEDULED: CalendarDays,
+  EVENT_CANCELLED: XCircle,
+  EVENT_PROMOTION: Megaphone,
+  EVENT_REGISTRATION: CheckCircle2,
   ARENA_CHALLENGE: Swords,
   ARENA_REPORT: AlertTriangle,
   ARENA_MODERATION: AlertTriangle,

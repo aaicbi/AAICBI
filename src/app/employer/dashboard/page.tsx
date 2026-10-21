@@ -15,6 +15,7 @@ import WelcomeHeader from "@/components/dashboard/WelcomeHeader";
 import NotificationSummaryCard from "@/components/dashboard/NotificationSummaryCard";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import QuickActionsCard from "@/components/dashboard/QuickActionsCard";
+import UpcomingEventsWidget from "@/components/events/UpcomingEventsWidget";
 
 const NAV = [
   { label: "Discover", href: "/employer/discover" },
@@ -112,6 +113,7 @@ export default async function EmployerDashboardPage() {
           lastVisitLabel={formatLastVisit(employer.previousLoginAt)}
           profileHref="/employer/profile"
         />
+        <UpcomingEventsWidget as="participant" />
 
         <section aria-labelledby="pipeline" className="mt-6">
           <h2 id="pipeline" className="font-display text-base font-semibold text-brand-ink">

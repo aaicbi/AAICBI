@@ -3,6 +3,8 @@ import {
   ANON, canChangeStatus, canView, changesPromo, checkHttpsUrl, detectProvider, dueReminder, embedFor, formatWhen, isBlobUrl, isPublished, joinDecision, monthGrid, nextPromotion,
   overlaps, phaseOf, registrationDecision, utcToLocalInput, validateEvent, validZone, weekDays, zonedToUtc, type Viewer, type ViewableEvent,
 } from "@/lib/events/eventsCore";
+import { noticeFor, type NoticeKind } from "@/lib/events/eventsNotices";
+import { formatInstant } from "@/lib/events/eventsCore";
 import { decryptPasscode, encryptPasscode } from "@/lib/events/eventsCrypto";
 
 const NOW = new Date("2027-03-10T09:00:00Z");
@@ -297,5 +299,23 @@ describe("meeting passcodes", () => {
     expect(decryptPasscode("plain")).toBeNull();
     expect(decryptPasscode(null)).toBeNull();
     expect(encryptPasscode("s3cret-pass")).not.toBe(enc);
+  });
+});
+
+describe("notification wording", () => {
+  const e = { id: "e1", title: "Intro to Python", startsAt: new Date("2027-03-20T09:00:00Z"), endsAt: new Date("2027-03-20T11:00:00Z"), timeZone: "Africa/Lagos", organizer: "Northwind Academy" };
+  const kinds: NoticeKind[] = ["PUBLISHED", "INVITED", "REMINDER_DAY", "REMINDER_HOUR", "RESCHEDULED", "CANCELLED", "PROMOTION_SUBMITTED", "PROMOTION_APPROVED", "PROMOTION_REJECTED", "PROMOTION_CHANGES", "PROMOTION_PUBLISHED", "PROMOTION_PULLED", "REGISTERED", "REGISTRATION_PENDING", "REGISTRATION_CONFIRMED", "REGISTRATION_DECLINED", "REGISTRATION_REQUEST"];
+  it("names the time with its zone and links only to the event page, never to a meeting", () => {
+    for (const k of kinds) {
+      const n = noticeFor(k, e, { reason: "Venue unavailable", who: "Northwind" });
+      expect(n.url.startsWith("/")).toBe(true);
+      expect(n.type.startsWith("EVENT_")).toBe(true);
+      expect(`${n.title} ${n.body}`).not.toMatch(/https?:|meet\.google|zoom\.us|teams\.microsoft|passcode/i);
+    }
+    expect(noticeFor("RESCHEDULED", e).body).toContain("WAT");
+    expect(noticeFor("CANCELLED", e, { reason: "Venue unavailable" }).body).toContain("Venue unavailable");
+  });
+  it("shows a single moment with its zone", () => {
+    expect(formatInstant(new Date("2027-03-20T09:00:00Z"), "Africa/Lagos")).toBe("Sat, 20 Mar 2027, 10:00 WAT");
   });
 });

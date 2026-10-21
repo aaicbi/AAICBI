@@ -67,6 +67,7 @@ const BY_PATH: Record<string, IconComponent> = {
   "/organization/programs": SkillsIcon,
   "/organization/insights": InsightsIcon,
   "/organization/events": EventsIcon,
+  "/events": EventsIcon,
   "/education": VideoIcon,
   "/ecosystem": ShowcaseIcon,
   "/training-organizations": OrganizationIcon,
