@@ -6,7 +6,7 @@
  * person signs in as themselves with their own name and role:
  *   OWNER   the account that registered the organization: everything, including billing and the team.
  *   MANAGER everything except billing. Shown to people as "Admin".
- *   INSTRUCTOR teaches the courses the owner assigns: builds and edits content like an editor, and sees only the trainees and reports of the assigned courses.
+ *   INSTRUCTOR teaches the courses the owner assigns: edits content like an editor, but only in the assigned courses, and sees only their trainees and reports. Cannot create courses or standalone items.
  *   EDITOR  builds and edits content and posts; cannot publish, unpublish or delete, change the public profile, billing or team.
  *   VIEWER  can look at everything and cannot change anything.
  */
@@ -16,7 +16,7 @@ export const ROLE_LABEL: Record<OrgRole, string> = { OWNER: "Owner", MANAGER: "A
 export const ROLE_HELP: Record<OrgRole, string> = {
   OWNER: "Everything, including billing and the team.",
   MANAGER: "Everything except billing, including the team.",
-  INSTRUCTOR: "Teaches the courses you assign: builds and edits course content and sees only those courses' trainees and reports. Cannot publish, delete, change the public profile, billing or the team.",
+  INSTRUCTOR: "Teaches the courses you assign: builds and edits only those courses and sees only their trainees and reports. Cannot create courses, publish, delete, share, change the public profile, billing or the team.",
   EDITOR: "Builds and edits courses, examinations, assignments and posts. Cannot publish, delete, change the public profile, billing or the team.",
   VIEWER: "Can look at everything. Cannot change anything.",
 };
@@ -93,4 +93,32 @@ export function instructorCourseLimit(role: OrgRole, assigned: string[], orgCour
   if (role !== "INSTRUCTOR") return null;
   const own = new Set(orgCourseIds);
   return [...new Set(assigned)].filter((id) => own.has(id));
+}
+
+/**
+ * What an instructor's write request is about, from its path alone, so it can be checked against the courses they were given.
+ *   "deny"      something an instructor may not do at all (create a course or standalone item, share, change certificate templates)
+ *   {kind, id}  an item that belongs to a course; the course is looked up from the id
+ *   null        not about course content: the editor rules already decide
+ */
+export type InstructorTarget = "deny" | { kind: "course" | "module" | "lesson" | "material" | "exam" | "question" | "assignment" | "cohort" | "certificate"; id: string } | null;
+
+export function instructorTarget(method: string, path: string): InstructorTarget {
+  if (READ.has(method.toUpperCase())) return null;
+  const p = path.split("?")[0].replace(/\/+$/, "");
+  if (/^\/api\/(courses|exams|admin\/assignments)$/.test(p) || p === "/api/admin/assignments/import") return "deny";
+  if (/^\/api\/(collab|admin\/certificate-templates)(\/|$)/.test(p)) return "deny";
+  const rules: Array<[RegExp, NonNullable<Exclude<InstructorTarget, "deny">>["kind"]]> = [
+    [/^\/api\/(?:admin\/)?courses\/([^/]+)(?:\/|$)/, "course"],
+    [/^\/api\/modules\/([^/]+)(?:\/|$)/, "module"],
+    [/^\/api\/lessons\/([^/]+)(?:\/|$)/, "lesson"],
+    [/^\/api\/materials\/([^/]+)(?:\/|$)/, "material"],
+    [/^\/api\/exams\/([^/]+)(?:\/|$)/, "exam"],
+    [/^\/api\/questions\/([^/]+)(?:\/|$)/, "question"],
+    [/^\/api\/admin\/assignments\/([^/]+)(?:\/|$)/, "assignment"],
+    [/^\/api\/cohorts\/([^/]+)(?:\/|$)/, "cohort"],
+    [/^\/api\/certificates\/([^/]+)(?:\/|$)/, "certificate"],
+  ];
+  for (const [re, kind] of rules) { const m = re.exec(p); if (m && m[1] !== "import" && m[1] !== "by-code") return { kind, id: m[1] }; }
+  return null;
 }

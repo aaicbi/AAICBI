@@ -1,3 +1,4 @@
+import { instructorWriteVerdict } from "./memberCourses";
 import { prisma } from "@/lib/prisma";
 import type { TrainingOrganization } from "@prisma/client";
 import { describeAction, isMemberRole, mayDo, worthLogging, type OrgRole } from "@/lib/org/people";
@@ -38,6 +39,10 @@ export async function enforceAndRecord(actor: OrgActor, orgUserId: string, reque
   if (!method || !path || !path.startsWith("/api/")) return;
   const verdict = mayDo(actor.role, method, path);
   if (!verdict.ok) throw new ActorError(verdict.reason, 403);
+  if (actor.role === "INSTRUCTOR") {
+    const refusal = await instructorWriteVerdict(actor.id, method, path);
+    if (refusal) throw new ActorError(refusal, 403);
+  }
   if (!worthLogging(method, path)) return;
   try {
     await prisma.orgActivity.create({ data: { orgUserId, actorType: actor.type, actorId: actor.id, actorName: actor.name, action: describeAction(method, path), method: method.toUpperCase(), path: path.slice(0, 200) } });

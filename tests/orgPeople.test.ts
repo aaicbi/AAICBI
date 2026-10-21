@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeAction, instructorCourseLimit, isMemberRole, mayDo, MEMBER_ROLES, ROLE_LABEL, worthLogging } from "@/lib/org/people";
+import { describeAction, instructorCourseLimit, instructorTarget, isMemberRole, mayDo, MEMBER_ROLES, ROLE_LABEL, worthLogging } from "@/lib/org/people";
 
 const ok = (r: string, m: string, p: string) => mayDo(r as never, m, p).ok;
 
@@ -82,4 +82,28 @@ describe("organization instructors", () => {
     expect(instructorCourseLimit("INSTRUCTOR", [], ["a"])).toEqual([]);
     for (const r of ["OWNER", "MANAGER", "EDITOR", "VIEWER"] as const) expect(instructorCourseLimit(r, ["a"], ["a"])).toBeNull();
   });
+});
+
+describe("what an instructor's write is about", () => {
+  const t = (m: string, p: string) => instructorTarget(m, p);
+  it("lets reads through untouched", () => { expect(t("GET", "/api/courses/c1")).toBeNull(); expect(t("GET", "/api/exams")).toBeNull(); });
+  it("refuses creating top-level items, sharing and certificate templates", () => {
+    for (const p of ["/api/courses", "/api/exams", "/api/admin/assignments", "/api/admin/assignments/import", "/api/collab/links", "/api/collab/collaborators/x", "/api/admin/certificate-templates/t1"]) expect(t("POST", p)).toBe("deny");
+  });
+  it("finds the item an edit is about", () => {
+    expect(t("PUT", "/api/courses/c1")).toEqual({ kind: "course", id: "c1" });
+    expect(t("POST", "/api/courses/c1/modules")).toEqual({ kind: "course", id: "c1" });
+    expect(t("POST", "/api/admin/courses/c1/arena/sprint")).toEqual({ kind: "course", id: "c1" });
+    expect(t("DELETE", "/api/modules/m1")).toEqual({ kind: "module", id: "m1" });
+    expect(t("POST", "/api/modules/m1/assessment/publish")).toEqual({ kind: "module", id: "m1" });
+    expect(t("PUT", "/api/lessons/l1")).toEqual({ kind: "lesson", id: "l1" });
+    expect(t("POST", "/api/lessons/l1/materials/upload-token")).toEqual({ kind: "lesson", id: "l1" });
+    expect(t("PUT", "/api/materials/x1")).toEqual({ kind: "material", id: "x1" });
+    expect(t("POST", "/api/exams/e1/questions")).toEqual({ kind: "exam", id: "e1" });
+    expect(t("PUT", "/api/questions/q1")).toEqual({ kind: "question", id: "q1" });
+    expect(t("PUT", "/api/admin/assignments/a1/questions/q2")).toEqual({ kind: "assignment", id: "a1" });
+    expect(t("PATCH", "/api/cohorts/h1/enrollments")).toEqual({ kind: "cohort", id: "h1" });
+    expect(t("POST", "/api/exams/e1/")).toEqual({ kind: "exam", id: "e1" });
+  });
+  it("leaves unrelated writes to the editor rules", () => { expect(t("POST", "/api/posts")).toBeNull(); expect(t("POST", "/api/notifications/read")).toBeNull(); });
 });
