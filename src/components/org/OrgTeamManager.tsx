@@ -9,6 +9,7 @@ import { Input, Select } from "@/components/ui/Field";
 import { MEMBER_ROLES, ROLE_HELP, ROLE_LABEL, type OrgRole } from "@/lib/org/people";
 import { useConfirmModal } from "@/components/ui/useConfirmModal";
 import { useToast } from "@/components/ui/Toast";
+import ExpandSelect from "@/components/ui/ExpandSelect";
 
 interface Member {
   id: string;
@@ -155,9 +156,9 @@ export default function OrgTeamManager() {
       header: "Role",
       sortValue: (m) => m.role,
       render: (m) => (
-        <select aria-label={`Role of ${m.name}`} value={m.role} disabled={busyId === m.id} onChange={(e) => setMemberRole(m, e.target.value)} className="min-h-[36px] rounded-lg border border-brand-gray bg-brand-surface px-2 text-sm text-brand-ink">
-          {MEMBER_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
-        </select>
+        <ExpandSelect compact aria-label={`Role of ${m.name}`} value={m.role} disabled={busyId === m.id} onChange={(e) => setMemberRole(m, e.target.value)} className="min-h-[36px] rounded-lg border border-brand-gray bg-brand-surface px-2 text-sm text-brand-ink">
+          {MEMBER_ROLES.map((r) => <option key={r} value={r} data-description={ROLE_HELP[r]}>{ROLE_LABEL[r]}</option>)}
+        </ExpandSelect>
       ),
     },
     {
@@ -223,11 +224,11 @@ export default function OrgTeamManager() {
         <p className="mt-1 text-sm text-gray-600">
           They get an email with a link to choose their own password, and they sign in as themselves: what they change is recorded under their name. {ROLE_HELP[role as OrgRole]}
         </p>
-        <form onSubmit={invite} className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_10rem_auto] sm:items-end">
+        <form onSubmit={invite} className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_10rem_auto] lg:grid-cols-[1fr_1fr_15rem_auto] sm:items-end">
           <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} required maxLength={100} />
           <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           <Select label="Role" value={role} onChange={(e) => setRole(e.target.value)}>
-            {MEMBER_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
+            {MEMBER_ROLES.map((r) => <option key={r} value={r} data-description={ROLE_HELP[r]}>{ROLE_LABEL[r]}</option>)}
           </Select>
           <Button type="submit" loading={adding}>
             {adding ? "Sending..." : "Send invitation"}

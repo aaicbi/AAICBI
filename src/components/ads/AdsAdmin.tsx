@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/Toast";
 import SponsoredCard from "@/components/ads/SponsoredCard";
 import type { AdView } from "@/lib/ads/ads";
 import { BUTTON_MAX, CAPTION_MAX, HEADLINE_MAX, KIND_MAX, MEDIA_RULES, NAME_MAX, NOTES_MAX, PLACEMENTS, PLACEMENT_LABEL, STATUS_LABEL, initialsOf, mediaPrefix, prettyNaira, watDay, type AdStatus, type MediaKind, type PaymentStatus, type Placement } from "@/lib/ads/adsCore";
+import ExpandSelect from "@/components/ui/ExpandSelect";
 
 interface Org { id: string; name: string; logoUrl: string | null }
 interface Data { settings: { enabled: boolean; house: boolean }; ads: AdView[]; organizations: Org[] }
@@ -113,10 +114,10 @@ export default function AdsAdmin() {
           <div className="mt-3 grid gap-4 lg:grid-cols-2">
             <div className="space-y-3">
               <label className="block text-sm"><span className="font-semibold text-brand-ink">Organization (optional)</span>
-                <select className={field} value={form.organizationId} data-testid="ad-org" onChange={(e) => { const o = data.organizations.find((x) => x.id === e.target.value); setForm((f) => (f ? { ...f, organizationId: e.target.value, advertiserName: o && !f.advertiserName ? o.name : f.advertiserName } : f)); }}>
+                <ExpandSelect className={field} value={form.organizationId} data-testid="ad-org" onChange={(e) => { const o = data.organizations.find((x) => x.id === e.target.value); setForm((f) => (f ? { ...f, organizationId: e.target.value, advertiserName: o && !f.advertiserName ? o.name : f.advertiserName } : f)); }}>
                   <option value="">Not an AAICBI organization</option>
                   {data.organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-                </select>
+                </ExpandSelect>
                 <span className="text-xs text-gray-600">An organization sees its own numbers in the Ads report.</span>
               </label>
               <label className="block text-sm"><span className="font-semibold text-brand-ink">Advertiser name</span><input className={field} maxLength={NAME_MAX} value={form.advertiserName} onChange={(e) => set("advertiserName", e.target.value)} data-testid="ad-name" /></label>
@@ -151,7 +152,7 @@ export default function AdsAdmin() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block text-sm"><span className="font-semibold text-brand-ink">Price agreed (₦, optional)</span><input inputMode="numeric" className={field} value={form.priceNaira} onChange={(e) => set("priceNaira", e.target.value)} data-testid="ad-price" /></label>
                 <label className="block text-sm"><span className="font-semibold text-brand-ink">Payment</span>
-                  <select className={field} value={form.paymentStatus} onChange={(e) => set("paymentStatus", e.target.value as PaymentStatus)} data-testid="ad-payment"><option value="UNPAID">Not paid yet (will not go live)</option><option value="PAID">Paid</option><option value="FREE">Free (no charge)</option></select>
+                  <ExpandSelect className={field} value={form.paymentStatus} onChange={(e) => set("paymentStatus", e.target.value as PaymentStatus)} data-testid="ad-payment"><option value="UNPAID">Not paid yet (will not go live)</option><option value="PAID">Paid</option><option value="FREE">Free (no charge)</option></ExpandSelect>
                 </label>
               </div>
               <label className="block text-sm"><span className="font-semibold text-brand-ink">Private note (never shown)</span><textarea className={`${field} py-2`} rows={2} maxLength={NOTES_MAX} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Receipt number, who agreed it…" /></label>

@@ -7,6 +7,7 @@ import { useSocial } from "@/components/posts/SocialProvider";
 import { useToast } from "@/components/ui/Toast";
 import { REACTIONS, REACTION_LABEL, REPORT_LABEL, REPORT_REASONS, type ReactionKind } from "@/lib/posts/interactionCore";
 import type { FeedPost } from "@/lib/posts/interactions";
+import ExpandSelect from "@/components/ui/ExpandSelect";
 
 const Icon = ({ d, filled }: { d: string; filled?: boolean }) => (
   <svg viewBox="0 0 24 24" width="20" height="20" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
@@ -102,7 +103,7 @@ export default function PostItem({ post, showStatus = false, openComments = fals
             {reporting ? (
               <div className="space-y-2 rounded-xl border border-brand-gray p-3 text-left">
                 <label className="block text-sm font-semibold text-brand-ink" htmlFor={`reason-${post.id}`}>What is wrong with this post?</label>
-                <select id={`reason-${post.id}`} value={reason} onChange={(e) => setReason(e.target.value)} className="min-h-[44px] w-full rounded-lg border border-brand-gray bg-brand-surface px-3 text-sm text-brand-ink">{REPORT_REASONS.map((r) => <option key={r} value={r}>{REPORT_LABEL[r]}</option>)}</select>
+                <ExpandSelect id={`reason-${post.id}`} value={reason} onChange={(e) => setReason(e.target.value)} className="min-h-[44px] w-full rounded-lg border border-brand-gray bg-brand-surface px-3 text-sm text-brand-ink">{REPORT_REASONS.map((r) => <option key={r} value={r}>{REPORT_LABEL[r]}</option>)}</ExpandSelect>
                 <textarea aria-label="More detail (optional)" value={details} onChange={(e) => setDetails(e.target.value)} maxLength={500} rows={2} placeholder="More detail (optional)" className="w-full rounded-lg border border-brand-gray bg-brand-surface p-2 text-sm text-brand-ink" />
                 <div className="flex justify-end gap-2"><button type="button" onClick={() => setReporting(false)} className="min-h-[40px] px-3 text-sm font-semibold text-gray-700">Cancel</button><button type="button" onClick={sendReport} className="min-h-[40px] rounded-full bg-brand-rose px-4 text-sm font-semibold text-brand-onAccent">Send report</button></div>
               </div>

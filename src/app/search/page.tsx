@@ -15,6 +15,7 @@ import {
   FILTERS_FOR_KIND, FILTER_LABEL, INDUSTRIES, KIND_LABEL, POST_TYPES, POST_TYPE_LABEL, SEARCH_KINDS, activeFilters, hasCriteria, parseSearchParams, searchHref,
   type SearchKind, type SearchParams,
 } from "@/lib/ecosystem/searchCore";
+import ExpandSelect from "@/components/ui/ExpandSelect";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Search", robots: { index: false } };
@@ -83,11 +84,11 @@ export default async function SearchPage({ searchParams }: { searchParams: Recor
               {filters.includes("location") && <div><label htmlFor="location" className="mb-1 block text-xs font-semibold text-gray-800">{FILTER_LABEL.location}</label><input id="location" name="location" defaultValue={p.location ?? ""} maxLength={60} placeholder="e.g. Lagos" className={FIELD} /></div>}
               {filters.includes("industry") && (
                 <div><label htmlFor="industry" className="mb-1 block text-xs font-semibold text-gray-800">{FILTER_LABEL.industry}</label>
-                  {p.kind === "startups" ? <select id="industry" name="industry" defaultValue={p.industry ?? ""} className={FIELD}><option value="">Any</option>{INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}</select> : <input id="industry" name="industry" defaultValue={p.industry ?? ""} maxLength={60} placeholder="e.g. Data" className={FIELD} />}
+                  {p.kind === "startups" ? <ExpandSelect id="industry" name="industry" defaultValue={p.industry ?? ""} className={FIELD}><option value="">Any</option>{INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}</ExpandSelect> : <input id="industry" name="industry" defaultValue={p.industry ?? ""} maxLength={60} placeholder="e.g. Data" className={FIELD} />}
                 </div>
               )}
-              {filters.includes("type") && <div><label htmlFor="type" className="mb-1 block text-xs font-semibold text-gray-800">{FILTER_LABEL.type}</label><select id="type" name="type" defaultValue={p.type ?? ""} className={FIELD}><option value="">Any</option>{POST_TYPES.map((t) => <option key={t} value={t}>{POST_TYPE_LABEL[t]}</option>)}</select></div>}
-              {p.kind !== "all" && <div><label htmlFor="sort" className="mb-1 block text-xs font-semibold text-gray-800">Sort by</label><select id="sort" name="sort" defaultValue={p.sort} className={FIELD}><option value="relevance">Best match</option><option value="recent">Newest</option></select></div>}
+              {filters.includes("type") && <div><label htmlFor="type" className="mb-1 block text-xs font-semibold text-gray-800">{FILTER_LABEL.type}</label><ExpandSelect id="type" name="type" defaultValue={p.type ?? ""} className={FIELD}><option value="">Any</option>{POST_TYPES.map((t) => <option key={t} value={t}>{POST_TYPE_LABEL[t]}</option>)}</ExpandSelect></div>}
+              {p.kind !== "all" && <div><label htmlFor="sort" className="mb-1 block text-xs font-semibold text-gray-800">Sort by</label><ExpandSelect id="sort" name="sort" defaultValue={p.sort} className={FIELD}><option value="relevance">Best match</option><option value="recent">Newest</option></ExpandSelect></div>}
             </div>
           )}
           {active.length > 0 && <p className="mt-3 text-sm text-gray-800">Filtering by {active.map((k) => `${FILTER_LABEL[k].toLowerCase()}: ${p[k]}`).join(", ")}. <Link href={searchHref(p, { skill: null, location: null, industry: null, type: null, page: 1 })} className="font-semibold text-brand-teal hover:underline">Clear filters</Link></p>}

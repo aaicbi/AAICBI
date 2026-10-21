@@ -5,6 +5,7 @@ import Badge from "@/components/ui/Badge";
 import ErrorState from "@/components/ui/ErrorState";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
+import ExpandSelect from "@/components/ui/ExpandSelect";
 
 type Kind = "squads" | "challenges";
 interface Squad { id: string; name: string; course: string; createdAt: string; members: number; maxMembers: number; finished: number; points: number; outOf: number; captain: string; rivalOf: string | null; answeredBy: number; joinUrl: string }
@@ -75,10 +76,10 @@ export default function GrowthGroups() {
           ))}
         </div>
         <label className="block text-sm"><span className="font-semibold text-brand-ink">Course</span>
-          <select data-testid="campaign-filter" className="mt-1 block min-h-[44px] rounded-lg border border-brand-gray bg-brand-surface px-3 text-base text-brand-ink" value={campaign} onChange={(e) => { setCampaign(e.target.value); setPage(1); }}>
+          <ExpandSelect compact data-testid="campaign-filter" className="mt-1 block min-h-[44px] rounded-lg border border-brand-gray bg-brand-surface px-3 text-base text-brand-ink" value={campaign} onChange={(e) => { setCampaign(e.target.value); setPage(1); }}>
             <option value="">All courses</option>
             {data.campaigns.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
-          </select>
+          </ExpandSelect>
         </label>
         {kind === "squads" && (
           <form className="flex items-end gap-2" onSubmit={(e) => { e.preventDefault(); setQuery(q); setPage(1); }}>

@@ -8,6 +8,7 @@ import { SkeletonList } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { cleanSource } from "@/lib/growth/growthCore";
 import { ASSET_RULES, LABEL_MAX, LINK_TOKEN, TEXT_MAX, assetPrefix, embedSnippet, prettySize, renderCaption, type Asset, type AssetKind, type Caption } from "@/lib/growth/shareCore";
+import ExpandSelect from "@/components/ui/ExpandSelect";
 
 interface ShareCourse { id: string; title: string; slug: string; link: string; assets: Partial<Record<AssetKind, Asset>> }
 interface Data { courses: ShareCourse[]; captions: Caption[]; isDefault: boolean; defaultCount: number }
@@ -87,7 +88,7 @@ export default function GrowthShare() {
           <Card>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm"><span className="font-semibold text-brand-ink">Course</span>
-                <select data-testid="share-course" className={field} value={courseId} onChange={(e) => setCourseId(e.target.value)}>{data.courses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}</select>
+                <ExpandSelect data-testid="share-course" className={field} value={courseId} onChange={(e) => setCourseId(e.target.value)}>{data.courses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}</ExpandSelect>
               </label>
               <label className="block text-sm"><span className="font-semibold text-brand-ink">Source label</span>
                 <input data-testid="share-src" className={field} value={src} onChange={(e) => setSrc(e.target.value)} maxLength={60} placeholder="for example lagos-whatsapp-group" />

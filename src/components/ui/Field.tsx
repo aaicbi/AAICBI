@@ -1,6 +1,7 @@
 "use client";
 import { forwardRef, useId } from "react";
 import { inputAttrsForType } from "@/lib/forms/inputAttrs";
+import ExpandSelect from "./ExpandSelect";
 
 /**
  * The shared form-field layer: Input, Select, Textarea and Checkbox.
@@ -105,8 +106,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   );
 });
 
-type SelectProps = FieldChrome & Omit<React.SelectHTMLAttributes<HTMLSelectElement>, "className">;
+type SelectProps = FieldChrome & Omit<React.SelectHTMLAttributes<HTMLSelectElement>, "className" | "multiple" | "size">;
 
+/** The choice field. Shown as an expand picker (see ExpandSelect); the options are still plain <option> children. */
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
   { label, hint, error, wrapperClassName, hideLabel, compact, controlClassName, id: idProp, required, children, ...rest },
   ref
@@ -115,17 +117,22 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
   const id = idProp ?? auto;
   return (
     <Shell id={id} label={label} hint={hint} error={error} required={required} wrapperClassName={wrapperClassName} hideLabel={hideLabel}>
-      <select
-        ref={ref}
-        id={id}
-        required={required}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy(id, hint, error)}
-        className={controlClass({ compact, hideLabel, error, controlClassName })}
-        {...rest}
-      >
-        {children}
-      </select>
+      <div className={hideLabel ? "" : "lg:mt-1"}>
+        <ExpandSelect
+          ref={ref}
+          id={id}
+          required={required}
+          compact={compact}
+          invalid={!!error}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy(id, hint, error)}
+          className={controlClassName}
+          nativeClassName={controlClass({ compact, hideLabel, error, controlClassName })}
+          {...rest}
+        >
+          {children}
+        </ExpandSelect>
+      </div>
     </Shell>
   );
 });

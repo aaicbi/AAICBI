@@ -6,6 +6,7 @@ import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
 import { INDUSTRIES, STAGES, STAGE_LABEL } from "@/lib/startups/startupCore";
 import { signupLoginUrl } from "@/lib/auth/signupRedirect";
+import ExpandSelect from "@/components/ui/ExpandSelect";
 
 const STEPS = ["About you", "Your startup", "Check and create"] as const;
 interface Data { name: string; email: string; password: string; confirm: string; phone: string; consent: boolean; sName: string; tagline: string; industry: string; stage: string; website: string; location: string; description: string }
@@ -104,8 +105,8 @@ export default function StartupRegisterForm() {
           <>
             <Input label="Startup name" value={d.sName} onChange={(e) => set("sName", e.target.value)} required />
             <Input label="One-line tagline (optional)" maxLength={120} value={d.tagline} onChange={(e) => set("tagline", e.target.value)} />
-            <div><label htmlFor="su-industry" className="mb-1 block text-sm font-semibold text-brand-ink">Industry (optional)</label><select id="su-industry" className={SELECT} value={d.industry} onChange={(e) => set("industry", e.target.value)}><option value="">Choose later</option>{INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}</select></div>
-            <div><label htmlFor="su-stage" className="mb-1 block text-sm font-semibold text-brand-ink">Stage</label><select id="su-stage" className={SELECT} value={d.stage} onChange={(e) => set("stage", e.target.value)}>{STAGES.map((s) => <option key={s} value={s}>{STAGE_LABEL[s]}</option>)}</select></div>
+            <div><label htmlFor="su-industry" className="mb-1 block text-sm font-semibold text-brand-ink">Industry (optional)</label><ExpandSelect id="su-industry" className={SELECT} value={d.industry} onChange={(e) => set("industry", e.target.value)}><option value="">Choose later</option>{INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}</ExpandSelect></div>
+            <div><label htmlFor="su-stage" className="mb-1 block text-sm font-semibold text-brand-ink">Stage</label><ExpandSelect id="su-stage" className={SELECT} value={d.stage} onChange={(e) => set("stage", e.target.value)}>{STAGES.map((s) => <option key={s} value={s}>{STAGE_LABEL[s]}</option>)}</ExpandSelect></div>
             <Input label="Website or project link (optional)" type="url" inputMode="url" placeholder="https://" value={d.website} onChange={(e) => set("website", e.target.value)} />
             <Input label="Location (optional)" value={d.location} onChange={(e) => set("location", e.target.value)} />
             <div><label htmlFor="su-desc" className="mb-1 block text-sm font-semibold text-brand-ink">What does it do? (optional)</label><textarea id="su-desc" rows={4} maxLength={2000} className={`${SELECT} py-2`} value={d.description} onChange={(e) => set("description", e.target.value)} /><p className="mt-1 text-xs text-gray-700">This becomes public after approval. Do not include anything confidential.</p></div>
