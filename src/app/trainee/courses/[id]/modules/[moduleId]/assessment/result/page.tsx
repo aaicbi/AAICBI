@@ -29,7 +29,6 @@ interface ResultReleased {
   percentage: number;
   passed: boolean;
   passMarkPercent: number;
-  gateFailures?: string[];
   showCorrectAnswers?: boolean;
   review?: ReviewQuestion[];
   performanceSummary?: PerformanceSummaryDto;
@@ -204,19 +203,6 @@ export default function ModuleAssessmentResultPage({ params }: { params: { id: s
             </p>
           </Card>
 
-          {result.gateFailures && result.gateFailures.length > 0 && (
-            <Card className="mt-4 w-full max-w-md text-left" data-testid="gate-failures">
-              <p className="text-sm font-semibold text-brand-ink">Your score was high enough, but one required objective is not there yet</p>
-              <p className="mt-1 text-xs text-gray-700">
-                To pass, you also need to show you can do each of these. Revise them and try again:
-              </p>
-              <ul className="mt-2 list-disc pl-5 text-sm text-brand-ink">
-                {result.gateFailures.map((g) => (
-                  <li key={g}>{g}</li>
-                ))}
-              </ul>
-            </Card>
-          )}
           {result.performanceSummary && (
             <div className="w-full max-w-md">
               <PerformanceSummaryPanel summary={result.performanceSummary} />

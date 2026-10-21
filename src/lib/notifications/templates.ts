@@ -246,8 +246,6 @@ export interface AssessmentResultEmailInput {
   passed: boolean;
   passMarkPercent: number;
   courseUrl: string;
-  /** Critical learning objectives that held back a score at or above the pass mark. Empty when the score alone decided the result. */
-  gateFailures?: string[];
   /** Optional — only present when M13's AI analysis produced one for
    * this attempt. Never required; the email is complete without it. */
   performanceSummary?: { strengths: string[]; weaknesses: string[]; narrative: string } | null;
@@ -255,17 +253,6 @@ export interface AssessmentResultEmailInput {
 
 export function assessmentResultEmail(input: AssessmentResultEmailInput): EmailContent {
   const statusLine = input.passed ? "You passed!" : "Not quite this time — you can try again.";
-  // A high score can still be a fail when a critical objective was not mastered. Say so, or the result looks like a mistake.
-  const gates = !input.passed && input.percentage >= input.passMarkPercent ? input.gateFailures ?? [] : [];
-  const gateHtml = gates.length
-    ? `<div style="margin:16px 0;padding:16px;background:#F6E8CC;border-radius:6px;">
-         <p style="margin:0 0 8px;font-size:13px;font-weight:bold;color:#6E480E;">WHY THIS IS NOT A PASS YET</p>
-         <p style="margin:0 0 8px;font-size:14px;">Your overall score is above the pass mark, but this assessment also requires you to master its key topics. You scored below ${input.passMarkPercent}% on:</p>
-         <ul style="margin:0;padding-left:20px;font-size:14px;">${gates.map((g) => `<li>${escapeHtml(g)}</li>`).join("")}</ul>
-         <p style="margin:8px 0 0;font-size:14px;">Revise these topics, then try again.</p>
-       </div>`
-    : "";
-  const gateText = gates.length ? `\n\nWhy this is not a pass yet: your overall score is above the pass mark, but this assessment also requires you to master its key topics. You scored below ${input.passMarkPercent}% on:\n${gates.map((g) => `- ${g}`).join("\n")}\nRevise these topics, then try again.` : "";
   const summaryHtml = input.performanceSummary
     ? `<div style="margin:16px 0;padding:16px;background:#E4EEE7;border-radius:6px;">
          <p style="margin:0 0 8px;font-size:13px;font-weight:bold;color:${BRAND_TEAL};">HOW YOU DID BY TOPIC</p>
@@ -281,7 +268,6 @@ export function assessmentResultEmail(input: AssessmentResultEmailInput): EmailC
       <p style="margin:0 0 8px;font-weight:bold;color:${input.passed ? BRAND_TEAL : "#b91c1c"};">${statusLine}</p>
       <p style="margin:0 0 16px;font-size:28px;font-weight:bold;">${input.score}<span style="font-size:16px;color:#888;">/${input.totalQuestions}</span> — ${Math.round(input.percentage)}%</p>
       <p style="margin:0 0 16px;font-size:13px;color:#666;">Pass mark for ${escapeHtml(input.examTitle)}: ${input.passMarkPercent}%</p>
-      ${gateHtml}
       ${summaryHtml}
       ${button(input.courseUrl, "Back to Course")}
     `),
@@ -290,7 +276,7 @@ export function assessmentResultEmail(input: AssessmentResultEmailInput): EmailC
 ${statusLine}
 
 ${input.score}/${input.totalQuestions} — ${Math.round(input.percentage)}%
-Pass mark for ${input.examTitle}: ${input.passMarkPercent}%${gateText}${summaryText}
+Pass mark for ${input.examTitle}: ${input.passMarkPercent}%${summaryText}
 
 ${input.courseUrl}`,
   };

@@ -30,7 +30,6 @@ export interface QuestConfig {
   minAnswerSeconds: number;
   wordsPerSecond: number;
   poolMinimum: { practice: number; formal: number };
-  formalPerCriticalObjective: number;
   problemSolverPercent: number;
   dayOffsetMinutes: number;
 }
@@ -66,7 +65,6 @@ export const QUEST_DEFAULTS: QuestConfig = {
   /** Approved questions needed per learning objective before a module can go live. */
   poolMinimum: { practice: 10, formal: 6 },
   /** Formal draws this many questions per critical objective (when available). */
-  formalPerCriticalObjective: 3,
   /** Share of a course's objectives that must be mastered to reach Problem Solver. */
   problemSolverPercent: 50,
   /** Day boundaries for streaks and daily caps: Nigeria time (UTC+1, no DST). */
@@ -460,87 +458,45 @@ export function isFormalEligible(pool: "PRACTICE" | "FORMAL" | null): boolean {
 }
 
 /**
- * Draws a formal attempt. Critical objectives get up to `perCritical` questions
- * each first (so a gate can actually be tested), the rest is filled randomly.
- * With no numQuestions the whole pool is used.
+ * Draws a formal attempt so that it tests every learning objective of the module. Questions are taken one objective at a time in turn, so each
+ * objective gets a question before any objective gets a second, until the attempt is full; any questions not tied to an objective fill what is left.
+ * With no numQuestions the whole pool is used. This only chooses what is asked: whether the trainee passes depends on the overall score alone.
  */
 export function drawFormal<T extends { id: string }>(
   pool: readonly T[],
   opts: {
     numQuestions: number | null;
-    criticalObjectiveIds: readonly string[];
+    objectiveIds: readonly string[];
     shuffle: <U>(items: U[]) => U[];
     randomize: boolean;
     objectiveOf: (question: T) => string | null;
-  },
-  cfg: QuestConfig = QUEST_DEFAULTS
+  }
 ): T[] {
   const ordered = opts.randomize ? opts.shuffle([...pool]) : [...pool];
   const limit = opts.numQuestions && opts.numQuestions < ordered.length ? opts.numQuestions : ordered.length;
-  if (limit >= ordered.length || opts.criticalObjectiveIds.length === 0) return ordered.slice(0, limit);
+  if (limit >= ordered.length || opts.objectiveIds.length === 0) return ordered.slice(0, limit);
 
-  const chosen: T[] = [];
-  const taken = new Set<string>();
-  for (const objectiveId of opts.criticalObjectiveIds) {
-    let n = 0;
-    for (const q of ordered) {
-      if (n >= cfg.formalPerCriticalObjective || chosen.length >= limit) break;
-      if (opts.objectiveOf(q) === objectiveId && !taken.has(q.id)) {
-        chosen.push(q);
-        taken.add(q.id);
-        n++;
-      }
-    }
-  }
+  const byObjective = new Map<string, T[]>(opts.objectiveIds.map((id) => [id, []]));
+  const rest: T[] = [];
   for (const q of ordered) {
-    if (chosen.length >= limit) break;
-    if (!taken.has(q.id)) {
-      chosen.push(q);
-      taken.add(q.id);
+    const id = opts.objectiveOf(q);
+    const list = id ? byObjective.get(id) : undefined;
+    if (list) list.push(q); else rest.push(q);
+  }
+  const chosen: T[] = [];
+  const queues = opts.objectiveIds.map((id) => byObjective.get(id) ?? []);
+  for (let round = 0; chosen.length < limit; round++) {
+    let tookAny = false;
+    for (const q of queues) {
+      if (chosen.length >= limit) break;
+      if (round < q.length) { chosen.push(q[round]); tookAny = true; }
     }
+    if (!tookAny) break;
+  }
+  for (const q of rest) {
+    if (chosen.length >= limit) break;
+    chosen.push(q);
   }
   return opts.randomize ? opts.shuffle(chosen) : chosen;
 }
 
-export interface GateAnswer {
-  objectiveId: string | null;
-  correct: boolean;
-}
-
-export interface GateResult {
-  /** Critical objectives that were tested in this attempt and fell short. */
-  failedObjectiveIds: string[];
-  /** Critical objectives with no question in this attempt (not held against the trainee). */
-  untestedObjectiveIds: string[];
-  passed: boolean;
-}
-
-/** A critical objective is cleared when the share correct among its questions reaches the pass mark. */
-export function evaluateGates(
-  passMarkPercent: number,
-  criticalObjectiveIds: readonly string[],
-  answers: readonly GateAnswer[]
-): GateResult {
-  const failed: string[] = [];
-  const untested: string[] = [];
-  for (const id of criticalObjectiveIds) {
-    const mine = answers.filter((a) => a.objectiveId === id);
-    if (mine.length === 0) {
-      untested.push(id);
-      continue;
-    }
-    const pct = (mine.filter((a) => a.correct).length / mine.length) * 100;
-    if (pct < passMarkPercent) failed.push(id);
-  }
-  return { failedObjectiveIds: failed, untestedObjectiveIds: untested, passed: failed.length === 0 };
-}
-
-/** Practice-before-formal: enough of the module's objectives mastered. */
-export function practiceRequirementMet(
-  masteredObjectives: number,
-  totalObjectives: number,
-  requiredPercent: number
-): boolean {
-  if (totalObjectives === 0) return true;
-  return (masteredObjectives / totalObjectives) * 100 >= requiredPercent;
-}

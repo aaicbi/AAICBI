@@ -19,8 +19,8 @@
 import { prisma } from "@/lib/prisma";
 import type { Attempt, Exam, Question, Option } from "@prisma/client";
 import { reconstructOrderedItems } from "@/lib/examEngineCore";
-import { drawFormal, evaluateGates, isFormalEligible } from "@/lib/quest/core";
-import { criticalObjectiveIds, failedGateObjectives } from "@/lib/quest/server";
+import { drawFormal, isFormalEligible } from "@/lib/quest/core";
+import { moduleObjectiveIds } from "@/lib/quest/server";
 import { computeTopicStats } from "@/lib/performanceCore";
 import { generatePerformanceSummary } from "@/lib/ai/analyzePerformance";
 import { rateLimit } from "@/lib/rateLimit";
@@ -131,16 +131,16 @@ export async function startAttempt(
   // way, not just the one this was found while building.
   //
   // Knowledge Quest: practice-pool questions are never part of a formal
-  // assessment (untagged legacy questions stay formal), and a module's
-  // critical objectives are guaranteed questions in the draw so the mastery
-  // gate can actually be tested — see drawFormal in quest/core.ts. With no
-  // practice tags and no critical objectives this is exactly the old
-  // shuffle-then-slice behaviour.
+  // assessment (untagged legacy questions stay formal), and the draw is
+  // spread across every learning objective of the module so the assessment
+  // tests all of them — see drawFormal in quest/core.ts. With no objectives
+  // this is exactly the old shuffle-then-slice behaviour. Passing never
+  // depends on any single objective: only on the overall score.
   const reviewedQuestions = exam.questions.filter((q) => !q.needsReview && isFormalEligible(q.bankPool));
 
   const pool = drawFormal(reviewedQuestions, {
     numQuestions: exam.numQuestions,
-    criticalObjectiveIds: exam.moduleId ? await criticalObjectiveIds(exam.moduleId) : [],
+    objectiveIds: exam.moduleId ? await moduleObjectiveIds(exam.moduleId) : [],
     shuffle,
     randomize: exam.randomizeQuestions,
     objectiveOf: (q) => q.bankObjectiveId,
@@ -278,23 +278,7 @@ export async function submitAttempt(attemptId: string) {
   const passMarkPercent = attempt.passMarkPercent ?? exam.passMarkPercent;
   let passed = percentage >= passMarkPercent;
 
-  // Knowledge Quest mastery gates: a module assessment is not passed unless
-  // every critical objective that was tested clears the pass mark, whatever
-  // the overall score. No critical objectives set = no change.
-  if (exam.moduleId) {
-    const critical = await criticalObjectiveIds(exam.moduleId);
-    if (critical.length > 0) {
-      const gate = evaluateGates(
-        passMarkPercent,
-        critical,
-        attempt.answers.map((a) => ({
-          objectiveId: questions.find((q) => q.id === a.questionId)?.bankObjectiveId ?? null,
-          correct: !!questions.find((q) => q.id === a.questionId)?.options.find((o) => o.isCorrect && o.key === a.selectedOptionKey),
-        }))
-      );
-      if (!gate.passed) passed = false;
-    }
-  }
+  // The rule is simple: the overall score reaches the pass mark, or it does not.
 
   // M13 audit finding: this used to be a plain `attempt.update`, with
   // no protection against two near-simultaneous calls to
@@ -346,6 +330,12 @@ export async function submitAttempt(attemptId: string) {
     relatedId: graded.id,
     properties: { score: graded.percentage ?? undefined, passed: graded.passed ?? undefined },
   });
+
+  // Passing a module's assessment opens the next module straight away: work out the course's lock state now (which also records the completion
+  // and sends the "module unlocked" notice) instead of waiting for the trainee to next open the course page. Never affects the submission.
+  if (graded.passed && exam.courseModule?.courseId) {
+    try { await getModuleLockMap(exam.courseModule.courseId, graded.traineeId); } catch (e) { console.error(`Could not update module progress for attempt ${attemptId}:`, e); }
+  }
 
   // TODO (M14 — Notifications): this is the hook point for the
   // "assessment result" email the roadmap names for M14 — grading is
@@ -458,8 +448,6 @@ export async function submitAttempt(attemptId: string) {
           ? `/trainee/courses/${exam.courseModule.courseId}`
           : "/trainee/dashboard";
         const courseUrl = appUrl(relativeUrl);
-        const mark = attempt.passMarkPercent ?? exam.passMarkPercent;
-        const gateFailures = graded.passed === false && (graded.percentage ?? 0) >= mark ? await failedGateObjectives(attemptId, mark).catch(() => []) : [];
         const email = assessmentResultEmail({
           traineeName: trainee.name,
           examTitle: exam.title,
@@ -467,8 +455,7 @@ export async function submitAttempt(attemptId: string) {
           totalQuestions: graded.totalQuestions ?? 0,
           percentage: graded.percentage ?? 0,
           passed: graded.passed ?? false,
-          passMarkPercent: mark,
-          gateFailures,
+          passMarkPercent: attempt.passMarkPercent ?? exam.passMarkPercent,
           courseUrl,
           performanceSummary: generatedSummary,
         });

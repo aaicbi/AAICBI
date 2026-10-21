@@ -12,13 +12,11 @@ import {
   ALL_REWARDS,
   QUEST_DEFAULTS,
   dayKey,
-  evaluateGates,
   levelFor,
   masteryFor,
   minAnswerSeconds,
   pickObjective,
   pickQuestion,
-  practiceRequirementMet,
   streakLength,
   streakXp,
   xpForAnswer,
@@ -642,77 +640,23 @@ export interface FormalEligibility {
   totalObjectives: number;
 }
 
-/** Whether the practice requirement (if the instructor set one) is met for this module's formal assessment. */
+/**
+ * Practice never stands between a trainee and a module assessment. The assessment has its own rule (reach the pass mark and the next module opens),
+ * and practice is only there to help people get ready. This keeps the shape the practice screens expect and always says nothing is required.
+ */
 export async function formalEligibility(
-  traineeId: string,
+  _traineeId: string,
   moduleId: string,
   settings?: QuestSettings,
-  now = new Date()
+  _now = new Date()
 ): Promise<FormalEligibility> {
   const s = settings ?? (await loadQuestSettings(moduleId));
-  const none = { required: false, met: true, requiredPercent: s.practiceRequiredPercent, masteredObjectives: 0, totalObjectives: 0 };
-  if (!s.practiceEnabled || !s.practiceBeforeFormal) return none;
-
-  const unlocked = await prisma.formalUnlock.findUnique({ where: { traineeId_moduleId: { traineeId, moduleId } } });
-  const masteries = await moduleMasteries(traineeId, moduleId, now);
-  // Only objectives that have practice questions can be mastered, so only those count.
-  const pool = await prisma.question.groupBy({ by: ["bankObjectiveId"], where: practicePoolWhere(moduleId), _count: { _all: true } });
-  const withQuestions = new Set(pool.map((g) => g.bankObjectiveId));
-  const counted = masteries.filter((o) => withQuestions.has(o.id));
-  const mastered = counted.filter((o) => o.mastery.state === "MASTERED").length;
-  const met = !!unlocked || practiceRequirementMet(mastered, counted.length, s.practiceRequiredPercent);
-  return { required: true, met, requiredPercent: s.practiceRequiredPercent, masteredObjectives: mastered, totalObjectives: counted.length };
+  return { required: false, met: true, requiredPercent: s.practiceRequiredPercent, masteredObjectives: 0, totalObjectives: 0 };
 }
 
-/** Called when a trainee starts the formal assessment. Throws 403 when the practice requirement isn't met. */
-export async function requireFormalUnlocked(traineeId: string, moduleId: string): Promise<void> {
-  const e = await formalEligibility(traineeId, moduleId);
-  if (!e.required) return;
-  if (!e.met) {
-    throw httpError(
-      403,
-      `Practise first: master at least ${e.requiredPercent}% of this module's objectives (${e.masteredObjectives} of ${e.totalObjectives} so far) to unlock the assessment.`
-    );
-  }
-  // Remember it: a later lapse in practice mastery must never lock them out again.
-  await prisma.formalUnlock.upsert({
-    where: { traineeId_moduleId: { traineeId, moduleId } },
-    create: { traineeId, moduleId },
-    update: {},
-  });
-}
 
-export async function criticalObjectiveIds(moduleId: string): Promise<string[]> {
-  const rows = await prisma.moduleLearningObjective.findMany({
-    where: { moduleId, isCritical: true },
-    orderBy: { order: "asc" },
-    select: { id: true },
-  });
+/** Every learning objective of a module, in order. A formal assessment is drawn so that each one is tested. */
+export async function moduleObjectiveIds(moduleId: string): Promise<string[]> {
+  const rows = await prisma.moduleLearningObjective.findMany({ where: { moduleId }, orderBy: { order: "asc" }, select: { id: true } });
   return rows.map((r) => r.id);
-}
-
-/** Critical objectives a submitted attempt fell short on (empty when there are none or it has no gates). */
-export async function failedGateObjectives(attemptId: string, passMarkPercent: number): Promise<string[]> {
-  const attempt = await prisma.attempt.findUnique({
-    where: { id: attemptId },
-    select: { exam: { select: { moduleId: true } }, answers: { select: { questionId: true, isCorrect: true } } },
-  });
-  const moduleId = attempt?.exam.moduleId;
-  if (!attempt || !moduleId) return [];
-  const critical = await prisma.moduleLearningObjective.findMany({
-    where: { moduleId, isCritical: true },
-    select: { id: true, text: true },
-  });
-  if (critical.length === 0) return [];
-  const questions = await prisma.question.findMany({
-    where: { id: { in: attempt.answers.map((a) => a.questionId) } },
-    select: { id: true, bankObjectiveId: true },
-  });
-  const objectiveOf = new Map(questions.map((q) => [q.id, q.bankObjectiveId]));
-  const gate = evaluateGates(
-    passMarkPercent,
-    critical.map((c) => c.id),
-    attempt.answers.map((a) => ({ objectiveId: objectiveOf.get(a.questionId) ?? null, correct: a.isCorrect === true }))
-  );
-  return critical.filter((c) => gate.failedObjectiveIds.includes(c.id)).map((c) => c.text);
 }

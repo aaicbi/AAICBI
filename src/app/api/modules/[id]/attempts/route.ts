@@ -5,7 +5,6 @@ import { withApiErrors } from "@/lib/apiError";
 import { startAttempt, serveableQuestion, secondsRemaining } from "@/lib/examEngine";
 import { getModuleLockStatus } from "@/lib/progress";
 import { getModuleAccessLevel, canTraineeAccessCourse } from "@/lib/courseAccess";
-import { requireFormalUnlocked } from "@/lib/quest/server";
 
 /**
  * POST /api/modules/[id]/attempts — the M11 replacement for typing an
@@ -95,9 +94,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
       );
     }
 
-    // Knowledge Quest: if the instructor requires practice first, the formal
-    // assessment stays closed until enough objectives are mastered (checked once).
-    await requireFormalUnlocked(session.userId, params.id);
+    // Nothing about practice or games stands in the way of the assessment: once the module is unlocked, the trainee can take it.
 
     const { attempt, orderedQuestions } = await startAttempt(exam, session.userId);
 

@@ -4,7 +4,6 @@ import {
   QUEST_DEFAULTS,
   dayKey,
   drawFormal,
-  evaluateGates,
   isFormalEligible,
   levelFor,
   masteryFor,
@@ -12,7 +11,6 @@ import {
   pickObjective,
   pickQuestion,
   poolCoverage,
-  practiceRequirementMet,
   streakLength,
   streakXp,
   suggestSplit,
@@ -293,7 +291,7 @@ describe("pickQuestion and pickObjective", () => {
   });
 });
 
-describe("formal pool split, draw and gates", () => {
+describe("formal pool split and draw", () => {
   const identity = <U,>(items: U[]) => items;
   it("excludes practice questions from the formal assessment, keeps untagged legacy ones", () => {
     expect(isFormalEligible("PRACTICE")).toBe(false);
@@ -306,52 +304,33 @@ describe("formal pool split, draw and gates", () => {
     ...["b1", "b2", "b3", "b4"].map((id) => ({ id, objectiveId: "B" })),
     ...["c1", "c2", "c3", "c4"].map((id) => ({ id, objectiveId: "C" })),
   ];
+  const draw = (numQuestions: number | null, objectiveIds = ["A", "B", "C"]) => drawFormal(pool, { numQuestions, objectiveIds, shuffle: identity, randomize: false, objectiveOf: (q) => q.objectiveId });
   it("uses the whole pool when numQuestions is not set", () => {
-    expect(drawFormal(pool, { numQuestions: null, criticalObjectiveIds: ["A"], shuffle: identity, randomize: false, objectiveOf: (q) => q.objectiveId })).toHaveLength(12);
+    expect(draw(null)).toHaveLength(12);
   });
-  it("gives each critical objective up to 3 questions first", () => {
-    const drawn = drawFormal(pool, { numQuestions: 6, criticalObjectiveIds: ["C", "B"], shuffle: identity, randomize: false, objectiveOf: (q) => q.objectiveId });
-    expect(drawn).toHaveLength(6);
-    expect(drawn.filter((q) => q.objectiveId === "C")).toHaveLength(3);
-    expect(drawn.filter((q) => q.objectiveId === "B")).toHaveLength(3);
+  it("tests every objective: each gets a question before any gets a second", () => {
+    const drawn = draw(3);
+    expect(drawn.map((q) => q.objectiveId).sort()).toEqual(["A", "B", "C"]);
+    const six = draw(6);
+    for (const id of ["A", "B", "C"]) expect(six.filter((q) => q.objectiveId === id)).toHaveLength(2);
   });
-  it("fills the rest when criticals need fewer than numQuestions", () => {
-    const drawn = drawFormal(pool, { numQuestions: 8, criticalObjectiveIds: ["A"], shuffle: identity, randomize: false, objectiveOf: (q) => q.objectiveId });
+  it("spreads a larger draw evenly and never exceeds numQuestions or repeats a question", () => {
+    const drawn = draw(8);
     expect(drawn).toHaveLength(8);
-    expect(drawn.filter((q) => q.objectiveId === "A")).toHaveLength(4);
+    expect(new Set(drawn.map((q) => q.id)).size).toBe(8);
+    const counts = ["A", "B", "C"].map((id) => drawn.filter((q) => q.objectiveId === id).length).sort();
+    expect(counts).toEqual([2, 3, 3]);
   });
-  it("never exceeds numQuestions even with many critical objectives", () => {
-    const drawn = drawFormal(pool, { numQuestions: 4, criticalObjectiveIds: ["A", "B", "C"], shuffle: identity, randomize: false, objectiveOf: (q) => q.objectiveId });
+  it("copes with an objective that has few or no questions by giving its share to the others", () => {
+    const uneven = [{ id: "a1", objectiveId: "A" }, ...["b1", "b2", "b3", "b4"].map((id) => ({ id, objectiveId: "B" }))];
+    const drawn = drawFormal(uneven, { numQuestions: 4, objectiveIds: ["A", "B", "C"], shuffle: identity, randomize: false, objectiveOf: (q) => q.objectiveId });
     expect(drawn).toHaveLength(4);
-    expect(new Set(drawn.map((q) => q.id)).size).toBe(4);
+    expect(drawn.some((q) => q.objectiveId === "A")).toBe(true);
   });
-
-  it("fails the gate when a critical objective is below the pass mark", () => {
-    const answers = [
-      { objectiveId: "A", correct: true },
-      { objectiveId: "A", correct: true },
-      { objectiveId: "A", correct: true },
-      { objectiveId: "B", correct: true },
-      { objectiveId: "B", correct: false },
-      { objectiveId: "B", correct: true },
-    ];
-    const r = evaluateGates(80, ["A", "B"], answers);
-    expect(r.failedObjectiveIds).toEqual(["B"]);
-    expect(r.passed).toBe(false);
-    expect(evaluateGates(60, ["A", "B"], answers).passed).toBe(true);
-  });
-  it("does not hold an untested objective against the trainee", () => {
-    const r = evaluateGates(80, ["Z"], [{ objectiveId: "A", correct: false }]);
-    expect(r.untestedObjectiveIds).toEqual(["Z"]);
-    expect(r.passed).toBe(true);
-  });
-  it("passes trivially with no critical objectives", () => {
-    expect(evaluateGates(80, [], [{ objectiveId: "A", correct: false }]).passed).toBe(true);
-  });
-
-  it("practice-before-formal needs the required share of objectives mastered", () => {
-    expect(practiceRequirementMet(3, 5, 70)).toBe(false);
-    expect(practiceRequirementMet(4, 5, 70)).toBe(true);
-    expect(practiceRequirementMet(0, 0, 70)).toBe(true);
+  it("fills with questions that belong to no objective, and works with no objectives at all", () => {
+    const mixed = [{ id: "x1", objectiveId: "" }, { id: "a1", objectiveId: "A" }, { id: "x2", objectiveId: "" }];
+    const drawn = drawFormal(mixed, { numQuestions: 2, objectiveIds: ["A"], shuffle: identity, randomize: false, objectiveOf: (q) => q.objectiveId || null });
+    expect(drawn.map((q) => q.id).sort()).toEqual(["a1", "x1"]);
+    expect(draw(5, [])).toHaveLength(5);
   });
 });
