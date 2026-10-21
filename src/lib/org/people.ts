@@ -5,16 +5,18 @@
  * The organization owns its courses, examinations and assignments (they are owned by its one internal account), and every
  * person signs in as themselves with their own name and role:
  *   OWNER   the account that registered the organization: everything, including billing and the team.
- *   MANAGER everything except billing.
+ *   MANAGER everything except billing. Shown to people as "Admin".
+ *   INSTRUCTOR teaches the courses the owner assigns: builds and edits content like an editor, and sees only the trainees and reports of the assigned courses.
  *   EDITOR  builds and edits content and posts; cannot publish, unpublish or delete, change the public profile, billing or team.
  *   VIEWER  can look at everything and cannot change anything.
  */
-export type OrgRole = "OWNER" | "MANAGER" | "EDITOR" | "VIEWER";
-export const MEMBER_ROLES: Array<Exclude<OrgRole, "OWNER">> = ["MANAGER", "EDITOR", "VIEWER"];
-export const ROLE_LABEL: Record<OrgRole, string> = { OWNER: "Owner", MANAGER: "Manager", EDITOR: "Editor", VIEWER: "Viewer" };
+export type OrgRole = "OWNER" | "MANAGER" | "INSTRUCTOR" | "EDITOR" | "VIEWER";
+export const MEMBER_ROLES: Array<Exclude<OrgRole, "OWNER">> = ["MANAGER", "INSTRUCTOR", "EDITOR", "VIEWER"];
+export const ROLE_LABEL: Record<OrgRole, string> = { OWNER: "Owner", MANAGER: "Admin", INSTRUCTOR: "Instructor", EDITOR: "Editor", VIEWER: "Viewer" };
 export const ROLE_HELP: Record<OrgRole, string> = {
   OWNER: "Everything, including billing and the team.",
-  MANAGER: "Everything except billing.",
+  MANAGER: "Everything except billing, including the team.",
+  INSTRUCTOR: "Teaches the courses you assign: builds and edits course content and sees only those courses' trainees and reports. Cannot publish, delete, change the public profile, billing or the team.",
   EDITOR: "Builds and edits courses, examinations, assignments and posts. Cannot publish, delete, change the public profile, billing or the team.",
   VIEWER: "Can look at everything. Cannot change anything.",
 };
@@ -44,9 +46,9 @@ export function mayDo(role: OrgRole, method: string, path: string): { ok: true }
   if (BILLING.some((r) => r.test(path))) return { ok: false, reason: "Only the owner can manage billing." };
   if (role === "MANAGER") return { ok: true };
   // EDITOR
-  if (TEAM_AND_PROFILE.some((r) => r.test(path))) return { ok: false, reason: "Only the owner or a manager can change the team or the public profile." };
-  if (m === "DELETE" && (DELETE_TOP_LEVEL.some((r) => r.test(path)) || PUBLISH_OR_DELETE[2].test(path))) return { ok: false, reason: "Editors cannot delete. Ask a manager or the owner." };
-  if (PUBLISH_OR_DELETE.slice(0, 2).some((r) => r.test(path))) return { ok: false, reason: "Editors cannot publish or unpublish. Ask a manager or the owner." };
+  if (TEAM_AND_PROFILE.some((r) => r.test(path))) return { ok: false, reason: "Only the owner or an admin can change the team or the public profile." };
+  if (m === "DELETE" && (DELETE_TOP_LEVEL.some((r) => r.test(path)) || PUBLISH_OR_DELETE[2].test(path))) return { ok: false, reason: "Editors cannot delete. Ask an admin or the owner." };
+  if (PUBLISH_OR_DELETE.slice(0, 2).some((r) => r.test(path))) return { ok: false, reason: "Editors cannot publish or unpublish. Ask an admin or the owner." };
   return { ok: true };
 }
 
@@ -84,4 +86,11 @@ export function describeAction(method: string, path: string): string {
 export function worthLogging(method: string, path: string): boolean {
   if (READ.has(method.toUpperCase())) return false;
   return !/^\/api\/(auth|guide|session|push|notifications|analytics)\b/.test(path);
+}
+
+/** Assigned course ids for an instructor, limited to the organization's own courses; null means no limit (everyone else). Pure so it can be tested. */
+export function instructorCourseLimit(role: OrgRole, assigned: string[], orgCourseIds: string[]): string[] | null {
+  if (role !== "INSTRUCTOR") return null;
+  const own = new Set(orgCourseIds);
+  return [...new Set(assigned)].filter((id) => own.has(id));
 }

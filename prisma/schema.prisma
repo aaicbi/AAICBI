@@ -1099,6 +1099,7 @@ model PitchDisclosure {
 
 model Course {
   id          String   @id @default(cuid())
+  memberAssignments TrainingOrganizationMemberCourse[]
   isDemo      Boolean  @default(false)
   skills      CourseSkill[]
   educationPosts EducationPost[]
@@ -3491,11 +3492,26 @@ model TrainingOrganizationMember {
   setupTokenExpiresAt    DateTime?
   disabledAt             DateTime?
   lastLoginAt            DateTime?
-  /// What this person may do for the organization: MANAGER, EDITOR or VIEWER (the owner is separate and can do everything).
+  /// What this person may do for the organization: MANAGER (shown as Admin), INSTRUCTOR, EDITOR or VIEWER (the owner is separate and can do everything).
   role                   String               @default("EDITOR")
   createdAt              DateTime             @default(now())
 
+  courses                TrainingOrganizationMemberCourse[]
+
   @@index([trainingOrganizationId])
+}
+
+/// The courses an organization's instructor teaches. Limits which trainees and reports that instructor sees; nothing else.
+model TrainingOrganizationMemberCourse {
+  id        String                     @id @default(cuid())
+  memberId  String
+  member    TrainingOrganizationMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  courseId  String
+  course    Course                     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdAt DateTime                   @default(now())
+
+  @@unique([memberId, courseId])
+  @@index([courseId])
 }
 
 enum TrainingOrganizationBillingModel {

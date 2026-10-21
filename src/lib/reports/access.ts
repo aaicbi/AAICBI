@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
+import { orgInstructorCourseLimit } from "@/lib/org/memberCourses";
 
-export interface ReportViewer { userId: string; role: string }
+export interface ReportViewer { userId: string; role: string; email?: string }
 export type Scope = { all: true; courseIds?: undefined; note: string } | { all: false; courseIds: string[]; note: string };
 
 /** Which courses a staff member may report on: the Super Admin all of them; an organization or instructor only the courses they created. */
@@ -8,7 +9,10 @@ export async function staffScope(v: ReportViewer): Promise<Scope | null> {
   if (v.role === "SUPER_ADMIN") return { all: true, note: "All of this trainee's activity on the platform." };
   if (v.role !== "ADMIN" && v.role !== "INSTRUCTOR") return null;
   const courses = await prisma.course.findMany({ where: { createdById: v.userId }, select: { id: true } });
-  return { all: false, courseIds: courses.map((c) => c.id), note: "Covers this trainee's work in your courses only. Login and activity figures are counted across the platform." };
+  // An organization's instructor sees only the courses the owner assigned to them.
+  const limit = v.email ? await orgInstructorCourseLimit(v.userId, v.email) : null;
+  const ids = limit ? courses.map((c) => c.id).filter((id) => limit.includes(id)) : courses.map((c) => c.id);
+  return { all: false, courseIds: ids, note: "Covers this trainee's work in your courses only. Login and activity figures are counted across the platform." };
 }
 
 /** The scope for one trainee, or null if this person has no right to see them (not enrolled in any of their courses). */

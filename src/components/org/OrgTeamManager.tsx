@@ -18,10 +18,13 @@ interface Member {
   disabledAt: string | null;
   lastLoginAt: string | null;
   invitePending: boolean;
+  courseIds: string[];
 }
+interface CourseOpt { id: string; title: string }
 interface TeamResponse {
   owner: { name: string; email: string; lastLoginAt: string | null };
   members: Member[];
+  courses: CourseOpt[];
 }
 
 /**
@@ -36,6 +39,7 @@ export default function OrgTeamManager() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<string>("EDITOR");
+  const [inviteCourses, setInviteCourses] = useState<string[]>([]);
   const [adding, setAdding] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [link, setLink] = useState<{ who: string; url: string } | null>(null);
@@ -59,7 +63,7 @@ export default function OrgTeamManager() {
     const res = await fetch("/api/org/members", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, role }),
+      body: JSON.stringify({ name, email, role, courseIds: role === "INSTRUCTOR" ? inviteCourses : undefined }),
     });
     const body = await res.json().catch(() => ({}));
     setAdding(false);
@@ -70,6 +74,7 @@ export default function OrgTeamManager() {
     setLink({ who: body.member.name, url: body.setupUrl });
     setName("");
     setEmail("");
+    setInviteCourses([]);
     showToast(`Invitation sent to ${body.member.email}.`, "success");
     load();
   }
@@ -80,6 +85,15 @@ export default function OrgTeamManager() {
     setBusyId(null);
     if (!res.ok) return showToast("Could not change the role. Try again.", "error");
     showToast(`${member.name} is now ${ROLE_LABEL[newRole as OrgRole].toLowerCase()}.`, "success");
+    load();
+  }
+
+  async function saveCourses(member: Member, courseIds: string[]) {
+    setBusyId(member.id);
+    const res = await fetch(`/api/org/members/${member.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "courses", courseIds }) });
+    setBusyId(null);
+    if (!res.ok) return showToast("Could not save the courses. Try again.", "error");
+    showToast(`${member.name} now teaches ${courseIds.length} course${courseIds.length === 1 ? "" : "s"}.`, "success");
     load();
   }
 
@@ -145,6 +159,11 @@ export default function OrgTeamManager() {
           {MEMBER_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
         </select>
       ),
+    },
+    {
+      key: "courses",
+      header: "Teaches",
+      render: (m) => (m.role === "INSTRUCTOR" ? <CoursePicker key={m.courseIds.join()} options={data?.courses ?? []} value={m.courseIds} busy={busyId === m.id} onSave={(ids) => saveCourses(m, ids)} label={`Courses taught by ${m.name}`} /> : <span className="text-xs text-gray-500">All</span>),
     },
     {
       key: "status",
@@ -214,6 +233,13 @@ export default function OrgTeamManager() {
             {adding ? "Sending..." : "Send invitation"}
           </Button>
         </form>
+        {role === "INSTRUCTOR" && (
+          <fieldset className="mt-3">
+            <legend className="text-sm font-semibold text-brand-ink">Courses this instructor teaches</legend>
+            <p className="text-xs text-gray-600">They see only these courses&apos; trainees and reports. You can change this later.</p>
+            <CourseChecks options={data?.courses ?? []} value={inviteCourses} onChange={setInviteCourses} />
+          </fieldset>
+        )}
         {formError && (
           <p role="alert" className="mt-2 text-sm text-brand-rose">
             {formError}
@@ -260,5 +286,31 @@ export default function OrgTeamManager() {
         </div>
       </section>
     </>
+  );
+}
+
+function CourseChecks({ options, value, onChange }: { options: CourseOpt[]; value: string[]; onChange: (ids: string[]) => void }) {
+  if (!options.length) return <p className="mt-1 text-xs text-gray-600">You have no courses yet.</p>;
+  return (
+    <div className="mt-1 grid gap-1 sm:grid-cols-2">
+      {options.map((c) => (
+        <label key={c.id} className="flex min-h-[36px] items-center gap-2 text-sm text-brand-ink">
+          <input type="checkbox" checked={value.includes(c.id)} onChange={(e) => onChange(e.target.checked ? [...value, c.id] : value.filter((x) => x !== c.id))} />
+          <span className="[overflow-wrap:anywhere]">{c.title}</span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+/** An instructor's courses: a summary that opens into checkboxes with a Save button. */
+function CoursePicker({ options, value, busy, onSave, label }: { options: CourseOpt[]; value: string[]; busy: boolean; onSave: (ids: string[]) => void; label: string }) {
+  const [ids, setIds] = useState(value);
+  return (
+    <details className="text-sm">
+      <summary className="cursor-pointer text-xs font-semibold text-brand-teal" aria-label={label}>{value.length ? `${value.length} course${value.length === 1 ? "" : "s"}` : "None yet: choose"}</summary>
+      <CourseChecks options={options} value={ids} onChange={setIds} />
+      <button type="button" disabled={busy} onClick={() => onSave(ids)} className="mt-1 text-xs font-semibold text-brand-teal hover:underline disabled:opacity-50">Save courses</button>
+    </details>
   );
 }
