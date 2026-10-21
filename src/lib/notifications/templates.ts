@@ -1463,3 +1463,17 @@ export function simpleNoticeEmail(input: { subject: string; paragraphs: string[]
     text: `${input.paragraphs.join("\n\n")}\n\n${input.url}`,
   };
 }
+
+/** A performance report sent by a person, with their own message above it. The PDF is attached; the email carries no scores itself. */
+export function performanceReportEmail(input: { senderName: string; subjectLabel: string; message: string; filename: string }): EmailContent {
+  const msg = input.message.trim();
+  return {
+    subject: `Performance report: ${input.subjectLabel}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">${escapeHtml(input.senderName)} has sent you a performance report from AAICBI.</p>
+      ${msg ? `<p style="margin:0 0 16px;padding:12px 16px;border-left:3px solid ${BRAND_TEAL};background:#f6faf9;white-space:pre-wrap;">${escapeHtml(msg)}</p>` : ""}
+      <p style="margin:0 0 16px;">The report is attached as a PDF (<strong>${escapeHtml(input.filename)}</strong>): ${escapeHtml(input.subjectLabel)}.</p>
+      <p style="margin:0;font-size:12px;color:#888;">It contains personal learning data. Please share it only with people who need it.</p>`),
+    text: `${input.senderName} has sent you a performance report from AAICBI.\n\n${msg ? msg + "\n\n" : ""}The report is attached as a PDF (${input.filename}): ${input.subjectLabel}.\n\nIt contains personal learning data. Please share it only with people who need it.`,
+  };
+}

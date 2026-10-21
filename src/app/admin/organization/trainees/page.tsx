@@ -8,6 +8,7 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
 import { Input } from "@/components/ui/Field";
+import ReportActions from "@/components/reports/ReportActions";
 
 export const metadata = { title: "Trainees" };
 
@@ -50,6 +51,7 @@ export default async function OrganizationTraineesPage({ searchParams }: { searc
       <Breadcrumbs items={[{ label: "Organization", href: "/admin/organization" }, { label: "Trainees" }]} />
       <h1 className="mt-2 font-display text-2xl font-semibold text-brand-ink">Trainees</h1>
       <p className="mt-1 max-w-2xl text-sm text-gray-600">Everyone enrolled in your courses. Open a course and choose Enrollments to give someone access, extend it or end it.</p>
+      <div className="mt-4"><ReportActions q={q} /></div>
       <form method="get" className="mt-5 flex gap-2" role="search">
         <Input name="q" defaultValue={q} placeholder="Search by name or email" label="Search trainees" hideLabel wrapperClassName="w-full max-w-sm" />
         <button type="submit" className="min-h-[44px] rounded-full bg-brand-action px-5 text-sm font-semibold text-brand-onAccent">Search</button>
@@ -62,7 +64,7 @@ export default async function OrganizationTraineesPage({ searchParams }: { searc
             <Card key={p.id}>
               <div data-testid="org-trainee-row" className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-display font-semibold text-brand-ink">{p.name}</p>
+                  <Link href={`/admin/organization/trainees/${p.id}`} className="font-display font-semibold text-brand-ink underline-offset-2 hover:underline">{p.name}</Link>
                   <p className="text-xs text-gray-600 [overflow-wrap:anywhere]">{p.email}</p>
                 </div>
                 <ul className="flex flex-wrap gap-2">

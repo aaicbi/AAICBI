@@ -28,6 +28,7 @@ interface Agreement {
 const NAV = [
   { label: "Dashboard", href: "/instructor/dashboard" },
   { label: "My Courses", href: "/instructor/courses" },
+  { label: "Trainee Reports", href: "/instructor/trainees" },
   { label: "Teaching Materials", href: "/instructor/materials" },
   { label: "My Payments", href: "/instructor/payments" },
   { label: "Agreement", href: "/instructor/agreement" },
