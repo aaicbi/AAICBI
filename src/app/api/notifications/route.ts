@@ -4,6 +4,8 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { resolveNotificationRecipient } from "@/lib/notifications/recipientScope";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/notifications — the real in-app feed behind the
  * notification bell, working identically for all three account types.

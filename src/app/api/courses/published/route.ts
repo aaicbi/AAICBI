@@ -5,6 +5,8 @@ import { withApiErrors } from "@/lib/apiError";
 import { getEffectivePriceKobo } from "@/lib/coursePricing";
 import { publisherNames } from "@/lib/courseOrg";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/courses/published — every published course, for a logged-in
  * trainee to browse. Deliberately not filtered by enrollment — M10

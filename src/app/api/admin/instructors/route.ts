@@ -4,6 +4,8 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/admin/instructors — every staff account with role
  * INSTRUCTOR, the real management list the master spec's "Instructor

@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/employer/me — deliberately minimal, just what the status
  * page actually needs right now (company name, approval state) rather

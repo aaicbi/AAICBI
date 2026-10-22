@@ -10,6 +10,8 @@ import { notifyAllAdminStaff } from "@/lib/notifications/notifyAllAdminStaff";
 import { newJobPostingPendingEmail } from "@/lib/notifications/templates";
 import { appUrl } from "@/lib/appUrl";
 
+export const dynamic = "force-dynamic";
+
 const CreateSchema = z.object({
   title: z.string().min(3),
   description: z.string().min(20),

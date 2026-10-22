@@ -6,6 +6,8 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { safeUrl } from "@/lib/materialUrl";
 
+export const dynamic = "force-dynamic";
+
 const ProjectSchema = z.object({
   title: z.string().trim().min(1).max(160),
   description: z.string().trim().max(2000).optional().or(z.literal("")),

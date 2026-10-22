@@ -6,6 +6,8 @@ import { withApiErrors } from "@/lib/apiError";
 import { accessList, resultsShared } from "@/lib/quest/results";
 import { cleanPermissions, permissionsFrom } from "@/lib/quest/permissions";
 
+export const dynamic = "force-dynamic";
+
 /** GET: whether the table is shared with staff, and which staff may open it. Super Admin only. */
 export async function GET() {
   return withApiErrors(async () => {

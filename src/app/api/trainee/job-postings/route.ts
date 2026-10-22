@@ -4,6 +4,8 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { expireStaleJobPostings } from "@/lib/jobPostingExpiry";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/trainee/job-postings — the job board itself, gated behind
  * the exact same `publiclyDiscoverable` toggle as employer discovery

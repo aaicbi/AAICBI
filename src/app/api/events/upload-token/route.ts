@@ -5,6 +5,8 @@ import { actorOf } from "@/lib/events/eventsAccess";
 import { requireRole } from "@/lib/auth/session";
 import { MEDIA_RULES, mediaPrefix } from "@/lib/events/eventsCore";
 
+export const dynamic = "force-dynamic";
+
 const KINDS = [["flyer", "FLYER"], ["image", "IMAGE"], ["video", "VIDEO"]] as const;
 
 async function allowed(): Promise<void> {

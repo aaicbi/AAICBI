@@ -5,6 +5,8 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { SUPPORTED_LANGUAGES } from "@/lib/i18n";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET/PUT /api/trainee/settings — closes a gap flagged repeatedly
  * across this project's audits: Trainee.notificationsEnabled has

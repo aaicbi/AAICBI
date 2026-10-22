@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 
+export const dynamic = "force-dynamic";
+
 const CreateTemplateSchema = z.object({
   name: z.string().trim().min(1).max(160),
   content: z.string().trim().min(1),

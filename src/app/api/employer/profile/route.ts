@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 
+export const dynamic = "force-dynamic";
+
 const UpdateSchema = z.object({
   industry: z.string().trim().max(120).optional().or(z.literal("")),
   companySize: z.string().trim().max(60).optional().or(z.literal("")),

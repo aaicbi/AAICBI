@@ -4,6 +4,8 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { resolveActor, resolveDisplayName, findOrCreateCohortConversation, type Actor, type ActorType } from "@/lib/messaging";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/conversations — the inbox list. One shared route for both
  * trainee and staff callers, branching on session.role rather than a

@@ -7,6 +7,8 @@ import { isMemberRole } from "@/lib/org/people";
 import { ownCourseIds } from "@/lib/org/memberCourses";
 import { issueMemberInvite, requireTrainingOrgSession, unusablePasswordHash } from "@/lib/trainingOrgMembers";
 
+export const dynamic = "force-dynamic";
+
 const CreateSchema = z.object({
   name: z.string().trim().min(1, "Enter a name.").max(100),
   email: z.string().trim().toLowerCase().email("Enter a valid email address."),

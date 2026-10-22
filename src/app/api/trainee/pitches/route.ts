@@ -6,6 +6,8 @@ import { notifyAdminsOfPitchSubmitted } from "@/lib/pitchNotify";
 import { PitchSchema } from "@/lib/pitchSchema";
 import { isAllowedVideoUrl } from "@/lib/materialUrl";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET/POST /api/trainee/pitches — Pitch & Post, Phase 1's founder-side
  * CRUD. Creation (even as a DRAFT) is gated server-side by the same

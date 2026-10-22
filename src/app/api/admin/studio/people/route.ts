@@ -6,6 +6,8 @@ import { withApiErrors } from "@/lib/apiError";
 import { clampLevel } from "@/lib/loop/policy";
 import { STUDIO_PERMISSIONS, cleanPermissions, permissionsFrom } from "@/lib/quest/permissions";
 
+export const dynamic = "force-dynamic";
+
 /** GET: the staff who can use the studio, with the highest autonomy level each may use in Loop. Super Admin only. */
 export async function GET() {
   return withApiErrors(async () => {

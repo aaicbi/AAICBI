@@ -4,6 +4,8 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { createdByFilter } from "@/lib/courseOwnership";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/admin/payments — course enrollment/subscription system's
  * platform-wide payment reconciliation view (task Section 23).

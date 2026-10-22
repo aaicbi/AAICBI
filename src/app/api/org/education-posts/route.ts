@@ -9,6 +9,8 @@ import { orgTraineeWhere, requireOrgCourse, requireOrgTrainee } from "@/lib/ecos
 import { getEcosystemFlags } from "@/lib/ecosystem/flags";
 import { ensureSkill } from "@/lib/ecosystem/skills";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET/POST /api/org/education-posts — a training organization publishing
  * educational videos on behalf of its own trainees. Every query is keyed

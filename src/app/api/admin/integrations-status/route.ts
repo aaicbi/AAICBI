@@ -3,6 +3,8 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { whatsAppConfigured } from "@/lib/notifications/whatsapp";
 
+export const dynamic = "force-dynamic";
+
 type IntegrationStatus = "connected" | "not_configured" | "coming_soon";
 
 interface Integration {

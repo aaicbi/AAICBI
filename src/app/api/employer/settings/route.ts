@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET/PUT /api/employer/settings — the third of M46's three UI
  * surfaces, closed here. Deliberately minimal, matching the same

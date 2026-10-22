@@ -5,6 +5,8 @@ import { withApiErrors } from "@/lib/apiError";
 import { countActiveTrainingOrgTrainees } from "@/lib/trainingOrgSeatCap";
 import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/admin/training-organizations — Training Organizations,
  * Phase 1. Same shape as GET /api/admin/employers: SUPER_ADMIN/ADMIN

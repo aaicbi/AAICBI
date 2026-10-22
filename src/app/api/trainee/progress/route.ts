@@ -4,6 +4,8 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { getModuleLockMap } from "@/lib/progress";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/trainee/progress — powers the trainee dashboard's "Continue
  * Learning" list: every course this trainee has actually started (an

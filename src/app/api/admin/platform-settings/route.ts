@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Settings-page redesign — every field is `.optional()`, making this a
  * genuine partial-update (PATCH-shaped, despite the verb staying PUT to

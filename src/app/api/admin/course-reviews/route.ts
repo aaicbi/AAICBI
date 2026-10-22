@@ -4,6 +4,8 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { createdByFilter } from "@/lib/courseOwnership";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/admin/course-reviews — every review, most recent first,
  * with a flag for whether it's already been promoted to a public

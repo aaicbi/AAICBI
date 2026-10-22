@@ -5,6 +5,8 @@ import { withApiErrors } from "@/lib/apiError";
 import { isFreeEmailProvider } from "@/lib/employerVerification";
 import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/admin/employers — the review queue behind M31's approval
  * mechanism. SUPER_ADMIN/ADMIN only, not INSTRUCTOR — matching

@@ -5,6 +5,8 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { examsListWhere } from "@/lib/collab/access";
 
+export const dynamic = "force-dynamic";
+
 const CreateExamSchema = z.object({
   title: z.string().min(3),
   description: z.string().optional(),

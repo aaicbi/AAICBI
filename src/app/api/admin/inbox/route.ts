@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/admin/inbox — the receiving side of the simple direct inbox
  * (see SuperAdminMessage's own schema comment). SUPER_ADMIN only. A

@@ -10,6 +10,8 @@ import { notifyByEmail } from "@/lib/notifications/log";
 import { investorWelcomeEmail } from "@/lib/notifications/templates";
 import { appUrl } from "@/lib/appUrl";
 
+export const dynamic = "force-dynamic";
+
 const CreateInvestorSchema = z.object({
   name: z.string().trim().min(1),
   email: z.string().email(),

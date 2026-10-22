@@ -4,6 +4,8 @@ import { withApiErrors } from "@/lib/apiError";
 import { studioOverview } from "@/lib/quest/studio";
 import { resultsShared } from "@/lib/quest/results";
 
+export const dynamic = "force-dynamic";
+
 /** GET /api/admin/studio — the game library and every course's modules with what is assigned. Super Admin only. */
 export async function GET() {
   return withApiErrors(async () => {
