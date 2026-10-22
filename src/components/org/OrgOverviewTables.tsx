@@ -2,11 +2,13 @@
 import Link from "next/link";
 import Badge from "@/components/ui/Badge";
 import DataTable, { type Column } from "@/components/ui/DataTable";
+import { COURSE_STATUS_BADGE_VARIANT, COURSE_STATUS_LABEL } from "@/lib/courseStatus";
+import type { CourseStatus } from "@prisma/client";
 
 export interface CourseProgressRow {
   id: string;
   title: string;
-  published: boolean;
+  status: CourseStatus;
   enrolled: number;
   completed: number;
 }
@@ -39,9 +41,9 @@ const COURSE_COLUMNS: Column<CourseProgressRow>[] = [
         <Link href={`/admin/courses/${r.id}`} className="font-semibold text-brand-ink hover:text-brand-teal">
           {r.title}
         </Link>
-        {!r.published && (
+        {r.status !== "PUBLISHED" && (
           <span className="ml-2">
-            <Badge variant="neutral">Draft</Badge>
+            <Badge variant={COURSE_STATUS_BADGE_VARIANT[r.status]}>{COURSE_STATUS_LABEL[r.status]}</Badge>
           </span>
         )}
       </>

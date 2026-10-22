@@ -44,7 +44,7 @@ export default async function OrganizationOverviewPage() {
   const [courses, enrolledByCourse, completedByCourse, recent, certificatesIssued, activeTrainees, cohorts, memberCount] = await Promise.all([
     prisma.course.findMany({
       where: { createdById },
-      select: { id: true, title: true, published: true },
+      select: { id: true, title: true, status: true },
       orderBy: { title: "asc" },
     }),
     prisma.courseEnrollment.groupBy({ by: ["courseId"], where: owned, _count: { _all: true } }),
@@ -88,7 +88,7 @@ export default async function OrganizationOverviewPage() {
   const seatCap = org.billingModel === "DIRECT_PAYMENT" && org.trainingSeatCap ? org.trainingSeatCap : null;
   const seatPercent = seatCap ? Math.min(100, Math.round((activeTrainees / seatCap) * 100)) : 0;
   const watermarkOn = shouldShowCertWatermark(org);
-  const publishedCount = courses.filter((c) => c.published).length;
+  const publishedCount = courses.filter((c) => c.status === "PUBLISHED").length;
 
   // The phone home for an organization: its own bell (not the staff one), its trainees' activity, messages, events, training.
   const [alerts, unreadAlerts, eventBlock] = await Promise.all([
@@ -176,7 +176,7 @@ export default async function OrganizationOverviewPage() {
         ) : (
           <div className="mt-3 rounded-xl border border-brand-gray bg-card-gradient p-4">
             <CourseProgressTable
-              rows={courses.map((c) => ({ id: c.id, title: c.title, published: c.published, enrolled: enrolled.get(c.id) ?? 0, completed: completed.get(c.id) ?? 0 }))}
+              rows={courses.map((c) => ({ id: c.id, title: c.title, status: c.status, enrolled: enrolled.get(c.id) ?? 0, completed: completed.get(c.id) ?? 0 }))}
             />
           </div>
         )}
