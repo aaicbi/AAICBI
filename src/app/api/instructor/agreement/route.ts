@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/instructor/agreement — the logged-in instructor's own latest
  * agreement (any status), backing the onboarding gate at

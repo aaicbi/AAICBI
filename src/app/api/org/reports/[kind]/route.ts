@@ -63,7 +63,7 @@ export async function GET(_req: Request, { params }: { params: { kind: string } 
       );
     } else if (kind === "courses") {
       const [courses, enrolled, completed, certs] = await Promise.all([
-        prisma.course.findMany({ where: { createdById }, orderBy: { title: "asc" }, select: { id: true, title: true, published: true } }),
+        prisma.course.findMany({ where: { createdById }, orderBy: { title: "asc" }, select: { id: true, title: true, status: true } }),
         prisma.courseEnrollment.groupBy({ by: ["courseId"], where: { course: { createdById }, unlockedAt: { not: null } }, _count: { _all: true } }),
         prisma.courseEnrollment.groupBy({ by: ["courseId"], where: { course: { createdById }, unlockedAt: { not: null }, completedAt: { not: null } }, _count: { _all: true } }),
         prisma.certificate.groupBy({ by: ["courseId"], where: { course: { createdById }, revokedAt: null }, _count: { _all: true } }),
@@ -75,7 +75,7 @@ export async function GET(_req: Request, { params }: { params: { kind: string } 
         courses.map((x) => {
           const en = e.get(x.id) ?? 0;
           const co = d.get(x.id) ?? 0;
-          return [x.title, x.published ? "Yes" : "No", en, co, en ? Math.round((co / en) * 100) : "", c.get(x.id) ?? 0];
+          return [x.title, x.status === "PUBLISHED" ? "Yes" : "No", en, co, en ? Math.round((co / en) * 100) : "", c.get(x.id) ?? 0];
         })
       );
     } else {

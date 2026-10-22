@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET/PUT /api/admin/settings — the staff counterpart to
  * /api/trainee/settings. M47's AI assistant toggle and M46's dark

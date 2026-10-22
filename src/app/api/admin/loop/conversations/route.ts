@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireStudioUser, maxLevelFor } from "@/lib/quest/studioAccess";
 import { withApiErrors } from "@/lib/apiError";
 
+export const dynamic = "force-dynamic";
+
 /** GET /api/admin/loop/conversations — the signed-in Super Admin's own saved chats, newest first. */
 export async function GET() {
   return withApiErrors(async () => {

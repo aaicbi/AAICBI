@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/admin/loop/history — the Command Center's sidebar. SUPER_ADMIN
  * only, same reasoning as the ask route. Read-only, and shows every

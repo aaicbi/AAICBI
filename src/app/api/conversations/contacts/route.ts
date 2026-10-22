@@ -4,6 +4,8 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { resolveActor, isBlocked } from "@/lib/messaging";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/conversations/contacts — the "new conversation" picker.
  * Trainee: cohort-mates + staff who own a course they're cohort-

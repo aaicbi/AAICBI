@@ -5,6 +5,8 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { appUrl } from "@/lib/appUrl";
 
+export const dynamic = "force-dynamic";
+
 // Same alphabet as certificates.ts's own generateCertificateCode —
 // excludes 0/O and 1/I/L, characters people reliably mis-transcribe.
 // A different prefix ("PROFILE" vs "AAICBI") so a bare code string is

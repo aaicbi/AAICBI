@@ -8,6 +8,8 @@ import { notifyByEmail, shouldNotifyTrainee } from "@/lib/notifications/log";
 import { introductionRequestEmail } from "@/lib/notifications/templates";
 import { appUrl } from "@/lib/appUrl";
 
+export const dynamic = "force-dynamic";
+
 const CreateSchema = z.object({ traineeId: z.string(), message: z.string().max(1000).optional() });
 
 /**

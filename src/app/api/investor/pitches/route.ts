@@ -5,6 +5,8 @@ import { withApiErrors } from "@/lib/apiError";
 import { requireApprovedInvestor } from "@/lib/investorAccess";
 import { getFounderReadiness } from "@/lib/founderReadiness";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/investor/pitches — every PUBLISHED pitch, teaser fields
  * only, plus the Founder Readiness signal (certificate + real exam

@@ -6,6 +6,8 @@ import { requireTrainingOrgSession } from "@/lib/trainingOrgMembers";
 import { SLUG_PATTERN, slugify } from "@/lib/ecosystem/educationPostCore";
 import { safeUrl } from "@/lib/materialUrl";
 
+export const dynamic = "force-dynamic";
+
 const UpdateSchema = z.object({
   slug: z.string().trim().toLowerCase().min(3, "The page address needs at least 3 characters.").max(60).regex(SLUG_PATTERN, "Use lowercase letters, numbers and single hyphens.").optional(),
   tagline: z.string().trim().max(140).optional(),

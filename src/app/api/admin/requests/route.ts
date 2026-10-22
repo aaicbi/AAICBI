@@ -3,6 +3,8 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { ChangeRequestError, createRequest, listRequests } from "@/lib/changeRequests/server";
 
+export const dynamic = "force-dynamic";
+
 /** GET: every change request. Super Admin only. */
 export async function GET() {
   return withApiErrors(async () => {

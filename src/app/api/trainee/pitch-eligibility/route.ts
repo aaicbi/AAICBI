@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/trainee/pitch-eligibility — Pitch & Post, Phase 1's
  * eligibility gate: holding at least one non-revoked Certificate. No

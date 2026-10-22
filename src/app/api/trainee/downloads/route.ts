@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/trainee/downloads — the real "My Downloads" list M40's own
  * scope calls for: trainee-chosen, per-material downloads, with the

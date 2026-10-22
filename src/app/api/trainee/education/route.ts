@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 
+export const dynamic = "force-dynamic";
+
 const EducationSchema = z.object({
   institution: z.string().trim().min(1).max(160),
   credential: z.string().trim().max(160).optional().or(z.literal("")),

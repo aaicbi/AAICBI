@@ -13,6 +13,8 @@ import { notifyByEmail } from "@/lib/notifications/log";
 import { staffWelcomeEmail } from "@/lib/notifications/templates";
 import { appUrl } from "@/lib/appUrl";
 
+export const dynamic = "force-dynamic";
+
 const CreateStaffSchema = z.object({
   name: z.string().trim().min(1),
   email: z.string().email(),

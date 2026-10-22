@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 
+export const dynamic = "force-dynamic";
+
 /**
  * M42 — every SUPER_ADMIN/ADMIN/INSTRUCTOR can see and review every
  * translation, unlike course-scoped resources elsewhere in this app.

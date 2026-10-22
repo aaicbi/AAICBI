@@ -5,6 +5,8 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { assignmentsListWhere } from "@/lib/collab/access";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/admin/assignments — the review-queue/list page's own data
  * source. Same createdByFilter scoping discipline as every other

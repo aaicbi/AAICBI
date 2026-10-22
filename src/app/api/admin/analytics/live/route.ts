@@ -4,6 +4,8 @@ import { withApiErrors } from "@/lib/apiError";
 import { getLiveActivity } from "@/lib/analytics/aggregate";
 import { findTrainingOrgByStaffUserId } from "@/lib/trainingOrgStaff";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/admin/analytics/live — Analytics System Phase 5. Platform-
  * wide only, SUPER_ADMIN/ADMIN only (not INSTRUCTOR — see

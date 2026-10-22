@@ -6,6 +6,8 @@ import { withApiErrors } from "@/lib/apiError";
 import { ownedOrSharedWhere } from "@/lib/collab/access";
 import { validateCoursePricing } from "@/lib/coursePricing";
 
+export const dynamic = "force-dynamic";
+
 const CreateCourseSchema = z.object({
   title: z.string().min(3),
   description: z.string().optional(),

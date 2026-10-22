@@ -6,6 +6,8 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { safeUrl } from "@/lib/materialUrl";
 
+export const dynamic = "force-dynamic";
+
 const AVAILABILITY_TYPES = ["INTERNSHIP", "FREELANCE", "FULL_TIME", "PART_TIME"] as const;
 const EMPLOYMENT_STATUSES = ["STUDENT", "EMPLOYED", "UNEMPLOYED", "SELF_EMPLOYED"] as const;
 

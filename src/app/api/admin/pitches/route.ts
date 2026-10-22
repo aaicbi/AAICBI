@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/admin/pitches — the Pitch Review Center's queue + summary
  * tiles, same card-plus-table shape as the existing Exam Results page.

@@ -5,6 +5,8 @@ import { withApiErrors } from "@/lib/apiError";
 import { computeStreakDays } from "@/lib/analytics/streakCore";
 import { getTraineeInterestProfile } from "@/lib/analytics/interestScoring";
 
+export const dynamic = "force-dynamic";
+
 const STREAK_LOOKBACK_DAYS = 60;
 const EXPLORED_LOOKBACK_DAYS = 30;
 const MAX_EXPLORED_COURSES = 5;
