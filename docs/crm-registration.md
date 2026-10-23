@@ -32,4 +32,4 @@ Every email carries a private stop link (`/crm/optout/<token>`). It switches off
 `src/lib/crm/registrationCore.ts` (pure rules, `tests/crmRegistration.test.ts`), `registration.ts` (save, email, notices), `staff.ts` (scoped lists, detail, changes, export), pages `src/app/register/**`, `src/app/admin/crm/**`, `src/app/free-courses`, migration `20261205090000_crm_registrations`, device check `scripts/device-checks/crm-registration.cjs`.
 
 ## Not in this step
-The email composer, bulk sending, pipelines beyond a stage, assignment to a staff member, WhatsApp sending (the consent is recorded; messages are sent by hand or by the existing growth messaging), payments and admission decisions, and the AI features.
+Bulk sending, pipelines beyond a stage, assignment to a staff member, WhatsApp sending (the consent is recorded; messages are sent by hand or by the existing growth messaging), payments and admission decisions, and the AI features.
