@@ -233,6 +233,16 @@ export const CATEGORIES: Category[] = [
     ],
   },
   {
+    id: "crm", label: "CRM and registrations", audience: "staff",
+    description: "Course registrations and the people behind them: who registered, what they agreed to, and follow-up. Staff see AAICBI's own registrations; training organizations see only their own, when the Super Admin has switched the CRM on for them.",
+    features: [
+      f("crm.registrations", "Registrations", "See registrations and the timeline. Manage = change the stage, set follow-up dates, add notes and finish tasks. Export = download as CSV.", ["view", "manage", "export"], ["export"]),
+      f("crm.contacts", "Contacts", "See and correct contact details and consent.", ["view", "edit"]),
+      f("crm.agreement", "Registration agreement", "Read the agreement everyone signs, and publish a new version of it.", ["view", "edit"], ["edit"]),
+      f("crm.settings", "CRM switches", "Switch the CRM on or off for each training organization.", ["configure"], ["configure"]),
+    ],
+  },
+  {
     id: "org_games", label: "Organization games (training organizations only)", audience: "organization",
     description: "What a training organization may do with games played by its own trainees. Set per organization by a Super Admin.",
     features: [
@@ -253,6 +263,14 @@ export const CATEGORIES: Category[] = [
       f("org_events.media", "Event flyers and videos", "Upload promotional pictures and videos.", ["manage"]),
       f("org_events.registrations", "Registrations and attendance", "See who registered, decide registrations and keep the attendance register.", ["view", "manage", "export"]),
       f("org_events.promotion", "Public promotion", "Ask the Super Admin to promote an event publicly, and follow the request.", ["view", "create"]),
+    ],
+  },
+  {
+    id: "org_crm", label: "Organization CRM (training organizations only)", audience: "organization",
+    description: "What a training organization may do with registrations for its own courses. Only when a Super Admin has switched the CRM on for it.",
+    features: [
+      f("org_crm.registrations", "Registrations", "See its own registrations and timelines. Manage = change the stage, set follow-up dates, add notes and finish tasks.", ["view", "manage", "export"]),
+      f("org_crm.contacts", "Contacts", "See its own contacts and what they agreed to.", ["view"]),
     ],
   },
 ];
