@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth/session";
 import { withApiErrors } from "@/lib/apiError";
 import { requireOwnedExam } from "@/lib/courseOwnership";
 import { findDuplicatesForBatch, saveQuestionEmbedding } from "@/lib/embeddings";
+import { questionDraftProblem, tidyDraft } from "@/lib/exams/questionDraft";
 
 const OptionSchema = z.object({ text: z.string().min(1), isCorrect: z.boolean() });
 const CreateQuestionSchema = z.object({
@@ -30,9 +31,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
-    if (!parsed.data.options.some((o) => o.isCorrect)) {
-      return NextResponse.json({ error: "Mark exactly one option as correct." }, { status: 400 });
-    }
+    // The same rules the form shows: exactly one correct option, no two options the same, sensible lengths.
+    const problem = questionDraftProblem(parsed.data);
+    if (problem) return NextResponse.json({ error: problem }, { status: 400 });
+    const tidy = tidyDraft(parsed.data);
+    parsed.data.text = tidy.text;
+    parsed.data.options = tidy.options;
 
     const existingCount = await prisma.question.count({ where: { examId: params.id } });
 

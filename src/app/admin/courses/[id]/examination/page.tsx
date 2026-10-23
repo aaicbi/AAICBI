@@ -1,4 +1,5 @@
 "use client";
+import AddQuestionForm from "@/components/exams/AddQuestionForm";
 import { useEffect, useRef, useState } from "react";
 import DesktopRecommended from "@/components/pwa/DesktopRecommended";
 import SiteHeader from "@/components/SiteHeader";
@@ -370,6 +371,8 @@ export default function CourseExaminationPage({ params }: { params: { id: string
             )}
           </div>
         </div>
+
+        <AddQuestionForm examId={exam.id} onAdded={load} />
 
         {/* Settings */}
         {settings && (

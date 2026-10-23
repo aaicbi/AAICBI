@@ -1,4 +1,5 @@
 "use client";
+import AddQuestionForm from "@/components/exams/AddQuestionForm";
 import ShareCard from "@/components/collab/ShareCard";
 import { useEffect, useState, useRef } from "react";
 import DesktopRecommended from "@/components/pwa/DesktopRecommended";
@@ -288,7 +289,7 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
           className="hidden"
           onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])}
         />
-        <p className="text-sm text-gray-700">Upload a Word (.docx) document of multiple-choice questions.</p>
+        <p className="text-sm text-gray-700">Upload a Word (.docx) document of multiple-choice questions, or write them one by one below.</p>
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
@@ -347,7 +348,10 @@ export default function ImportReviewPage({ params }: { params: { id: string } })
             onSave={(text, options) => saveEdits(q.id, text, options)}
           />
         ))}
+        {exam.questions.length === 0 && <p className="text-sm text-gray-500">No questions yet. Upload a Word file above, or write a question yourself below.</p>}
       </div>
+
+      <AddQuestionForm examId={exam.id} onAdded={loadExam} defaultOpen={exam.questions.length === 0} />
 
       {/* Publish */}
       <div className="mt-8 rounded-lg border border-brand-gray p-5">

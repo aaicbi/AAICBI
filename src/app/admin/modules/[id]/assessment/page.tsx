@@ -1,4 +1,5 @@
 "use client";
+import AddQuestionForm from "@/components/exams/AddQuestionForm";
 import { useEffect, useState, useRef } from "react";
 import DesktopRecommended from "@/components/pwa/DesktopRecommended";
 import SiteHeader from "@/components/SiteHeader";
@@ -445,9 +446,11 @@ export default function ModuleAssessmentPage({ params }: { params: { id: string 
                 />
               ))}
               {exam.questions.length === 0 && (
-                <p className="text-sm text-gray-500">No questions in this bank yet — upload a document above.</p>
+                <p className="text-sm text-gray-500">No questions in this bank yet — upload a document above, or write one yourself below.</p>
               )}
             </div>
+
+            <AddQuestionForm examId={exam.id} onAdded={loadAssessment} defaultOpen={exam.questions.length === 0} />
 
             {/* Publish */}
             <div className="mt-8 rounded-lg border border-brand-gray p-5">
