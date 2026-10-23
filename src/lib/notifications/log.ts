@@ -147,7 +147,9 @@ export type NotificationType =
   | "STARTUP_INVITE"
   // Posts: sent for review, or decided by a reviewer.
   | "POST_SUBMITTED"
-  | "POST_DECIDED";
+  | "POST_DECIDED"
+  // A new course registration reached the CRM.
+  | "CRM_REGISTRATION";
 
 export interface NotifyByEmailInput {
   recipientType: "TRAINEE" | "STAFF" | "EMPLOYER" | "INVESTOR" | "TRAINING_ORG";

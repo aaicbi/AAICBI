@@ -1209,6 +1209,9 @@ model Course {
   // dates above" (the normal case); set means the override always
   // wins, no date math at all. See getCourseLifecyclePhase.
   lifecyclePhaseOverride CourseLifecyclePhase?
+  // CRM: a public registration page is open for this course even if it is not a scheduled "coming soon" course.
+  registrationEnabled Boolean @default(false)
+  registrations CourseRegistration[]
 
   // M38 — Staff Early-Warning Dashboard. Null means disabled for this
   // course, not "use some default" — every course that already exists
@@ -3353,6 +3356,8 @@ model TrainingOrganization {
   // (created by the decide route's APPROVE branch), so every existing
   // course/exam/certificate/analytics query keeed off createdById
   // keeps working completely unchanged for a training org's courses.
+  // CRM: switched on or off per organization by a Super Admin. Registrations are saved either way; the organization only sees them when this is on.
+  crmEnabled    Boolean   @default(false)
   staffUserId   String?   @unique
   staffUser     User?     @relation("TrainingOrgStaffUser", fields: [staffUserId], references: [id])
   resetToken          String?   @unique
@@ -6763,4 +6768,144 @@ model EventSettings {
   lastSweepAt         DateTime?
   updatedById         String?
   updatedAt           DateTime @updatedAt
+}
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// CRM: course registrations, contacts, agreement and consent. See docs/crm-registration.md.
+// ---------------------------------------------------------------------------------------------------------------------
+
+// One person (or organization contact) per owner. ownerKey is the training organization id, or "PLATFORM" for AAICBI's own CRM, so the
+// same email can exist in two organizations' private CRMs without either seeing the other.
+model CrmContact {
+  id             String   @id @default(cuid())
+  ownerKey       String
+  organizationId String?
+  email          String
+  firstName      String
+  lastName       String
+  phone          String?
+  country        String?
+  state          String?
+  // PROSPECT, APPLICANT, TRAINEE, ALUMNI, ... A person can hold several.
+  relationships  String[] @default(["PROSPECT"])
+  traineeId      String?
+  assignedToId   String?
+  firstSource    String?
+  // Latest consent, kept on the contact for fast checks; the full history is in CrmConsent.
+  followUpEmail    Boolean  @default(false)
+  followUpWhatsapp Boolean  @default(false)
+  newsletter       Boolean  @default(false)
+  optOutToken    String   @unique
+  optedOutAt     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  registrations CourseRegistration[]
+  consents      CrmConsent[]
+  activities    CrmActivity[]
+  tasks         CrmTask[]
+
+  @@unique([ownerKey, email])
+  @@index([organizationId, createdAt])
+  @@index([traineeId])
+}
+
+// A versioned agreement text. One active version at a time, used by every registration; older versions are kept so a signature always points at the exact words signed.
+model RegistrationAgreement {
+  id          String   @id @default(cuid())
+  version     Int      @unique
+  title       String
+  body        String
+  active      Boolean  @default(false)
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  registrations CourseRegistration[]
+}
+
+model CourseRegistration {
+  id             String   @id @default(cuid())
+  reference      String   @unique
+  courseId       String
+  course         Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  contactId      String
+  contact        CrmContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  organizationId String?
+  // REGISTERED, CONTACTED, INTERESTED, ENROLLED, WITHDRAWN
+  stage          String   @default("REGISTERED")
+  motivation     String?
+  // LINK, TASTER, QR, OTHER, and the free-form ?src= tag from the link.
+  source         String   @default("LINK")
+  sourceTag      String?
+  growthPlayId   String?
+  agreementId    String
+  agreement      RegistrationAgreement @relation(fields: [agreementId], references: [id])
+  signedName     String
+  signedAt       DateTime
+  // Hashed, never the raw address.
+  signIpHash     String?
+  signUserAgent  String?
+  followUpEmail    Boolean  @default(false)
+  followUpWhatsapp Boolean  @default(false)
+  newsletter       Boolean  @default(false)
+  assignedToId   String?
+  followUpAt     DateTime?
+  lastContactedAt DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([courseId, contactId])
+  @@index([organizationId, createdAt])
+  @@index([courseId, createdAt])
+  @@index([stage])
+}
+
+// What the person agreed to, and when: one row per choice, never edited. A later change is a new row.
+model CrmConsent {
+  id         String   @id @default(cuid())
+  contactId  String
+  contact    CrmContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  // FOLLOW_UP or NEWSLETTER
+  kind       String
+  granted    Boolean
+  // EMAIL, WHATSAPP
+  channels   String[] @default([])
+  noticeText String
+  noticeVersion Int
+  source     String
+  createdAt  DateTime @default(now())
+
+  @@index([contactId, createdAt])
+}
+
+// The contact's timeline: what happened and who did it.
+model CrmActivity {
+  id             String   @id @default(cuid())
+  contactId      String
+  contact        CrmContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  registrationId String?
+  // REGISTERED, AGREEMENT_SIGNED, EMAIL_SENT, NOTE, STAGE, ASSIGNED, TASK, CONSENT
+  kind           String
+  summary        String
+  actorId        String?
+  createdAt      DateTime @default(now())
+
+  @@index([contactId, createdAt])
+}
+
+model CrmTask {
+  id             String   @id @default(cuid())
+  contactId      String
+  contact        CrmContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  registrationId String?
+  organizationId String?
+  title          String
+  dueAt          DateTime?
+  assignedToId   String?
+  doneAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, doneAt, dueAt])
+  @@index([assignedToId, doneAt])
 }

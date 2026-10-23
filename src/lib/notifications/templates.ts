@@ -1477,3 +1477,66 @@ export function performanceReportEmail(input: { senderName: string; subjectLabel
     text: `${input.senderName} has sent you a performance report from AAICBI.\n\n${msg ? msg + "\n\n" : ""}The report is attached as a PDF (${input.filename}): ${input.subjectLabel}.\n\nIt contains personal learning data. Please share it only with people who need it.`,
   };
 }
+
+/** Sent when someone registers for a course: the reference, what happens next, and free courses to try while they wait. */
+export function registrationConfirmationEmail(input: {
+  firstName: string;
+  courseTitle: string;
+  reference: string;
+  startDateText: string | null;
+  organisationName: string | null;
+  freeCourses: { title: string; url: string }[];
+  statusUrl: string;
+  stopUrl: string;
+}): EmailContent {
+  const by = input.organisationName ? ` with ${input.organisationName}` : "";
+  const free = input.freeCourses.length
+    ? `<p style="margin:24px 0 8px;font-weight:bold;">Try a free course while you wait</p><ul style="margin:0 0 16px;padding-left:18px;">${input.freeCourses
+        .map((c) => `<li style="margin:0 0 6px;"><a href="${c.url}" style="color:${BRAND_TEAL};">${escapeHtml(c.title)}</a></li>`)
+        .join("")}</ul>`
+    : "";
+  return {
+    subject: `You're registered for ${input.courseTitle}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(input.firstName)},</p>
+      <p style="margin:0 0 16px;">You are registered for <strong>${escapeHtml(input.courseTitle)}</strong>${escapeHtml(by)}.${input.startDateText ? ` The course starts on ${escapeHtml(input.startDateText)}.` : ""}</p>
+      <p style="margin:0 0 4px;color:#555;font-size:13px;">Your reference</p>
+      <p style="margin:0 0 16px;font-size:20px;font-weight:bold;letter-spacing:0.04em;color:${BRAND_TEAL};">${escapeHtml(input.reference)}</p>
+      <p style="margin:0 0 8px;font-weight:bold;">What happens next</p>
+      <ol style="margin:0 0 16px;padding-left:18px;"><li style="margin:0 0 6px;">We will contact you by email and WhatsApp within 2 working days.</li><li style="margin:0 0 6px;">We will share the start date and how to join.</li><li style="margin:0 0 6px;">You will get a reminder before the course begins.</li></ol>
+      <p style="margin:0 0 16px;">Registering shows your interest. It is not admission, and we will confirm your place in writing.</p>
+      ${button(input.statusUrl, "See my registration")}
+      ${free}
+      <p style="margin:24px 0 0;font-size:12px;color:#888;">You agreed to be contacted about this course. <a href="${input.stopUrl}" style="color:#888;">Stop messages</a></p>
+    `),
+    text: `Hi ${input.firstName},
+
+You are registered for ${input.courseTitle}${by}.${input.startDateText ? ` The course starts on ${input.startDateText}.` : ""}
+
+Your reference: ${input.reference}
+
+What happens next:
+1. We will contact you by email and WhatsApp within 2 working days.
+2. We will share the start date and how to join.
+3. You will get a reminder before the course begins.
+
+Registering shows your interest. It is not admission, and we will confirm your place in writing.
+
+${input.statusUrl}
+${input.freeCourses.length ? `\nTry a free course while you wait:\n${input.freeCourses.map((c) => `- ${c.title}: ${c.url}`).join("\n")}\n` : ""}
+Stop messages: ${input.stopUrl}`,
+  };
+}
+
+/** Told to the owner (AAICBI staff or the training organization) when someone registers. */
+export function registrationReceivedEmail(input: { courseTitle: string; personName: string; reference: string; crmUrl: string }): EmailContent {
+  return {
+    subject: `New registration for ${input.courseTitle}`,
+    html: wrapHtml(`
+      <p style="margin:0 0 16px;font-size:16px;"><strong>${escapeHtml(input.personName)}</strong> registered for <strong>${escapeHtml(input.courseTitle)}</strong>.</p>
+      <p style="margin:0 0 16px;">Reference ${escapeHtml(input.reference)}. They agreed to be contacted by email and WhatsApp. A follow-up task has been created.</p>
+      ${button(input.crmUrl, "Open the registration")}
+    `),
+    text: `${input.personName} registered for ${input.courseTitle}.\n\nReference ${input.reference}. They agreed to be contacted by email and WhatsApp. A follow-up task has been created.\n\n${input.crmUrl}`,
+  };
+}
