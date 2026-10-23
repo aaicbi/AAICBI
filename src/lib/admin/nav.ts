@@ -276,6 +276,8 @@ const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
     items: [
       { label: "Registrations", href: "/admin/crm", audience: "staffAndOrg", permission: ["crm.registrations:view", "org_crm.registrations:view"] },
       { label: "CRM settings", href: "/admin/crm/settings", audience: "superadmin", permission: ["crm.settings:configure", "crm.agreement:view"] },
+      { label: "Email templates", href: "/admin/crm/templates", audience: "staffAndOrg", permission: ["crm.templates:view", "org_crm.templates:view"] },
+      { label: "Email senders", href: "/admin/crm/senders", audience: "superadmin", permission: ["crm.senders:view", "crm.senders:manage"] },
     ],
   },
   {

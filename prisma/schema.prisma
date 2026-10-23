@@ -6798,10 +6798,14 @@ model CrmContact {
   newsletter       Boolean  @default(false)
   optOutToken    String   @unique
   optedOutAt     DateTime?
+  // Set by a bounce or a spam complaint: no more email to this address until staff correct it.
+  emailSuppressedAt     DateTime?
+  emailSuppressedReason String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   registrations CourseRegistration[]
+  emails        CrmEmail[]
   consents      CrmConsent[]
   activities    CrmActivity[]
   tasks         CrmTask[]
@@ -6908,4 +6912,117 @@ model CrmTask {
 
   @@index([organizationId, doneAt, dueAt])
   @@index([assignedToId, doneAt])
+}
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// CRM email composer: approved senders, versioned templates, and every email with what really happened to it.
+// ---------------------------------------------------------------------------------------------------------------------
+
+// An approved sender. Only a Super Admin creates these, and mail only goes out from one that is marked verified (the domain is verified in Resend).
+model EmailSender {
+  id          String   @id @default(cuid())
+  name        String
+  fromAddress String   @unique
+  replyTo     String?
+  // SERVICE (about someone's registration or account) or MARKETING (news and offers, a separate domain).
+  stream      String   @default("SERVICE")
+  verified    Boolean  @default(false)
+  active      Boolean  @default(true)
+  // A training organization may send "<Organization> via <name>" from this address, with replies going to the organization.
+  allowOrganizations Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  templates EmailTemplate[]
+  emails    CrmEmail[]
+}
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  description String?
+  category    String   @default("SERVICE")
+  senderId    String?
+  sender      EmailSender? @relation(fields: [senderId], references: [id], onDelete: SetNull)
+  subject     String
+  // Sanitized HTML with {{merge_fields}}.
+  body        String
+  version     Int      @default(1)
+  active      Boolean  @default(true)
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  versions EmailTemplateVersion[]
+}
+
+model EmailTemplateVersion {
+  id          String   @id @default(cuid())
+  templateId  String
+  template    EmailTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  version     Int
+  subject     String
+  body        String
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  @@unique([templateId, version])
+}
+
+// One email. subjectRaw and bodyRaw are what the person wrote (with {{merge_fields}}); subject, bodyHtml and bodyText are what actually went out.
+model CrmEmail {
+  id             String   @id @default(cuid())
+  ownerKey       String
+  organizationId String?
+  contactId      String
+  contact        CrmContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  registrationId String?
+  senderId       String
+  sender         EmailSender @relation(fields: [senderId], references: [id])
+  templateId     String?
+  templateVersion Int?
+  category       String   @default("SERVICE")
+  subjectRaw     String
+  bodyRaw        String
+  subject        String?
+  bodyHtml       String?
+  bodyText       String?
+  toEmail        String
+  fromHeader     String?
+  replyTo        String?
+  // DRAFT, SCHEDULED, SENDING, ACCEPTED (Resend took it), DELIVERED, DELAYED, BOUNCED, COMPLAINED, FAILED
+  status         String   @default("DRAFT")
+  providerId     String?  @unique
+  error          String?
+  attachmentNames String[] @default([])
+  isTest         Boolean  @default(false)
+  scheduledFor   DateTime?
+  sentAt         DateTime?
+  acceptedAt     DateTime?
+  deliveredAt    DateTime?
+  bouncedAt      DateTime?
+  createdById    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  events CrmEmailEvent[]
+
+  @@index([contactId, createdAt])
+  @@index([status, scheduledFor])
+  @@index([organizationId, createdAt])
+}
+
+model CrmEmailEvent {
+  id              String   @id @default(cuid())
+  emailId         String
+  email           CrmEmail @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  // sent, delivered, delivery_delayed, bounced, complained, opened, clicked
+  type            String
+  detail          String?
+  providerEventId String?  @unique
+  at              DateTime @default(now())
+
+  @@index([emailId, at])
 }

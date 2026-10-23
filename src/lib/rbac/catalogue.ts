@@ -238,6 +238,9 @@ export const CATEGORIES: Category[] = [
     features: [
       f("crm.registrations", "Registrations", "See registrations and the timeline. Manage = change the stage, set follow-up dates, add notes and finish tasks. Export = download as CSV.", ["view", "manage", "export"], ["export"]),
       f("crm.contacts", "Contacts", "See and correct contact details and consent.", ["view", "edit"]),
+      f("crm.email", "Email", "See the emails sent to a contact and how they were delivered. Create = write and send an email (or a test, a draft or a scheduled one) from a registration.", ["view", "create"]),
+      f("crm.templates", "Email templates", "Read templates. Edit = change a template (every change is a new version).", ["view", "edit"]),
+      f("crm.senders", "Email senders", "See the approved sender addresses. Manage = add or change them and confirm their domain is verified in Resend.", ["view", "manage"], ["manage"]),
       f("crm.agreement", "Registration agreement", "Read the agreement everyone signs, and publish a new version of it.", ["view", "edit"], ["edit"]),
       f("crm.settings", "CRM switches", "Switch the CRM on or off for each training organization.", ["configure"], ["configure"]),
     ],
@@ -271,6 +274,8 @@ export const CATEGORIES: Category[] = [
     features: [
       f("org_crm.registrations", "Registrations", "See its own registrations and timelines. Manage = change the stage, set follow-up dates, add notes and finish tasks.", ["view", "manage", "export"]),
       f("org_crm.contacts", "Contacts", "See its own contacts and what they agreed to.", ["view"]),
+      f("org_crm.email", "Email", "See the emails sent to its own contacts. Create = write and send one, as the organization via AAICBI.", ["view", "create"]),
+      f("org_crm.templates", "Email templates", "Read the email templates AAICBI provides.", ["view"]),
     ],
   },
 ];
