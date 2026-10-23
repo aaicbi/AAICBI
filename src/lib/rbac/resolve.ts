@@ -85,7 +85,8 @@ export function orgEventPermissions(role: OrgRoleName): string[] {
  */
 export function orgCrmPermissions(role: OrgRoleName, crmEnabled: boolean): string[] {
   if (!crmEnabled) return [];
-  if (role === "OWNER" || role === "MANAGER") return ["org_crm.registrations:view", "org_crm.registrations:manage", "org_crm.registrations:export", "org_crm.contacts:view"];
-  if (role === "EDITOR") return ["org_crm.registrations:view", "org_crm.registrations:manage", "org_crm.contacts:view"];
+  const mail = ["org_crm.email:view", "org_crm.email:create", "org_crm.templates:view"];
+  if (role === "OWNER" || role === "MANAGER") return ["org_crm.registrations:view", "org_crm.registrations:manage", "org_crm.registrations:export", "org_crm.contacts:view", ...mail];
+  if (role === "EDITOR") return ["org_crm.registrations:view", "org_crm.registrations:manage", "org_crm.contacts:view", ...mail];
   return [];
 }

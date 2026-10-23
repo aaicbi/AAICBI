@@ -88,20 +88,23 @@ export async function listRegistrations(access: Access, canContacts: boolean, f:
   };
 }
 
-export async function getRegistration(access: Access, canContacts: boolean, id: string) {
+export async function getRegistration(access: Access, canContacts: boolean, id: string, canSeeEmails = false) {
   const r = await prisma.courseRegistration.findFirst({
     where: { AND: [scope(access), { id }] },
     select: {
       ...rowSelect, motivation: true, signedName: true, lastContactedAt: true,
-      contact: { select: { id: true, firstName: true, lastName: true, email: true, phone: true, country: true, state: true, optedOutAt: true, relationships: true, traineeId: true } },
+      contact: { select: { id: true, firstName: true, lastName: true, email: true, phone: true, country: true, state: true, optedOutAt: true, emailSuppressedAt: true, relationships: true, traineeId: true } },
     },
   });
   if (!r) return null;
-  const [activities, tasks, consents, others] = await Promise.all([
+  const [activities, tasks, consents, others, emails] = await Promise.all([
     prisma.crmActivity.findMany({ where: { contactId: r.contact.id }, orderBy: { createdAt: "desc" }, take: 60, select: { id: true, kind: true, summary: true, createdAt: true, registrationId: true } }),
     prisma.crmTask.findMany({ where: { contactId: r.contact.id }, orderBy: [{ doneAt: "asc" }, { dueAt: "asc" }], take: 20, select: { id: true, title: true, dueAt: true, doneAt: true } }),
     prisma.crmConsent.findMany({ where: { contactId: r.contact.id }, orderBy: { createdAt: "desc" }, take: 20, select: { id: true, kind: true, granted: true, channels: true, noticeText: true, noticeVersion: true, createdAt: true } }),
     prisma.courseRegistration.findMany({ where: { AND: [scope(access), { contactId: r.contact.id, id: { not: id } }] }, select: { id: true, reference: true, course: { select: { title: true } } } }),
+    canSeeEmails
+      ? prisma.crmEmail.findMany({ where: { contactId: r.contact.id, isTest: false, status: { not: "DRAFT" } }, orderBy: { createdAt: "desc" }, take: 20, select: { id: true, subject: true, subjectRaw: true, status: true, category: true, createdAt: true, sentAt: true, scheduledFor: true, error: true, fromHeader: true, events: { orderBy: { at: "asc" }, select: { type: true, detail: true, at: true } } } })
+      : Promise.resolve([]),
   ]);
   const c = r.contact;
   return {
@@ -113,6 +116,8 @@ export async function getRegistration(access: Access, canContacts: boolean, id: 
     tasks: tasks.map((t) => ({ ...t, dueAt: t.dueAt?.toISOString() ?? null, doneAt: t.doneAt?.toISOString() ?? null })),
     consents: consents.map((x) => ({ ...x, createdAt: x.createdAt.toISOString() })),
     otherRegistrations: others.map((o) => ({ id: o.id, reference: o.reference, course: o.course.title })),
+    emails: emails.map((e) => ({ id: e.id, subject: e.subject ?? e.subjectRaw, status: e.status, category: e.category, createdAt: e.createdAt.toISOString(), sentAt: e.sentAt?.toISOString() ?? null, scheduledFor: e.scheduledFor?.toISOString() ?? null, error: e.error, from: e.fromHeader, events: e.events.map((x) => ({ type: x.type, detail: x.detail, at: x.at.toISOString() })) })),
+    suppressed: !!c.emailSuppressedAt,
   };
 }
 

@@ -82,11 +82,19 @@ export interface SendEmailInput {
   // `attachments` field (it accepts a Buffer directly, no base64
   // encoding needed). Undefined for every other existing call site.
   attachments?: { filename: string; content: Buffer }[];
+  // CRM email composer: a complete, already-checked From header (used as is instead of the platform default), a reply-to address, extra headers
+  // such as List-Unsubscribe, and an idempotency key so a retried send cannot go out twice. Undefined for every other call site.
+  from?: string;
+  replyTo?: string;
+  headers?: Record<string, string>;
+  idempotencyKey?: string;
 }
 
 export interface SendEmailResult {
   ok: boolean;
   error?: string;
+  /** The provider's id for the message, when it gave one. Used to match delivery reports. */
+  id?: string;
 }
 
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
@@ -111,7 +119,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
     );
   }
 
-  const from = buildFromHeader(process.env.EMAIL_FROM || "AAICBI <onboarding@resend.dev>", input.fromName);
+  const from = input.from ?? buildFromHeader(process.env.EMAIL_FROM || "AAICBI <onboarding@resend.dev>", input.fromName);
 
   // Real bug, found by an actual failed send, not by reading the SDK's
   // types: Resend's own `post()` sends every request body through a
@@ -127,20 +135,25 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
 
   try {
     const result = await withTimeout(
-      resend.emails.send({
-        from,
-        to: input.to,
-        subject: input.subject,
-        html: input.html,
-        text: input.text,
-        attachments,
-      }),
+      resend.emails.send(
+        {
+          from,
+          to: input.to,
+          subject: input.subject,
+          html: input.html,
+          text: input.text,
+          attachments,
+          ...(input.replyTo ? { replyTo: input.replyTo } : {}),
+          ...(input.headers ? { headers: input.headers } : {}),
+        },
+        input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : undefined
+      ),
       EMAIL_SEND_TIMEOUT_MS
     );
     if (result.error) {
       return { ok: false, error: result.error.message };
     }
-    return { ok: true };
+    return { ok: true, id: result.data?.id };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Unknown error sending email." };
   }

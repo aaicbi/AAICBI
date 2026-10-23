@@ -26,7 +26,7 @@ export default async function CrmPage() {
       <Breadcrumbs items={[{ label: "CRM", href: "/admin/dashboard" }, { label: "Registrations" }]} />
       <h1 className="mt-2 font-display text-2xl font-semibold text-brand-ink">Registrations</h1>
       <p className="mt-1 max-w-2xl text-sm text-gray-600">People who registered for a course through its registration page or the taster game. Only people who ticked the box to be contacted should be followed up.</p>
-      <div className="mt-6"><RegistrationsManager canManage={access.permissions.has(crmKey(access, "manage"))} canExport={access.permissions.has(crmKey(access, "export"))} /></div>
+      <div className="mt-6"><RegistrationsManager canManage={access.permissions.has(crmKey(access, "manage"))} canExport={access.permissions.has(crmKey(access, "export"))} canEmail={access.permissions.has(access.kind === "organization" ? "org_crm.email:create" : "crm.email:create")} /></div>
     </main>
   );
 }
