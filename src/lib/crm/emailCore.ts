@@ -176,21 +176,22 @@ export function canSendEmail(i: { category: Category; recipient: RecipientInfo; 
 
 export interface AttachmentInput { filename: string; size: number }
 const ATT_EXT = new Set(["pdf", "png", "jpg", "jpeg", "docx", "xlsx", "pptx", "txt", "csv"]);
-export const ATT_MAX_EACH = 5 * 1024 * 1024;
-export const ATT_MAX_TOTAL = 8 * 1024 * 1024;
+// Vercel accepts request bodies up to 4.5 MB, and files travel as base64 (a third bigger), so 3 MB of files is the most a send can carry.
+export const ATT_MAX_EACH = 3 * 1024 * 1024;
+export const ATT_MAX_TOTAL = 3 * 1024 * 1024;
 export const ATT_MAX_COUNT = 3;
 
-/** Attachments: a short list of safe types, each up to 5 MB and 8 MB together. Returns the first problem, or null. */
+/** Attachments: a short list of safe types, 3 MB together. Returns the first problem, or null. */
 export function attachmentProblem(list: AttachmentInput[]): string | null {
   if (list.length > ATT_MAX_COUNT) return `Attach at most ${ATT_MAX_COUNT} files.`;
   let total = 0;
   for (const a of list) {
     const ext = a.filename.split(".").pop()?.toLowerCase() ?? "";
     if (!ATT_EXT.has(ext)) return `"${a.filename}" is not an allowed file type. Use PDF, images, Word, Excel, PowerPoint, text or CSV.`;
-    if (a.size > ATT_MAX_EACH) return `"${a.filename}" is over 5 MB.`;
+    if (a.size > ATT_MAX_EACH) return `"${a.filename}" is over 3 MB.`;
     total += a.size;
   }
-  return total > ATT_MAX_TOTAL ? "The attachments are over 8 MB together." : null;
+  return total > ATT_MAX_TOTAL ? "The attachments are over 3 MB together." : null;
 }
 export const safeFilename = (f: string): string => f.replace(/[\\/]/g, "_").replace(/[^\w.\- ]/g, "_").slice(0, 100) || "file";
 

@@ -110,9 +110,9 @@ describe("attachments", () => {
   it("allows a few safe files within the size limits", () => {
     expect(attachmentProblem([{ filename: "a.pdf", size: 1000 }, { filename: "b.PNG", size: 1000 }])).toBeNull();
     expect(attachmentProblem([{ filename: "a.exe", size: 10 }])).toMatch(/not an allowed/);
-    expect(attachmentProblem([{ filename: "a.pdf", size: 6 * 1024 * 1024 }])).toMatch(/over 5 MB/);
+    expect(attachmentProblem([{ filename: "a.pdf", size: 4 * 1024 * 1024 }])).toMatch(/over 3 MB/);
     expect(attachmentProblem([1, 2, 3, 4].map((n) => ({ filename: `${n}.pdf`, size: 1 })))).toMatch(/at most 3/);
-    expect(attachmentProblem([1, 2, 3].map((n) => ({ filename: `${n}.pdf`, size: 4 * 1024 * 1024 })))).toMatch(/8 MB/);
+    expect(attachmentProblem([1, 2, 3].map((n) => ({ filename: `${n}.pdf`, size: 2 * 1024 * 1024 })))).toMatch(/3 MB together/);
   });
   it("cleans file names", () => {
     expect(safeFilename("../../etc/passwd")).toBe(".._.._etc_passwd");

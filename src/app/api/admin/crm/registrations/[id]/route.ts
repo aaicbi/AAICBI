@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   return withApiErrors(async () => {
     const { access, canContacts } = await requireCrm("view");
-    const r = await getRegistration(access, canContacts, params.id);
+    const r = await getRegistration(access, canContacts, params.id, access.permissions.has(access.kind === "organization" ? "org_crm.email:view" : "crm.email:view"));
     return r ? NextResponse.json(r) : NextResponse.json({ error: "Registration not found." }, { status: 404 });
   });
 }
