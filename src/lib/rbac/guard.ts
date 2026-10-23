@@ -49,7 +49,7 @@ export async function accessOf(session: SessionPayload): Promise<Access> {
   const org = session.role === "ADMIN" ? await findTrainingOrgByStaffUserId(session.userId) : null;
   if (org) {
     const role = (session.actor?.role ?? "VIEWER") as OrgRoleName;
-    return { kind: "organization", permissions: resolveOrganization(role, await orgPolicyOf(org.id)), organizationId: org.id, organizationName: org.name, organizationUserId: org.staffUserId };
+    return { kind: "organization", permissions: resolveOrganization(role, await orgPolicyOf(org.id), org.crmEnabled), organizationId: org.id, organizationName: org.name, organizationUserId: org.staffUserId };
   }
   return { ...NONE, kind: "staff", permissions: await staffPermissionsOf(session.userId) };
 }

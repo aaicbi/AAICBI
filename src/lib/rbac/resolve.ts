@@ -47,7 +47,7 @@ export type OrgRoleName = "OWNER" | "MANAGER" | "EDITOR" | "VIEWER";
  * The organization-games permissions of one person in an organization. Owners and managers may moderate; editors and viewers may only
  * look. Nothing outside the `org_games` category is ever returned: no Gaming Studio, no platform control.
  */
-export function resolveOrganization(role: OrgRoleName, policy: OrgGamingPolicyInput = DEFAULT_ORG_POLICY): Set<string> {
+export function resolveOrganization(role: OrgRoleName, policy: OrgGamingPolicyInput = DEFAULT_ORG_POLICY, crmEnabled = false): Set<string> {
   const out = new Set<string>();
   const mod = role === "OWNER" || role === "MANAGER";
   if (policy.resultsView) out.add("org_games.results:view");
@@ -60,6 +60,7 @@ export function resolveOrganization(role: OrgRoleName, policy: OrgGamingPolicyIn
   if (mod && (policy.endSessions || policy.restrictTrainees || policy.removeParticipants || policy.chatGameModeration)) out.add("org_games.reports:moderate");
   if (mod && (policy.toggleGames || policy.courseRules)) out.add("org_games.settings:configure");
   for (const k of orgEventPermissions(role)) out.add(k);
+  for (const k of orgCrmPermissions(role, crmEnabled)) out.add(k);
   return new Set([...out].filter((k) => ORG_PERMISSIONS.includes(k)));
 }
 
@@ -75,4 +76,16 @@ export function orgEventPermissions(role: OrgRoleName): string[] {
   }
   if (role === "EDITOR") return [...view, "org_events.events:create", "org_events.events:edit", "org_events.media:manage", "org_events.registrations:view"];
   return view;
+}
+
+/**
+ * What a person in an organization may do with its registrations (the CRM). Nothing at all unless a Super Admin switched the CRM on for the
+ * organization. Owners and managers do everything; editors see and work registrations but cannot export; viewers see nothing, because the
+ * records hold personal details.
+ */
+export function orgCrmPermissions(role: OrgRoleName, crmEnabled: boolean): string[] {
+  if (!crmEnabled) return [];
+  if (role === "OWNER" || role === "MANAGER") return ["org_crm.registrations:view", "org_crm.registrations:manage", "org_crm.registrations:export", "org_crm.contacts:view"];
+  if (role === "EDITOR") return ["org_crm.registrations:view", "org_crm.registrations:manage", "org_crm.contacts:view"];
+  return [];
 }

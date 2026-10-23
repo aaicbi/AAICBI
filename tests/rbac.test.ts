@@ -20,7 +20,8 @@ describe("the catalogue", () => {
   it("keeps staff and organization permissions in separate categories", () => {
     expect(STAFF_PERMISSIONS.some((k) => k.startsWith("org_games."))).toBe(false);
     expect(STAFF_PERMISSIONS.some((k) => k.startsWith("org_events."))).toBe(false);
-    expect(ORG_PERMISSIONS.every((k) => k.startsWith("org_games.") || k.startsWith("org_events."))).toBe(true);
+    expect(STAFF_PERMISSIONS.some((k) => k.startsWith("org_crm."))).toBe(false);
+    expect(ORG_PERMISSIONS.every((k) => k.startsWith("org_games.") || k.startsWith("org_events.") || k.startsWith("org_crm."))).toBe(true);
     expect(CATEGORIES.find((c) => c.id === "org_games")?.audience).toBe("organization");
   });
   it("separates the Gaming Studio from gaming moderation", () => {
@@ -45,8 +46,8 @@ describe("the catalogue", () => {
 });
 
 describe("role templates", () => {
-  it("are the eight suggested ones and contain only real staff permissions", () => {
-    expect(ROLE_TEMPLATES.map((t) => t.key)).toEqual(["platform_admin", "gaming_studio_admin", "gaming_ops_moderator", "events_manager", "org_support", "trainee_course_admin", "content_moderator", "reports_officer", "technical_support"]);
+  it("are the suggested ones and contain only real staff permissions", () => {
+    expect(ROLE_TEMPLATES.map((t) => t.key)).toEqual(["platform_admin", "gaming_studio_admin", "gaming_ops_moderator", "events_manager", "crm_officer", "org_support", "trainee_course_admin", "content_moderator", "reports_officer", "technical_support"]);
     for (const t of ROLE_TEMPLATES) {
       expect(t.permissions.length).toBeGreaterThan(0);
       expect(t.permissions.every((k) => STAFF_PERMISSIONS.includes(k))).toBe(true);

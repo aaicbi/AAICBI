@@ -272,6 +272,13 @@ const GROUPS: Array<{ label: string | null; items: DefinedItem[] }> = [
     items: [{ label: "Payments", href: "/admin/payments", audience: "staffAndOrg" }],
   },
   {
+    label: "CRM",
+    items: [
+      { label: "Registrations", href: "/admin/crm", audience: "staffAndOrg", permission: ["crm.registrations:view", "org_crm.registrations:view"] },
+      { label: "CRM settings", href: "/admin/crm/settings", audience: "superadmin", permission: ["crm.settings:configure", "crm.agreement:view"] },
+    ],
+  },
+  {
     label: "Community and pitching",
     items: [
       { label: "Showcase", href: "/admin/showcase", audience: "admins" },
