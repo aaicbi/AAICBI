@@ -2,8 +2,9 @@ import { createHmac } from "crypto";
 import { describe, expect, it } from "vitest";
 import {
   attachmentProblem, canSendEmail, cleanSubject, escapeHtml, fromHeaderFor, htmlToText, renderMerge, safeFilename, sanitizeHtml, statusAfterEvent, suppressionFor,
-  unknownFields, verifyWebhook, wrapLetterhead, type RecipientInfo, type SenderInfo,
+  unknownFields, wrapLetterhead, type RecipientInfo, type SenderInfo,
 } from "@/lib/crm/emailCore";
+import { verifyWebhook } from "@/lib/crm/webhookCore";
 
 const recipient: RecipientInfo = { email: "amaka@example.com", optedOutAt: null, emailSuppressedAt: null, followUpEmail: true, newsletter: false };
 const sender: SenderInfo = { name: "AAICBI Admissions", fromAddress: "admissions@mail.aaicbi.org", replyTo: "admissions@aaicbi.org", stream: "SERVICE", verified: true, active: true, allowOrganizations: true };

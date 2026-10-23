@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { Input, Select, Textarea } from "@/components/ui/Field";
@@ -13,14 +14,16 @@ interface Detail {
   emailOk: boolean; whatsappOk: boolean; newsletter: boolean;
   activities: { id: string; kind: string; summary: string; createdAt: string }[]; tasks: { id: string; title: string; dueAt: string | null; doneAt: string | null }[];
   consents: { id: string; kind: string; granted: boolean; channels: string[]; noticeText: string; noticeVersion: number; createdAt: string }[]; otherRegistrations: { id: string; reference: string; course: string }[];
+  emails: { id: string; subject: string; status: string; category: string; createdAt: string; sentAt: string | null; scheduledFor: string | null; error: string | null; from: string | null; events: { type: string; detail: string | null; at: string }[] }[]; suppressed: boolean;
 }
+const MAIL_STATUS: Record<string, [string, "success" | "warning" | "danger" | "neutral" | "gold"]> = { SCHEDULED: ["Scheduled", "gold"], SENDING: ["Sending", "neutral"], ACCEPTED: ["Accepted by Resend", "neutral"], DELAYED: ["Delivery delayed", "warning"], DELIVERED: ["Delivered", "success"], BOUNCED: ["Bounced", "danger"], COMPLAINED: ["Reported as spam", "danger"], FAILED: ["Could not be sent", "danger"] };
 
 const when = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 const whenTime = (iso: string) => new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const isoDay = (iso: string | null) => (iso ? iso.slice(0, 10) : "");
 
 /** The CRM registrations list with a detail panel: who registered, what they agreed to, a timeline, a follow-up date and notes. */
-export default function RegistrationsManager({ canManage, canExport }: { canManage: boolean; canExport: boolean }) {
+export default function RegistrationsManager({ canManage, canExport, canEmail }: { canManage: boolean; canExport: boolean; canEmail: boolean }) {
   const [list, setList] = useState<List | null>(null);
   const [q, setQ] = useState("");
   const [courseId, setCourseId] = useState("");
@@ -150,6 +153,12 @@ export default function RegistrationsManager({ canManage, canExport }: { canMana
                 <p><strong>Agreement</strong> version {detail.agreementVersion}, signed as &ldquo;{detail.signedName}&rdquo; on {whenTime(detail.signedAt)}.</p>
                 {detail.motivation && <p className="mt-1"><strong>Why they joined:</strong> {detail.motivation}</p>}
               </div>
+              {canEmail && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link href={`/admin/crm/compose?r=${detail.id}`} className="inline-flex min-h-[44px] items-center rounded-full bg-brand-action px-5 text-sm font-bold text-brand-onAccent hover:bg-brand-actionHover" data-testid="crm-email-button">Email {detail.contact.name.split(" ")[0]}</Link>
+                  {detail.suppressed && <Badge variant="danger">Email address switched off</Badge>}
+                </div>
+              )}
               {canManage && (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Select label="Stage" value={detail.stage} disabled={busy} onChange={(e) => void patch({ stage: e.target.value })}>
@@ -171,6 +180,24 @@ export default function RegistrationsManager({ canManage, canExport }: { canMana
                 <div className="flex flex-col gap-2">
                   <Textarea label="Add a note" rows={2} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
                   <button type="button" disabled={busy || !note.trim()} onClick={() => void patch({ note })} className="min-h-[44px] self-start rounded-full bg-brand-action px-5 text-sm font-bold text-brand-onAccent hover:bg-brand-actionHover disabled:opacity-50">Save note</button>
+                </div>
+              )}
+              {detail.emails.length > 0 && (
+                <div><h3 className="text-sm font-bold text-brand-ink">Emails</h3>
+                  <ul className="mt-1 flex flex-col gap-3" data-testid="crm-emails">
+                    {detail.emails.map((m) => {
+                      const [label, variant] = MAIL_STATUS[m.status] ?? [m.status, "neutral" as const];
+                      return (
+                        <li key={m.id} className="text-sm text-brand-ink">
+                          <span className="font-semibold">{m.subject}</span>
+                          <span className="block text-xs text-gray-600">{m.category === "MARKETING" ? "Marketing" : "Service"} · {m.scheduledFor && m.status === "SCHEDULED" ? `for ${whenTime(m.scheduledFor)}` : whenTime(m.sentAt ?? m.createdAt)}{m.from ? ` · ${m.from}` : ""}</span>
+                          <span className="mt-1 flex flex-wrap items-center gap-1.5"><Badge variant={variant}>{label}</Badge>{m.events.filter((x) => x.type === "opened").length > 0 && <Badge variant="neutral">Opened (approximate)</Badge>}{m.events.filter((x) => x.type === "clicked").length > 0 && <Badge variant="neutral">Clicked</Badge>}</span>
+                          {m.error && <span className="mt-1 block text-xs text-brand-rose">{m.error}</span>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <p className="mt-1 text-xs text-gray-600">&ldquo;Accepted&rdquo; only means Resend took the email. It says Delivered once Resend reports it reached the other mail server. Opens are approximate.</p>
                 </div>
               )}
               <div><h3 className="text-sm font-bold text-brand-ink">Timeline</h3>

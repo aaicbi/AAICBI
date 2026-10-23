@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withApiErrors } from "@/lib/apiError";
-import { verifyWebhook } from "@/lib/crm/emailCore";
+import { verifyWebhook } from "@/lib/crm/webhookCore";
 import { applyResendEvent, type ResendEvent } from "@/lib/crm/email";
 
 export const dynamic = "force-dynamic";
